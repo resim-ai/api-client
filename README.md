@@ -1,6 +1,12 @@
 # api-client
 This repository contains the ReSim API command-line interface (CLI).  It is written in Go and produced via code generation with [openapi-cli-generator](https://github.com/danielgtaylor/openapi-cli-generator) from the publicly-available [API spec](https://api.resim.ai).
 
+## Installation
+
+Install using `go install`:
+
+    go install github.com/resim-ai/api-client/resim@latest
+
 ## Usage
 
 To get a list of available commands, just type

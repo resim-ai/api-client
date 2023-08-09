@@ -1,4 +1,4 @@
-module github.com/resim/api-client
+module github.com/resim-ai/api-client/resim
 
 go 1.20
 

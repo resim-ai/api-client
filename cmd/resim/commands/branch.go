@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 )
 
@@ -88,4 +89,37 @@ func createBranch(ccmd *cobra.Command, args []string) {
 		log.Fatal("Failed to create branch!\n", string(response.Body))
 	}
 
+}
+
+func getBranchIDForName(client *api.ClientWithResponses, projectID uuid.UUID, buildBranchName string) uuid.UUID {
+	// Page through branches until we find the one we want:
+	var branchID uuid.UUID = uuid.Nil
+	var pageToken *string = nil
+	found := false
+	for {
+		listResponse, err := client.ListBranchesForProjectWithResponse(
+			context.Background(), projectID, &api.ListBranchesForProjectParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("Failed to find branch with error: ", err)
+		}
+
+		pageToken = listResponse.JSON200.NextPageToken
+		branches := *listResponse.JSON200.Branches
+		for _, branch := range branches {
+			if *branch.Name == buildBranchName {
+				branchID = *branch.BranchID
+				found = true
+				break
+			}
+		}
+		if found || *pageToken == "" {
+			break
+		}
+	}
+
+	// We return the branch ID whether or not it is found:
+	return branchID
 }

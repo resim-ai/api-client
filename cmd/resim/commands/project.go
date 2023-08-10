@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 )
 

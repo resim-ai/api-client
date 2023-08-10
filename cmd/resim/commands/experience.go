@@ -6,9 +6,8 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/resim-ai/rerun/api"
+	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -44,12 +43,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a experience...")
 	}
 
-	// Set up hard-coded credentials
-	clientCredentialsConfig := hardcodedCredentials()
-	oauthClient := clientCredentialsConfig.Client(context.Background())
-	url := viper.GetString("url")
-
-	client, err := api.NewClientWithResponses(url, api.WithHTTPClient(oauthClient))
+	client, err := GetClient(context.Background())
 	if err != nil {
 		log.Fatal(err)
 	}

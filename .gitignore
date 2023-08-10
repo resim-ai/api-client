@@ -20,6 +20,4 @@
 # Go workspace file
 go.work
 
-api.yaml
-api-client
-resim/resim
+cmd/resim/resim

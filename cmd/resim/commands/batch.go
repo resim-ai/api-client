@@ -46,7 +46,7 @@ func init() {
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().StringVar(&batchIDString, "batch_id", "", "The ID of the batch to retrieve.")
-	getBatchCmd.Flags().StringVar(&batchName, "batch_name", "", "The name of the batch to retrieve.")
+	getBatchCmd.Flags().StringVar(&batchName, "batch_name", "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getBatchCmd.Flags().BoolVar(&exitStatus, "exit_status", false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	viper.BindPFlags(getBatchCmd.Flags())
 	batchCmd.AddCommand(getBatchCmd)

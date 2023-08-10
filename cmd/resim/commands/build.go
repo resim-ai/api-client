@@ -78,11 +78,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	if branchID == uuid.Nil {
 		if buildAutoCreateBranch {
 			if !buildGithub {
-				fmt.Printf("Branch with name %v doesn't currently exist. Creating...", buildBranchName)
+				fmt.Printf("Branch with name %v doesn't currently exist. Creating... \n", buildBranchName)
 			}
 			// Create the branch
 			body := api.CreateBranchForProjectJSONRequestBody{
-				Name:       &branchName,
+				Name:       &buildBranchName,
 				BranchType: Ptr(api.CHANGEREQUEST),
 			}
 

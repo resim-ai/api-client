@@ -100,7 +100,7 @@ type Build struct {
 	BuildID           *BuildID           `json:"buildID,omitempty"`
 	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
 	Description       *BuildDescription  `json:"description,omitempty"`
-	ImageName         *BuildImageName    `json:"imageName,omitempty"`
+	ImageUri          *BuildImageUri     `json:"imageUri,omitempty"`
 	OrgID             *OrgID             `json:"orgID,omitempty"`
 	UserID            *UserID            `json:"userID,omitempty"`
 	Version           *BuildVersion      `json:"version,omitempty"`
@@ -112,8 +112,8 @@ type BuildDescription = string
 // BuildID defines model for buildID.
 type BuildID = openapi_types.UUID
 
-// BuildImageName defines model for buildImageName.
-type BuildImageName = string
+// BuildImageUri defines model for buildImageUri.
+type BuildImageUri = string
 
 // BuildVersion defines model for buildVersion.
 type BuildVersion = string

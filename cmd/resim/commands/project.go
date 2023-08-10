@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 )
 
@@ -79,4 +81,39 @@ func createProject(ccmd *cobra.Command, args []string) {
 		log.Fatal("Failed to create project!\n", string(response.Body))
 	}
 
+}
+
+// TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
+func getProjectIDForName(client *api.ClientWithResponses, buildProjectName string) uuid.UUID {
+	// Page through projects until we find the one we want:
+	var projectID uuid.UUID = uuid.Nil
+	var pageToken *string = nil
+	found := false
+	for {
+		listResponse, err := client.ListProjectsWithResponse(
+			context.Background(), &api.ListProjectsParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("Failed to find project with error: ", err)
+		}
+
+		pageToken = listResponse.JSON200.NextPageToken
+		projects := *listResponse.JSON200.Projects
+		for _, project := range projects {
+			if *project.Name == buildProjectName {
+				projectID = *project.ProjectID
+				found = true
+				break
+			}
+		}
+		if found || *pageToken == "" {
+			break
+		}
+	}
+	if !found {
+		log.Fatal("Failed to find project with requested name: ", buildProjectName)
+	}
+	return projectID
 }

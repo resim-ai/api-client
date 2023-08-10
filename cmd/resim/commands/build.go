@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 )
 
@@ -24,20 +25,22 @@ var (
 		Run:   createBuild,
 	}
 
-	buildDescription     string
-	buildImageName       string
-	buildVersion         string
-	buildProjectIDString string
-	buildBranchIDString  string
-	buildGithub          bool
+	buildDescription      string
+	buildImageUri         string
+	buildVersion          string
+	buildProjectName      string
+	buildBranchName       string
+	buildAutoCreateBranch bool
+	buildGithub           bool
 )
 
 func init() {
 	createBuildCmd.Flags().StringVar(&buildDescription, "description", "", "The description of the build, often a commit message")
-	createBuildCmd.Flags().StringVar(&buildImageName, "image", "", "The URI of the docker image")
+	createBuildCmd.Flags().StringVar(&buildImageUri, "image", "", "The URI of the docker image")
 	createBuildCmd.Flags().StringVar(&buildVersion, "version", "", "The version of the build image, usually a commit ID")
-	createBuildCmd.Flags().StringVar(&buildProjectIDString, "project_id", "", "The ID of the project to create the build in")
-	createBuildCmd.Flags().StringVar(&buildBranchIDString, "branch_id", "", "The ID of the branch to nest the build in, usually the associated git branch")
+	createBuildCmd.Flags().StringVar(&buildProjectName, "project_name", "", "The name of the project to create the build in")
+	createBuildCmd.Flags().StringVar(&buildBranchName, "branch_name", "", "The name of the branch to nest the build in, usually the associated git branch")
+	createBuildCmd.Flags().BoolVar(&buildAutoCreateBranch, "auto_create_branch", false, "Whether to automatically create branch if it doesn't exist")
 	createBuildCmd.Flags().BoolVar(&buildGithub, "github", false, "Whether to output format in github action friendly format")
 	buildCmd.AddCommand(createBuildCmd)
 	rootCmd.AddCommand(buildCmd)
@@ -62,23 +65,43 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("Empty build version")
 	}
 
-	if buildImageName == "" {
-		log.Fatal("Empty build image name")
+	if buildImageUri == "" {
+		log.Fatal("Empty build image uri")
 	}
 
-	projectID, err := uuid.Parse(buildProjectIDString)
-	if err != nil || projectID == uuid.Nil {
-		log.Fatal("Empty project id")
-	}
+	// Check if the project exists, by listing projects:
+	projectID := getProjectIDForName(client, buildProjectName)
 
-	branchID, err := uuid.Parse(buildBranchIDString)
-	if err != nil || branchID == uuid.Nil {
-		log.Fatal("Empty branch id")
+	// Check if the branch exists, by listing branches:
+	branchID := getBranchIDForName(client, projectID, buildProjectName)
+
+	if branchID == uuid.Nil {
+		if buildAutoCreateBranch {
+			if !buildGithub {
+				fmt.Printf("Branch with name %v doesn't currently exist. Creating... \n", buildBranchName)
+			}
+			// Create the branch
+			body := api.CreateBranchForProjectJSONRequestBody{
+				Name:       &buildBranchName,
+				BranchType: Ptr(api.CHANGEREQUEST),
+			}
+
+			response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("Failed to create a new branch with name %v ", branchName), err)
+			}
+			branchID = *response.JSON201.BranchID
+			if !buildGithub {
+				fmt.Printf("Created branch with ID %v\n", branchID)
+			}
+		} else {
+			log.Fatal("Branch does not exist, and auto_create_branch is false, so not creating branch")
+		}
 	}
 
 	body := api.CreateBuildForBranchJSONRequestBody{
 		Description: &buildDescription,
-		ImageName:   &buildImageName,
+		ImageUri:    &buildImageUri,
 		Version:     &buildVersion,
 	}
 

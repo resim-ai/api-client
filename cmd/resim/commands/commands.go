@@ -22,7 +22,7 @@ const (
 )
 
 func AddRootCmdFlags() {
-	rootCmd.PersistentFlags().String(URLKey, "", "The url of the API.")
+	rootCmd.PersistentFlags().String(URLKey, "", "The URL of the API.")
 	rootCmd.PersistentFlags().String(ClientIDKey, "", "Authentication credentials client ID")
 	rootCmd.PersistentFlags().String(ClientSecretKey, "", "Authentication credentials client secret")
 

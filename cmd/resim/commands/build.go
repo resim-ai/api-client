@@ -58,11 +58,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 
 	// Parse the various arguments from command line
 	if buildDescription == "" {
-		log.Fatal("Empty build description")
+		log.Fatal("empty build description")
 	}
 
 	if buildVersion == "" {
-		log.Fatal("Empty build version")
+		log.Fatal("empty build version")
 	}
 
 	if buildImageUri == "" {
@@ -106,22 +106,16 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)
-
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || response.StatusCode() != http.StatusCreated {
+		log.Fatal("unable to create build ", err, string(response.Body))
 	}
 
 	// Report the results back to the user
-	success := response.HTTPResponse.StatusCode == http.StatusCreated
-	if success {
-		if buildGithub {
-			fmt.Printf("build_id=%s\n", response.JSON201.BuildID.String())
-		} else {
-			fmt.Println("Created build successfully!")
-			fmt.Printf("Build ID: %s\n", response.JSON201.BuildID.String())
-		}
+	if buildGithub {
+		fmt.Printf("build_id=%s\n", response.JSON201.BuildID.String())
 	} else {
-		log.Fatal("Failed to create build!\n", string(response.Body))
+		fmt.Println("Created build successfully!")
+		fmt.Printf("Build ID: %s\n", response.JSON201.BuildID.String())
 	}
 
 }

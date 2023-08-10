@@ -53,16 +53,16 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	// Parse the various arguments from command line
 	projectID, err := uuid.Parse(branchProjectIDString)
 	if err != nil || projectID == uuid.Nil {
-		log.Fatal("Empty project id")
+		log.Fatal("empty project ID")
 	}
 
 	if branchName == "" {
-		log.Fatal("Empty Branch name")
+		log.Fatal("empty branch name")
 	}
 
 	branchType := api.BranchType(branchTypeString)
 	if branchType != api.RELEASE && branchType != api.MAIN && branchType != api.CHANGEREQUEST {
-		log.Fatal("Invalid branch type")
+		log.Fatal("invalid branch type")
 	}
 
 	body := api.CreateBranchForProjectJSONRequestBody{
@@ -71,24 +71,17 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
-
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || response.StatusCode() != http.StatusCreated {
+		log.Fatal("unable to create branch ", err, string(response.Body))
 	}
 
 	// Report the results back to the user
-	success := response.HTTPResponse.StatusCode == http.StatusCreated
-	if success {
-		if branchGithub {
-			fmt.Printf("branch_id=%s\n", response.JSON201.BranchID.String())
-		} else {
-			fmt.Println("Created branch successfully!")
-			fmt.Printf("Branch ID: %s\n", response.JSON201.BranchID.String())
-		}
+	if branchGithub {
+		fmt.Printf("branch_id=%s\n", response.JSON201.BranchID.String())
 	} else {
-		log.Fatal("Failed to create branch!\n", string(response.Body))
+		fmt.Println("Created branch successfully!")
+		fmt.Printf("Branch ID: %s\n", response.JSON201.BranchID.String())
 	}
-
 }
 
 func getBranchIDForName(client *api.ClientWithResponses, projectID uuid.UUID, buildBranchName string) uuid.UUID {

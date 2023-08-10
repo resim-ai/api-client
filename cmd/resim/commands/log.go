@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v4"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
 )
@@ -56,21 +55,21 @@ func createLog(ccmd *cobra.Command, args []string) {
 
 	// Parse the various arguments from command line
 	if logName == "" {
-		log.Fatal("Empty log filename")
+		log.Fatal("empty log filename")
 	}
 
 	logBatchID, err := uuid.Parse(logBatchIDString)
 	if err != nil || logBatchID == uuid.Nil {
-		log.Fatal("Empty batch id")
+		log.Fatal("empty batch ID")
 	}
 
 	logJobID, err := uuid.Parse(logJobIDString)
 	if err != nil || logJobID == uuid.Nil {
-		log.Fatal("Empty log id")
+		log.Fatal("empty log ID")
 	}
 
 	if logFileSize == -1 {
-		log.Fatal("Empty file size")
+		log.Fatal("empty file size")
 	}
 
 	if logChecksum == "" {
@@ -86,40 +85,29 @@ func createLog(ccmd *cobra.Command, args []string) {
 	}
 
 	// Verify that the batch and job exist:
-	_, err = client.GetBatchWithResponse(context.Background(), logBatchID)
-	if err == pgx.ErrNoRows {
-		log.Fatal("Unable to find batch with id ", logBatchID)
-	}
-	if err != nil {
-		log.Fatal(err)
+	batchResponse, err := client.GetBatchWithResponse(context.Background(), logBatchID)
+	if err != nil || batchResponse.StatusCode() != http.StatusOK {
+		log.Fatal("unable to find batch with ID ", logBatchID, err, string(batchResponse.Body))
 	}
 
-	_, err = client.GetJobWithResponse(context.Background(), logBatchID, logJobID)
-	if err == pgx.ErrNoRows {
-		log.Fatal("Unable to find job with id ", logJobID)
-	}
-	if err != nil {
-		log.Fatal(err)
+	jobResponse, err := client.GetJobWithResponse(context.Background(), logBatchID, logJobID)
+	if err != nil || jobResponse.StatusCode() != http.StatusOK {
+		log.Fatal("unable to find job with ID ", logJobID, err, string(jobResponse.Body))
 	}
 
 	// Create the log entry
-	response, err := client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
-	if err != nil {
-		log.Fatal("Unable to create log. Received error: ", err)
+	logResponse, err := client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
+	if err != nil || logResponse.StatusCode() != http.StatusCreated {
+		log.Fatal("unable to create log ", err, string(logResponse.Body))
 	}
 
 	// Report the results back to the user
-	success := response.HTTPResponse.StatusCode == http.StatusCreated
-	if success {
-		if logGithub {
-			fmt.Printf("log_location=%s\n", *response.JSON201.Location)
-		} else {
-			fmt.Println("Created log successfully!")
-			fmt.Printf("Log ID: %s\n", response.JSON201.LogID.String())
-			fmt.Printf("Output Location: %s\n", *response.JSON201.Location)
-			fmt.Println("Please upload the log file to this location")
-		}
+	if logGithub {
+		fmt.Printf("log_location=%s\n", *logResponse.JSON201.Location)
 	} else {
-		log.Fatal("Failed to create log!\n", string(response.Body))
+		fmt.Println("Created log successfully!")
+		fmt.Printf("Log ID: %s\n", logResponse.JSON201.LogID.String())
+		fmt.Printf("Output Location: %s\n", *logResponse.JSON201.Location)
+		fmt.Println("Please upload the log file to this location")
 	}
 }

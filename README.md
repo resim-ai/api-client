@@ -7,28 +7,13 @@ Install using `go install`:
 
     go install github.com/resim-ai/api-client/resim@latest
 
-## Usage
-
-To get a list of available commands, just type
-
-    resim
-
-To call a particular endpoint, use
-
-    resim <endpoint> <parameters>
-
-For example, to add a project:
-
-    resim createproject <<EOF
-        {
-            "name": "test project"
-        }
-    EOF
-
-### Authentication
+## Authentication
 
 The ReSim CLI uses profiles to track your credentials.  There are two login methods supported: user credentials and client credentials.
 User credentials will use your ReSim login information.  Client credentials use a client ID and client secret.
+
+Note that, when authenticating via user, the CLI opens a server on port 8484 that your browser will be redirected to.  You need to make sure that port is open
+to your browser (for example, if you're using the CLI from within a Docker container, you'll need to have opened port 8484).
 
 Profile information is stored in the `~/.resim/credentials.json` file.  You can add profiles to this with the CLI or by editing that file directly.
 
@@ -59,8 +44,34 @@ A sample credentials.json might be:
 }
 ```
 
-When running the CLI, you will need to specify a profile with the `--profile` argument.  `--profile` defaults to `default`, so if you name your profile `default`,
-you can omit this argument.
+When running the CLI, you will need to specify a profile with the `--profile` argument.  
+
+If you're only going to use one profile, we recommend using `default` as your profile name.  This will allow you to omit the `--profile` argument.
+Otherwise, we suggest using something short and sweet, such as your username (without your domain, like `austin`) or `client` for client credentials flow.
+
+## Usage
+
+To get a list of available commands, just type
+
+    resim
+
+To call a particular endpoint, use
+
+    resim --profile <profilename> <endpoint> <parameters>
+
+Endpoints that POST or PATCH will need you to provide the JSON body on stdin.  We recommend you put the JSON in a file and pipe it in stdin.
+
+```json
+project.json
+{
+    "name": "test project",
+    "description": "My Cool Test Project"
+}
+```
+
+```
+resim --profile myprofile createproject <project.json
+```
 
 ## Developing
 

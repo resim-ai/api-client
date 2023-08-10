@@ -308,9 +308,9 @@ func ApiGetJob(paramBatchid string, paramJobid string, params *viper.Viper) (*ge
 	return resp, decoded, nil
 }
 
-// ApiCreateLog CreateLog
-func ApiCreateLog(paramBatchid string, paramJobid string, params *viper.Viper, body string) (*gentleman.Response, map[string]interface{}, error) {
-	handlerPath := "createlog"
+// ApiListLogsForJob ListLogsForJob
+func ApiListLogsForJob(paramBatchid string, paramJobid string, params *viper.Viper) (*gentleman.Response, map[string]interface{}, error) {
+	handlerPath := "listlogsforjob"
 	if apiSubcommand {
 		handlerPath = "api " + handlerPath
 	}
@@ -324,10 +324,15 @@ func ApiCreateLog(paramBatchid string, paramJobid string, params *viper.Viper, b
 	url = strings.Replace(url, "{batchID}", paramBatchid, 1)
 	url = strings.Replace(url, "{jobID}", paramJobid, 1)
 
-	req := cli.Client.Post().URL(url)
+	req := cli.Client.Get().URL(url)
 
-	if body != "" {
-		req = req.AddHeader("Content-Type", "application/json").BodyString(body)
+	paramPagesize := params.GetInt64("pagesize")
+	if paramPagesize != 0 {
+		req = req.AddQuery("pageSize", fmt.Sprintf("%v", paramPagesize))
+	}
+	paramPagetoken := params.GetString("pagetoken")
+	if paramPagetoken != "" {
+		req = req.AddQuery("pageToken", fmt.Sprintf("%v", paramPagetoken))
 	}
 
 	cli.HandleBefore(handlerPath, params, req)
@@ -355,9 +360,9 @@ func ApiCreateLog(paramBatchid string, paramJobid string, params *viper.Viper, b
 	return resp, decoded, nil
 }
 
-// ApiListLogsForJob ListLogsForJob
-func ApiListLogsForJob(paramBatchid string, paramJobid string, params *viper.Viper) (*gentleman.Response, map[string]interface{}, error) {
-	handlerPath := "listlogsforjob"
+// ApiCreateLog CreateLog
+func ApiCreateLog(paramBatchid string, paramJobid string, params *viper.Viper, body string) (*gentleman.Response, map[string]interface{}, error) {
+	handlerPath := "createlog"
 	if apiSubcommand {
 		handlerPath = "api " + handlerPath
 	}
@@ -371,15 +376,10 @@ func ApiListLogsForJob(paramBatchid string, paramJobid string, params *viper.Vip
 	url = strings.Replace(url, "{batchID}", paramBatchid, 1)
 	url = strings.Replace(url, "{jobID}", paramJobid, 1)
 
-	req := cli.Client.Get().URL(url)
+	req := cli.Client.Post().URL(url)
 
-	paramPagesize := params.GetInt64("pagesize")
-	if paramPagesize != 0 {
-		req = req.AddQuery("pageSize", fmt.Sprintf("%v", paramPagesize))
-	}
-	paramPagetoken := params.GetString("pagetoken")
-	if paramPagetoken != "" {
-		req = req.AddQuery("pageToken", fmt.Sprintf("%v", paramPagetoken))
+	if body != "" {
+		req = req.AddHeader("Content-Type", "application/json").BodyString(body)
 	}
 
 	cli.HandleBefore(handlerPath, params, req)
@@ -914,9 +914,9 @@ func ApiListExperiencesWithExperienceTag(paramExperiencetagid string, params *vi
 	return resp, decoded, nil
 }
 
-// ApiRemoveExperienceTagFromExperience RemoveExperienceTagFromExperience
-func ApiRemoveExperienceTagFromExperience(paramExperiencetagid string, paramExperienceid string, params *viper.Viper) (*gentleman.Response, interface{}, error) {
-	handlerPath := "removeexperiencetagfromexperience"
+// ApiAddExperienceTagToExperience AddExperienceTagToExperience
+func ApiAddExperienceTagToExperience(paramExperiencetagid string, paramExperienceid string, params *viper.Viper, body string) (*gentleman.Response, interface{}, error) {
+	handlerPath := "addexperiencetagtoexperience"
 	if apiSubcommand {
 		handlerPath = "api " + handlerPath
 	}
@@ -930,7 +930,11 @@ func ApiRemoveExperienceTagFromExperience(paramExperiencetagid string, paramExpe
 	url = strings.Replace(url, "{experienceTagID}", paramExperiencetagid, 1)
 	url = strings.Replace(url, "{experienceID}", paramExperienceid, 1)
 
-	req := cli.Client.Delete().URL(url)
+	req := cli.Client.Post().URL(url)
+
+	if body != "" {
+		req = req.AddHeader("Content-Type", "").BodyString(body)
+	}
 
 	cli.HandleBefore(handlerPath, params, req)
 
@@ -957,9 +961,9 @@ func ApiRemoveExperienceTagFromExperience(paramExperiencetagid string, paramExpe
 	return resp, decoded, nil
 }
 
-// ApiAddExperienceTagToExperience AddExperienceTagToExperience
-func ApiAddExperienceTagToExperience(paramExperiencetagid string, paramExperienceid string, params *viper.Viper, body string) (*gentleman.Response, interface{}, error) {
-	handlerPath := "addexperiencetagtoexperience"
+// ApiRemoveExperienceTagFromExperience RemoveExperienceTagFromExperience
+func ApiRemoveExperienceTagFromExperience(paramExperiencetagid string, paramExperienceid string, params *viper.Viper) (*gentleman.Response, interface{}, error) {
+	handlerPath := "removeexperiencetagfromexperience"
 	if apiSubcommand {
 		handlerPath = "api " + handlerPath
 	}
@@ -973,11 +977,7 @@ func ApiAddExperienceTagToExperience(paramExperiencetagid string, paramExperienc
 	url = strings.Replace(url, "{experienceTagID}", paramExperiencetagid, 1)
 	url = strings.Replace(url, "{experienceID}", paramExperienceid, 1)
 
-	req := cli.Client.Post().URL(url)
-
-	if body != "" {
-		req = req.AddHeader("Content-Type", "").BodyString(body)
-	}
+	req := cli.Client.Delete().URL(url)
 
 	cli.HandleBefore(handlerPath, params, req)
 
@@ -1424,6 +1424,52 @@ func ApiCreateProject(params *viper.Viper, body string) (*gentleman.Response, ma
 	return resp, decoded, nil
 }
 
+// ApiUpdateProject UpdateProject
+func ApiUpdateProject(paramProjectid string, params *viper.Viper, body string) (*gentleman.Response, map[string]interface{}, error) {
+	handlerPath := "updateproject"
+	if apiSubcommand {
+		handlerPath = "api " + handlerPath
+	}
+
+	server := viper.GetString("server")
+	if server == "" {
+		server = apiServers()[viper.GetInt("server-index")]["url"]
+	}
+
+	url := server + "/projects/{projectID}"
+	url = strings.Replace(url, "{projectID}", paramProjectid, 1)
+
+	req := cli.Client.Patch().URL(url)
+
+	if body != "" {
+		req = req.AddHeader("Content-Type", "application/json").BodyString(body)
+	}
+
+	cli.HandleBefore(handlerPath, params, req)
+
+	resp, err := req.Do()
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "Request failed")
+	}
+
+	var decoded map[string]interface{}
+
+	if resp.StatusCode < 400 {
+		if err := cli.UnmarshalResponse(resp, &decoded); err != nil {
+			return nil, nil, errors.Wrap(err, "Unmarshalling response failed")
+		}
+	} else {
+		return nil, nil, errors.Errorf("HTTP %d: %s", resp.StatusCode, resp.String())
+	}
+
+	after := cli.HandleAfter(handlerPath, params, resp, decoded)
+	if after != nil {
+		decoded = after.(map[string]interface{})
+	}
+
+	return resp, decoded, nil
+}
+
 // ApiDeleteProject DeleteProject
 func ApiDeleteProject(paramProjectid string, params *viper.Viper) (*gentleman.Response, interface{}, error) {
 	handlerPath := "deleteproject"
@@ -1482,52 +1528,6 @@ func ApiGetProject(paramProjectid string, params *viper.Viper) (*gentleman.Respo
 	url = strings.Replace(url, "{projectID}", paramProjectid, 1)
 
 	req := cli.Client.Get().URL(url)
-
-	cli.HandleBefore(handlerPath, params, req)
-
-	resp, err := req.Do()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "Request failed")
-	}
-
-	var decoded map[string]interface{}
-
-	if resp.StatusCode < 400 {
-		if err := cli.UnmarshalResponse(resp, &decoded); err != nil {
-			return nil, nil, errors.Wrap(err, "Unmarshalling response failed")
-		}
-	} else {
-		return nil, nil, errors.Errorf("HTTP %d: %s", resp.StatusCode, resp.String())
-	}
-
-	after := cli.HandleAfter(handlerPath, params, resp, decoded)
-	if after != nil {
-		decoded = after.(map[string]interface{})
-	}
-
-	return resp, decoded, nil
-}
-
-// ApiUpdateProject UpdateProject
-func ApiUpdateProject(paramProjectid string, params *viper.Viper, body string) (*gentleman.Response, map[string]interface{}, error) {
-	handlerPath := "updateproject"
-	if apiSubcommand {
-		handlerPath = "api " + handlerPath
-	}
-
-	server := viper.GetString("server")
-	if server == "" {
-		server = apiServers()[viper.GetInt("server-index")]["url"]
-	}
-
-	url := server + "/projects/{projectID}"
-	url = strings.Replace(url, "{projectID}", paramProjectid, 1)
-
-	req := cli.Client.Patch().URL(url)
-
-	if body != "" {
-		req = req.AddHeader("Content-Type", "application/json").BodyString(body)
-	}
 
 	cli.HandleBefore(handlerPath, params, req)
 
@@ -2503,6 +2503,43 @@ func apiRegister(subcommand bool) {
 		var examples string
 
 		cmd := &cobra.Command{
+			Use:     "listlogsforjob batchid jobid",
+			Short:   "ListLogsForJob",
+			Long:    cli.Markdown("List the logs associated with a given job"),
+			Example: examples,
+			Args:    cobra.MinimumNArgs(2),
+			Run: func(cmd *cobra.Command, args []string) {
+
+				_, decoded, err := ApiListLogsForJob(args[0], args[1], params)
+				if err != nil {
+					log.Fatal().Err(err).Msg("Error calling operation")
+				}
+
+				if err := cli.Formatter.Format(decoded); err != nil {
+					log.Fatal().Err(err).Msg("Formatting failed")
+				}
+
+			},
+		}
+		root.AddCommand(cmd)
+
+		cmd.Flags().Int64("pagesize", 0, "")
+		cmd.Flags().String("pagetoken", "", "")
+
+		cli.SetCustomFlags(cmd)
+
+		if cmd.Flags().HasFlags() {
+			params.BindPFlags(cmd.Flags())
+		}
+
+	}()
+
+	func() {
+		params := viper.New()
+
+		var examples string
+
+		cmd := &cobra.Command{
 			Use:     "createlog batchid jobid",
 			Short:   "CreateLog",
 			Long:    cli.Markdown("Adds a log.  ID should be omitted and will be returned in the response.\n## Request Schema (application/json)\n\nproperties:\n  checksum:\n    $ref: '#/components/schemas/checksum'\n  creationTimestamp:\n    $ref: '#/components/schemas/creationTimestamp'\n  fileName:\n    $ref: '#/components/schemas/fileName'\n  fileSize:\n    $ref: '#/components/schemas/fileSize'\n  jobID:\n    $ref: '#/components/schemas/jobID'\n  location:\n    $ref: '#/components/schemas/logLocation'\n  logID:\n    $ref: '#/components/schemas/logID'\n  logOutputLocation:\n    format: uri\n    type: string\n  orgID:\n    $ref: '#/components/schemas/orgID'\n  userID:\n    $ref: '#/components/schemas/userID'\ntype: object\n"),
@@ -2526,43 +2563,6 @@ func apiRegister(subcommand bool) {
 			},
 		}
 		root.AddCommand(cmd)
-
-		cli.SetCustomFlags(cmd)
-
-		if cmd.Flags().HasFlags() {
-			params.BindPFlags(cmd.Flags())
-		}
-
-	}()
-
-	func() {
-		params := viper.New()
-
-		var examples string
-
-		cmd := &cobra.Command{
-			Use:     "listlogsforjob batchid jobid",
-			Short:   "ListLogsForJob",
-			Long:    cli.Markdown("List the logs associated with a given job"),
-			Example: examples,
-			Args:    cobra.MinimumNArgs(2),
-			Run: func(cmd *cobra.Command, args []string) {
-
-				_, decoded, err := ApiListLogsForJob(args[0], args[1], params)
-				if err != nil {
-					log.Fatal().Err(err).Msg("Error calling operation")
-				}
-
-				if err := cli.Formatter.Format(decoded); err != nil {
-					log.Fatal().Err(err).Msg("Formatting failed")
-				}
-
-			},
-		}
-		root.AddCommand(cmd)
-
-		cmd.Flags().Int64("pagesize", 0, "")
-		cmd.Flags().String("pagetoken", "", "")
 
 		cli.SetCustomFlags(cmd)
 
@@ -2971,14 +2971,18 @@ func apiRegister(subcommand bool) {
 		var examples string
 
 		cmd := &cobra.Command{
-			Use:     "removeexperiencetagfromexperience experiencetagid experienceid",
-			Short:   "RemoveExperienceTagFromExperience",
-			Long:    cli.Markdown("Removes the given experience tag from the given experience."),
+			Use:     "addexperiencetagtoexperience experiencetagid experienceid",
+			Short:   "AddExperienceTagToExperience",
+			Long:    cli.Markdown("Adds the given experience tag to the given experience."),
 			Example: examples,
 			Args:    cobra.MinimumNArgs(2),
 			Run: func(cmd *cobra.Command, args []string) {
+				body, err := cli.GetBody("", args[2:])
+				if err != nil {
+					log.Fatal().Err(err).Msg("Unable to get body")
+				}
 
-				_, decoded, err := ApiRemoveExperienceTagFromExperience(args[0], args[1], params)
+				_, decoded, err := ApiAddExperienceTagToExperience(args[0], args[1], params, body)
 				if err != nil {
 					log.Fatal().Err(err).Msg("Error calling operation")
 				}
@@ -3005,18 +3009,14 @@ func apiRegister(subcommand bool) {
 		var examples string
 
 		cmd := &cobra.Command{
-			Use:     "addexperiencetagtoexperience experiencetagid experienceid",
-			Short:   "AddExperienceTagToExperience",
-			Long:    cli.Markdown("Adds the given experience tag to the given experience."),
+			Use:     "removeexperiencetagfromexperience experiencetagid experienceid",
+			Short:   "RemoveExperienceTagFromExperience",
+			Long:    cli.Markdown("Removes the given experience tag from the given experience."),
 			Example: examples,
 			Args:    cobra.MinimumNArgs(2),
 			Run: func(cmd *cobra.Command, args []string) {
-				body, err := cli.GetBody("", args[2:])
-				if err != nil {
-					log.Fatal().Err(err).Msg("Unable to get body")
-				}
 
-				_, decoded, err := ApiAddExperienceTagToExperience(args[0], args[1], params, body)
+				_, decoded, err := ApiRemoveExperienceTagFromExperience(args[0], args[1], params)
 				if err != nil {
 					log.Fatal().Err(err).Msg("Error calling operation")
 				}
@@ -3296,7 +3296,10 @@ func apiRegister(subcommand bool) {
 		var examples string
 
 		cmd := &cobra.Command{
-			Use:     "listprojects",
+			Use: "listprojects",
+			Aliases: []string{
+				"ListProjects",
+			},
 			Short:   "ListProjects",
 			Long:    cli.Markdown("Returns the list of projects."),
 			Example: examples,
@@ -3372,6 +3375,44 @@ func apiRegister(subcommand bool) {
 		var examples string
 
 		cmd := &cobra.Command{
+			Use:     "updateproject projectid",
+			Short:   "UpdateProject",
+			Long:    cli.Markdown("Updates the project.\n## Request Schema (application/json)\n\nproperties:\n  project:\n    $ref: '#/components/schemas/project'\n  updateMask:\n    $ref: '#/components/schemas/updateMask'\ntype: object\n"),
+			Example: examples,
+			Args:    cobra.MinimumNArgs(1),
+			Run: func(cmd *cobra.Command, args []string) {
+				body, err := cli.GetBody("application/json", args[1:])
+				if err != nil {
+					log.Fatal().Err(err).Msg("Unable to get body")
+				}
+
+				_, decoded, err := ApiUpdateProject(args[0], params, body)
+				if err != nil {
+					log.Fatal().Err(err).Msg("Error calling operation")
+				}
+
+				if err := cli.Formatter.Format(decoded); err != nil {
+					log.Fatal().Err(err).Msg("Formatting failed")
+				}
+
+			},
+		}
+		root.AddCommand(cmd)
+
+		cli.SetCustomFlags(cmd)
+
+		if cmd.Flags().HasFlags() {
+			params.BindPFlags(cmd.Flags())
+		}
+
+	}()
+
+	func() {
+		params := viper.New()
+
+		var examples string
+
+		cmd := &cobra.Command{
 			Use:     "deleteproject projectid",
 			Short:   "DeleteProject",
 			Long:    cli.Markdown("Deletes a project."),
@@ -3414,44 +3455,6 @@ func apiRegister(subcommand bool) {
 			Run: func(cmd *cobra.Command, args []string) {
 
 				_, decoded, err := ApiGetProject(args[0], params)
-				if err != nil {
-					log.Fatal().Err(err).Msg("Error calling operation")
-				}
-
-				if err := cli.Formatter.Format(decoded); err != nil {
-					log.Fatal().Err(err).Msg("Formatting failed")
-				}
-
-			},
-		}
-		root.AddCommand(cmd)
-
-		cli.SetCustomFlags(cmd)
-
-		if cmd.Flags().HasFlags() {
-			params.BindPFlags(cmd.Flags())
-		}
-
-	}()
-
-	func() {
-		params := viper.New()
-
-		var examples string
-
-		cmd := &cobra.Command{
-			Use:     "updateproject projectid",
-			Short:   "UpdateProject",
-			Long:    cli.Markdown("Updates the project.\n## Request Schema (application/json)\n\nproperties:\n  project:\n    $ref: '#/components/schemas/project'\n  updateMask:\n    $ref: '#/components/schemas/updateMask'\ntype: object\n"),
-			Example: examples,
-			Args:    cobra.MinimumNArgs(1),
-			Run: func(cmd *cobra.Command, args []string) {
-				body, err := cli.GetBody("application/json", args[1:])
-				if err != nil {
-					log.Fatal().Err(err).Msg("Unable to get body")
-				}
-
-				_, decoded, err := ApiUpdateProject(args[0], params, body)
 				if err != nil {
 					log.Fatal().Err(err).Msg("Error calling operation")
 				}

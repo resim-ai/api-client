@@ -125,17 +125,13 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		}
 		batch = response.JSON200
 	} else if batchName != "" {
-		pageToken := ""
 		pageSize := 100
+		var pageToken *string = nil
 	callLoop:
 		for {
-			var pageTokenPtr *string = nil
-			if pageToken != "" {
-				pageTokenPtr = &pageToken
-			}
 			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageSize:  &pageSize,
-				PageToken: pageTokenPtr,
+				PageToken: pageToken,
 			})
 			if err != nil || response.StatusCode() != 200 {
 				log.Fatal("unable to list batches: ", err, string(response.Body))
@@ -153,13 +149,13 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			}
 
 			if response.JSON200.NextPageToken != nil {
-				pageToken = *response.JSON200.NextPageToken
+				pageToken = response.JSON200.NextPageToken
 			} else {
 				log.Fatal("unable to find batch: ", batchName)
 			}
 		}
 	} else {
-		log.Fatal("Must specify either the batch ID or the batch name.")
+		log.Fatal("must specify either the batch ID or the batch name")
 	}
 
 	if exitStatus {

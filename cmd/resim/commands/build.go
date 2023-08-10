@@ -66,7 +66,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	if buildImageUri == "" {
-		log.Fatal("Empty build image uri")
+		log.Fatal("empty build image uri")
 	}
 
 	// Check if the project exists, by listing projects:

@@ -50,11 +50,11 @@ func createExperience(ccmd *cobra.Command, args []string) {
 
 	// Parse the various arguments from command line
 	if experienceName == "" {
-		log.Fatal("Empty experience name")
+		log.Fatal("empty experience name")
 	}
 
 	if experienceDescription == "" {
-		log.Fatal("Empty experience description")
+		log.Fatal("empty experience description")
 	}
 
 	body := api.CreateExperienceJSONRequestBody{
@@ -64,22 +64,15 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateExperienceWithResponse(context.Background(), body)
-
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || response.StatusCode() != http.StatusCreated {
+		log.Fatal("failed to create experience: ", err, string(response.Body))
 	}
 
 	// Report the results back to the user
-	success := response.HTTPResponse.StatusCode == http.StatusCreated
-	if success {
-		if experienceGithub {
-			fmt.Printf("experience_id=%s\n", response.JSON201.ExperienceID.String())
-		} else {
-			fmt.Println("Created experience successfully!")
-			fmt.Printf("Experience ID: %s\n", response.JSON201.ExperienceID.String())
-		}
+	if experienceGithub {
+		fmt.Printf("experience_id=%s\n", response.JSON201.ExperienceID.String())
 	} else {
-		log.Fatal("Failed to create experience!\n", string(response.Body))
+		fmt.Println("Created experience successfully!")
+		fmt.Printf("Experience ID: %s\n", response.JSON201.ExperienceID.String())
 	}
-
 }

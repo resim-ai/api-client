@@ -96,7 +96,7 @@ func getBranchIDForName(client *api.ClientWithResponses, projectID uuid.UUID, bu
 				PageToken: pageToken,
 			})
 		if err != nil {
-			log.Fatal("Failed to find branch with error: ", err)
+			log.Fatal("failed to find branch: ", err)
 		}
 
 		pageToken = listResponse.JSON200.NextPageToken

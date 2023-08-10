@@ -50,11 +50,11 @@ func createProject(ccmd *cobra.Command, args []string) {
 
 	// Parse the various arguments from command line
 	if projectName == "" {
-		log.Fatal("Empty project name")
+		log.Fatal("empty project name")
 	}
 
 	if projectDescription == "" {
-		log.Fatal("Empty project description")
+		log.Fatal("empty project description")
 	}
 
 	body := api.CreateProjectJSONRequestBody{
@@ -63,24 +63,17 @@ func createProject(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateProjectWithResponse(context.Background(), body)
-
-	if err != nil {
-		log.Fatal(err)
+	if err != nil || response.StatusCode() != http.StatusCreated {
+		log.Fatal("failed to create project", err, string(response.Body))
 	}
 
 	// Report the results back to the user
-	success := response.HTTPResponse.StatusCode == http.StatusCreated
-	if success {
-		if projectGithub {
-			fmt.Printf("project_id=%s\n", response.JSON201.ProjectID.String())
-		} else {
-			fmt.Println("Created project successfully!")
-			fmt.Printf("Project ID: %s\n", response.JSON201.ProjectID.String())
-		}
+	if projectGithub {
+		fmt.Printf("project_id=%s\n", response.JSON201.ProjectID.String())
 	} else {
-		log.Fatal("Failed to create project!\n", string(response.Body))
+		fmt.Println("Created project successfully!")
+		fmt.Printf("Project ID: %s\n", response.JSON201.ProjectID.String())
 	}
-
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
@@ -96,7 +89,7 @@ func getProjectIDForName(client *api.ClientWithResponses, buildProjectName strin
 				PageToken: pageToken,
 			})
 		if err != nil {
-			log.Fatal("Failed to find project with error: ", err)
+			log.Fatal("failed to find project: ", err)
 		}
 
 		pageToken = listResponse.JSON200.NextPageToken
@@ -113,7 +106,7 @@ func getProjectIDForName(client *api.ClientWithResponses, buildProjectName strin
 		}
 	}
 	if !found {
-		log.Fatal("Failed to find project with requested name: ", buildProjectName)
+		log.Fatal("failed to find project with requested name: ", buildProjectName)
 	}
 	return projectID
 }

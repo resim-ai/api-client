@@ -8,6 +8,7 @@ import (
 
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -22,23 +23,26 @@ var (
 		Long:  ``,
 		Run:   createExperience,
 	}
+)
 
-	experienceName        string
-	experienceDescription string
-	experienceLocation    string
-	experienceGithub      bool
+const (
+	experienceNameKey        = "name"
+	experienceDescriptionKey = "description"
+	experienceLocationKey    = "location"
+	experienceGithubKey      = "github"
 )
 
 func init() {
-	createExperienceCmd.Flags().StringVar(&experienceName, "name", "", "The name of the experience")
-	createExperienceCmd.Flags().StringVar(&experienceDescription, "description", "", "The description of the experience")
-	createExperienceCmd.Flags().StringVar(&experienceLocation, "location", "", "The location of the experience, e.g. an S3 URI for the experience folder")
-	createExperienceCmd.Flags().BoolVar(&experienceGithub, "github", false, "Whether to output format in github action friendly format")
+	createExperienceCmd.Flags().String(experienceNameKey, "", "The name of the experience")
+	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
+	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
+	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
 }
 
 func createExperience(ccmd *cobra.Command, args []string) {
+	experienceGithub := viper.GetBool(experienceGithubKey)
 	if !experienceGithub {
 		fmt.Println("Creating a experience...")
 	}
@@ -49,12 +53,19 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse the various arguments from command line
+	experienceName := viper.GetString(experienceNameKey)
 	if experienceName == "" {
 		log.Fatal("empty experience name")
 	}
 
+	experienceDescription := viper.GetString(experienceDescriptionKey)
 	if experienceDescription == "" {
 		log.Fatal("empty experience description")
+	}
+
+	experienceLocation := viper.GetString(experienceLocationKey)
+	if experienceLocation == "" {
+		log.Fatal("empty experience location")
 	}
 
 	body := api.CreateExperienceJSONRequestBody{
@@ -65,7 +76,11 @@ func createExperience(ccmd *cobra.Command, args []string) {
 
 	response, err := client.CreateExperienceWithResponse(context.Background(), body)
 	if err != nil || response.StatusCode() != http.StatusCreated {
-		log.Fatal("failed to create experience: ", err, string(response.Body))
+		var message string
+		if response != nil && response.Body != nil {
+			message = string(response.Body)
+		}
+		log.Fatal("failed to create experience: ", err, message)
 	}
 	if response.JSON201 == nil {
 		log.Fatal("empty response")

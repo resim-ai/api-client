@@ -10,6 +10,7 @@ import (
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -24,21 +25,24 @@ var (
 		Long:  ``,
 		Run:   createProject,
 	}
+)
 
-	projectName        string
-	projectDescription string
-	projectGithub      bool
+const (
+	projectNameKey        = "name"
+	projectDescriptionKey = "description"
+	projectGithubKey      = "github"
 )
 
 func init() {
-	createProjectCmd.Flags().StringVar(&projectName, "name", "", "The name of the project, often a repository name")
-	createProjectCmd.Flags().StringVar(&projectDescription, "description", "", "The description of the project")
-	createProjectCmd.Flags().BoolVar(&projectGithub, "github", false, "Whether to output format in github action friendly format")
+	createProjectCmd.Flags().String(projectNameKey, "", "The name of the project, often a repository name")
+	createProjectCmd.Flags().String(projectDescriptionKey, "", "The description of the project")
+	createProjectCmd.Flags().Bool(projectGithubKey, false, "Whether to output format in github action friendly format")
 	projectCmd.AddCommand(createProjectCmd)
 	rootCmd.AddCommand(projectCmd)
 }
 
 func createProject(ccmd *cobra.Command, args []string) {
+	projectGithub := viper.GetBool(projectGithubKey)
 	if !projectGithub {
 		fmt.Println("Creating a project...")
 	}
@@ -49,10 +53,12 @@ func createProject(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse the various arguments from command line
+	projectName := viper.GetString(projectNameKey)
 	if projectName == "" {
 		log.Fatal("empty project name")
 	}
 
+	projectDescription := viper.GetString(projectDescriptionKey)
 	if projectDescription == "" {
 		log.Fatal("empty project description")
 	}
@@ -64,7 +70,11 @@ func createProject(ccmd *cobra.Command, args []string) {
 
 	response, err := client.CreateProjectWithResponse(context.Background(), body)
 	if err != nil || response.StatusCode() != http.StatusCreated {
-		log.Fatal("failed to create project", err, string(response.Body))
+		var message string
+		if response != nil && response.Body != nil {
+			message = string(response.Body)
+		}
+		log.Fatal("failed to create project", err, message)
 	}
 	if response.JSON201 == nil {
 		log.Fatal("empty response")

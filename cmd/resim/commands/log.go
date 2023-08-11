@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -23,27 +24,30 @@ var (
 		Long:  ``,
 		Run:   createLog,
 	}
+)
 
-	logName          string
-	logFileSize      int64
-	logBatchIDString string
-	logJobIDString   string
-	logChecksum      string
-	logGithub        bool
+const (
+	logNameKey     = "name"
+	logBatchIDKey  = "batch_id"
+	logJobIDKey    = "job_id"
+	logFileSizeKey = "file_size"
+	logChecksumKey = "checksum"
+	logGithubKey   = "github"
 )
 
 func init() {
-	createLogCmd.Flags().StringVar(&logName, "name", "", "The simple name of the log file to register (not a directory)")
-	createLogCmd.Flags().StringVar(&logBatchIDString, "batch_id", "", "The UUID of the batch this log file is associated with")
-	createLogCmd.Flags().StringVar(&logJobIDString, "job_id", "", "The UUID of the job in the batch this log file was created by and will be associated with")
-	createLogCmd.Flags().Int64Var(&logFileSize, "file_size", -1, "The size of the file in bytes")
-	createLogCmd.Flags().StringVar(&logChecksum, "checksum", "", "A checksum for the file, to enable integrity checking when downloading")
-	createLogCmd.Flags().BoolVar(&logGithub, "github", false, "Whether to output format in github action friendly format")
+	createLogCmd.Flags().String(logNameKey, "", "The simple name of the log file to register (not a directory)")
+	createLogCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch this log file is associated with")
+	createLogCmd.Flags().String(logJobIDKey, "", "The UUID of the job in the batch this log file was created by and will be associated with")
+	createLogCmd.Flags().Int64(logFileSizeKey, -1, "The size of the file in bytes")
+	createLogCmd.Flags().String(logChecksumKey, "", "A checksum for the file, to enable integrity checking when downloading")
+	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")
 	logCmd.AddCommand(createLogCmd)
 	rootCmd.AddCommand(logCmd)
 }
 
 func createLog(ccmd *cobra.Command, args []string) {
+	logGithub := viper.GetBool(logGithubKey)
 	if !logGithub {
 		fmt.Println("Creating a log entry...")
 	}
@@ -54,24 +58,27 @@ func createLog(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse the various arguments from command line
+	logName := viper.GetString(logNameKey)
 	if logName == "" {
 		log.Fatal("empty log filename")
 	}
 
-	logBatchID, err := uuid.Parse(logBatchIDString)
+	logBatchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
 	if err != nil || logBatchID == uuid.Nil {
 		log.Fatal("empty batch ID")
 	}
 
-	logJobID, err := uuid.Parse(logJobIDString)
+	logJobID, err := uuid.Parse(viper.GetString(logJobIDKey))
 	if err != nil || logJobID == uuid.Nil {
 		log.Fatal("empty log ID")
 	}
 
+	logFileSize := viper.GetInt64(logFileSizeKey)
 	if logFileSize == -1 {
 		log.Fatal("empty file size")
 	}
 
+	logChecksum := viper.GetString(logChecksumKey)
 	if logChecksum == "" {
 		if !logGithub {
 			fmt.Println("No checksum was provided, integrity checking will not be possible")
@@ -87,18 +94,30 @@ func createLog(ccmd *cobra.Command, args []string) {
 	// Verify that the batch and job exist:
 	batchResponse, err := client.GetBatchWithResponse(context.Background(), logBatchID)
 	if err != nil || batchResponse.StatusCode() != http.StatusOK {
-		log.Fatal("unable to find batch with ID ", logBatchID, err, string(batchResponse.Body))
+		var message string
+		if batchResponse.Body != nil {
+			message = string(batchResponse.Body)
+		}
+		log.Fatal("unable to find batch with ID ", logBatchID, err, message)
 	}
 
 	jobResponse, err := client.GetJobWithResponse(context.Background(), logBatchID, logJobID)
 	if err != nil || jobResponse.StatusCode() != http.StatusOK {
-		log.Fatal("unable to find job with ID ", logJobID, err, string(jobResponse.Body))
+		var message string
+		if jobResponse.Body != nil {
+			message = string(jobResponse.Body)
+		}
+		log.Fatal("unable to find job with ID ", logJobID, err, message)
 	}
 
 	// Create the log entry
 	logResponse, err := client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
 	if err != nil || logResponse.StatusCode() != http.StatusCreated {
-		log.Fatal("unable to create log ", err, string(logResponse.Body))
+		var message string
+		if logResponse.Body != nil {
+			message = string(logResponse.Body)
+		}
+		log.Fatal("unable to create log ", err, message)
 	}
 	if logResponse.JSON201 == nil {
 		log.Fatal("empty response")

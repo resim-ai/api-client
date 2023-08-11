@@ -10,6 +10,7 @@ import (
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -24,24 +25,26 @@ var (
 		Long:  ``,
 		Run:   createBranch,
 	}
+)
 
-	branchName            string
-	branchProjectIDString string
-	branchTypeString      string
-	branchGithub          bool
+const (
+	branchNameKey      = "name"
+	branchProjectIDKey = "project_id"
+	branchTypeKey      = "type"
+	branchGithubKey    = "github"
 )
 
 func init() {
-	createBranchCmd.Flags().StringVar(&branchName, "name", "", "The name of the branch, often a repository name")
-	createBranchCmd.Flags().StringVar(&branchProjectIDString, "project_id", "", "The ID of the project to associate the branch to")
-	createBranchCmd.Flags().StringVar(&branchTypeString, "type", "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
-	createBranchCmd.Flags().BoolVar(&branchGithub, "github", false, "Whether to output format in github action friendly format")
+	createBranchCmd.Flags().String(branchNameKey, "", "The name of the branch, often a repository name")
+	createBranchCmd.Flags().String(branchProjectIDKey, "", "The ID of the project to associate the branch to")
+	createBranchCmd.Flags().String(branchTypeKey, "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
+	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in github action friendly format")
 	branchCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(branchCmd)
 }
 
 func createBranch(ccmd *cobra.Command, args []string) {
-	if !branchGithub {
+	if !viper.GetBool(branchGithubKey) {
 		fmt.Println("Creating a branch...")
 	}
 
@@ -51,16 +54,17 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse the various arguments from command line
-	projectID, err := uuid.Parse(branchProjectIDString)
+	projectID, err := uuid.Parse(viper.GetString(branchProjectIDKey))
 	if err != nil || projectID == uuid.Nil {
 		log.Fatal("empty project ID")
 	}
 
+	branchName := viper.GetString(branchNameKey)
 	if branchName == "" {
 		log.Fatal("empty branch name")
 	}
 
-	branchType := api.BranchType(branchTypeString)
+	branchType := api.BranchType(viper.GetString(branchTypeKey))
 	if branchType != api.RELEASE && branchType != api.MAIN && branchType != api.CHANGEREQUEST {
 		log.Fatal("invalid branch type")
 	}
@@ -72,7 +76,11 @@ func createBranch(ccmd *cobra.Command, args []string) {
 
 	response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
 	if err != nil || response.StatusCode() != http.StatusCreated {
-		log.Fatal("unable to create branch ", err, string(response.Body))
+		var message string
+		if response != nil && response.Body != nil {
+			message = string(response.Body)
+		}
+		log.Fatal("unable to create branch ", err, message)
 	}
 	if response.JSON201 == nil {
 		log.Fatal("empty branch returned")
@@ -83,7 +91,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Report the results back to the user
-	if branchGithub {
+	if viper.GetBool(branchGithubKey) {
 		fmt.Printf("branch_id=%s\n", branch.BranchID.String())
 	} else {
 		fmt.Println("Created branch successfully!")
@@ -102,8 +110,12 @@ pageLoop:
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		if err != nil {
-			log.Fatal("failed to find branch: ", err)
+		if err != nil || listResponse.StatusCode() != http.StatusOK {
+			var message string
+			if listResponse.Body != nil {
+				message = string(listResponse.Body)
+			}
+			log.Fatal("failed to find branch: ", err, message)
 		}
 
 		pageToken = listResponse.JSON200.NextPageToken

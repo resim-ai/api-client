@@ -25,11 +25,9 @@ func init() {
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
-	clientID := viper.GetString(clientID)
 	if clientID == "" {
 		return nil, errors.New("client_id must be specified")
 	}
-	clientSecret := viper.GetString(clientSecret)
 	if clientSecret == "" {
 		return nil, errors.New("client_secret must be specified")
 	}

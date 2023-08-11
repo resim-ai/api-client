@@ -42,6 +42,7 @@ func init() {
 	createLogCmd.Flags().Int64(logFileSizeKey, -1, "The size of the file in bytes")
 	createLogCmd.Flags().String(logChecksumKey, "", "A checksum for the file, to enable integrity checking when downloading")
 	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")
+	viper.BindPFlags(createLogCmd.Flags())
 	logCmd.AddCommand(createLogCmd)
 	rootCmd.AddCommand(logCmd)
 }

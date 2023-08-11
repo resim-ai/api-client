@@ -39,6 +39,7 @@ func init() {
 	createBranchCmd.Flags().String(branchProjectIDKey, "", "The ID of the project to associate the branch to")
 	createBranchCmd.Flags().String(branchTypeKey, "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
 	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in github action friendly format")
+	viper.BindPFlags(createBranchCmd.Flags())
 	branchCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(branchCmd)
 }

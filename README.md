@@ -42,7 +42,12 @@ To call a particular endpoint, use
     RESIM_CLIENT_ID=<client ID> RESIM_CLIENT_SECRET=<client secret> resim create project <flags> 
 
 
-## Developing
+## Contributing
+
+We track issues and feature requests on our public Asana board (TBD).  Feel free to grab any tasks
+on that board and submit a pull request.
+
+### Dependencies
 
 You will need Go installed.
 

@@ -74,13 +74,20 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	if err != nil || response.StatusCode() != http.StatusCreated {
 		log.Fatal("unable to create branch ", err, string(response.Body))
 	}
+	if response.JSON201 == nil {
+		log.Fatal("empty branch returned")
+	}
+	branch := *response.JSON201
+	if branch.BranchID == nil {
+		log.Fatal("no branch ID")
+	}
 
 	// Report the results back to the user
 	if branchGithub {
-		fmt.Printf("branch_id=%s\n", response.JSON201.BranchID.String())
+		fmt.Printf("branch_id=%s\n", branch.BranchID.String())
 	} else {
 		fmt.Println("Created branch successfully!")
-		fmt.Printf("Branch ID: %s\n", response.JSON201.BranchID.String())
+		fmt.Printf("Branch ID: %s\n", branch.BranchID.String())
 	}
 }
 
@@ -88,7 +95,7 @@ func getBranchIDForName(client *api.ClientWithResponses, projectID uuid.UUID, bu
 	// Page through branches until we find the one we want:
 	var branchID uuid.UUID = uuid.Nil
 	var pageToken *string = nil
-	found := false
+pageLoop:
 	for {
 		listResponse, err := client.ListBranchesForProjectWithResponse(
 			context.Background(), projectID, &api.ListBranchesForProjectParams{
@@ -100,19 +107,24 @@ func getBranchIDForName(client *api.ClientWithResponses, projectID uuid.UUID, bu
 		}
 
 		pageToken = listResponse.JSON200.NextPageToken
+		if listResponse.JSON200 == nil || listResponse.JSON200.Branches == nil {
+			log.Fatal("no branches")
+		}
 		branches := *listResponse.JSON200.Branches
 		for _, branch := range branches {
 			if *branch.Name == buildBranchName {
 				branchID = *branch.BranchID
-				found = true
-				break
+				break pageLoop
 			}
 		}
-		if found || *pageToken == "" {
+		if pageToken == nil {
 			break
 		}
 	}
 
-	// We return the branch ID whether or not it is found:
+	if projectID == uuid.Nil {
+		log.Fatal("failed to find branch with requested name: ", buildBranchName)
+	}
+
 	return branchID
 }

@@ -100,14 +100,24 @@ func createLog(ccmd *cobra.Command, args []string) {
 	if err != nil || logResponse.StatusCode() != http.StatusCreated {
 		log.Fatal("unable to create log ", err, string(logResponse.Body))
 	}
+	if logResponse.JSON201 == nil {
+		log.Fatal("empty response")
+	}
+	myLog := logResponse.JSON201
+	if myLog.Location == nil {
+		log.Fatal("empty location")
+	}
+	if myLog.LogID == nil {
+		log.Fatal("empty log ID")
+	}
 
 	// Report the results back to the user
 	if logGithub {
-		fmt.Printf("log_location=%s\n", *logResponse.JSON201.Location)
+		fmt.Printf("log_location=%s\n", *myLog.Location)
 	} else {
 		fmt.Println("Created log successfully!")
-		fmt.Printf("Log ID: %s\n", logResponse.JSON201.LogID.String())
-		fmt.Printf("Output Location: %s\n", *logResponse.JSON201.Location)
+		fmt.Printf("Log ID: %s\n", myLog.LogID.String())
+		fmt.Printf("Output Location: %s\n", *myLog.Location)
 		fmt.Println("Please upload the log file to this location")
 	}
 }

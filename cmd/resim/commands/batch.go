@@ -125,12 +125,10 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		}
 		batch = response.JSON200
 	} else if batchName != "" {
-		pageSize := 100
 		var pageToken *string = nil
 	callLoop:
 		for {
 			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
-				PageSize:  &pageSize,
 				PageToken: pageToken,
 			})
 			if err != nil || response.StatusCode() != 200 {

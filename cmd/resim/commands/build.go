@@ -109,13 +109,19 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	if err != nil || response.StatusCode() != http.StatusCreated {
 		log.Fatal("unable to create build ", err, string(response.Body))
 	}
+	if response.JSON201 == nil {
+		log.Fatal("empty response")
+	}
+	build := *response.JSON201
+	if build.BuildID == nil {
+		log.Fatal("no build ID")
+	}
 
 	// Report the results back to the user
 	if buildGithub {
-		fmt.Printf("build_id=%s\n", response.JSON201.BuildID.String())
+		fmt.Printf("build_id=%s\n", build.BuildID.String())
 	} else {
 		fmt.Println("Created build successfully!")
-		fmt.Printf("Build ID: %s\n", response.JSON201.BuildID.String())
+		fmt.Printf("Build ID: %s\n", build.BuildID.String())
 	}
-
 }

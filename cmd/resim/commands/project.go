@@ -66,13 +66,20 @@ func createProject(ccmd *cobra.Command, args []string) {
 	if err != nil || response.StatusCode() != http.StatusCreated {
 		log.Fatal("failed to create project", err, string(response.Body))
 	}
+	if response.JSON201 == nil {
+		log.Fatal("empty response")
+	}
+	project := *response.JSON201
+	if project.ProjectID == nil {
+		log.Fatal("empty project ID")
+	}
 
 	// Report the results back to the user
 	if projectGithub {
-		fmt.Printf("project_id=%s\n", response.JSON201.ProjectID.String())
+		fmt.Printf("project_id=%s\n", project.ProjectID.String())
 	} else {
 		fmt.Println("Created project successfully!")
-		fmt.Printf("Project ID: %s\n", response.JSON201.ProjectID.String())
+		fmt.Printf("Project ID: %s\n", project.ProjectID.String())
 	}
 }
 
@@ -81,31 +88,39 @@ func getProjectIDForName(client *api.ClientWithResponses, buildProjectName strin
 	// Page through projects until we find the one we want:
 	var projectID uuid.UUID = uuid.Nil
 	var pageToken *string = nil
-	found := false
+pageLoop:
 	for {
 		listResponse, err := client.ListProjectsWithResponse(
 			context.Background(), &api.ListProjectsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		if err != nil {
-			log.Fatal("failed to find project: ", err)
+		if err != nil || listResponse.StatusCode() != http.StatusOK {
+			log.Fatal("failed to list projects: ", err, string(listResponse.Body))
+		}
+		if listResponse.JSON200 == nil {
+			log.Fatal("empty response")
 		}
 
 		pageToken = listResponse.JSON200.NextPageToken
 		projects := *listResponse.JSON200.Projects
 		for _, project := range projects {
+			if project.Name == nil {
+				log.Fatal("project has no name")
+			}
+			if project.ProjectID == nil {
+				log.Fatal("project ID is empty")
+			}
 			if *project.Name == buildProjectName {
 				projectID = *project.ProjectID
-				found = true
-				break
+				break pageLoop
 			}
 		}
-		if found || *pageToken == "" {
+		if pageToken == nil {
 			break
 		}
 	}
-	if !found {
+	if projectID == uuid.Nil {
 		log.Fatal("failed to find project with requested name: ", buildProjectName)
 	}
 	return projectID

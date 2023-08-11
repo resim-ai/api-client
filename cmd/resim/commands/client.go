@@ -10,12 +10,26 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
+var (
+	URL          string
+	clientID     string
+	clientSecret string
+)
+
+func init() {
+	rootCmd.PersistentFlags().StringVar(&URL, "url", "", "The URL of the API.")
+	rootCmd.PersistentFlags().StringVar(&clientID, "client_id", "", "Authentication credentials client ID")
+	rootCmd.PersistentFlags().StringVar(&clientSecret, "client_secret", "", "Authentication credentials client secret")
+
+	viper.BindPFlags(rootCmd.PersistentFlags())
+}
+
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
-	clientID := viper.GetString(ClientIDKey)
+	clientID := viper.GetString(clientID)
 	if clientID == "" {
 		return nil, errors.New("client_id must be specified")
 	}
-	clientSecret := viper.GetString(ClientSecretKey)
+	clientSecret := viper.GetString(clientSecret)
 	if clientSecret == "" {
 		return nil, errors.New("client_secret must be specified")
 	}
@@ -28,6 +42,6 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
 		},
 	}
 	oauthClient := config.Client(ctx)
-	url := viper.GetString(URLKey)
+	url := viper.GetString(URL)
 	return api.NewClientWithResponses(url, api.WithHTTPClient(oauthClient))
 }

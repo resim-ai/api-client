@@ -67,12 +67,19 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	if err != nil || response.StatusCode() != http.StatusCreated {
 		log.Fatal("failed to create experience: ", err, string(response.Body))
 	}
+	if response.JSON201 == nil {
+		log.Fatal("empty response")
+	}
+	experience := response.JSON201
+	if experience.ExperienceID == nil {
+		log.Fatal("no experience ID")
+	}
 
 	// Report the results back to the user
 	if experienceGithub {
-		fmt.Printf("experience_id=%s\n", response.JSON201.ExperienceID.String())
+		fmt.Printf("experience_id=%s\n", experience.ExperienceID.String())
 	} else {
 		fmt.Println("Created experience successfully!")
-		fmt.Printf("Experience ID: %s\n", response.JSON201.ExperienceID.String())
+		fmt.Printf("Experience ID: %s\n", experience.ExperienceID.String())
 	}
 }

@@ -40,6 +40,5 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
 		},
 	}
 	oauthClient := config.Client(ctx)
-	url := viper.GetString(URL)
-	return api.NewClientWithResponses(url, api.WithHTTPClient(oauthClient))
+	return api.NewClientWithResponses(URL, api.WithHTTPClient(oauthClient))
 }

@@ -38,3 +38,7 @@ jobs:
         tag: ${{ env.GITHUB_REF_NAME }}
         artifacts: "cmd/resim/resim-*"
         token: ${{ secrets.GITHUB_TOKEN }}
+
+    # We need to run `go install` in order to update pkg.go.dev with the new tag.
+    - name: Go Install
+      run: go install github.com/resim-ai/api-client/cmd/resim@${{ env.GITHUB_REF_NAME }}

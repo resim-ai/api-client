@@ -44,8 +44,7 @@ To call a particular endpoint, use
 
 ## Contributing
 
-We track issues and feature requests on our public Asana board (TBD).  Feel free to grab any tasks
-on that board and submit a pull request.
+We track issues and feature requests using [Github Issues](https://github.com/resim-ai/api-client/issues).  Feel free to grab an issue and submit a pull request!
 
 ### Dependencies
 

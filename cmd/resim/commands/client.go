@@ -26,6 +26,10 @@ func init() {
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
+<<<<<<< HEAD
+=======
+	viper.SetDefault("url", "https://api.resim.ai/v1/")
+>>>>>>> main
 	if clientID == "" {
 		return nil, errors.New("client_id must be specified")
 	}

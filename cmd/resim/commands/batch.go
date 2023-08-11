@@ -146,7 +146,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 				}
 			}
 
-			if response.JSON200.NextPageToken != nil {
+			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
 				pageToken = response.JSON200.NextPageToken
 			} else {
 				log.Fatal("unable to find batch: ", batchName)

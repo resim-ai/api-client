@@ -18,15 +18,15 @@ jobs:
     steps:
     - uses: actions/checkout@v3
       with:
-        fetch-depth: 0 # get all tags, needed to get git log
+        fetch-depth: 0
         ref: main
 
-    - name: setup Go Lang
-      uses: actions/setup-go@v3
+    - uses: actions/setup-go@v3
       with:
         go-version-file: 'go.mod'
 
-    - run: |
+    - name: Build
+      run: |
         cd cmd/resim
         GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-amd64
         GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-arm64

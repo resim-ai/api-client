@@ -31,7 +31,8 @@ jobs:
         GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-amd64
         GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-arm64
         GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-amd64
-
+      env:
+       CGO_ENABLED: 0
     - uses: ncipollo/release-action@v1.12.0
       with:
         tag: ${{ env.GITHUB_REF_NAME }}

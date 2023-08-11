@@ -51,7 +51,7 @@ Then place the generated file in the appropriate location on your system to enab
 
     mv resim_bash_completion /usr/share/bash-completion/completions/resim
 
-Other shells are supported, just replace 'bash' above with e.g. [zsh, fish, powershell]. 
+Other shells are supported, just replace `bash` above with e.g. [`zsh`, `fish`, `powershell`]. 
 
 ## Contributing
 

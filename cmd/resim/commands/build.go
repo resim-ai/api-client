@@ -73,7 +73,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	projectID := getProjectIDForName(client, buildProjectName)
 
 	// Check if the branch exists, by listing branches:
-	branchID := getBranchIDForName(client, projectID, buildProjectName)
+	branchID := getBranchIDForName(client, projectID, buildBranchName)
 
 	if branchID == uuid.Nil {
 		if buildAutoCreateBranch {

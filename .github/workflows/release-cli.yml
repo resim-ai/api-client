@@ -1,0 +1,39 @@
+name: build-release-binary
+
+run-name: Create Github Release for ReSim CLI
+
+on: 
+  push:
+    # branches:
+    # - main
+    tags:
+    - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: main
+
+    - uses: actions/setup-go@v3
+      with:
+        go-version-file: 'go.mod'
+
+    - name: Build
+      run: |
+        cd cmd/resim
+        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-amd64
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-arm64
+        GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-amd64
+
+    - uses: ncipollo/release-action@v1.12.0
+      with:
+        tag: ${{ env.GITHUB_REF_NAME }}
+        artifacts: "cmd/resim/resim-*"
+        token: ${{ secrets.GITHUB_TOKEN }}

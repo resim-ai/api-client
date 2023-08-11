@@ -121,8 +121,7 @@ pageLoop:
 			break
 		}
 	}
-
-	if projectID == uuid.Nil {
+	if branchID == uuid.Nil {
 		log.Fatal("failed to find branch with requested name: ", buildBranchName)
 	}
 

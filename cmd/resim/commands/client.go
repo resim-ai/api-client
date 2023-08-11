@@ -10,29 +10,27 @@ import (
 	"golang.org/x/oauth2/clientcredentials"
 )
 
-var (
-	URL          string
-	clientID     string
-	clientSecret string
+const (
+	urlKey          = "url"
+	clientIDKey     = "client_id"
+	clientSecretKey = "client_secret"
 )
 
 func init() {
-	viper.SetDefault("url", "https://api.resim.ai/v1/")
-	rootCmd.PersistentFlags().StringVar(&URL, "url", "", "The URL of the API.")
-	rootCmd.PersistentFlags().StringVar(&clientID, "client_id", "", "Authentication credentials client ID")
-	rootCmd.PersistentFlags().StringVar(&clientSecret, "client_secret", "", "Authentication credentials client secret")
+	viper.SetDefault(urlKey, "https://api.resim.ai/v1/")
+	rootCmd.PersistentFlags().String(urlKey, "", "The URL of the API.")
+	rootCmd.PersistentFlags().String(clientIDKey, "", "Authentication credentials client ID")
+	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
 
 	viper.BindPFlags(rootCmd.PersistentFlags())
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
-<<<<<<< HEAD
-=======
-	viper.SetDefault("url", "https://api.resim.ai/v1/")
->>>>>>> main
+	clientID := viper.GetString(clientIDKey)
 	if clientID == "" {
 		return nil, errors.New("client_id must be specified")
 	}
+	clientSecret := viper.GetString(clientSecretKey)
 	if clientSecret == "" {
 		return nil, errors.New("client_secret must be specified")
 	}
@@ -45,5 +43,5 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
 		},
 	}
 	oauthClient := config.Client(ctx)
-	return api.NewClientWithResponses(URL, api.WithHTTPClient(oauthClient))
+	return api.NewClientWithResponses(viper.GetString(urlKey), api.WithHTTPClient(oauthClient))
 }

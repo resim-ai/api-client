@@ -32,26 +32,28 @@ var (
 		Long:  ``,
 		Run:   getBatch,
 	}
+)
 
-	buildIDString          string
-	experienceIDsString    string
-	experienceTagIDsString string
+const (
+	buildIDKey          = "build_id"
+	experienceIDsKey    = "experience_ids"
+	experienceTagIDsKey = "experience_tag_ids"
 
-	batchIDString string
-	batchName     string
-	exitStatus    bool
+	batchIDKey    = "batch_id"
+	batchNameKey  = "batch_name"
+	exitStatusKey = "exit_status"
 )
 
 func init() {
-	createBatchCmd.Flags().StringVar(&buildIDString, "build_id", "", "The ID of the build.")
-	createBatchCmd.Flags().StringVar(&experienceIDsString, "experience_ids", "", "Comma-separated list of experience ids to run.")
-	createBatchCmd.Flags().StringVar(&experienceTagIDsString, "experience_tag_ids", "", "Comma-separated list of experience tag ids to run.")
+	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
+	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
+	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
 	viper.BindPFlags(createBatchCmd.Flags())
 	batchCmd.AddCommand(createBatchCmd)
 
-	getBatchCmd.Flags().StringVar(&batchIDString, "batch_id", "", "The ID of the batch to retrieve.")
-	getBatchCmd.Flags().StringVar(&batchName, "batch_name", "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
-	getBatchCmd.Flags().BoolVar(&exitStatus, "exit_status", false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
+	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
+	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	getBatchCmd.Flags().Bool(exitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	viper.BindPFlags(getBatchCmd.Flags())
 	batchCmd.AddCommand(getBatchCmd)
 
@@ -67,12 +69,12 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse the UUIDs from the command line
-	buildID, err := uuid.Parse(buildIDString)
+	buildID, err := uuid.Parse(viper.GetString(buildIDKey))
 	if err != nil || buildID == uuid.Nil {
 		log.Fatal(err)
 	}
-	experienceIDs := parseUUIDs(experienceIDsString)
-	experienceTagIDs := parseUUIDs(experienceTagIDsString)
+	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
+	experienceTagIDs := parseUUIDs(viper.GetString(experienceTagIDsKey))
 
 	// Build the request body and make the request
 	body := api.CreateBatchJSONRequestBody{
@@ -114,8 +116,8 @@ func getBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	var batch *api.Batch
-	if batchIDString != "" {
-		batchID, err := uuid.Parse(batchIDString)
+	if viper.IsSet(batchIDKey) {
+		batchID, err := uuid.Parse(viper.GetString(batchIDKey))
 		if err != nil {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
@@ -124,15 +126,20 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to retrieve batch: ", err, string(response.Body))
 		}
 		batch = response.JSON200
-	} else if batchName != "" {
+	} else if viper.IsSet(batchNameKey) {
+		batchName := viper.GetString(batchNameKey)
 		var pageToken *string = nil
-	callLoop:
+	pageLoop:
 		for {
 			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageToken: pageToken,
 			})
 			if err != nil || response.StatusCode() != 200 {
-				log.Fatal("unable to list batches: ", err, string(response.Body))
+				var message string
+				if response != nil && response.Body != nil {
+					message = string(response.Body)
+				}
+				log.Fatal("unable to list batches: ", err, message)
 			}
 			if response.JSON200.Batches == nil {
 				log.Fatal("unable to find batch: ", batchName)
@@ -142,7 +149,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			for _, b := range batches {
 				if b.FriendlyName != nil && *b.FriendlyName == batchName {
 					batch = &b
-					break callLoop
+					break pageLoop
 				}
 			}
 
@@ -156,7 +163,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		log.Fatal("must specify either the batch ID or the batch name")
 	}
 
-	if exitStatus {
+	if viper.GetBool(exitStatusKey) {
 		if batch.Status == nil {
 			log.Fatal("no status returned")
 		}

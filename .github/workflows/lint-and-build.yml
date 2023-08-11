@@ -21,6 +21,8 @@ jobs:
         uses: actions/setup-go@v4
       - name: Check Format
         run: if [ "$(go fmt ./... | wc -l)" -gt 0 ]; then exit 1; fi
+      - name: Go Vet
+        run: if ["$(go vet ./... | wc -l)" -gt 0]; then exit 1; fi
       - name: Build
         run: go build ./...
       - name: Test

@@ -20,7 +20,7 @@ For Mac OS on Intel:
     curl -L https://github.com/resim-ai/api-client/releases/download/v0.1.4/resim-darwin-amd64 -o resim
     chmod +x resim
 
-For any other architectures, or to compile locally, install using `go install`:
+Or you can install using `go install`:
 
     go install github.com/resim-ai/api-client/cmd/resim@latest
 

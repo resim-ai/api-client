@@ -4,8 +4,9 @@ run-name: Create Github Release for ReSim CLI
 
 on: 
   push:
-    # branches:
-    # - main
+    branches:
+     - main
+     - iain/cgo_enabled
     tags:
     - 'v*'
 

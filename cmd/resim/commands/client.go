@@ -25,11 +25,10 @@ func init() {
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
-	clientID := viper.GetString(clientID)
+	viper.SetDefault("url", "https://api.resim.ai/v1/")
 	if clientID == "" {
 		return nil, errors.New("client_id must be specified")
 	}
-	clientSecret := viper.GetString(clientSecret)
 	if clientSecret == "" {
 		return nil, errors.New("client_secret must be specified")
 	}
@@ -42,6 +41,5 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
 		},
 	}
 	oauthClient := config.Client(ctx)
-	url := viper.GetString(URL)
-	return api.NewClientWithResponses(url, api.WithHTTPClient(oauthClient))
+	return api.NewClientWithResponses(URL, api.WithHTTPClient(oauthClient))
 }

@@ -9,8 +9,6 @@ import (
 
 const EnvPrefix = "RESIM"
 
-
-
 func main() {
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.AutomaticEnv()

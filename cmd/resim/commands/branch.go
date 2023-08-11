@@ -117,7 +117,7 @@ pageLoop:
 				break pageLoop
 			}
 		}
-		if pageToken == nil {
+		if *pageToken == "" {
 			break
 		}
 	}

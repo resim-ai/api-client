@@ -34,5 +34,5 @@ jobs:
     - uses: ncipollo/release-action@v1.12.0
       with:
         tag: ${{ env.GITHUB_REF_NAME }}
-        artifacts: "cmd/resim/resim"
+        artifacts: "cmd/resim/resim-*"
         token: ${{ secrets.GITHUB_TOKEN }}

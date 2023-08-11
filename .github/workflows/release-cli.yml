@@ -28,7 +28,8 @@ jobs:
 
     - run: |
         cd cmd/resim
-        go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions"
+        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-amd64-${{ env.GITHUB_REF_NAME }}
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-arm64-${{ env.GITHUB_REF_NAME }}
 
     - uses: ncipollo/release-action@v1.12.0
       with:

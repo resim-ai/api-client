@@ -41,6 +41,17 @@ To call a particular endpoint, use
 
     RESIM_CLIENT_ID=<client ID> RESIM_CLIENT_SECRET=<client secret> resim create project <flags> 
 
+### Autocomplete
+
+If you would like resim commands to autocomplete you can generate autocomplete scripts using e.g.
+
+  resim complete bash > resim_bash_completion
+
+Then place the generated file in the appropriate location on your system to enable autocomplete e.g.
+
+  mv resim_bash_completion /usr/share/bash-completion/completions/resim
+
+Other shells are supported, just replace 'bash' above with e.g. [zsh, fish, powershell]. 
 
 ## Contributing
 

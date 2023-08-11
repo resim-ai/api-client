@@ -17,6 +17,7 @@ var (
 )
 
 func init() {
+	viper.SetDefault("url", "https://api.resim.ai/v1/")
 	rootCmd.PersistentFlags().StringVar(&URL, "url", "", "The URL of the API.")
 	rootCmd.PersistentFlags().StringVar(&clientID, "client_id", "", "Authentication credentials client ID")
 	rootCmd.PersistentFlags().StringVar(&clientSecret, "client_secret", "", "Authentication credentials client secret")
@@ -25,7 +26,6 @@ func init() {
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
-	viper.SetDefault("url", "https://api.resim.ai/v1/")
 	if clientID == "" {
 		return nil, errors.New("client_id must be specified")
 	}

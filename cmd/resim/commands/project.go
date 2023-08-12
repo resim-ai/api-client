@@ -20,10 +20,11 @@ var (
 		Long:  ``,
 	}
 	createProjectCmd = &cobra.Command{
-		Use:   "create",
-		Short: "create - Creates a new project",
-		Long:  ``,
-		Run:   createProject,
+		Use:    "create",
+		Short:  "create - Creates a new project",
+		Long:   ``,
+		Run:    createProject,
+		PreRun: RegisterViperFlags,
 	}
 )
 
@@ -37,7 +38,6 @@ func init() {
 	createProjectCmd.Flags().String(projectNameKey, "", "The name of the project, often a repository name")
 	createProjectCmd.Flags().String(projectDescriptionKey, "", "The description of the project")
 	createProjectCmd.Flags().Bool(projectGithubKey, false, "Whether to output format in github action friendly format")
-	viper.BindPFlags(createProjectCmd.Flags())
 	projectCmd.AddCommand(createProjectCmd)
 	rootCmd.AddCommand(projectCmd)
 }

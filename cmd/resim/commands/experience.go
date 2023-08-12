@@ -18,10 +18,11 @@ var (
 		Long:  ``,
 	}
 	createExperienceCmd = &cobra.Command{
-		Use:   "create",
-		Short: "create - Creates a new experience",
-		Long:  ``,
-		Run:   createExperience,
+		Use:    "create",
+		Short:  "create - Creates a new experience",
+		Long:   ``,
+		Run:    createExperience,
+		PreRun: RegisterViperFlags,
 	}
 )
 
@@ -37,7 +38,6 @@ func init() {
 	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
 	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
-	viper.BindPFlags(experienceCmd.Flags())
 	experienceCmd.AddCommand(createExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
 }

@@ -20,10 +20,11 @@ var (
 		Long:  ``,
 	}
 	createBuildCmd = &cobra.Command{
-		Use:   "create",
-		Short: "create - Creates a new build",
-		Long:  ``,
-		Run:   createBuild,
+		Use:    "create",
+		Short:  "create - Creates a new build",
+		Long:   ``,
+		Run:    createBuild,
+		PreRun: RegisterViperFlags,
 	}
 )
 
@@ -45,7 +46,6 @@ func init() {
 	createBuildCmd.Flags().String(buildBranchNameKey, "", "The name of the branch to nest the build in, usually the associated git branch")
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
-	viper.BindPFlags(createBuildCmd.Flags())
 	buildCmd.AddCommand(createBuildCmd)
 	rootCmd.AddCommand(buildCmd)
 }

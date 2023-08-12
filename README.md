@@ -31,6 +31,12 @@ The ReSim CLI authenticates using client credentials (a client ID and a client s
 Client credentials can be specified on the commandline with the `--client_id` and `--client_secret` flags, or in the environment as
 `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET`.
 
+If you would like to store you client ID and secret in a config file, the CLI will load them from `~/.resim/resim.yaml`.  The file
+is formatted as follows:
+
+    client_id: <client ID>
+    client_secret: <client secret>
+
 ## Usage
 
 To get a list of available commands, just type

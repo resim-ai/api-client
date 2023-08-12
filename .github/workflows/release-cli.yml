@@ -40,3 +40,5 @@ jobs:
     # We need to run `go install` in order to update pkg.go.dev with the new tag.
     - name: Go Install
       run: go install github.com/resim-ai/api-client/cmd/resim@$GITHUB_REF_NAME
+      env:
+        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}

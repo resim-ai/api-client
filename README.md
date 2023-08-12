@@ -45,7 +45,7 @@ To call a particular endpoint, use
 
 If you would like resim commands to autocomplete you can generate autocomplete scripts using e.g.
 
-    resim complete bash > resim_bash_completion
+    resim completion bash > resim_bash_completion
 
 Then place the generated file in the appropriate location on your system to enable autocomplete e.g.
 

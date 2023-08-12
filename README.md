@@ -42,7 +42,11 @@ To call a particular endpoint, use
     RESIM_CLIENT_ID=<client ID> RESIM_CLIENT_SECRET=<client secret> resim create project <flags> 
 
 
-## Developing
+## Contributing
+
+We track issues and feature requests using [Github Issues](https://github.com/resim-ai/api-client/issues).  Feel free to grab an issue and submit a pull request!
+
+### Dependencies
 
 You will need Go installed.
 

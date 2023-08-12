@@ -45,7 +45,7 @@ func init() {
 func createExperience(ccmd *cobra.Command, args []string) {
 	experienceGithub := viper.GetBool(experienceGithubKey)
 	if !experienceGithub {
-		fmt.Println("Creating a experience...")
+		fmt.Println("Creating an experience...")
 	}
 
 	client, err := GetClient(context.Background())

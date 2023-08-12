@@ -21,8 +21,6 @@ func init() {
 	rootCmd.PersistentFlags().String(urlKey, "", "The URL of the API.")
 	rootCmd.PersistentFlags().String(clientIDKey, "", "Authentication credentials client ID")
 	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
-
-	viper.BindPFlags(rootCmd.PersistentFlags())
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {

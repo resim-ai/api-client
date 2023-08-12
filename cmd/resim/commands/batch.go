@@ -21,16 +21,18 @@ var (
 		Long:  ``,
 	}
 	createBatchCmd = &cobra.Command{
-		Use:   "create",
-		Short: "create - Creates a new batch",
-		Long:  ``,
-		Run:   createBatch,
+		Use:    "create",
+		Short:  "create - Creates a new batch",
+		Long:   ``,
+		Run:    createBatch,
+		PreRun: RegisterViperFlags,
 	}
 	getBatchCmd = &cobra.Command{
-		Use:   "get",
-		Short: "get - Retrieves a batch",
-		Long:  ``,
-		Run:   getBatch,
+		Use:    "get",
+		Short:  "get - Retrieves a batch",
+		Long:   ``,
+		Run:    getBatch,
+		PreRun: RegisterViperFlags,
 	}
 )
 
@@ -48,13 +50,11 @@ func init() {
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
-	viper.BindPFlags(createBatchCmd.Flags())
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getBatchCmd.Flags().Bool(exitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
-	viper.BindPFlags(getBatchCmd.Flags())
 	batchCmd.AddCommand(getBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)

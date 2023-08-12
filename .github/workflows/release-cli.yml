@@ -4,8 +4,6 @@ run-name: Create Github Release for ReSim CLI
 
 on: 
   push:
-    # branches:
-    # - main
     tags:
     - 'v*'
 
@@ -19,7 +17,7 @@ jobs:
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-        ref: main
+        ref: ${{ env.GITHUB_REF_NAME }}
 
     - uses: actions/setup-go@v3
       with:
@@ -41,4 +39,6 @@ jobs:
 
     # We need to run `go install` in order to update pkg.go.dev with the new tag.
     - name: Go Install
-      run: go install github.com/resim-ai/api-client/cmd/resim@${{ env.GITHUB_REF_NAME }}
+      run: go install github.com/resim-ai/api-client/cmd/resim@$GITHUB_REF_NAME
+      env:
+        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}

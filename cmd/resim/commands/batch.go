@@ -87,9 +87,6 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	if viper.GetString(experienceTagIDsKey) != "" {
 		experienceTagIDs = parseUUIDs(viper.GetString(experienceTagIDsKey))
 	}
-	if viper.GetString(experienceTagNamesKey) != "" {
-
-	}
 	// If the user passes names, grab the ids:
 	if viper.GetString(experienceTagNamesKey) != "" {
 		experienceTagIDs = parseExperienceTagNames(client, viper.GetString(experienceTagNamesKey))

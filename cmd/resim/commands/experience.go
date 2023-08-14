@@ -35,11 +35,17 @@ const (
 
 func init() {
 	createExperienceCmd.Flags().String(experienceNameKey, "", "The name of the experience")
+	createExperienceCmd.MarkFlagRequired(experienceNameKey);
 	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
+	createExperienceCmd.MarkFlagRequired(experienceDescriptionKey);
 	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
+	createExperienceCmd.MarkFlagRequired(experienceLocationKey);
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
+
+  //template := experienceCmd.UsageTemplate()
+  //fmt.Print(template)
 }
 
 func createExperience(ccmd *cobra.Command, args []string) {

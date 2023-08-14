@@ -37,9 +37,10 @@ var (
 )
 
 const (
-	buildIDKey          = "build_id"
-	experienceIDsKey    = "experience_ids"
-	experienceTagIDsKey = "experience_tag_ids"
+	buildIDKey            = "build_id"
+	experienceIDsKey      = "experience_ids"
+	experienceTagIDsKey   = "experience_tag_ids"
+	experienceTagNamesKey = "experience_tag_names"
 
 	batchIDKey    = "batch_id"
 	batchNameKey  = "batch_name"
@@ -50,6 +51,7 @@ func init() {
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
+	createBatchCmd.Flags().String(experienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
@@ -74,7 +76,24 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
-	experienceTagIDs := parseUUIDs(viper.GetString(experienceTagIDsKey))
+
+	if viper.GetString(experienceTagIDsKey) != "" && viper.GetString(experienceTagNamesKey) != "" {
+		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", experienceTagNamesKey, experienceTagIDsKey))
+	}
+
+	// Obtain experience tag ids.
+	var experienceTagIDs []uuid.UUID
+	// If the user passes IDs directly, parse them:
+	if viper.GetString(experienceTagIDsKey) != "" {
+		experienceTagIDs = parseUUIDs(viper.GetString(experienceTagIDsKey))
+	}
+	if viper.GetString(experienceTagNamesKey) != "" {
+
+	}
+	// If the user passes names, grab the ids:
+	if viper.GetString(experienceTagNamesKey) != "" {
+		experienceTagIDs = parseExperienceTagNames(client, viper.GetString(experienceTagNamesKey))
+	}
 
 	// Build the request body and make the request
 	body := api.CreateBatchJSONRequestBody{

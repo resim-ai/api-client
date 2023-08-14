@@ -40,11 +40,16 @@ const (
 
 func init() {
 	createBuildCmd.Flags().String(buildDescriptionKey, "", "The description of the build, often a commit message")
+  createBuildCmd.MarkFlagRequired(buildDescriptionKey)
 	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
+  createBuildCmd.MarkFlagRequired(buildImageURIKey)
 	createBuildCmd.Flags().String(buildVersionKey, "", "The version of the build image, usually a commit ID")
+  createBuildCmd.MarkFlagRequired(buildVersionKey)
 	createBuildCmd.Flags().String(buildProjectNameKey, "", "The name of the project to create the build in")
+  createBuildCmd.MarkFlagRequired(buildProjectNameKey)
 	createBuildCmd.Flags().String(buildBranchNameKey, "", "The name of the branch to nest the build in, usually the associated git branch")
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
+  createBuildCmd.MarkFlagsMutuallyExclusive(buildBranchNameKey, buildAutoCreateBranchKey)
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
 	buildCmd.AddCommand(createBuildCmd)
 	rootCmd.AddCommand(buildCmd)

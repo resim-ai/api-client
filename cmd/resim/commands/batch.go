@@ -48,12 +48,18 @@ const (
 
 func init() {
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
+  createBatchCmd.MarkFlagRequired(buildIDKey);
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
+  // TODO(simon) We want at least one of the above flags. The function we want
+  // is: .MarkFlagsOneRequired this was merged into Cobra recently:
+  // https://github.com/spf13/cobra/pull/1952 - but we need to wait for a stable
+  // release and upgrade before implementing here.
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+  getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey);
 	getBatchCmd.Flags().Bool(exitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	batchCmd.AddCommand(getBatchCmd)
 

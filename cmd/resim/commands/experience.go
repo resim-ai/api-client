@@ -43,9 +43,6 @@ func init() {
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
-
-  //template := experienceCmd.UsageTemplate()
-  //fmt.Print(template)
 }
 
 func createExperience(ccmd *cobra.Command, args []string) {

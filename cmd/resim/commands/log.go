@@ -38,8 +38,11 @@ const (
 
 func init() {
 	createLogCmd.Flags().String(logNameKey, "", "The simple name of the log file to register (not a directory)")
+  createLogCmd.MarkFlagRequired(logNameKey)
 	createLogCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch this log file is associated with")
+  createLogCmd.MarkFlagRequired(logBatchIDKey)
 	createLogCmd.Flags().String(logJobIDKey, "", "The UUID of the job in the batch this log file was created by and will be associated with")
+  createLogCmd.MarkFlagRequired(logJobIDKey)
 	createLogCmd.Flags().Int64(logFileSizeKey, -1, "The size of the file in bytes")
 	createLogCmd.Flags().String(logChecksumKey, "", "A checksum for the file, to enable integrity checking when downloading")
 	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")

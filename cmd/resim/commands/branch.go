@@ -37,11 +37,11 @@ const (
 
 func init() {
 	createBranchCmd.Flags().String(branchNameKey, "", "The name of the branch, often a repository name")
-  createBranchCmd.MarkFlagRequired(branchNameKey)
+	createBranchCmd.MarkFlagRequired(branchNameKey)
 	createBranchCmd.Flags().String(branchProjectIDKey, "", "The ID of the project to associate the branch to")
-  createBranchCmd.MarkFlagRequired(branchProjectIDKey)
+	createBranchCmd.MarkFlagRequired(branchProjectIDKey)
 	createBranchCmd.Flags().String(branchTypeKey, "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
-  createBranchCmd.MarkFlagRequired(branchTypeKey)
+	createBranchCmd.MarkFlagRequired(branchTypeKey)
 	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in github action friendly format")
 	branchCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(branchCmd)

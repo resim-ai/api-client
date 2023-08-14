@@ -36,9 +36,9 @@ const (
 
 func init() {
 	createProjectCmd.Flags().String(projectNameKey, "", "The name of the project, often a repository name")
-  createProjectCmd.MarkFlagRequired(projectNameKey)
+	createProjectCmd.MarkFlagRequired(projectNameKey)
 	createProjectCmd.Flags().String(projectDescriptionKey, "", "The description of the project")
-  createProjectCmd.MarkFlagRequired(projectDescriptionKey)
+	createProjectCmd.MarkFlagRequired(projectDescriptionKey)
 	createProjectCmd.Flags().Bool(projectGithubKey, false, "Whether to output format in github action friendly format")
 	projectCmd.AddCommand(createProjectCmd)
 	rootCmd.AddCommand(projectCmd)

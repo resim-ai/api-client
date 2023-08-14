@@ -24,9 +24,9 @@ func init() {
 	rootCmd.PersistentFlags().String(authURLKey, "", "The URL of the authentication endpoint.")
 	viper.SetDefault(authURLKey, "https://resim.us.auth0.com/")
 	rootCmd.PersistentFlags().String(clientIDKey, "", "Authentication credentials client ID")
-  rootCmd.MarkPersistentFlagRequired(clientIDKey);
+  rootCmd.MarkPersistentFlagRequired(clientIDKey)
 	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
-  rootCmd.MarkPersistentFlagRequired(clientSecretKey);
+  rootCmd.MarkPersistentFlagRequired(clientSecretKey)
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {

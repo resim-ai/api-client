@@ -32,9 +32,9 @@ const (
 	buildDescriptionKey      = "description"
 	buildImageURIKey         = "image"
 	buildVersionKey          = "version"
-	buildProjectNameKey      = "project_name"
-	buildBranchNameKey       = "branch_name"
-	buildAutoCreateBranchKey = "auto_create_branch"
+	buildProjectNameKey      = "project-name"
+	buildBranchNameKey       = "branch-name"
+	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
 )
 

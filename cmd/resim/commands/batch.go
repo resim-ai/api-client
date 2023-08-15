@@ -37,13 +37,13 @@ var (
 )
 
 const (
-	buildIDKey          = "build_id"
-	experienceIDsKey    = "experience_ids"
-	experienceTagIDsKey = "experience_tag_ids"
+	buildIDKey          = "build-id"
+	experienceIDsKey    = "experience-ids"
+	experienceTagIDsKey = "experience-tag-ids"
 
-	batchIDKey    = "batch_id"
-	batchNameKey  = "batch_name"
-	exitStatusKey = "exit_status"
+	batchIDKey    = "batch-id"
+	batchNameKey  = "batch-name"
+	exitStatusKey = "exit-status"
 )
 
 func init() {

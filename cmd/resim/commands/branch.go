@@ -30,7 +30,7 @@ var (
 
 const (
 	branchNameKey      = "name"
-	branchProjectIDKey = "project_id"
+	branchProjectIDKey = "project-id"
 	branchTypeKey      = "type"
 	branchGithubKey    = "github"
 )

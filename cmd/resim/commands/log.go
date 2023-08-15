@@ -29,9 +29,9 @@ var (
 
 const (
 	logNameKey     = "name"
-	logBatchIDKey  = "batch_id"
-	logJobIDKey    = "job_id"
-	logFileSizeKey = "file_size"
+	logBatchIDKey  = "batch-id"
+	logJobIDKey    = "job-id"
+	logFileSizeKey = "file-size"
 	logChecksumKey = "checksum"
 	logGithubKey   = "github"
 )

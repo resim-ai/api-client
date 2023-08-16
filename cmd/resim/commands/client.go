@@ -13,9 +13,9 @@ import (
 
 const (
 	urlKey          = "url"
-	authURLKey      = "auth_url"
-	clientIDKey     = "client_id"
-	clientSecretKey = "client_secret"
+	authURLKey      = "auth-url"
+	clientIDKey     = "client-id"
+	clientSecretKey = "client-secret"
 )
 
 func init() {

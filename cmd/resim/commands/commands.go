@@ -1,6 +1,10 @@
 package commands
 
 import (
+	"fmt"
+	"io/fs"
+	"log"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -16,6 +20,15 @@ var (
 )
 
 func Execute() error {
+	viper.SetConfigName("resim")
+	viper.AddConfigPath("$HOME/.resim")
+	if err := viper.ReadInConfig(); err != nil {
+		switch err.(type) {
+		case viper.ConfigFileNotFoundError, *fs.PathError:
+		default:
+			log.Fatal("error reading config file: ", err, fmt.Sprintf("%T", err))
+		}
+	}
 	return rootCmd.Execute()
 }
 

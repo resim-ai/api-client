@@ -13,6 +13,8 @@ const EnvPrefix = "RESIM"
 func main() {
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.AutomaticEnv()
+	// This confusingly-named function defines the mapping from CLI parameter key to environment variable.
+	// CLI parameters use kebab-case, and env vars use CAPITAL_SNAKE_CASE.
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 	err := commands.Execute()
 	if err != nil && err.Error() != "" {

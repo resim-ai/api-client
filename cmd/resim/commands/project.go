@@ -72,13 +72,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateProjectWithResponse(context.Background(), body)
-	if err != nil || response.StatusCode() != http.StatusCreated {
-		var message string
-		if response != nil && response.Body != nil {
-			message = string(response.Body)
-		}
-		log.Fatal("failed to create project", err, message)
-	}
+	ValidateResponse(http.StatusCreated, "failed to create project", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}
@@ -103,20 +97,18 @@ func getProjectIDForName(client *api.ClientWithResponses, buildProjectName strin
 	var pageToken *string = nil
 pageLoop:
 	for {
-		listResponse, err := client.ListProjectsWithResponse(
+		response, err := client.ListProjectsWithResponse(
 			context.Background(), &api.ListProjectsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		if err != nil || listResponse.StatusCode() != http.StatusOK {
-			log.Fatal("failed to list projects: ", err, string(listResponse.Body))
-		}
-		if listResponse.JSON200 == nil {
+		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse, err)
+		if response.JSON200 == nil {
 			log.Fatal("empty response")
 		}
 
-		pageToken = listResponse.JSON200.NextPageToken
-		projects := *listResponse.JSON200.Projects
+		pageToken = response.JSON200.NextPageToken
+		projects := *response.JSON200.Projects
 		for _, project := range projects {
 			if project.Name == nil {
 				log.Fatal("project has no name")

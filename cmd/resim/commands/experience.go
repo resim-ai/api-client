@@ -79,13 +79,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateExperienceWithResponse(context.Background(), body)
-	if err != nil || response.StatusCode() != http.StatusCreated {
-		var message string
-		if response != nil && response.Body != nil {
-			message = string(response.Body)
-		}
-		log.Fatal("failed to create experience: ", err, message)
-	}
+	ValidateResponse(http.StatusCreated, "failed to create experience", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}

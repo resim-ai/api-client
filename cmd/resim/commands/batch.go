@@ -90,9 +90,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateBatchWithResponse(context.Background(), body)
-	if err != nil || response.HTTPResponse.StatusCode != http.StatusCreated {
-		log.Fatal("failed to create batch: ", err, string(response.Body))
-	}
+	ValidateResponse(http.StatusCreated, "failed to create batch", response.HTTPResponse, err)
 
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
@@ -128,9 +126,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
 		response, err := client.GetBatchWithResponse(context.Background(), batchID)
-		if err != nil || response.StatusCode() != http.StatusOK {
-			log.Fatal("unable to retrieve batch: ", err, string(response.Body))
-		}
+		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse, err)
 		batch = response.JSON200
 	} else if viper.IsSet(batchNameKey) {
 		batchName := viper.GetString(batchNameKey)
@@ -140,13 +136,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageToken: pageToken,
 			})
-			if err != nil || response.StatusCode() != 200 {
-				var message string
-				if response != nil && response.Body != nil {
-					message = string(response.Body)
-				}
-				log.Fatal("unable to list batches: ", err, message)
-			}
+			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, err)
 			if response.JSON200.Batches == nil {
 				log.Fatal("unable to find batch: ", batchName)
 			}

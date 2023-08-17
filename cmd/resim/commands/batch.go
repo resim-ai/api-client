@@ -37,9 +37,10 @@ var (
 )
 
 const (
-	buildIDKey          = "build-id"
-	experienceIDsKey    = "experience-ids"
-	experienceTagIDsKey = "experience-tag-ids"
+	buildIDKey            = "build-id"
+	experienceIDsKey      = "experience-ids"
+	experienceTagIDsKey   = "experience-tag-ids"
+	experienceTagNamesKey = "experience-tag-names"
 
 	batchIDKey    = "batch-id"
 	batchNameKey  = "batch-name"
@@ -51,6 +52,7 @@ func init() {
 	createBatchCmd.MarkFlagRequired(buildIDKey)
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
+	createBatchCmd.Flags().String(experienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	// TODO(simon) We want at least one of the above flags. The function we want
 	// is: .MarkFlagsOneRequired this was merged into Cobra recently:
 	// https://github.com/spf13/cobra/pull/1952 - but we need to wait for a stable
@@ -80,7 +82,25 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
-	experienceTagIDs := parseUUIDs(viper.GetString(experienceTagIDsKey))
+
+	if !viper.IsSet(experienceIDsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) {
+		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
+	}
+
+	if viper.IsSet(experienceTagIDsKey) && viper.IsSet(experienceTagNamesKey) {
+		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", experienceTagNamesKey, experienceTagIDsKey))
+	}
+
+	// Obtain experience tag ids.
+	var experienceTagIDs []uuid.UUID
+	// If the user passes IDs directly, parse them:
+	if viper.GetString(experienceTagIDsKey) != "" {
+		experienceTagIDs = parseUUIDs(viper.GetString(experienceTagIDsKey))
+	}
+	// If the user passes names, grab the ids:
+	if viper.GetString(experienceTagNamesKey) != "" {
+		experienceTagIDs = parseExperienceTagNames(client, viper.GetString(experienceTagNamesKey))
+	}
 
 	// Build the request body and make the request
 	body := api.CreateBatchJSONRequestBody{

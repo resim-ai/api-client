@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -185,9 +186,8 @@ func listLogs(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
-	bytes, err := json.MarshalIndent(logs, "", "  ")
-	if err != nil {
-		log.Fatal("unable to serialize logs: ", err)
-	}
-	fmt.Println(string(bytes))
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", " ")
+	enc.Encode(logs)
 }

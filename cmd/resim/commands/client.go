@@ -3,7 +3,9 @@ package commands
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
+	"net/http"
 	"net/url"
 
 	"github.com/resim-ai/api-client/api"
@@ -13,9 +15,9 @@ import (
 
 const (
 	urlKey          = "url"
-	authURLKey      = "auth_url"
-	clientIDKey     = "client_id"
-	clientSecretKey = "client_secret"
+	authURLKey      = "auth-url"
+	clientIDKey     = "client-id"
+	clientSecretKey = "client-secret"
 )
 
 func init() {
@@ -51,4 +53,23 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
 	oauthClient := config.Client(ctx)
 
 	return api.NewClientWithResponses(viper.GetString(urlKey), api.WithHTTPClient(oauthClient))
+}
+
+// Validate Response fails the command if the error is non-nil, the response is nil, or the
+// status code is not what we expect.
+func ValidateResponse(expectedStatusCode int, message string, response *http.Response, err error) {
+	if err != nil {
+		log.Fatal(message, ": ", err)
+	}
+	if response == nil {
+		log.Fatal(message, ": ", "no response")
+	}
+	if response.StatusCode != expectedStatusCode {
+		message, readErr := io.ReadAll((response.Body))
+		if readErr != nil {
+			log.Fatal("error reading response: ", readErr)
+		}
+		log.Fatal(message, ": expected status code: ", expectedStatusCode,
+			" received: ", response.StatusCode, " status: ", response.Status, "message: ", message)
+	}
 }

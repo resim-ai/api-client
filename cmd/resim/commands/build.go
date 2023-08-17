@@ -32,19 +32,24 @@ const (
 	buildDescriptionKey      = "description"
 	buildImageURIKey         = "image"
 	buildVersionKey          = "version"
-	buildProjectNameKey      = "project_name"
-	buildBranchNameKey       = "branch_name"
-	buildAutoCreateBranchKey = "auto_create_branch"
+	buildProjectNameKey      = "project-name"
+	buildBranchNameKey       = "branch-name"
+	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
 )
 
 func init() {
 	createBuildCmd.Flags().String(buildDescriptionKey, "", "The description of the build, often a commit message")
+	createBuildCmd.MarkFlagRequired(buildDescriptionKey)
 	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
+	createBuildCmd.MarkFlagRequired(buildImageURIKey)
 	createBuildCmd.Flags().String(buildVersionKey, "", "The version of the build image, usually a commit ID")
+	createBuildCmd.MarkFlagRequired(buildVersionKey)
 	createBuildCmd.Flags().String(buildProjectNameKey, "", "The name of the project to create the build in")
+	createBuildCmd.MarkFlagRequired(buildProjectNameKey)
 	createBuildCmd.Flags().String(buildBranchNameKey, "", "The name of the branch to nest the build in, usually the associated git branch")
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
+	createBuildCmd.MarkFlagRequired(buildBranchNameKey)
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
 	buildCmd.AddCommand(createBuildCmd)
 	rootCmd.AddCommand(buildCmd)
@@ -97,9 +102,8 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			}
 
 			response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
-			if err != nil {
-				log.Fatal(fmt.Sprintf("Failed to create a new branch with name %v ", branchName), err)
-			}
+			ValidateResponse(http.StatusCreated, fmt.Sprintf("failed to create a new branch with name %v", branchName),
+				response.HTTPResponse, err)
 			branchID = *response.JSON201.BranchID
 			if !buildGithub {
 				fmt.Printf("Created branch with ID %v\n", branchID)
@@ -116,13 +120,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)
-	if err != nil || response.StatusCode() != http.StatusCreated {
-		var message string
-		if response != nil && response.Body != nil {
-			message = string(response.Body)
-		}
-		log.Fatal("unable to create build ", err, message)
-	}
+	ValidateResponse(http.StatusCreated, "unable to create build", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}

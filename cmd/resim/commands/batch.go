@@ -37,25 +37,31 @@ var (
 )
 
 const (
-	buildIDKey            = "build_id"
-	experienceIDsKey      = "experience_ids"
-	experienceTagIDsKey   = "experience_tag_ids"
-	experienceTagNamesKey = "experience_tag_names"
+	buildIDKey          = "build-id"
+	experienceIDsKey    = "experience-ids"
+	experienceTagIDsKey = "experience-tag-ids"
+  experienceTagNamesKey = "experience-tag-names"
 
-	batchIDKey    = "batch_id"
-	batchNameKey  = "batch_name"
-	exitStatusKey = "exit_status"
+	batchIDKey    = "batch-id"
+	batchNameKey  = "batch-name"
+	exitStatusKey = "exit-status"
 )
 
 func init() {
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
+	createBatchCmd.MarkFlagRequired(buildIDKey)
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
 	createBatchCmd.Flags().String(experienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
+	// TODO(simon) We want at least one of the above flags. The function we want
+	// is: .MarkFlagsOneRequired this was merged into Cobra recently:
+	// https://github.com/spf13/cobra/pull/1952 - but we need to wait for a stable
+	// release and upgrade before implementing here.
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	getBatchCmd.Flags().Bool(exitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	batchCmd.AddCommand(getBatchCmd)
 
@@ -100,9 +106,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateBatchWithResponse(context.Background(), body)
-	if err != nil || response.HTTPResponse.StatusCode != http.StatusCreated {
-		log.Fatal("failed to create batch: ", err, string(response.Body))
-	}
+	ValidateResponse(http.StatusCreated, "failed to create batch", response.HTTPResponse, err)
 
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
@@ -138,9 +142,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
 		response, err := client.GetBatchWithResponse(context.Background(), batchID)
-		if err != nil || response.StatusCode() != http.StatusOK {
-			log.Fatal("unable to retrieve batch: ", err, string(response.Body))
-		}
+		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse, err)
 		batch = response.JSON200
 	} else if viper.IsSet(batchNameKey) {
 		batchName := viper.GetString(batchNameKey)
@@ -150,13 +152,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageToken: pageToken,
 			})
-			if err != nil || response.StatusCode() != 200 {
-				var message string
-				if response != nil && response.Body != nil {
-					message = string(response.Body)
-				}
-				log.Fatal("unable to list batches: ", err, message)
-			}
+			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, err)
 			if response.JSON200.Batches == nil {
 				log.Fatal("unable to find batch: ", batchName)
 			}

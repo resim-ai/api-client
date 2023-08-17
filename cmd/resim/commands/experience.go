@@ -35,8 +35,11 @@ const (
 
 func init() {
 	createExperienceCmd.Flags().String(experienceNameKey, "", "The name of the experience")
+	createExperienceCmd.MarkFlagRequired(experienceNameKey)
 	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
+	createExperienceCmd.MarkFlagRequired(experienceDescriptionKey)
 	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
+	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
@@ -76,13 +79,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateExperienceWithResponse(context.Background(), body)
-	if err != nil || response.StatusCode() != http.StatusCreated {
-		var message string
-		if response != nil && response.Body != nil {
-			message = string(response.Body)
-		}
-		log.Fatal("failed to create experience: ", err, message)
-	}
+	ValidateResponse(http.StatusCreated, "failed to create experience", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}

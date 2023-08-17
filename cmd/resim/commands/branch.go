@@ -30,15 +30,18 @@ var (
 
 const (
 	branchNameKey      = "name"
-	branchProjectIDKey = "project_id"
+	branchProjectIDKey = "project-id"
 	branchTypeKey      = "type"
 	branchGithubKey    = "github"
 )
 
 func init() {
 	createBranchCmd.Flags().String(branchNameKey, "", "The name of the branch, often a repository name")
+	createBranchCmd.MarkFlagRequired(branchNameKey)
 	createBranchCmd.Flags().String(branchProjectIDKey, "", "The ID of the project to associate the branch to")
+	createBranchCmd.MarkFlagRequired(branchProjectIDKey)
 	createBranchCmd.Flags().String(branchTypeKey, "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
+	createBranchCmd.MarkFlagRequired(branchTypeKey)
 	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in github action friendly format")
 	branchCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(branchCmd)
@@ -76,13 +79,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
-	if err != nil || response.StatusCode() != http.StatusCreated {
-		var message string
-		if response != nil && response.Body != nil {
-			message = string(response.Body)
-		}
-		log.Fatal("unable to create branch ", err, message)
-	}
+	ValidateResponse(http.StatusCreated, "unable to create branch", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty branch returned")
 	}
@@ -106,24 +103,18 @@ func getBranchIDForName(client *api.ClientWithResponses, projectID uuid.UUID, bu
 	var pageToken *string = nil
 pageLoop:
 	for {
-		listResponse, err := client.ListBranchesForProjectWithResponse(
+		response, err := client.ListBranchesForProjectWithResponse(
 			context.Background(), projectID, &api.ListBranchesForProjectParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		if err != nil || listResponse.StatusCode() != http.StatusOK {
-			var message string
-			if listResponse.Body != nil {
-				message = string(listResponse.Body)
-			}
-			log.Fatal("failed to find branch: ", err, message)
-		}
+		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse, err)
 
-		pageToken = listResponse.JSON200.NextPageToken
-		if listResponse.JSON200 == nil || listResponse.JSON200.Branches == nil {
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.Branches == nil {
 			log.Fatal("no branches")
 		}
-		branches := *listResponse.JSON200.Branches
+		branches := *response.JSON200.Branches
 		for _, branch := range branches {
 			if *branch.Name == buildBranchName {
 				branchID = *branch.BranchID

@@ -187,7 +187,7 @@ func listLogs(ccmd *cobra.Command, args []string) {
 	}
 	bytes, err := json.MarshalIndent(logs, "", "  ")
 	if err != nil {
-		log.Fatal("unable to serialize batch: ", err)
+		log.Fatal("unable to serialize logs: ", err)
 	}
 	fmt.Println(string(bytes))
 }

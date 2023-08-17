@@ -2,12 +2,14 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -23,6 +25,13 @@ var (
 		Short:  "create - Creates a new log entry",
 		Long:   ``,
 		Run:    createLog,
+		PreRun: RegisterViperFlags,
+	}
+	listLogsCmd = &cobra.Command{
+		Use:    "list",
+		Short:  "list - Lists the logs for a batch",
+		Long:   ``,
+		Run:    listLogs,
 		PreRun: RegisterViperFlags,
 	}
 )
@@ -49,6 +58,13 @@ func init() {
 	createLogCmd.MarkFlagRequired(logChecksumKey)
 	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")
 	logCmd.AddCommand(createLogCmd)
+
+	listLogsCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch the logs are associated with")
+	listLogsCmd.MarkFlagRequired(logBatchIDKey)
+	listLogsCmd.Flags().String(logJobIDKey, "", "The UUID of the job in the batch to list logs for")
+	listLogsCmd.MarkFlagRequired(logJobIDKey)
+	logCmd.AddCommand(listLogsCmd)
+
 	rootCmd.AddCommand(logCmd)
 }
 
@@ -129,4 +145,49 @@ func createLog(ccmd *cobra.Command, args []string) {
 		fmt.Printf("Output Location: %s\n", *myLog.Location)
 		fmt.Println("Please upload the log file to this location")
 	}
+}
+
+func listLogs(ccmd *cobra.Command, args []string) {
+	client, err := GetClient(context.Background())
+	if err != nil {
+		log.Fatal("unable to create client: ", err)
+	}
+
+	batchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
+	if err != nil {
+		log.Fatal("unable to parse batch ID: ", err)
+	}
+
+	jobID, err := uuid.Parse(viper.GetString(logJobIDKey))
+	if err != nil {
+		log.Fatal("unable to parse job ID: ", err)
+	}
+
+	logs := []api.Log{}
+	var pageToken *string = nil
+	for {
+		response, err := client.ListLogsForJobWithResponse(context.Background(), batchID, jobID, &api.ListLogsForJobParams{
+			PageToken: pageToken,
+			PageSize:  Ptr(100),
+		})
+		ValidateResponse(http.StatusOK, "unable to list logs", response.HTTPResponse, err)
+		if response.JSON200.Logs == nil {
+			log.Fatal("unable to list logs")
+		}
+		responseLogs := *response.JSON200.Logs
+		for _, log := range responseLogs {
+			logs = append(logs, log)
+		}
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+	bytes, err := json.MarshalIndent(logs, "", "  ")
+	if err != nil {
+		log.Fatal("unable to serialize batch: ", err)
+	}
+	fmt.Println(string(bytes))
 }

@@ -39,7 +39,7 @@ pageLoop:
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		ValidateResponse(http.StatusCreated, "unable to create list experiences", listResponse.HTTPResponse, err)
+		ValidateResponse(http.StatusOK, "unable to create list experiences", listResponse.HTTPResponse, err)
 		if listResponse.JSON200 == nil {
 			log.Fatal("empty response")
 		}

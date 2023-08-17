@@ -34,6 +34,14 @@ var (
 		Run:    getBatch,
 		PreRun: RegisterViperFlags,
 	}
+
+	jobsBatchCmd = &cobra.Command{
+		Use:    "jobs",
+		Short:  "jobs - Lists the jobs in a batch",
+		Long:   ``,
+		Run:    jobsBatch,
+		PreRun: RegisterViperFlags,
+	}
 )
 
 const (
@@ -64,6 +72,11 @@ func init() {
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	getBatchCmd.Flags().Bool(exitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	batchCmd.AddCommand(getBatchCmd)
+
+	jobsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve jobs for.")
+	jobsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	jobsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	batchCmd.AddCommand(jobsBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
 }
@@ -202,6 +215,77 @@ func getBatch(ccmd *cobra.Command, args []string) {
 	bytes, err := json.MarshalIndent(batch, "", "  ")
 	if err != nil {
 		log.Fatal("unable to serialize batch: ", err)
+	}
+	fmt.Println(string(bytes))
+}
+
+func jobsBatch(ccmd *cobra.Command, args []string) {
+	client, err := GetClient(context.Background())
+	if err != nil {
+		log.Fatal("unable to create client: ", err)
+	}
+
+	var batchID uuid.UUID
+	if viper.IsSet(batchIDKey) {
+		batchID, err = uuid.Parse(viper.GetString(batchIDKey))
+		if err != nil {
+			log.Fatal("unable to parse batch ID: ", err)
+		}
+	} else if viper.IsSet(batchNameKey) {
+		batchName := viper.GetString(batchNameKey)
+		var pageToken *string = nil
+	pageLoop:
+		for {
+			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
+				PageToken: pageToken,
+			})
+			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, err)
+			if response.JSON200.Batches == nil {
+				log.Fatal("unable to find batch: ", batchName)
+			}
+			batches := *response.JSON200.Batches
+
+			for _, b := range batches {
+				if b.FriendlyName != nil && *b.FriendlyName == batchName {
+					batchID = *b.BatchID
+					break pageLoop
+				}
+			}
+			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+				pageToken = response.JSON200.NextPageToken
+			} else {
+				log.Fatal("unable to find batch: ", batchName)
+			}
+		}
+	} else {
+		log.Fatal("must specify either the batch ID or the batch name")
+	}
+
+	// Now list the jobs
+	jobs := []api.Job{}
+	var pageToken *string = nil
+	for {
+		response, err := client.ListJobsWithResponse(context.Background(), batchID, &api.ListJobsParams{
+			PageToken: pageToken,
+		})
+		ValidateResponse(http.StatusOK, "unable to list jobs", response.HTTPResponse, err)
+		if response.JSON200.Jobs == nil {
+			log.Fatal("unable to list jobs")
+		}
+		responseJobs := *response.JSON200.Jobs
+		for _, job := range responseJobs {
+			jobs = append(jobs, job)
+		}
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+	bytes, err := json.MarshalIndent(jobs, "", "  ")
+	if err != nil {
+		log.Fatal("unable to serialize jobs: ", err)
 	}
 	fmt.Println(string(bytes))
 }

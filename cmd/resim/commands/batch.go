@@ -37,10 +37,10 @@ var (
 )
 
 const (
-	buildIDKey          = "build-id"
-	experienceIDsKey    = "experience-ids"
-	experienceTagIDsKey = "experience-tag-ids"
-  experienceTagNamesKey = "experience-tag-names"
+	buildIDKey            = "build-id"
+	experienceIDsKey      = "experience-ids"
+	experienceTagIDsKey   = "experience-tag-ids"
+	experienceTagNamesKey = "experience-tag-names"
 
 	batchIDKey    = "batch-id"
 	batchNameKey  = "batch-name"
@@ -83,7 +83,11 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
 
-	if viper.GetString(experienceTagIDsKey) != "" && viper.GetString(experienceTagNamesKey) != "" {
+	if !viper.IsSet(experienceIDsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) {
+		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
+	}
+
+	if viper.IsSet(experienceTagIDsKey) && viper.IsSet(experienceTagNamesKey) {
 		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", experienceTagNamesKey, experienceTagIDsKey))
 	}
 

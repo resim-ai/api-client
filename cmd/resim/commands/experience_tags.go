@@ -39,9 +39,7 @@ pageLoop:
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		if err != nil || listResponse.StatusCode() != http.StatusOK {
-			log.Fatal("failed to list experience tags: ", err, string(listResponse.Body))
-		}
+		ValidateResponse(http.StatusCreated, "unable to create list experiences", listResponse.HTTPResponse, err)
 		if listResponse.JSON200 == nil {
 			log.Fatal("empty response")
 		}

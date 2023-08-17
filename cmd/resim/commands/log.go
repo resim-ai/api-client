@@ -108,7 +108,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 
 	// Create the log entry
 	logResponse, err := client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
-	ValidateResponse(http.StatusCreated, "unable to create log", jobResponse.HTTPResponse, err)
+	ValidateResponse(http.StatusCreated, "unable to create log", logResponse.HTTPResponse, err)
 	if logResponse.JSON201 == nil {
 		log.Fatal("empty response")
 	}

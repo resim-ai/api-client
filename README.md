@@ -28,14 +28,14 @@ Or you can install using `go install`:
 
 The ReSim CLI authenticates using client credentials (a client ID and a client secret).  These are obtained by contacting ReSim.  
 
-Client credentials can be specified on the commandline with the `--client_id` and `--client_secret` flags, or in the environment as
+Client credentials can be specified on the commandline with the `--client-id` and `--client-secret` flags, or in the environment as
 `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET`.
 
 If you would like to store your client ID and secret in a config file, the CLI will load them from `~/.resim/resim.yaml`.  The file
 is formatted as follows:
 
-    client_id: <client ID>
-    client_secret: <client secret>
+    client-id: <client ID>
+    client-secret: <client secret>
 
 ## Usage
 

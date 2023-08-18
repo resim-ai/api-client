@@ -32,11 +32,11 @@ func init() {
 func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
 	clientID := viper.GetString(clientIDKey)
 	if clientID == "" {
-		return nil, errors.New("client_id must be specified")
+		return nil, errors.New("client-id must be specified")
 	}
 	clientSecret := viper.GetString(clientSecretKey)
 	if clientSecret == "" {
-		return nil, errors.New("client_secret must be specified")
+		return nil, errors.New("client-secret must be specified")
 	}
 	tokenURL, err := url.JoinPath(viper.GetString(authURLKey), "/oauth/token")
 	if err != nil {
@@ -67,9 +67,9 @@ func ValidateResponse(expectedStatusCode int, message string, response *http.Res
 	if response.StatusCode != expectedStatusCode {
 		message, readErr := io.ReadAll((response.Body))
 		if readErr != nil {
-			log.Fatal("error reading response: ", readErr)
+			log.Println("error reading response: ", readErr)
 		}
 		log.Fatal(message, ": expected status code: ", expectedStatusCode,
-			" received: ", response.StatusCode, " status: ", response.Status, "message: ", message)
+			" received: ", response.StatusCode, " status: ", response.Status, " message: ", message)
 	}
 }

@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	logCmd = &cobra.Command{
-		Use:   "log",
-		Short: "log contains commands for creating and listing test logs. This is not expected to be used directly by users, but via CI/CD systems.",
-		Long:  ``,
+	logsCmd = &cobra.Command{
+		Use:     "logs",
+		Short:   "logs contains commands for creating and listing test logs. This is not expected to be used directly by users, but via CI/CD systems.",
+		Long:    ``,
+		Aliases: []string{"log"},
 	}
 	createLogCmd = &cobra.Command{
 		Use:    "create",
@@ -58,15 +59,15 @@ func init() {
 	createLogCmd.Flags().String(logChecksumKey, "", "A checksum for the file, to enable integrity checking when downloading")
 	createLogCmd.MarkFlagRequired(logChecksumKey)
 	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")
-	logCmd.AddCommand(createLogCmd)
+	logsCmd.AddCommand(createLogCmd)
 
 	listLogsCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch the logs are associated with")
 	listLogsCmd.MarkFlagRequired(logBatchIDKey)
 	listLogsCmd.Flags().String(logJobIDKey, "", "The UUID of the job in the batch to list logs for")
 	listLogsCmd.MarkFlagRequired(logJobIDKey)
-	logCmd.AddCommand(listLogsCmd)
+	logsCmd.AddCommand(listLogsCmd)
 
-	rootCmd.AddCommand(logCmd)
+	rootCmd.AddCommand(logsCmd)
 }
 
 func createLog(ccmd *cobra.Command, args []string) {

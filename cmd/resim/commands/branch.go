@@ -15,9 +15,10 @@ import (
 
 var (
 	branchCmd = &cobra.Command{
-		Use:   "branch",
-		Short: "branch contains commands for creating and managing branches",
-		Long:  ``,
+		Use:     "branches",
+		Short:   "branches contains commands for creating and managing branches",
+		Long:    ``,
+		Aliases: []string{"branch"},
 	}
 	createBranchCmd = &cobra.Command{
 		Use:    "create",

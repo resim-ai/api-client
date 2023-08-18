@@ -13,9 +13,10 @@ import (
 
 var (
 	experienceCmd = &cobra.Command{
-		Use:   "experience",
-		Short: "experience contains commands for creating and managing experiences",
-		Long:  ``,
+		Use:     "experiences",
+		Short:   "experiences contains commands for creating and managing experiences",
+		Long:    ``,
+		Aliases: []string{"experience"},
 	}
 	createExperienceCmd = &cobra.Command{
 		Use:    "create",

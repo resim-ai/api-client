@@ -15,9 +15,10 @@ import (
 
 var (
 	projectCmd = &cobra.Command{
-		Use:   "project",
-		Short: "project contains commands for creating and managing projects",
-		Long:  ``,
+		Use:     "projects",
+		Short:   "projects contains commands for creating and managing projects",
+		Long:    ``,
+		Aliases: []string{"project"},
 	}
 	createProjectCmd = &cobra.Command{
 		Use:    "create",

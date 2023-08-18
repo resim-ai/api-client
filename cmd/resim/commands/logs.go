@@ -17,9 +17,10 @@ import (
 
 var (
 	logsCmd = &cobra.Command{
-		Use:   "logs",
-		Short: "logs contains commands for creating and listing test logs. This is not expected to be used directly by users, but via CI/CD systems.",
-		Long:  ``,
+		Use:     "logs",
+		Short:   "logs contains commands for creating and listing test logs. This is not expected to be used directly by users, but via CI/CD systems.",
+		Long:    ``,
+		Aliases: []string{"log"},
 	}
 	createLogCmd = &cobra.Command{
 		Use:    "create",

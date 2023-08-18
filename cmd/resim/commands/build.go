@@ -15,9 +15,10 @@ import (
 
 var (
 	buildCmd = &cobra.Command{
-		Use:   "build",
-		Short: "build contains commands for creating and managing builds",
-		Long:  ``,
+		Use:     "builds",
+		Short:   "builds contains commands for creating and managing builds",
+		Long:    ``,
+		Aliases: []string{"build"},
 	}
 	createBuildCmd = &cobra.Command{
 		Use:    "create",

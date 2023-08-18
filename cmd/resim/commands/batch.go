@@ -16,9 +16,10 @@ import (
 
 var (
 	batchCmd = &cobra.Command{
-		Use:   "batch",
-		Short: "batch contains commands for creating and managing batches",
-		Long:  ``,
+		Use:     "batches",
+		Short:   "batches contains commands for creating and managing batches",
+		Long:    ``,
+		Aliases: []string{"batch"},
 	}
 	createBatchCmd = &cobra.Command{
 		Use:    "create",

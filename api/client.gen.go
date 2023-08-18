@@ -166,7 +166,6 @@ type Job struct {
 	ExperienceID   *ExperienceID `json:"experienceID,omitempty"`
 	JobID          *JobID        `json:"jobID,omitempty"`
 	JobStatus      *JobStatus    `json:"jobStatus,omitempty"`
-	McapURL        *McapURL      `json:"mcapURL,omitempty"`
 	OrgID          *OrgID        `json:"orgID,omitempty"`
 	OutputLocation *string       `json:"outputLocation,omitempty"`
 	UserID         *UserID       `json:"userID,omitempty"`
@@ -246,7 +245,7 @@ type ViewMetadata struct {
 // ViewObject defines model for viewObject.
 type ViewObject struct {
 	FriendlyName  *FriendlyName  `json:"friendlyName,omitempty"`
-	McapURL       *string        `json:"mcapURL,omitempty"`
+	McapURL       *McapURL       `json:"mcapURL,omitempty"`
 	ObjectCount   *ObjectCount   `json:"objectCount,omitempty"`
 	OrgID         *OrgID         `json:"orgID,omitempty"`
 	UserID        *UserID        `json:"userID,omitempty"`
@@ -283,8 +282,8 @@ type ListBatchesParams struct {
 // CreateBatchJSONBody defines parameters for CreateBatch.
 type CreateBatchJSONBody struct {
 	BuildID          *BuildID           `json:"buildID,omitempty"`
-	ExperienceIDs    *[]ExperienceID    `json:"experienceIDs,omitempty"`
-	ExperienceTagIDs *[]ExperienceTagID `json:"experienceTagIDs,omitempty"`
+	ExperienceIDs    *[]ExperienceID    `json:"experienceIDs"`
+	ExperienceTagIDs *[]ExperienceTagID `json:"experienceTagIDs"`
 }
 
 // ListJobsParams defines parameters for ListJobs.

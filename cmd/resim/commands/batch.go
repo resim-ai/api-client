@@ -7,9 +7,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -45,10 +48,10 @@ var (
 )
 
 const (
-	buildIDKey            = "build-id"
-	experienceIDsKey      = "experience-ids"
-	experienceTagIDsKey   = "experience-tag-ids"
-	experienceTagNamesKey = "experience-tag-names"
+	buildIDKey             = "build-id"
+	experienceRevisionsKey = "experience-revisions"
+	experienceTagIDsKey    = "experience-tag-ids"
+	experienceTagNamesKey  = "experience-tag-names"
 
 	batchIDKey    = "batch-id"
 	batchNameKey  = "batch-name"
@@ -58,7 +61,7 @@ const (
 func init() {
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
 	createBatchCmd.MarkFlagRequired(buildIDKey)
-	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
+	createBatchCmd.Flags().String(experienceRevisionsKey, "", "Comma-separated list of experience revision to run. An experience revision is of the form {id}/{revision}.")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
 	createBatchCmd.Flags().String(experienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	// TODO(simon) We want at least one of the above flags. The function we want
@@ -81,6 +84,47 @@ func init() {
 	rootCmd.AddCommand(batchCmd)
 }
 
+// This function takes a single experience revision of the form {id}/{revision} and returns an experience revision.
+// For example aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/1
+func parseExperienceRevision(experienceRevisionString string) api.ExperienceRevision {
+	if experienceRevisionString == "" {
+		return api.ExperienceRevision{}
+	}
+	idString, revisionString, found := strings.Cut(experienceRevisionString, "/")
+	if !found {
+		log.Fatal("Experience revision must be of the form {id}/{revision}")
+	}
+	experienceID, err := uuid.Parse(strings.TrimSpace(idString))
+	if err != nil {
+		log.Fatal(err)
+	}
+	revision, err := strconv.ParseInt(strings.TrimSpace(revisionString), 10, 32)
+	if err != nil {
+		log.Fatal(err)
+	}
+	experienceRevision := api.ExperienceRevision{
+		ExperienceID: Ptr(experienceID),
+		Revision:     Ptr(int32(revision)),
+	}
+	return experienceRevision
+}
+
+// This function takes a comma-separated list of experience revisions represented as strings
+// and returns a separated array of experience revisions. An experience revision is of the form {id}/{revision}.
+// For example "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/1,aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/1"
+func parseExperienceRevisions(commaSeparatedKeys string) []api.ExperienceRevision {
+	if commaSeparatedKeys == "" {
+		return []api.ExperienceRevision{}
+	}
+	strs := strings.Split(commaSeparatedKeys, ",")
+	result := make([]api.ExperienceRevision, len(strs))
+
+	for i := 0; i < len(strs); i++ {
+		result[i] = parseExperienceRevision(strings.TrimSpace(strs[i]))
+	}
+	return result
+}
+
 func createBatch(ccmd *cobra.Command, args []string) {
 	fmt.Println("Creating a batch...")
 
@@ -94,15 +138,16 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	if err != nil || buildID == uuid.Nil {
 		log.Fatal(err)
 	}
-	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
 
-	if !viper.IsSet(experienceIDsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) {
+	if !viper.IsSet(experienceRevisionsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) {
 		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
 	}
 
 	if viper.IsSet(experienceTagIDsKey) && viper.IsSet(experienceTagNamesKey) {
 		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", experienceTagNamesKey, experienceTagIDsKey))
 	}
+
+	experienceRevisions := parseExperienceRevisions(viper.GetString("experience_revisions"))
 
 	// Obtain experience tag ids.
 	var experienceTagIDs []uuid.UUID
@@ -117,9 +162,9 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	// Build the request body and make the request
 	body := api.CreateBatchJSONRequestBody{
-		BuildID:          &buildID,
-		ExperienceIDs:    &experienceIDs,
-		ExperienceTagIDs: &experienceTagIDs,
+		BuildID:             &buildID,
+		ExperienceRevisions: &experienceRevisions,
+		ExperienceTagIDs:    &experienceTagIDs,
 	}
 
 	response, err := client.CreateBatchWithResponse(context.Background(), body)

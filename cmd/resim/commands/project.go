@@ -51,11 +51,6 @@ func createProject(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a project...")
 	}
 
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Parse the various arguments from command line
 	projectName := viper.GetString(projectNameKey)
 	if projectName == "" {
@@ -72,7 +67,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 		Description: &projectDescription,
 	}
 
-	response, err := client.CreateProjectWithResponse(context.Background(), body)
+	response, err := Client.CreateProjectWithResponse(context.Background(), body)
 	ValidateResponse(http.StatusCreated, "failed to create project", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
@@ -92,7 +87,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func getProjectIDForName(client *api.ClientWithResponses, buildProjectName string) uuid.UUID {
+func getProjectIDForName(client api.ClientWithResponsesInterface, buildProjectName string) uuid.UUID {
 	// Page through projects until we find the one we want:
 	var projectID uuid.UUID = uuid.Nil
 	var pageToken *string = nil

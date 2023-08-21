@@ -85,11 +85,6 @@ func init() {
 func createBatch(ccmd *cobra.Command, args []string) {
 	fmt.Println("Creating a batch...")
 
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Parse the UUIDs from the command line
 	buildID, err := uuid.Parse(viper.GetString(buildIDKey))
 	if err != nil || buildID == uuid.Nil {
@@ -113,7 +108,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 	// If the user passes names, grab the ids:
 	if viper.GetString(experienceTagNamesKey) != "" {
-		experienceTagIDs = parseExperienceTagNames(client, viper.GetString(experienceTagNamesKey))
+		experienceTagIDs = parseExperienceTagNames(Client, viper.GetString(experienceTagNamesKey))
 	}
 
 	// Build the request body and make the request
@@ -123,7 +118,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		ExperienceTagIDs: &experienceTagIDs,
 	}
 
-	response, err := client.CreateBatchWithResponse(context.Background(), body)
+	response, err := Client.CreateBatchWithResponse(context.Background(), body)
 	ValidateResponse(http.StatusCreated, "failed to create batch", response.HTTPResponse, err)
 
 	if response.JSON201 == nil {
@@ -148,18 +143,13 @@ func createBatch(ccmd *cobra.Command, args []string) {
 }
 
 func getBatch(ccmd *cobra.Command, args []string) {
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal("unable to create client: ", err)
-	}
-
 	var batch *api.Batch
 	if viper.IsSet(batchIDKey) {
 		batchID, err := uuid.Parse(viper.GetString(batchIDKey))
 		if err != nil {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
-		response, err := client.GetBatchWithResponse(context.Background(), batchID)
+		response, err := Client.GetBatchWithResponse(context.Background(), batchID)
 		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse, err)
 		batch = response.JSON200
 	} else if viper.IsSet(batchNameKey) {
@@ -167,7 +157,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		var pageToken *string = nil
 	pageLoop:
 		for {
-			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
+			response, err := Client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageToken: pageToken,
 			})
 			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, err)
@@ -221,12 +211,8 @@ func getBatch(ccmd *cobra.Command, args []string) {
 }
 
 func jobsBatch(ccmd *cobra.Command, args []string) {
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal("unable to create client: ", err)
-	}
-
 	var batchID uuid.UUID
+	var err error
 	if viper.IsSet(batchIDKey) {
 		batchID, err = uuid.Parse(viper.GetString(batchIDKey))
 		if err != nil {
@@ -237,7 +223,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 		var pageToken *string = nil
 	pageLoop:
 		for {
-			response, err := client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
+			response, err := Client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageToken: pageToken,
 			})
 			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, err)
@@ -266,7 +252,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 	jobs := []api.Job{}
 	var pageToken *string = nil
 	for {
-		response, err := client.ListJobsWithResponse(context.Background(), batchID, &api.ListJobsParams{
+		response, err := Client.ListJobsWithResponse(context.Background(), batchID, &api.ListJobsParams{
 			PageToken: pageToken,
 		})
 		ValidateResponse(http.StatusOK, "unable to list jobs", response.HTTPResponse, err)

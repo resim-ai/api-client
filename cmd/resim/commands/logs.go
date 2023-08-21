@@ -76,11 +76,6 @@ func createLog(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a log entry...")
 	}
 
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Parse the various arguments from command line
 	logName := viper.GetString(logNameKey)
 	if logName == "" {
@@ -116,16 +111,16 @@ func createLog(ccmd *cobra.Command, args []string) {
 	}
 
 	// Verify that the batch and job exist:
-	batchResponse, err := client.GetBatchWithResponse(context.Background(), logBatchID)
+	batchResponse, err := Client.GetBatchWithResponse(context.Background(), logBatchID)
 	ValidateResponse(http.StatusOK, fmt.Sprintf("unabled to find batch with ID %v", logBatchID),
 		batchResponse.HTTPResponse, err)
 
-	jobResponse, err := client.GetJobWithResponse(context.Background(), logBatchID, logJobID)
+	jobResponse, err := Client.GetJobWithResponse(context.Background(), logBatchID, logJobID)
 	ValidateResponse(http.StatusOK, fmt.Sprintf("unabled to find job with ID %v", logJobID),
 		jobResponse.HTTPResponse, err)
 
 	// Create the log entry
-	logResponse, err := client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
+	logResponse, err := Client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
 	ValidateResponse(http.StatusCreated, "unable to create log", logResponse.HTTPResponse, err)
 	if logResponse.JSON201 == nil {
 		log.Fatal("empty response")
@@ -150,11 +145,6 @@ func createLog(ccmd *cobra.Command, args []string) {
 }
 
 func listLogs(ccmd *cobra.Command, args []string) {
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal("unable to create client: ", err)
-	}
-
 	batchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
 	if err != nil {
 		log.Fatal("unable to parse batch ID: ", err)
@@ -168,7 +158,7 @@ func listLogs(ccmd *cobra.Command, args []string) {
 	logs := []api.Log{}
 	var pageToken *string = nil
 	for {
-		response, err := client.ListLogsForJobWithResponse(context.Background(), batchID, jobID, &api.ListLogsForJobParams{
+		response, err := Client.ListLogsForJobWithResponse(context.Background(), batchID, jobID, &api.ListLogsForJobParams{
 			PageToken: pageToken,
 			PageSize:  Ptr(100),
 		})

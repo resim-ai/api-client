@@ -62,11 +62,6 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a build...")
 	}
 
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Parse the various arguments from command line
 	buildDescription := viper.GetString(buildDescriptionKey)
 	if buildDescription == "" {
@@ -85,11 +80,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 
 	// Check if the project exists, by listing projects:
 	projectName := viper.GetString(buildProjectNameKey)
-	projectID := getProjectIDForName(client, projectName)
+	projectID := getProjectIDForName(Client, projectName)
 
 	// Check if the branch exists, by listing branches:
 	branchName := viper.GetString(buildBranchNameKey)
-	branchID := getBranchIDForName(client, projectID, branchName)
+	branchID := getBranchIDForName(Client, projectID, branchName)
 
 	if branchID == uuid.Nil {
 		if viper.GetBool(buildAutoCreateBranchKey) {
@@ -102,7 +97,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 				BranchType: Ptr(api.CHANGEREQUEST),
 			}
 
-			response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
+			response, err := Client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
 			ValidateResponse(http.StatusCreated, fmt.Sprintf("failed to create a new branch with name %v", branchName),
 				response.HTTPResponse, err)
 			branchID = *response.JSON201.BranchID
@@ -120,7 +115,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		Version:     &buildVersion,
 	}
 
-	response, err := client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)
+	response, err := Client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)
 	ValidateResponse(http.StatusCreated, "unable to create build", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")

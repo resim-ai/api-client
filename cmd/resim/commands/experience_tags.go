@@ -13,7 +13,7 @@ import (
 
 // This function takes a comma-separated list of experience tag names represented as a string
 // and returns a separated array of parsed UUIDs.
-func parseExperienceTagNames(client *api.ClientWithResponses, commaSeparatedNames string) []uuid.UUID {
+func parseExperienceTagNames(client api.ClientWithResponsesInterface, commaSeparatedNames string) []uuid.UUID {
 	if commaSeparatedNames == "" {
 		return []uuid.UUID{}
 	}
@@ -28,7 +28,7 @@ func parseExperienceTagNames(client *api.ClientWithResponses, commaSeparatedName
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func getExperienceTagIDForName(client *api.ClientWithResponses, experienceTagName string) uuid.UUID {
+func getExperienceTagIDForName(client api.ClientWithResponsesInterface, experienceTagName string) uuid.UUID {
 	// Page through experience tags until we find the one we want:
 	var experienceTagID uuid.UUID = uuid.Nil
 	var pageToken *string = nil

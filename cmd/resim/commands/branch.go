@@ -52,12 +52,6 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	if !viper.GetBool(branchGithubKey) {
 		fmt.Println("Creating a branch...")
 	}
-
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Parse the various arguments from command line
 	projectID, err := uuid.Parse(viper.GetString(branchProjectIDKey))
 	if err != nil || projectID == uuid.Nil {
@@ -79,7 +73,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 		BranchType: &branchType,
 	}
 
-	response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
+	response, err := Client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
 	ValidateResponse(http.StatusCreated, "unable to create branch", response.HTTPResponse, err)
 	if response.JSON201 == nil {
 		log.Fatal("empty branch returned")
@@ -98,7 +92,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	}
 }
 
-func getBranchIDForName(client *api.ClientWithResponses, projectID uuid.UUID, buildBranchName string) uuid.UUID {
+func getBranchIDForName(client api.ClientWithResponsesInterface, projectID uuid.UUID, buildBranchName string) uuid.UUID {
 	// Page through branches until we find the one we want:
 	var branchID uuid.UUID = uuid.Nil
 	var pageToken *string = nil

@@ -39,9 +39,25 @@ const (
 	StagingEndpoint string = "https://api.resim.io/v1/"
 )
 
+type AuthConfig struct {
+	AuthKeyProviderDomain string
+	OAuthAudience         string
+}
+
+var DevAuthConfig = AuthConfig{
+	AuthKeyProviderDomain: "https://dev-jbs5inutkvkmnq7c.us.auth0.com/",
+	OAuthAudience:         "https://api.resim.ai",
+}
+
+var ProdAuthConfig = AuthConfig{
+	AuthKeyProviderDomain: "https://resim.us.auth0.com/",
+	OAuthAudience:         "https://api.resim.ai",
+}
+
 type EndToEndTestSuite struct {
 	suite.Suite
 	CliPath  string
+	Config   AuthConfig
 	Endpoint string
 }
 
@@ -66,6 +82,7 @@ func (s *EndToEndTestSuite) TearDownSuite() {
 }
 
 func (s *EndToEndTestSuite) SetupSuite() {
+	var authConfig AuthConfig = DevAuthConfig
 	var deployment string = viper.GetString(Deployment)
 	// Set to the deployment endpoint by default:
 	s.Endpoint = fmt.Sprintf("https://%s.api.dev.resim.io/v1", deployment)
@@ -78,11 +95,12 @@ func (s *EndToEndTestSuite) SetupSuite() {
 	case Staging:
 		s.Endpoint = StagingEndpoint
 	case Prod:
+		authConfig = ProdAuthConfig
 		s.Endpoint = ProdEndpoint
 	default:
 		s.FailNow("Invalid config value")
 	}
-
+	s.Config = authConfig
 	s.CliPath = s.buildCLI()
 	// Validate the RESIM_CLIENT_ID and RESIM_CLIENT_SECRET environment variables are set
 	if !viper.IsSet("RESIM_CLIENT_ID") {
@@ -115,9 +133,10 @@ func (s *EndToEndTestSuite) foldFlags(flags []Flag) []string {
 }
 
 func (s *EndToEndTestSuite) buildCommand(commandBuilders []CommandBuilder) *exec.Cmd {
-	// We populate the URL flag as the initial flag, then for each command/flags pair
+	// We populate the URL and the auth URL flags initially, then for each command/flags pair
 	// in the command builder, we generate a mega slice:
 	allCommands := []string{"--url", s.Endpoint}
+	allCommands = append(allCommands, []string{"--auth-url", s.Config.AuthKeyProviderDomain}...)
 	for _, commandBuilder := range commandBuilders {
 		allCommands = append(allCommands, commandBuilder.Command)
 		for _, flag := range s.foldFlags(commandBuilder.Flags) {

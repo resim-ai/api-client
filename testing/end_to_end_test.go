@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )
@@ -173,6 +174,7 @@ func (s *EndToEndTestSuite) TestHelp() {
 
 func (s *EndToEndTestSuite) TestProjectCreate() {
 	fmt.Println("Testing project create command")
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
@@ -183,7 +185,7 @@ func (s *EndToEndTestSuite) TestProjectCreate() {
 		Flags: []Flag{
 			{
 				Name:  "--name",
-				Value: "test-project",
+				Value: projectName,
 			},
 			{
 				Name:  "--description",
@@ -193,6 +195,38 @@ func (s *EndToEndTestSuite) TestProjectCreate() {
 	}
 	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
 	s.Contains(output.StdOut, "Created project")
+}
+
+func (s *EndToEndTestSuite) TestProjectCreateGithub() {
+	fmt.Println("Testing project create command, with --github flag")
+
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	// We build a create project command with the name and description flags
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: projectName,
+			},
+			{
+				Name:  "--description",
+				Value: "description",
+			},
+			{
+				Name:  "--github",
+				Value: "",
+			},
+		},
+	}
+	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
+	s.Contains(output.StdOut, "project_id=")
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
+	uuid.MustParse(projectIDString)
 }
 
 func TestEndToEndTestSuite(t *testing.T) {

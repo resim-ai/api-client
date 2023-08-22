@@ -62,14 +62,14 @@ type EndToEndTestSuite struct {
 	Endpoint string
 }
 
-type Flag struct {
-	Name  string
-	Value string
-}
-
 type CommandBuilder struct {
 	Command string
 	Flags   []Flag
+}
+
+type Flag struct {
+	Name  string
+	Value string
 }
 
 type Output struct {
@@ -172,107 +172,48 @@ func (s *EndToEndTestSuite) TestHelp() {
 	s.Contains(output.StdOut, "Usage:")
 }
 
-func (s *EndToEndTestSuite) TestProjectCreate() {
-	fmt.Println("Testing project create command")
-	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
-
+func (s *EndToEndTestSuite) createProject(name string, description string, github bool) Output {
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
-		Command: "project",
+		Command: "projects",
 	}
 	createCommand := CommandBuilder{
 		Command: "create",
 		Flags: []Flag{
 			{
 				Name:  "--name",
-				Value: projectName,
+				Value: name,
 			},
 			{
 				Name:  "--description",
-				Value: "description",
+				Value: description,
 			},
 		},
 	}
-	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
-	s.Contains(output.StdOut, "Created project")
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return s.runCommand([]CommandBuilder{projectCommand, createCommand})
 }
 
-func (s *EndToEndTestSuite) TestProjectCreateGithub() {
-	fmt.Println("Testing project create command, with --github flag")
+func (s *EndToEndTestSuite) createBranch(projectID uuid.UUID, name string, branchType string, github bool) Output {
+	// Validate the branch type:
+	if branchType != "RELEASE" && branchType != "MAIN" && branchType != "CHANGE_REQUEST" {
+		s.FailNow("Invalid branch type")
+	}
 
-	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
-	// We build a create project command with the name and description flags
-	projectCommand := CommandBuilder{
-		Command: "project",
+	branchCommand := CommandBuilder{
+		Command: "branches",
 	}
 	createCommand := CommandBuilder{
 		Command: "create",
 		Flags: []Flag{
 			{
 				Name:  "--name",
-				Value: projectName,
-			},
-			{
-				Name:  "--description",
-				Value: "description",
-			},
-			{
-				Name:  "--github",
-				Value: "",
-			},
-		},
-	}
-	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
-	s.Contains(output.StdOut, "project_id=")
-	// We expect to be able to parse the project ID as a UUID
-	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
-	uuid.MustParse(projectIDString)
-}
-
-// Test branch creation:
-func (s *EndToEndTestSuite) TestBranchCreate() {
-	fmt.Println("Testing branch creation")
-
-	// First create a project
-	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
-	// We build a create project command with the name and description flags
-	projectCommand := CommandBuilder{
-		Command: "project",
-	}
-	projectCreateCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: projectName,
-			},
-			{
-				Name:  "--description",
-				Value: "description",
-			},
-			{
-				Name:  "--github",
-				Value: "",
-			},
-		},
-	}
-	output := s.runCommand([]CommandBuilder{projectCommand, projectCreateCommand})
-	s.Contains(output.StdOut, "project_id=")
-	// We expect to be able to parse the project ID as a UUID
-	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
-	projectID := uuid.MustParse(projectIDString)
-
-	// Now create the branch:
-	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
-	branchCommand := CommandBuilder{
-		Command: "branch",
-	}
-	branchCreateCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: branchName,
+				Value: name,
 			},
 			{
 				Name:  "--project-id",
@@ -280,150 +221,25 @@ func (s *EndToEndTestSuite) TestBranchCreate() {
 			},
 			{
 				Name:  "--type",
-				Value: "RELEASE",
+				Value: branchType,
 			},
 		},
 	}
-	output = s.runCommand([]CommandBuilder{branchCommand, branchCreateCommand})
-	s.Contains(output.StdOut, "Created branch")
-	s.Contains(output.StdOut, "Branch ID: ")
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return s.runCommand([]CommandBuilder{branchCommand, createCommand})
 }
 
-func (s *EndToEndTestSuite) TestBranchCreateGithub() {
-	fmt.Println("Testing branch creation, with github flag enabled")
-
-	// First create a project
-	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
-	// We build a create project command with the name and description flags
-	projectCommand := CommandBuilder{
-		Command: "project",
-	}
-	projectCreateCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: projectName,
-			},
-			{
-				Name:  "--description",
-				Value: "description",
-			},
-			{
-				Name:  "--github",
-				Value: "",
-			},
-		},
-	}
-	output := s.runCommand([]CommandBuilder{projectCommand, projectCreateCommand})
-	s.Contains(output.StdOut, "project_id=")
-	// We expect to be able to parse the project ID as a UUID
-	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
-	projectID := uuid.MustParse(projectIDString)
-
-	// Now create the branch:
-	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
-	branchCommand := CommandBuilder{
-		Command: "branch",
-	}
-	branchCreateCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: branchName,
-			},
-			{
-				Name:  "--project-id",
-				Value: projectID.String(),
-			},
-			{
-				Name:  "--type",
-				Value: "RELEASE",
-			},
-			{
-				Name:  "--github",
-				Value: "",
-			},
-		},
-	}
-	output = s.runCommand([]CommandBuilder{branchCommand, branchCreateCommand})
-	s.Contains(output.StdOut, "branch_id=")
-	// We expect to be able to parse the branch ID as a UUID
-	branchIDString := output.StdOut[len("branch_id=") : len(output.StdOut)-1]
-	uuid.MustParse(branchIDString)
-}
-
-// Test the build creation:
-func (s *EndToEndTestSuite) TestBuildCreate() {
-	fmt.Println("Testing build creation")
-
-	// First create a project
-	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
-	// We build a create project command with the name and description flags
-	projectCommand := CommandBuilder{
-		Command: "project",
-	}
-	projectCreateCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: projectName,
-			},
-			{
-				Name:  "--description",
-				Value: "description",
-			},
-			{
-				Name:  "--github",
-				Value: "",
-			},
-		},
-	}
-	output := s.runCommand([]CommandBuilder{projectCommand, projectCreateCommand})
-	s.Contains(output.StdOut, "project_id=")
-	// We expect to be able to parse the project ID as a UUID
-	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
-	projectID := uuid.MustParse(projectIDString)
-
-	// Now create the branch:
-	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
-	branchCommand := CommandBuilder{
-		Command: "branch",
-	}
-	branchCreateCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: branchName,
-			},
-			{
-				Name:  "--project-id",
-				Value: projectID.String(),
-			},
-			{
-				Name:  "--type",
-				Value: "RELEASE",
-			},
-			{
-				Name:  "--github",
-				Value: "",
-			},
-		},
-	}
-	output = s.runCommand([]CommandBuilder{branchCommand, branchCreateCommand})
-	s.Contains(output.StdOut, "branch_id=")
-	// We expect to be able to parse the branch ID as a UUID
-	branchIDString := output.StdOut[len("branch_id=") : len(output.StdOut)-1]
-	uuid.MustParse(branchIDString)
-
+func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, description string, image string, version string, github bool) Output {
 	// Now create the build:
 	buildCommand := CommandBuilder{
-		Command: "build",
+		Command: "builds",
 	}
-	buildCreateCommand := CommandBuilder{
+	createCommand := CommandBuilder{
 		Command: "create",
 		Flags: []Flag{
 			{
@@ -436,20 +252,175 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 			},
 			{
 				Name:  "--description",
-				Value: "test-description",
+				Value: description,
 			},
 			{
 				Name:  "--image",
-				Value: "public.ecr.aws/docker/library/hello-world",
+				Value: image,
 			},
 			{
 				Name:  "--version",
-				Value: "test-version",
+				Value: version,
 			},
 		},
 	}
-	output = s.runCommand([]CommandBuilder{buildCommand, buildCreateCommand})
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return s.runCommand([]CommandBuilder{buildCommand, createCommand})
+}
+
+func (s *EndToEndTestSuite) createExperience(name string, description string, location string, github bool) Output {
+	// We build a create experience command with the name, description, location flags
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: name,
+			},
+			{
+				Name:  "--description",
+				Value: description,
+			},
+			{
+				Name:  "--location",
+				Value: location,
+			},
+		},
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return s.runCommand([]CommandBuilder{experienceCommand, createCommand})
+}
+
+func (s *EndToEndTestSuite) TestProjectCreate() {
+	fmt.Println("Testing project create command")
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.createProject(projectName, "description", false)
+	s.Contains(output.StdOut, "Created project")
+	s.Contains(output.StdOut, "Project ID: ")
+	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestProjectCreateGithub() {
+	fmt.Println("Testing project create command, with --github flag")
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.createProject(projectName, "description", true)
+	s.Contains(output.StdOut, "project_id=")
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
+	uuid.MustParse(projectIDString)
+}
+
+// Test branch creation:
+func (s *EndToEndTestSuite) TestBranchCreate() {
+	fmt.Println("Testing branch creation")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.createProject(projectName, "description", true)
+	s.Contains(output.StdOut, "project_id=")
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.createBranch(projectID, branchName, "RELEASE", false)
+	s.Contains(output.StdOut, "Created branch")
+	s.Contains(output.StdOut, "Branch ID: ")
+}
+
+func (s *EndToEndTestSuite) TestBranchCreateGithub() {
+	fmt.Println("Testing branch creation, with github flag enabled")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.createProject(projectName, "description", true)
+	s.Contains(output.StdOut, "project_id=")
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.createBranch(projectID, branchName, "RELEASE", true)
+	s.Contains(output.StdOut, "branch_id=")
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len("branch_id=") : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+}
+
+// Test the build creation:
+func (s *EndToEndTestSuite) TestBuildCreate() {
+	fmt.Println("Testing build creation")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.createProject(projectName, "description", true)
+	s.Contains(output.StdOut, "project_id=")
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.createBranch(projectID, branchName, "RELEASE", true)
+	s.Contains(output.StdOut, "branch_id=")
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len("branch_id=") : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+	output = s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", false)
 	s.Contains(output.StdOut, "Created build")
+}
+
+func (s *EndToEndTestSuite) TestBuildCreateGithub() {
+	fmt.Println("Testing build creation")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.createProject(projectName, "description", true)
+	s.Contains(output.StdOut, "project_id=")
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.createBranch(projectID, branchName, "RELEASE", true)
+	s.Contains(output.StdOut, "branch_id=")
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len("branch_id=") : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+	output = s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", true)
+	s.Contains(output.StdOut, "build_id=")
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len("build_id=") : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+}
+
+func (s *EndToEndTestSuite) TestExperienceCreate() {
+	fmt.Println("Testing project create command")
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.createProject(projectName, "description", false)
+	s.Contains(output.StdOut, "Created project")
+	s.Contains(output.StdOut, "Project ID: ")
+	s.Empty(output.StdErr)
 }
 
 func TestEndToEndTestSuite(t *testing.T) {

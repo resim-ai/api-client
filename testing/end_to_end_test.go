@@ -144,6 +144,7 @@ func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder) Output 
 	}
 }
 
+// As a first test, we expect the help command to run successfully
 func (s *EndToEndTestSuite) TestHelp() {
 	fmt.Println("Testing help command")
 	runCommand := CommandBuilder{
@@ -155,6 +156,8 @@ func (s *EndToEndTestSuite) TestHelp() {
 
 func (s *EndToEndTestSuite) TestProjectCreate() {
 	fmt.Println("Testing project create command")
+
+	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
 		Command: "project",
 	}
@@ -172,6 +175,7 @@ func (s *EndToEndTestSuite) TestProjectCreate() {
 		},
 	}
 	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
+	fmt.Println("Output: ", output.StdOut)
 	s.Contains(output.StdOut, "Created project")
 }
 

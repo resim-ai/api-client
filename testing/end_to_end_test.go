@@ -78,13 +78,13 @@ type Output struct {
 
 func (s *EndToEndTestSuite) TearDownSuite() {
 	fmt.Println("Cleaning up")
-	//os.Remove(s.CliPath)
+	os.Remove(s.CliPath)
 }
 
 func (s *EndToEndTestSuite) SetupSuite() {
+	// Set to the dev config and deployment endpoint by default:
 	var authConfig AuthConfig = DevAuthConfig
 	var deployment string = viper.GetString(Deployment)
-	// Set to the deployment endpoint by default:
 	s.Endpoint = fmt.Sprintf("https://%s.api.dev.resim.io/v1", deployment)
 	switch viper.GetString(Config) {
 	case Dev:
@@ -93,6 +93,7 @@ func (s *EndToEndTestSuite) SetupSuite() {
 			os.Exit(1)
 		}
 	case Staging:
+		// Maintain the dev auth config, but set the endpoint to staging
 		s.Endpoint = StagingEndpoint
 	case Prod:
 		authConfig = ProdAuthConfig
@@ -134,7 +135,7 @@ func (s *EndToEndTestSuite) foldFlags(flags []Flag) []string {
 
 func (s *EndToEndTestSuite) buildCommand(commandBuilders []CommandBuilder) *exec.Cmd {
 	// We populate the URL and the auth URL flags initially, then for each command/flags pair
-	// in the command builder, we generate a mega slice:
+	// in the command builder, we append to a single flattened slice:
 	allCommands := []string{"--url", s.Endpoint}
 	allCommands = append(allCommands, []string{"--auth-url", s.Config.AuthKeyProviderDomain}...)
 	for _, commandBuilder := range commandBuilders {
@@ -143,19 +144,16 @@ func (s *EndToEndTestSuite) buildCommand(commandBuilders []CommandBuilder) *exec
 			allCommands = append(allCommands, flag)
 		}
 	}
-	fmt.Println("Command: ", allCommands)
 	return exec.Command(s.CliPath, allCommands...)
 }
 
 func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder) Output {
 	var stdout, stderr bytes.Buffer
 	cmd := s.buildCommand(commandBuilders)
-	fmt.Println("Full command: ", cmd.String())
+	fmt.Println("About to run command: ", cmd.String())
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-	fmt.Println("Out: ", stdout.String())
-	fmt.Println("Error: ", stderr.String())
 	s.NoError(err)
 	return Output{
 		StdOut: stdout.String(),
@@ -194,7 +192,6 @@ func (s *EndToEndTestSuite) TestProjectCreate() {
 		},
 	}
 	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
-	fmt.Println("Output: ", output.StdOut)
 	s.Contains(output.StdOut, "Created project")
 }
 

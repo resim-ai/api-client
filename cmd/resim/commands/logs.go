@@ -133,7 +133,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 	// Create the log entry
 	logResponse, err := client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
 	if err != nil {
-		log.Fatal("unable to create job: ", err)
+		log.Fatal("unable to create log: ", err)
 	}
 	ValidateResponse(http.StatusCreated, "unable to create log", logResponse.HTTPResponse)
 	if logResponse.JSON201 == nil {
@@ -189,9 +189,7 @@ func listLogs(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to list logs")
 		}
 		responseLogs := *response.JSON200.Logs
-		for _, log := range responseLogs {
-			logs = append(logs, log)
-		}
+		logs = append(logs, responseLogs...)
 
 		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
 			pageToken = response.JSON200.NextPageToken

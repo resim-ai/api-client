@@ -164,7 +164,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		}
 		response, err := client.GetBatchWithResponse(context.Background(), batchID)
 		if err != nil {
-			log.Fatal("failed to get batch:", err)
+			log.Fatal("unable to retrieve batch:", err)
 		}
 		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse)
 		batch = response.JSON200
@@ -177,7 +177,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 				PageToken: pageToken,
 			})
 			if err != nil {
-				log.Fatal("failed to list batches:", err)
+				log.Fatal("unable to list batches:", err)
 			}
 			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse)
 			if response.JSON200.Batches == nil {
@@ -250,7 +250,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 				PageToken: pageToken,
 			})
 			if err != nil {
-				log.Fatal("failed to list batches:", err)
+				log.Fatal("unable to list batches:", err)
 			}
 			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse)
 			if response.JSON200.Batches == nil {
@@ -289,9 +289,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to list jobs")
 		}
 		responseJobs := *response.JSON200.Jobs
-		for _, job := range responseJobs {
-			jobs = append(jobs, job)
-		}
+		jobs = append(jobs, responseJobs...)
 
 		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
 			pageToken = response.JSON200.NextPageToken

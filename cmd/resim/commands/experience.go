@@ -52,11 +52,6 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating an experience...")
 	}
 
-	client, err := GetClient(context.Background())
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// Parse the various arguments from command line
 	experienceName := viper.GetString(experienceNameKey)
 	if experienceName == "" {
@@ -79,7 +74,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		Location:    &experienceLocation,
 	}
 
-	response, err := client.CreateExperienceWithResponse(context.Background(), body)
+	response, err := Client.CreateExperienceWithResponse(context.Background(), body)
 	if err != nil {
 		log.Fatal("failed to create experience: ", err)
 	}

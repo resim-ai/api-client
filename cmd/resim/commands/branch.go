@@ -74,7 +74,10 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := Client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
-	ValidateResponse(http.StatusCreated, "unable to create branch", response.HTTPResponse, err)
+	if err != nil {
+		log.Fatal("unable to create branch: ", err)
+	}
+	ValidateResponse(http.StatusCreated, "unable to create branch", response.HTTPResponse)
 	if response.JSON201 == nil {
 		log.Fatal("empty branch returned")
 	}
@@ -103,7 +106,10 @@ pageLoop:
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse, err)
+		if err != nil {
+			log.Fatal("failed to list branches:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Branches == nil {

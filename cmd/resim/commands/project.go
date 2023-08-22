@@ -73,7 +73,10 @@ func createProject(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateProjectWithResponse(context.Background(), body)
-	ValidateResponse(http.StatusCreated, "failed to create project", response.HTTPResponse, err)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ValidateResponse(http.StatusCreated, "failed to create project", response.HTTPResponse)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}
@@ -103,7 +106,10 @@ pageLoop:
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 			})
-		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse, err)
+		if err != nil {
+			log.Fatal("failed to list projects:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse)
 		if response.JSON200 == nil {
 			log.Fatal("empty response")
 		}

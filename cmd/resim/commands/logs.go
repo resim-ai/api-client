@@ -117,21 +117,30 @@ func createLog(ccmd *cobra.Command, args []string) {
 
 	// Verify that the batch and job exist:
 	batchResponse, err := client.GetBatchWithResponse(context.Background(), logBatchID)
-	ValidateResponse(http.StatusOK, fmt.Sprintf("unabled to find batch with ID %v", logBatchID),
-		batchResponse.HTTPResponse, err)
+	if err != nil {
+		log.Fatal("unable to get batch: ", err)
+	}
+	ValidateResponse(http.StatusOK, fmt.Sprintf("unable to find batch with ID %v", logBatchID),
+		batchResponse.HTTPResponse)
 
 	jobResponse, err := client.GetJobWithResponse(context.Background(), logBatchID, logJobID)
-	ValidateResponse(http.StatusOK, fmt.Sprintf("unabled to find job with ID %v", logJobID),
-		jobResponse.HTTPResponse, err)
+	if err != nil {
+		log.Fatal("unable to get job: ", err)
+	}
+	ValidateResponse(http.StatusOK, fmt.Sprintf("unable to find job with ID %v", logJobID),
+		jobResponse.HTTPResponse)
 
 	// Create the log entry
 	logResponse, err := client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
-	ValidateResponse(http.StatusCreated, "unable to create log", logResponse.HTTPResponse, err)
+	if err != nil {
+		log.Fatal("unable to create job: ", err)
+	}
+	ValidateResponse(http.StatusCreated, "unable to create log", logResponse.HTTPResponse)
 	if logResponse.JSON201 == nil {
 		log.Fatal("empty response")
 	}
 	myLog := logResponse.JSON201
-	if myLog.Location == nil {
+	if myLog.Location == nil || *myLog.Location == "" {
 		log.Fatal("empty location")
 	}
 	if myLog.LogID == nil {
@@ -172,7 +181,10 @@ func listLogs(ccmd *cobra.Command, args []string) {
 			PageToken: pageToken,
 			PageSize:  Ptr(100),
 		})
-		ValidateResponse(http.StatusOK, "unable to list logs", response.HTTPResponse, err)
+		if err != nil {
+			log.Fatal("unable to list logs: ", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to list logs", response.HTTPResponse)
 		if response.JSON200.Logs == nil {
 			log.Fatal("unable to list logs")
 		}

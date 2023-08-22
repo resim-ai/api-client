@@ -75,7 +75,7 @@ Whenever the API spec changes, you will need to regenerate the generated code:
 
 ### Running the end to end test
 
-Whenever you make changes, please ensure that the end to end test is passing
+Whenever you make changes, please ensure that the end to end test is passing:
 
   go test -v -tags end_to_end -count 1 ./testing
 

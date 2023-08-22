@@ -55,12 +55,9 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, error) {
 	return api.NewClientWithResponses(viper.GetString(urlKey), api.WithHTTPClient(oauthClient))
 }
 
-// Validate Response fails the command if the error is non-nil, the response is nil, or the
+// Validate Response fails the command if the response is nil, or the
 // status code is not what we expect.
-func ValidateResponse(expectedStatusCode int, message string, response *http.Response, err error) {
-	if err != nil {
-		log.Fatal(message, ": ", err)
-	}
+func ValidateResponse(expectedStatusCode int, message string, response *http.Response) {
 	if response == nil {
 		log.Fatal(message, ": ", "no response")
 	}

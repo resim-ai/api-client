@@ -103,8 +103,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			}
 
 			response, err := client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
+			if err != nil {
+				log.Fatal("failed to create branch:", err)
+			}
 			ValidateResponse(http.StatusCreated, fmt.Sprintf("failed to create a new branch with name %v", branchName),
-				response.HTTPResponse, err)
+				response.HTTPResponse)
 			branchID = *response.JSON201.BranchID
 			if !buildGithub {
 				fmt.Printf("Created branch with ID %v\n", branchID)
@@ -121,7 +124,10 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	response, err := client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)
-	ValidateResponse(http.StatusCreated, "unable to create build", response.HTTPResponse, err)
+	if err != nil {
+		log.Fatal("unable to create build:", err)
+	}
+	ValidateResponse(http.StatusCreated, "unable to create build", response.HTTPResponse)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}

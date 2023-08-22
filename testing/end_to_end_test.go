@@ -45,7 +45,7 @@ type AuthConfig struct {
 }
 
 var DevAuthConfig = AuthConfig{
-	AuthKeyProviderDomain: "https://dev-jbs5inutkvkmnq7c.us.auth0.com/",
+	AuthKeyProviderDomain: "https://resim-dev.us.auth0.com/",
 	OAuthAudience:         "https://api.resim.ai",
 }
 

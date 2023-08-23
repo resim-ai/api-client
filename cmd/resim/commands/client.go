@@ -122,7 +122,7 @@ func (c *CredentialCache) SaveCredentialCache() {
 		}
 	}
 	path := filepath.Join(expectedDir, CredentialCacheFilename)
-	err = os.WriteFile(path, data, 0644)
+	err = os.WriteFile(path, data, 0600)
 	if err != nil {
 		log.Println("error saving credential cache:", err)
 	}

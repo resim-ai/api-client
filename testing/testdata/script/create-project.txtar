@@ -1,0 +1,2 @@
+exec resim project create --name "testing"
+stderr .

@@ -22,6 +22,7 @@ const (
 	ClientSecret string = "RESIM_CLIENT_SECRET"
 	Url          string = "RESIM_URL"
 	AuthUrl      string = "RESIM_AUTH_URL"
+	Home         string = "HOME"
 )
 
 // CLI Constant
@@ -89,6 +90,8 @@ func TestScript(t *testing.T) {
 			env.Setenv(ClientSecret, viper.GetString(ClientSecret))
 			env.Setenv(Url, apiEndpoint)
 			env.Setenv(AuthUrl, authUrl)
+			// In order to persist a credential cache, we need to set the home directory to the actual home directory in the system:
+			env.Setenv(Home, viper.GetString(Home))
 			return nil
 		},
 	})

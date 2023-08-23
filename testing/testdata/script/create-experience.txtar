@@ -1,0 +1,3 @@
+
+exec resim experience create --name "testing"
+stderr .

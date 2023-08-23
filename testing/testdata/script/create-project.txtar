@@ -1,2 +1,20 @@
-exec resim project create --name "testing"
-stderr .
+# Create a project successfully without the github flag:
+env PROJECT_NAME=test-project-$RESIM_TEST_UUID
+exec echo $PROJECT_NAME
+exec resim project create --name $PROJECT_NAME --description "This is a test project"
+! stderr . # no errors
+stdout 'Creating a project...'
+stdout 'Created project successfully!'
+
+# Try to create a project with a duplicate name and expect stderr:
+! exec resim project create --name $PROJECT_NAME --description "This is a test project"
+stderr 'Internal Server Error'
+
+# Try to create a project without the name and expect stderr:
+! exec resim project create --description "This is a test project"
+stderr '"name" not set'
+
+# Try to create a project without the description and expect stderr:
+env PROJECT_NAME=test-project-no-description-$RESIM_TEST_UUID
+! exec resim project create --name PROJECT_NAME
+stderr '"description" not set'

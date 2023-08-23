@@ -8,6 +8,6 @@ import (
 
 // This is the entry point for the CLI.
 func main() {
-	status := cli.MainExit()
+	status := cli.MainWithExitCode()
 	os.Exit(status)
 }

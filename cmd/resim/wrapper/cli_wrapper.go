@@ -1,5 +1,10 @@
 package cli
 
+// We provide this wrapper for the Cobra CLI so that we can run CLI tests using the go testscript
+// package. The testscript package requires that the CLI entry point be a function that returns an
+// exit code, but the Cobra CLI entry point is a function that returns void. This wrapper provides
+// the necessary translation.
+
 import (
 	"log"
 	"strings"
@@ -10,7 +15,7 @@ import (
 
 const EnvPrefix = "RESIM"
 
-func MainExit() int {
+func MainWithExitCode() int {
 	viper.SetEnvPrefix(EnvPrefix)
 	viper.AutomaticEnv()
 	// This confusingly-named function defines the mapping from CLI parameter key to environment variable.

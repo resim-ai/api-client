@@ -25,7 +25,7 @@ var (
 		Short:  "create - Creates a new project",
 		Long:   ``,
 		Run:    createProject,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 )
 

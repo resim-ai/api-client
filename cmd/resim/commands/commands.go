@@ -52,7 +52,7 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
-func RegisterViperFlags(cmd *cobra.Command, args []string) {
+func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {
 	viper.BindPFlags(cmd.Flags())
 	viper.SetConfigName("resim")
 	viper.AddConfigPath(ConfigPath)

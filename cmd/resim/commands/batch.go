@@ -26,14 +26,14 @@ var (
 		Short:  "create - Creates a new batch",
 		Long:   ``,
 		Run:    createBatch,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 	getBatchCmd = &cobra.Command{
 		Use:    "get",
 		Short:  "get - Retrieves a batch",
 		Long:   ``,
 		Run:    getBatch,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 
 	jobsBatchCmd = &cobra.Command{
@@ -41,7 +41,7 @@ var (
 		Short:  "jobs - Lists the jobs in a batch",
 		Long:   ``,
 		Run:    jobsBatch,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 )
 

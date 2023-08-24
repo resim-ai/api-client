@@ -27,14 +27,14 @@ var (
 		Short:  "create - Creates a new log entry",
 		Long:   ``,
 		Run:    createLog,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 	listLogsCmd = &cobra.Command{
 		Use:    "list",
 		Short:  "list - Lists the logs for a batch",
 		Long:   ``,
 		Run:    listLogs,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 )
 

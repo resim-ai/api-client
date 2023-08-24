@@ -25,7 +25,7 @@ var (
 		Short:  "create - Creates a new build",
 		Long:   ``,
 		Run:    createBuild,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 )
 

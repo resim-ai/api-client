@@ -27,7 +27,7 @@ var (
 		Short:  "create - Creates a new project",
 		Long:   ``,
 		Run:    createProject,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 
 	getProjectCmd = &cobra.Command{
@@ -35,7 +35,7 @@ var (
 		Short:  "get - Gets details about a project",
 		Long:   ``,
 		Run:    getProject,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 
 	deleteProjectCmd = &cobra.Command{
@@ -43,7 +43,7 @@ var (
 		Short:  "delete - Deletes a project",
 		Long:   ``,
 		Run:    deleteProject,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 )
 

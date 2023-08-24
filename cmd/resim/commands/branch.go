@@ -25,7 +25,7 @@ var (
 		Short:  "create - Creates a new branch",
 		Long:   ``,
 		Run:    createBranch,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 )
 

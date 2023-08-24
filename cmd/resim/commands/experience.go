@@ -23,7 +23,7 @@ var (
 		Short:  "create - Creates a new experience",
 		Long:   ``,
 		Run:    createExperience,
-		PreRun: RegisterViperFlags,
+		PreRun: RegisterViperFlagsAndSetClient,
 	}
 )
 

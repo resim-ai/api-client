@@ -27,7 +27,6 @@ var (
 )
 
 func rootCommand(cmd *cobra.Command, args []string) {
-	log.Println("Running the root")
 	viper.SetConfigName("resim")
 	viper.AddConfigPath(ConfigPath)
 	if err := viper.ReadInConfig(); err != nil {

@@ -46,7 +46,7 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 	var cache CredentialCache
 	err := cache.loadCredentialCache()
 	if err != nil {
-		log.Println("Could not load credential cache.")
+		log.Println("Initializing credential cache")
 	}
 
 	clientID := viper.GetString(clientIDKey)
@@ -112,8 +112,17 @@ func (c *CredentialCache) SaveCredentialCache() {
 	}
 
 	homedir, _ := os.UserHomeDir()
-	path := strings.ReplaceAll(filepath.Join(ConfigPath, CredentialCacheFilename), "$HOME", homedir)
-	err = os.WriteFile(path, data, 0644)
+	expectedDir := strings.ReplaceAll(ConfigPath, "$HOME", homedir)
+	// Check first if the directory exists, and if it does not, create it:
+	if _, err := os.Stat(expectedDir); os.IsNotExist(err) {
+		err := os.Mkdir(expectedDir, 0700)
+		if err != nil {
+			log.Println("error creating directory:", err)
+			return
+		}
+	}
+	path := filepath.Join(expectedDir, CredentialCacheFilename)
+	err = os.WriteFile(path, data, 0600)
 	if err != nil {
 		log.Println("error saving credential cache:", err)
 	}

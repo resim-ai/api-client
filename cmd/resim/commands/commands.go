@@ -27,6 +27,7 @@ var (
 )
 
 func rootCommand(cmd *cobra.Command, args []string) {
+	log.Println("Running the root")
 	viper.SetConfigName("resim")
 	viper.AddConfigPath(ConfigPath)
 	if err := viper.ReadInConfig(); err != nil {
@@ -53,4 +54,22 @@ func Execute() error {
 
 func RegisterViperFlags(cmd *cobra.Command, args []string) {
 	viper.BindPFlags(cmd.Flags())
+	viper.SetConfigName("resim")
+	viper.AddConfigPath(ConfigPath)
+	if err := viper.ReadInConfig(); err != nil {
+		switch err.(type) {
+		case viper.ConfigFileNotFoundError, *fs.PathError:
+		default:
+			log.Fatal(fmt.Errorf("error reading config file: %v %T", err, err))
+		}
+	}
+
+	var err error
+	var credentialCache *CredentialCache
+	Client, credentialCache, err = GetClient(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer credentialCache.SaveCredentialCache()
 }

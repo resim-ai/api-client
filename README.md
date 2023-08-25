@@ -72,3 +72,17 @@ You will need Go installed.
 Whenever the API spec changes, you will need to regenerate the generated code:
 
   go generate ./...
+
+### Running the end to end test
+
+Before pushing any changes, please ensure that the end to end test passes:
+
+RESIM_CLIENT_ID=<client-id> RESIM_CLIENT_SECRET=<secret> CONFIG=<prod/staging>  go test -v -tags end_to_end -count 1 ./testing
+
+Or, on a dev deployment, you pass the deployment name, which you can get from `terraform outputs`:
+
+  RESIM_CLIENT_ID=<client-id> RESIM_CLIENT_SECRET=<secret> DEPLOYMENT=<deployment name>  go test -v -tags end_to_end -count 1 ./testing
+
+The client credentials need to match the deployment you are testing.
+
+The end to end test uses `testscript` to build and run scripted CLI commands. You can find a tutorial about [Testcript](https://bitfieldconsulting.com/golang/test-scripts).

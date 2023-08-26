@@ -34,19 +34,11 @@ const (
 	experienceGithubKey      = "github"
 )
 
-func my_return_string(cmd *cobra.Command) error{
-  fmt.Println("isnt it a lovely day")
-  return nil
-}
-
 func init() {
-	createExperienceCmd.Flags().String(experienceNameKey, "", "[Required] The name of the experience")
-	createExperienceCmd.MarkFlagRequired(experienceNameKey)
-	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "[Required] The description of the experience")
-	createExperienceCmd.MarkFlagRequired(experienceDescriptionKey)
-	createExperienceCmd.Flags().String(experienceLocationKey, "", "[Required] The location of the experience, e.g. an S3 URI for the experience folder")
-	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
-	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "[Optional] Whether to output format in github action friendly format")
+	createExperienceCmd.Flags().String(experienceNameKey, "", "The name of the experience")
+	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
+	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
+	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
 }

@@ -47,8 +47,6 @@ func init() {
 	createExperienceCmd.Flags().String(experienceLocationKey, "", "[Required] The location of the experience, e.g. an S3 URI for the experience folder")
 	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "[Optional] Whether to output format in github action friendly format")
-  fmt.Print(createExperienceCmd.UsageTemplate())
-  createExperienceCmd.SetUsageFunc(ResimUsage)
 	experienceCmd.AddCommand(createExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
 }

@@ -48,7 +48,7 @@ func rootCommand(cmd *cobra.Command, args []string) {
 }
 
 func Execute() error {
-  ApplyReSimStyle(rootCmd)
+	ApplyReSimStyle(rootCmd)
 	return rootCmd.Execute()
 }
 

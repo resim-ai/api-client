@@ -6,9 +6,9 @@
 // also requires the author of the function to implement all functionality.
 // 2. Using cobra.Command.SetUsageTemplate() allows the existing text template
 // for usage to be modified or replaced. This gives the author control over the
-// contents of usage message and takes advantage of all the built in cobra 
+// contents of usage message and takes advantage of all the built in cobra
 // functionality for generating the data in the text template. Further, text
-// templates are quite powerful because they can be used to execute arbitrary 
+// templates are quite powerful because they can be used to execute arbitrary
 // functions, including user defined functions. That may be added using:
 // cobra.AddTemplateFunc("key", UserFunction). Therefore we follow this approach
 // here in defining ReSim's custom styling.
@@ -23,12 +23,11 @@ package commands
 import (
 	"text/template"
 
-	"github.com/spf13/cobra"
 	"github.com/fatih/color"
+	"github.com/spf13/cobra"
 )
 
-var ReSimUsageTemplate string = 
-`{{StyleHeading "USAGE"}}{{if .Runnable}}
+var ReSimUsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
 
@@ -61,14 +60,14 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 `
 
 var templateFuncs = template.FuncMap{
-  "StyleHeading": color.New(color.Bold).SprintFunc(),
+	"StyleHeading": color.New(color.Bold).SprintFunc(),
 }
 
 func styleHeading(s string) string {
-    return color.New(color.Bold).SprintFunc()(s)
+	return color.New(color.Bold).SprintFunc()(s)
 }
 
 func ApplyReSimStyle(cmd *cobra.Command) {
-  cobra.AddTemplateFuncs(templateFuncs) 
-  cmd.SetUsageTemplate(ReSimUsageTemplate)
+	cobra.AddTemplateFuncs(templateFuncs)
+	cmd.SetUsageTemplate(ReSimUsageTemplate)
 }

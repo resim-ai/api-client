@@ -21,6 +21,7 @@
 package commands
 
 import (
+  "bytes"
 	"text/template"
 
 	"github.com/fatih/color"
@@ -51,7 +52,10 @@ var ReSimUsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
 {{FilterFlagsRequired .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if HasOptionalFlags .LocalFlags}}
 
 {{StyleHeading "OPTIONAL FLAGS"}}
-{{FilterFlagsOptional .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+{{FilterFlagsOptional .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableLocalFlags}}
+
+{{StyleHeading "SIMONS FLAGS"}}
+{{FlagUsageBuilder .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 
 {{StyleHeading "GLOBAL FLAGS"}}
 {{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
@@ -63,12 +67,22 @@ var ReSimUsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
 Use "{{.CommandPath}} [command] --help" for more information about a command.{{end}}
 `
 
+var FlagSetUsageTemplate string = `{{if .HasRequired}}
+
+"REQUIRED FLAGS"
+{{.RequiredUsages}}{{end}}{{if .HasOptional}}
+
+"OPTIONAL FLAGS"
+{{.OptionalUsages}}{{end}}
+`
+
 var templateFuncs = template.FuncMap{
 	"StyleHeading":        styleHeading,
 	"HasRequiredFlags":    hasRequiredFlags,
 	"FilterFlagsRequired": filterFlagsRequired,
 	"HasOptionalFlags":    hasOptionalFlags,
 	"FilterFlagsOptional": filterFlagsOptional,
+  "FlagUsageBuilder": flagUsageBuilder,
 }
 
 func styleHeading(s string) string {
@@ -76,6 +90,49 @@ func styleHeading(s string) string {
 }
 
 var BashCompOneRequiredFlag string = "cobra_annotation_bash_completion_one_required_flag"
+
+type FlagSets struct {
+  requiredFlags pflag.FlagSet
+  optionalFlags pflag.FlagSet
+}
+
+func (fs FlagSets) HasRequired() bool {
+  return fs.requiredFlags.HasFlags()
+}
+
+func (fs FlagSets) RequiredUsages() string {
+  return fs.requiredFlags.FlagUsages()
+}
+
+func (fs FlagSets) HasOptional() bool {
+  return fs.optionalFlags.HasFlags()
+}
+
+func (fs FlagSets) OptionalUsages() string {
+  return fs.optionalFlags.FlagUsages()
+}
+
+func flagUsageBuilder(flags *pflag.FlagSet) string {
+	var allFlags FlagSets
+	flags.VisitAll(func(flag *pflag.Flag) {
+		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
+		if !found {
+      allFlags.optionalFlags.AddFlag(flag)
+			return
+		}
+		if requiredAnnotation[0] == "true" {
+			allFlags.requiredFlags.AddFlag(flag)
+		} else {
+      allFlags.optionalFlags.AddFlag(flag)
+    }
+	})
+
+  t := template.New("flags")
+	template.Must(t.Parse(FlagSetUsageTemplate))
+  var doc bytes.Buffer	
+  t.Execute(&doc, allFlags)
+	return doc.String()
+}
 
 func hasRequiredFlags(flags *pflag.FlagSet) bool {
 	var hasRequired bool = false

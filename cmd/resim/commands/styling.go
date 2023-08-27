@@ -22,7 +22,10 @@ package commands
 
 import (
   "bytes"
+  "io"
+  "strings"
 	"text/template"
+  "unicode"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -46,16 +49,7 @@ var ReSimUsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
 
 {{StyleHeading "ADDITIONAL COMMANDS"}}{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if HasRequiredFlags .LocalFlags}}
-
-{{StyleHeading "REQUIRED FLAGS"}}
-{{FilterFlagsRequired .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if HasOptionalFlags .LocalFlags}}
-
-{{StyleHeading "OPTIONAL FLAGS"}}
-{{FilterFlagsOptional .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableLocalFlags}}
-
-{{StyleHeading "SIMONS FLAGS"}}
-{{FlagUsageBuilder .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}{{FlagUsageBuilder .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 
 {{StyleHeading "GLOBAL FLAGS"}}
 {{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
@@ -69,24 +63,20 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 
 var FlagSetUsageTemplate string = `{{if .HasRequired}}
 
-"REQUIRED FLAGS"
+{{StyleHeading "REQUIRED FLAGS"}}
 {{.RequiredUsages}}{{end}}{{if .HasOptional}}
 
-"OPTIONAL FLAGS"
+{{StyleHeading "OPTIONAL FLAGS"}}
 {{.OptionalUsages}}{{end}}
 `
 
-var templateFuncs = template.FuncMap{
+var flagTemplateFuncs = template.FuncMap{
 	"StyleHeading":        styleHeading,
-	"HasRequiredFlags":    hasRequiredFlags,
-	"FilterFlagsRequired": filterFlagsRequired,
-	"HasOptionalFlags":    hasOptionalFlags,
-	"FilterFlagsOptional": filterFlagsOptional,
-  "FlagUsageBuilder": flagUsageBuilder,
 }
 
-func styleHeading(s string) string {
-	return color.New(color.Bold).SprintFunc()(s)
+var resimTemplateFuncs = template.FuncMap{
+	"StyleHeading":        styleHeading,
+  "FlagUsageBuilder": flagUsageBuilder,
 }
 
 var BashCompOneRequiredFlag string = "cobra_annotation_bash_completion_one_required_flag"
@@ -101,7 +91,7 @@ func (fs FlagSets) HasRequired() bool {
 }
 
 func (fs FlagSets) RequiredUsages() string {
-  return fs.requiredFlags.FlagUsages()
+  return strings.TrimRightFunc(fs.requiredFlags.FlagUsages(), unicode.IsSpace)
 }
 
 func (fs FlagSets) HasOptional() bool {
@@ -109,10 +99,10 @@ func (fs FlagSets) HasOptional() bool {
 }
 
 func (fs FlagSets) OptionalUsages() string {
-  return fs.optionalFlags.FlagUsages()
+  return strings.TrimRightFunc(fs.optionalFlags.FlagUsages(), unicode.IsSpace)
 }
 
-func flagUsageBuilder(flags *pflag.FlagSet) string {
+func flagSetsBuilder(flags *pflag.FlagSet) FlagSets {
 	var allFlags FlagSets
 	flags.VisitAll(func(flag *pflag.Flag) {
 		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
@@ -126,73 +116,27 @@ func flagUsageBuilder(flags *pflag.FlagSet) string {
       allFlags.optionalFlags.AddFlag(flag)
     }
 	})
-
-  t := template.New("flags")
-	template.Must(t.Parse(FlagSetUsageTemplate))
-  var doc bytes.Buffer	
-  t.Execute(&doc, allFlags)
-	return doc.String()
+  return allFlags
 }
 
-func hasRequiredFlags(flags *pflag.FlagSet) bool {
-	var hasRequired bool = false
-	flags.VisitAll(func(flag *pflag.Flag) {
-		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
-		if !found {
-			return
-		}
-		if requiredAnnotation[0] == "true" {
-			hasRequired = true
-		}
-	})
-	return hasRequired
+func flagTemplateWriter(w io.Writer, data interface{}) error {
+  tmpl := template.New("flags").Funcs(flagTemplateFuncs)
+	template.Must(tmpl.Parse(FlagSetUsageTemplate))
+	return tmpl.Execute(w, data)
 }
 
-func filterFlagsRequired(flags *pflag.FlagSet) string {
-	var requiredFlags pflag.FlagSet
-	flags.VisitAll(func(flag *pflag.Flag) {
-		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
-		if !found {
-			return
-		}
-		if requiredAnnotation[0] == "true" {
-			requiredFlags.AddFlag(flag)
-		}
-	})
-	return requiredFlags.FlagUsages()
+func flagUsageBuilder(flags *pflag.FlagSet) string {
+  allFlags := flagSetsBuilder(flags)
+  var doc bytes.Buffer
+  flagTemplateWriter(&doc, &allFlags)
+  return doc.String()
 }
 
-func hasOptionalFlags(flags *pflag.FlagSet) bool {
-	var hasOptional bool = false
-	flags.VisitAll(func(flag *pflag.Flag) {
-		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
-		if !found {
-			hasOptional = true
-			return
-		}
-		if requiredAnnotation[0] == "false" {
-			hasOptional = true
-		}
-	})
-	return hasOptional
-}
-
-func filterFlagsOptional(flags *pflag.FlagSet) string {
-	var optionalFlags pflag.FlagSet
-	flags.VisitAll(func(flag *pflag.Flag) {
-		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
-		if !found {
-			optionalFlags.AddFlag(flag)
-			return
-		}
-		if requiredAnnotation[0] == "false" {
-			optionalFlags.AddFlag(flag)
-		}
-	})
-	return optionalFlags.FlagUsages()
+func styleHeading(s string) string {
+	return color.New(color.Bold).SprintFunc()(s)
 }
 
 func ApplyReSimStyle(cmd *cobra.Command) {
-	cobra.AddTemplateFuncs(templateFuncs)
+	cobra.AddTemplateFuncs(resimTemplateFuncs)
 	cmd.SetUsageTemplate(ReSimUsageTemplate)
 }

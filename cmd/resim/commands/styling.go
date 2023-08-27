@@ -25,6 +25,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+  "github.com/spf13/pflag"
 )
 
 var ReSimUsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
@@ -65,6 +66,10 @@ var templateFuncs = template.FuncMap{
 
 func styleHeading(s string) string {
 	return color.New(color.Bold).SprintFunc()(s)
+}
+
+func filterFlagsRequired(flags *pflag.FlagSet) string {
+  return "A test message"
 }
 
 func ApplyReSimStyle(cmd *cobra.Command) {

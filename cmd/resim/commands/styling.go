@@ -21,11 +21,11 @@
 package commands
 
 import (
-  "bytes"
-  "io"
-  "strings"
+	"bytes"
+	"io"
+	"strings"
 	"text/template"
-  "unicode"
+	"unicode"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -71,35 +71,35 @@ var FlagSetUsageTemplate string = `{{if .HasRequired}}
 `
 
 var flagTemplateFuncs = template.FuncMap{
-	"StyleHeading":        styleHeading,
+	"StyleHeading": styleHeading,
 }
 
 var resimTemplateFuncs = template.FuncMap{
-	"StyleHeading":        styleHeading,
-  "FlagUsageBuilder": flagUsageBuilder,
+	"StyleHeading":     styleHeading,
+	"FlagUsageBuilder": flagUsageBuilder,
 }
 
 var BashCompOneRequiredFlag string = "cobra_annotation_bash_completion_one_required_flag"
 
 type FlagSets struct {
-  requiredFlags pflag.FlagSet
-  optionalFlags pflag.FlagSet
+	requiredFlags pflag.FlagSet
+	optionalFlags pflag.FlagSet
 }
 
 func (fs FlagSets) HasRequired() bool {
-  return fs.requiredFlags.HasFlags()
+	return fs.requiredFlags.HasFlags()
 }
 
 func (fs FlagSets) RequiredUsages() string {
-  return strings.TrimRightFunc(fs.requiredFlags.FlagUsages(), unicode.IsSpace)
+	return strings.TrimRightFunc(fs.requiredFlags.FlagUsages(), unicode.IsSpace)
 }
 
 func (fs FlagSets) HasOptional() bool {
-  return fs.optionalFlags.HasFlags()
+	return fs.optionalFlags.HasFlags()
 }
 
 func (fs FlagSets) OptionalUsages() string {
-  return strings.TrimRightFunc(fs.optionalFlags.FlagUsages(), unicode.IsSpace)
+	return strings.TrimRightFunc(fs.optionalFlags.FlagUsages(), unicode.IsSpace)
 }
 
 func flagSetsBuilder(flags *pflag.FlagSet) FlagSets {
@@ -107,29 +107,29 @@ func flagSetsBuilder(flags *pflag.FlagSet) FlagSets {
 	flags.VisitAll(func(flag *pflag.Flag) {
 		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
 		if !found {
-      allFlags.optionalFlags.AddFlag(flag)
+			allFlags.optionalFlags.AddFlag(flag)
 			return
 		}
 		if requiredAnnotation[0] == "true" {
 			allFlags.requiredFlags.AddFlag(flag)
 		} else {
-      allFlags.optionalFlags.AddFlag(flag)
-    }
+			allFlags.optionalFlags.AddFlag(flag)
+		}
 	})
-  return allFlags
+	return allFlags
 }
 
 func flagTemplateWriter(w io.Writer, data interface{}) error {
-  tmpl := template.New("flags").Funcs(flagTemplateFuncs)
+	tmpl := template.New("flags").Funcs(flagTemplateFuncs)
 	template.Must(tmpl.Parse(FlagSetUsageTemplate))
 	return tmpl.Execute(w, data)
 }
 
 func flagUsageBuilder(flags *pflag.FlagSet) string {
-  allFlags := flagSetsBuilder(flags)
-  var doc bytes.Buffer
-  flagTemplateWriter(&doc, &allFlags)
-  return doc.String()
+	allFlags := flagSetsBuilder(flags)
+	var doc bytes.Buffer
+	flagTemplateWriter(&doc, &allFlags)
+	return doc.String()
 }
 
 func styleHeading(s string) string {

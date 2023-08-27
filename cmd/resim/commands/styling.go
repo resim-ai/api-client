@@ -49,7 +49,7 @@ var ReSimUsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
   {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{if not .AllChildCommandsHaveGroup}}
 
 {{StyleHeading "ADDITIONAL COMMANDS"}}{{range $cmds}}{{if (and (eq .GroupID "") (or .IsAvailableCommand (eq .Name "help")))}}
-  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}{{FlagUsageBuilder .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
+  {{rpad .Name .NamePadding }} {{.Short}}{{end}}{{end}}{{end}}{{end}}{{end}}{{if .HasAvailableLocalFlags}}{{FlagSetUsages .LocalFlags | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 
 {{StyleHeading "GLOBAL FLAGS"}}
 {{.InheritedFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasHelpSubCommands}}
@@ -75,8 +75,8 @@ var flagTemplateFuncs = template.FuncMap{
 }
 
 var resimTemplateFuncs = template.FuncMap{
-	"StyleHeading":     styleHeading,
-	"FlagUsageBuilder": flagUsageBuilder,
+	"StyleHeading":  styleHeading,
+	"FlagSetUsages": flagSetUsages,
 }
 
 var BashCompOneRequiredFlag string = "cobra_annotation_bash_completion_one_required_flag"
@@ -125,7 +125,7 @@ func flagTemplateWriter(w io.Writer, data interface{}) error {
 	return tmpl.Execute(w, data)
 }
 
-func flagUsageBuilder(flags *pflag.FlagSet) string {
+func flagSetUsages(flags *pflag.FlagSet) string {
 	allFlags := flagSetsBuilder(flags)
 	var doc bytes.Buffer
 	flagTemplateWriter(&doc, &allFlags)

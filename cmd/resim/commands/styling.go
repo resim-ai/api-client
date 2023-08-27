@@ -60,7 +60,7 @@ Use "{{.CommandPath}} [command] --help" for more information about a command.{{e
 `
 
 var templateFuncs = template.FuncMap{
-	"StyleHeading": color.New(color.Bold).SprintFunc(),
+	"StyleHeading": styleHeading,
 }
 
 func styleHeading(s string) string {

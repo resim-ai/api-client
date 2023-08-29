@@ -213,6 +213,13 @@ pageLoop:
 				projectID = *project.ProjectID
 				break pageLoop
 			}
+      // If the user happens to pass the project UUID, we should let them have
+      // it. This can only really go wrong if the user happens to name a project 
+      // with the UUID of another, which seems vanishingly unlikely.
+			if *project.ID.String() == projectName {
+				projectID = *project.ProjectID
+				break pageLoop
+			}
 		}
 		if pageToken == nil || *pageToken == "" {
 			break

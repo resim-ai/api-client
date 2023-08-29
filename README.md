@@ -72,3 +72,14 @@ You will need Go installed.
 Whenever the API spec changes, you will need to regenerate the generated code:
 
   go generate ./...
+
+### Running the end to end test
+
+Whenever you make changes, please ensure that the end to end test is passing:
+
+  go test -v -tags end_to_end -count 1 ./testing
+
+The end to end test requires several environment variables to be passed through: `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET` 
+which must be valid client credentials for the CLI to access the deployment. `CONFIG` should be either `staging` or `prod` to
+test the staging or production deployments and for a customer development deployment the `DEPLOYMENT` name should match
+the name of your deployment.

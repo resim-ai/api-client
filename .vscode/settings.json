@@ -1,2 +1,5 @@
 {
+  "gopls": {
+    "build.buildFlags": ["-tags=end_to_end"]
+  }
 }

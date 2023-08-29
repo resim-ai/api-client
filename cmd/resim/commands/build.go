@@ -46,7 +46,7 @@ func init() {
 	createBuildCmd.MarkFlagRequired(buildImageURIKey)
 	createBuildCmd.Flags().String(buildVersionKey, "", "The version of the build image, usually a commit ID")
 	createBuildCmd.MarkFlagRequired(buildVersionKey)
-	createBuildCmd.Flags().String(buildProjectNameKey, "", "The name of the project to create the build in")
+	createBuildCmd.Flags().String(buildProjectNameKey, "", "The name of the project to create the build in. The project ID will also work.")
 	createBuildCmd.MarkFlagRequired(buildProjectNameKey)
 	createBuildCmd.Flags().String(buildBranchNameKey, "", "The name of the branch to nest the build in, usually the associated git branch")
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")

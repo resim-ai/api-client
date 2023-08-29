@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -23,53 +24,57 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// Viper Environment Variables
+// Test Environment Variables
 const (
-	Deployment string = "deployment"
-	Config     string = "config"
-	Dev        string = "dev"
-	Staging    string = "staging"
-	Prod       string = "prod"
+	Deployment   string = "DEPLOYMENT"
+	Config       string = "CONFIG"
+	Dev          string = "dev"
+	Staging      string = "staging"
+	Prod         string = "prod"
+	ClientID     string = "RESIM_CLIENT_ID"
+	ClientSecret string = "RESIM_CLIENT_SECRET"
 )
 
 // CLI Constants
 const (
-	TempDirSuffix   string = "cli-test"
-	CliName         string = "resim"
-	ProdEndpoint    string = "https://api.resim.ai/v1/"
-	StagingEndpoint string = "https://api.resim.io/v1/"
+	TempDirSuffix string = "cli-test"
+	CliName       string = "resim"
 )
 
-type AuthConfig struct {
+type CliConfig struct {
 	AuthKeyProviderDomain string
-	OAuthAudience         string
+	ApiEndpoint           string
 }
 
-var DevAuthConfig = AuthConfig{
+var DevConfig = CliConfig{
 	AuthKeyProviderDomain: "https://resim-dev.us.auth0.com/",
-	OAuthAudience:         "https://api.resim.ai",
+	ApiEndpoint:           "https://$DEPLOYMENT.api.dev.resim.io/v1/",
 }
 
-var ProdAuthConfig = AuthConfig{
+var StagingConfig = CliConfig{
+	AuthKeyProviderDomain: "https://resim-dev.us.auth0.com/",
+	ApiEndpoint:           "https://api.resim.io/v1/",
+}
+
+var ProdConfig = CliConfig{
 	AuthKeyProviderDomain: "https://resim.us.auth0.com/",
-	OAuthAudience:         "https://api.resim.ai",
+	ApiEndpoint:           "https://api.resim.ai/v1/",
 }
 
 type EndToEndTestSuite struct {
 	suite.Suite
-	CliPath  string
-	Config   AuthConfig
-	Endpoint string
-}
-
-type CommandBuilder struct {
-	Command string
-	Flags   []Flag
+	CliPath string
+	Config  CliConfig
 }
 
 type Flag struct {
 	Name  string
 	Value string
+}
+
+type CommandBuilder struct {
+	Command string
+	Flags   []Flag
 }
 
 type Output struct {
@@ -78,39 +83,39 @@ type Output struct {
 }
 
 func (s *EndToEndTestSuite) TearDownSuite() {
-	fmt.Println("Cleaning up")
 	os.Remove(s.CliPath)
 }
 
 func (s *EndToEndTestSuite) SetupSuite() {
-	// Set to the dev config and deployment endpoint by default:
-	var authConfig AuthConfig = DevAuthConfig
-	var deployment string = viper.GetString(Deployment)
-	s.Endpoint = fmt.Sprintf("https://%s.api.dev.resim.io/v1", deployment)
 	switch viper.GetString(Config) {
 	case Dev:
+		s.Config = DevConfig
+		deployment := viper.GetString(Deployment)
 		if deployment == "" {
-			fmt.Fprintf(os.Stderr, "error: must set CLI_E2E_TEST_DEPLOYMENT for dev")
+			fmt.Fprintf(os.Stderr, "error: must set %v for dev", Deployment)
 			os.Exit(1)
 		}
+		s.Config.ApiEndpoint = strings.Replace(s.Config.ApiEndpoint, "$DEPLOYMENT", deployment, 1)
 	case Staging:
-		// Maintain the dev auth config, but set the endpoint to staging
-		s.Endpoint = StagingEndpoint
+		s.Config = StagingConfig
 	case Prod:
-		authConfig = ProdAuthConfig
-		s.Endpoint = ProdEndpoint
+		s.Config = ProdConfig
 	default:
-		s.FailNow("Invalid config value")
+		fmt.Fprintf(os.Stderr, "error: invalid value for %s: %s", Config, viper.GetString(Config))
+		os.Exit(1)
 	}
-	s.Config = authConfig
+
+	// Validate the client credential environment variables are set:
+	if !viper.IsSet(ClientID) {
+		fmt.Fprintf(os.Stderr, "error: %v environment variable must be set", ClientID)
+		os.Exit(1)
+	}
+	if !viper.IsSet(ClientSecret) {
+		fmt.Fprintf(os.Stderr, "error: %v environment variable must be set", ClientSecret)
+		os.Exit(1)
+	}
+
 	s.CliPath = s.buildCLI()
-	// Validate the RESIM_CLIENT_ID and RESIM_CLIENT_SECRET environment variables are set
-	if !viper.IsSet("RESIM_CLIENT_ID") {
-		s.FailNow("RESIM_CLIENT_ID must be set")
-	}
-	if !viper.IsSet("RESIM_CLIENT_SECRET") {
-		s.FailNow("RESIM_CLIENT_SECRET must be set")
-	}
 }
 
 func (s *EndToEndTestSuite) buildCLI() string {
@@ -137,7 +142,7 @@ func (s *EndToEndTestSuite) foldFlags(flags []Flag) []string {
 func (s *EndToEndTestSuite) buildCommand(commandBuilders []CommandBuilder) *exec.Cmd {
 	// We populate the URL and the auth URL flags initially, then for each command/flags pair
 	// in the command builder, we append to a single flattened slice:
-	allCommands := []string{"--url", s.Endpoint}
+	allCommands := []string{"--url", s.Config.ApiEndpoint}
 	allCommands = append(allCommands, []string{"--auth-url", s.Config.AuthKeyProviderDomain}...)
 	for _, commandBuilder := range commandBuilders {
 		allCommands = append(allCommands, commandBuilder.Command)
@@ -172,41 +177,38 @@ func (s *EndToEndTestSuite) TestHelp() {
 	s.Contains(output.StdOut, "Usage:")
 }
 
-func (s *EndToEndTestSuite) createProject(name string, description string, github bool) Output {
+func (s *EndToEndTestSuite) TestProjectCreate() {
+	fmt.Println("Testing project create command")
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
-		Command: "projects",
+		Command: "project",
 	}
 	createCommand := CommandBuilder{
 		Command: "create",
 		Flags: []Flag{
 			{
 				Name:  "--name",
-				Value: name,
+				Value: projectName,
 			},
 			{
 				Name:  "--description",
-				Value: description,
+				Value: "description",
 			},
 		},
 	}
-	if github {
-		createCommand.Flags = append(createCommand.Flags, Flag{
-			Name:  "--github",
-			Value: "",
-		})
-	}
-	return s.runCommand([]CommandBuilder{projectCommand, createCommand})
+	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
+	s.Contains(output.StdOut, "Created project")
 }
 
-func (s *EndToEndTestSuite) createBranch(projectID uuid.UUID, name string, branchType string, github bool) Output {
-	// Validate the branch type:
-	if branchType != "RELEASE" && branchType != "MAIN" && branchType != "CHANGE_REQUEST" {
-		s.FailNow("Invalid branch type")
-	}
+func (s *EndToEndTestSuite) TestProjectCreateGithub() {
+	fmt.Println("Testing project create command, with --github flag")
 
-	branchCommand := CommandBuilder{
-		Command: "branches",
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	// We build a create project command with the name and description flags
+	projectCommand := CommandBuilder{
+		Command: "project",
 	}
 	createCommand := CommandBuilder{
 		Command: "create",

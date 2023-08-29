@@ -48,7 +48,7 @@ var (
 )
 
 const (
-	projectIDKey          = "project"
+	projectKey          = "project"
 	projectNameKey        = "name"
 	projectDescriptionKey = "description"
 	projectGithubKey      = "github"
@@ -62,12 +62,12 @@ func init() {
 	createProjectCmd.Flags().Bool(projectGithubKey, false, "Whether to output format in github action friendly format")
 	projectCmd.AddCommand(createProjectCmd)
 
-	getProjectCmd.Flags().String(projectIDKey, "", "The name or the ID of the project")
-	getProjectCmd.MarkFlagRequired(projectIDKey)
+	getProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project")
+	getProjectCmd.MarkFlagRequired(projectKey)
 	projectCmd.AddCommand(getProjectCmd)
 
-	deleteProjectCmd.Flags().String(projectIDKey, "", "The name or the ID of the project to delete")
-	deleteProjectCmd.MarkFlagRequired(projectIDKey)
+	deleteProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project to delete")
+	deleteProjectCmd.MarkFlagRequired(projectKey)
 	projectCmd.AddCommand(deleteProjectCmd)
 
 	rootCmd.AddCommand(projectCmd)
@@ -125,7 +125,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 
 func getProject(ccmd *cobra.Command, args []string) {
 	var project *api.Project
-	if viper.IsSet(projectIDKey) {
+	if viper.IsSet(projectKey) {
 		projectID := getProjectID(Client, viper.GetString(projectNameKey))
 		response, err := Client.GetProjectWithResponse(context.Background(), projectID)
 		if err != nil {
@@ -148,8 +148,8 @@ func getProject(ccmd *cobra.Command, args []string) {
 
 func deleteProject(ccmd *cobra.Command, args []string) {
 	var projectID uuid.UUID
-	if viper.IsSet(projectIDKey) {
-		projectID = getProjectID(Client, viper.GetString(projectIDKey))
+	if viper.IsSet(projectKey) {
+		projectID = getProjectID(Client, viper.GetString(projectKey))
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
 	}

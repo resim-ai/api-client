@@ -48,7 +48,7 @@ var (
 )
 
 const (
-	projectIDKey          = "project-id"
+	projectIDKey          = "identifier"
 	projectNameKey        = "name"
 	projectDescriptionKey = "description"
 	projectGithubKey      = "github"
@@ -62,14 +62,12 @@ func init() {
 	createProjectCmd.Flags().Bool(projectGithubKey, false, "Whether to output format in github action friendly format")
 	projectCmd.AddCommand(createProjectCmd)
 
-	getProjectCmd.Flags().String(projectIDKey, "", "The ID of the project to get")
-	getProjectCmd.Flags().String(projectNameKey, "", "The Name of the project to get (e.g. my-project). The project ID will also work.")
-	getProjectCmd.MarkFlagsMutuallyExclusive(projectIDKey, projectNameKey)
+	getProjectCmd.Flags().String(projectIDKey, "", "The name or the ID of the project")
+	getProjectCmd.MarkFlagRequired(projectIDKey)
 	projectCmd.AddCommand(getProjectCmd)
 
-	deleteProjectCmd.Flags().String(projectIDKey, "", "The ID of the project to delete")
-	deleteProjectCmd.Flags().String(projectNameKey, "", "The Name of the project to delete (e.g. my-project)")
-	deleteProjectCmd.MarkFlagsMutuallyExclusive(projectIDKey, projectNameKey)
+	deleteProjectCmd.Flags().String(projectIDKey, "", "The name or the ID of the project to delete")
+	deleteProjectCmd.MarkFlagRequired(projectIDKey)
 	projectCmd.AddCommand(deleteProjectCmd)
 
 	rootCmd.AddCommand(projectCmd)
@@ -122,10 +120,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 func getProject(ccmd *cobra.Command, args []string) {
 	var project *api.Project
 	if viper.IsSet(projectIDKey) {
-		projectID, err := uuid.Parse(viper.GetString(projectIDKey))
-		if err != nil {
-			log.Fatal("unable to parse project ID: ", err)
-		}
+		projectID := getProjectID(Client, viper.GetString(projectNameKey))
 		response, err := Client.GetProjectWithResponse(context.Background(), projectID)
 		if err != nil {
 			log.Fatal("unable to retrieve project:", err)
@@ -135,15 +130,6 @@ func getProject(ccmd *cobra.Command, args []string) {
 		} else {
 			ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse)
 		}
-		project = response.JSON200
-	} else if viper.IsSet(projectNameKey) {
-		projectName := viper.GetString(projectNameKey)
-		projectID := getProjectIDForName(Client, projectName)
-		response, err := Client.GetProjectWithResponse(context.Background(), projectID)
-		if err != nil {
-			log.Fatal("unable to retrieve project:", err)
-		}
-		ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse)
 		project = response.JSON200
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
@@ -157,14 +143,7 @@ func getProject(ccmd *cobra.Command, args []string) {
 func deleteProject(ccmd *cobra.Command, args []string) {
 	var projectID uuid.UUID
 	if viper.IsSet(projectIDKey) {
-		var err error
-		projectID, err = uuid.Parse(viper.GetString(projectIDKey))
-		if err != nil {
-			log.Fatal("unable to parse project ID: ", err)
-		}
-	} else if viper.IsSet(projectNameKey) {
-		projectName := viper.GetString(projectNameKey)
-		projectID = getProjectIDForName(Client, projectName)
+		projectID = getProjectID(Client, viper.GetString(projectIDKey))
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
 	}
@@ -181,8 +160,9 @@ func deleteProject(ccmd *cobra.Command, args []string) {
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func getProjectIDForName(client api.ClientWithResponsesInterface, projectName string) uuid.UUID {
-	// Page through projects until we find the one we want:
+func getProjectID(client api.ClientWithResponsesInterface, identifier string) uuid.UUID {
+	// Page through projects until we find the one with either a name or and ID
+	// that matches the identifier string.
 	var projectID uuid.UUID = uuid.Nil
 	var pageToken *string = nil
 pageLoop:
@@ -209,14 +189,11 @@ pageLoop:
 			if project.ProjectID == nil {
 				log.Fatal("project ID is empty")
 			}
-			if *project.Name == projectName {
+			if *project.Name == identifier {
 				projectID = *project.ProjectID
 				break pageLoop
 			}
-			// If the user happens to pass the project UUID, we should let them have
-			// it. This can only really go wrong if the user happens to name a project
-			// with the UUID of another, which seems vanishingly unlikely.
-			if project.ProjectID.String() == projectName {
+			if project.ProjectID.String() == identifier {
 				projectID = *project.ProjectID
 				break pageLoop
 			}
@@ -226,7 +203,7 @@ pageLoop:
 		}
 	}
 	if projectID == uuid.Nil {
-		log.Fatal("failed to find project with requested name: ", projectName)
+		log.Fatal("failed to find project with name or ID: ", identifier)
 	}
 	return projectID
 }

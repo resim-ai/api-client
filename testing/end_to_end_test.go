@@ -33,8 +33,6 @@ const (
 	Prod         string = "prod"
 	ClientID     string = "RESIM_CLIENT_ID"
 	ClientSecret string = "RESIM_CLIENT_SECRET"
-	Url          string = "RESIM_URL"
-	AuthUrl      string = "RESIM_AUTH_URL"
 )
 
 // CLI Constants
@@ -91,6 +89,7 @@ func (s *EndToEndTestSuite) TearDownSuite() {
 func (s *EndToEndTestSuite) SetupSuite() {
 	switch viper.GetString(Config) {
 	case Dev:
+		s.Config = DevConfig
 		deployment := viper.GetString(Deployment)
 		if deployment == "" {
 			fmt.Fprintf(os.Stderr, "error: must set %v for dev", Deployment)

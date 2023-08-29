@@ -7,8 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var headingRequired string = "REQUIRED"
-var headingOptional string = "OPTIONAL"
+const headingRequired string = "REQUIRED"
+const headingOptional string = "OPTIONAL"
 
 func helperTestCommand() cobra.Command {
 	var testCmd = cobra.Command{
@@ -79,18 +79,18 @@ func TestRequiredFlags(t *testing.T) {
 
 func TestBothFlags(t *testing.T) {
 	// SETUP
-	identifier_o := "Easy to find description for optional"
-	identifier_r := "Easy to find description for required"
+	identifierO := "Easy to find description for optional"
+	identifierR := "Easy to find description for required"
 	testCmd := helperTestCommand()
-	testCmd.Flags().String("optionalflag", "o", identifier_o)
-	testCmd.Flags().String("requiredflag", "r", identifier_r)
+	testCmd.Flags().String("optionalflag", "o", identifierO)
+	testCmd.Flags().String("requiredflag", "r", identifierR)
 	testCmd.MarkFlagRequired("requiredflag")
 	usageMsg := testCmd.UsageString()
 	// VERIFICATION
-	if !strings.Contains(usageMsg, identifier_o) {
+	if !strings.Contains(usageMsg, identifierO) {
 		t.Fail()
 	}
-	if !strings.Contains(usageMsg, identifier_r) {
+	if !strings.Contains(usageMsg, identifierR) {
 		t.Fail()
 	}
 	if !strings.Contains(usageMsg, headingRequired) {

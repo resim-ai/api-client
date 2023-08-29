@@ -79,7 +79,11 @@ var resimTemplateFuncs = template.FuncMap{
 	"FlagSetUsages": flagSetUsages,
 }
 
-var BashCompOneRequiredFlag string = "cobra_annotation_bash_completion_one_required_flag"
+// Cobra flags do not have a dedicated data member to indicate whether they
+// are required. However they do have a catch-all "annotations" map as a data
+// member. This rather verbose string is the key used to indicate that a flag
+// is required in the annotations map.
+const bashCompOneRequiredFlag string = "cobra_annotation_bash_completion_one_required_flag"
 
 type FlagSets struct {
 	requiredFlags pflag.FlagSet
@@ -105,9 +109,10 @@ func (fs FlagSets) OptionalUsages() string {
 func flagSetsBuilder(flags *pflag.FlagSet) FlagSets {
 	var allFlags FlagSets
 	flags.VisitAll(func(flag *pflag.Flag) {
-		requiredAnnotation, found := flag.Annotations[BashCompOneRequiredFlag]
+		requiredAnnotation, found := flag.Annotations[bashCompOneRequiredFlag]
 		if !found {
 			allFlags.optionalFlags.AddFlag(flag)
+			// TODO(https://app.asana.com/0/1205272835002601/1205380178885154/f)
 			return
 		}
 		if requiredAnnotation[0] == "true" {

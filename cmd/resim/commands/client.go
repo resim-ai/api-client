@@ -135,11 +135,12 @@ func ValidateResponse(expectedStatusCode int, message string, response *http.Res
 		log.Fatal(message, ": ", "no response")
 	}
 	if response.StatusCode != expectedStatusCode {
-		message, readErr := io.ReadAll((response.Body))
+		bodyMessage, readErr := io.ReadAll((response.Body))
 		if readErr != nil {
-			log.Println("error reading response: ", readErr)
+			log.Println(message, ": error reading response: ", readErr)
 		}
 		log.Fatal(message, ": expected status code: ", expectedStatusCode,
-			" received: ", response.StatusCode, " status: ", response.Status, " message: ", message)
+			" received: ", response.StatusCode, " status: ", response.Status, " message: ", bodyMessage)
 	}
+
 }

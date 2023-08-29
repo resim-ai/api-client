@@ -157,7 +157,11 @@ func getProject(ccmd *cobra.Command, args []string) {
 func deleteProject(ccmd *cobra.Command, args []string) {
 	var projectID uuid.UUID
 	if viper.IsSet(projectIDKey) {
-		projectID = uuid.MustParse(viper.GetString(projectIDKey))
+		var err error
+		projectID, err = uuid.Parse(viper.GetString(projectIDKey))
+		if err != nil {
+			log.Fatal("unable to parse project ID: ", err)
+		}
 	} else if viper.IsSet(projectNameKey) {
 		projectName := viper.GetString(projectNameKey)
 		projectID = getProjectIDForName(Client, projectName)
@@ -173,7 +177,7 @@ func deleteProject(ccmd *cobra.Command, args []string) {
 	} else {
 		ValidateResponse(http.StatusNoContent, "unable to delete project", response.HTTPResponse)
 	}
-	fmt.Println("Delete project successfully!")
+	fmt.Println("Deleted project successfully!")
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this

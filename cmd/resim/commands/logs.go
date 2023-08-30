@@ -57,7 +57,6 @@ func init() {
 	createLogCmd.Flags().Int64(logFileSizeKey, -1, "The size of the file in bytes")
 	createLogCmd.MarkFlagRequired(logFileSizeKey)
 	createLogCmd.Flags().String(logChecksumKey, "", "A checksum for the file, to enable integrity checking when downloading")
-	createLogCmd.MarkFlagRequired(logChecksumKey)
 	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")
 	logsCmd.AddCommand(createLogCmd)
 
@@ -79,7 +78,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 	// Parse the various arguments from command line
 	logName := viper.GetString(logNameKey)
 	if logName == "" {
-		log.Fatal("empty log filename")
+		log.Fatal("empty log file name")
 	}
 
 	logBatchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
@@ -89,7 +88,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 
 	logJobID, err := uuid.Parse(viper.GetString(logJobIDKey))
 	if err != nil || logJobID == uuid.Nil {
-		log.Fatal("empty log ID")
+		log.Fatal("empty job ID")
 	}
 
 	logFileSize := viper.GetInt64(logFileSizeKey)
@@ -155,12 +154,12 @@ func createLog(ccmd *cobra.Command, args []string) {
 
 func listLogs(ccmd *cobra.Command, args []string) {
 	batchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
-	if err != nil {
+	if err != nil || batchID == uuid.Nil {
 		log.Fatal("unable to parse batch ID: ", err)
 	}
 
 	jobID, err := uuid.Parse(viper.GetString(logJobIDKey))
-	if err != nil {
+	if err != nil || jobID == uuid.Nil {
 		log.Fatal("unable to parse job ID: ", err)
 	}
 

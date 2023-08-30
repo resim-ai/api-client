@@ -111,9 +111,9 @@ const (
 	FailedToCreateProject   string = "failed to create project"
 	EmptyProjectName        string = "empty project name"
 	EmptyProjectDescription string = "empty project description"
-	InvalidProjectID        string = "unable to parse project ID"
 	FailedToFindProject     string = "failed to find project"
 	DeletedProject          string = "Deleted project"
+  ProjectNameCollision    string = "project name matches an existing"
 	// Branch Messages
 	CreatedBranch       string = "Created branch"
 	GithubCreatedBranch string = "branch_id="
@@ -642,7 +642,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	s.Empty(output.StdErr)
 	// Validate that repeating that name leads to an error:
 	output = s.runCommand(s.createProject(projectName, "description", GithubFalse), ExpectError)
-	s.Contains(output.StdErr, FailedToCreateProject)
+	s.Contains(output.StdErr, ProjectNameCollision)
 	// Validate that omitting the name leads to an error:
 	output = s.runCommand(s.createProject("", "description", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyProjectName)
@@ -668,13 +668,17 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	s.Empty(output.StdErr)
 	// Attempt to get a project with empty name and id:
 	output = s.runCommand(s.getProjectByID(""), ExpectError)
-	s.Contains(output.StdErr, InvalidProjectID)
-	// Non-existentt project:
+	s.Contains(output.StdErr, FailedToFindProject)
+	// Non-existent project:
 	output = s.runCommand(s.getProjectByID(uuid.Nil.String()), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Blank name:
 	output = s.runCommand(s.getProjectByName(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
+
+  // Validate that using the id as another project name throws an error.
+	output = s.runCommand(s.createProject(project.ProjectID.String(), "description", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, ProjectNameCollision)
 
 	fmt.Println("Testing project delete command")
 	output = s.runCommand(s.deleteProjectByName(projectName), ExpectNoError)
@@ -685,7 +689,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Verify that a valid project ID is needed:
 	output = s.runCommand(s.deleteProjectByID(""), ExpectError)
-	s.Contains(output.StdErr, InvalidProjectID)
+	s.Contains(output.StdErr, FailedToFindProject)
 }
 
 func (s *EndToEndTestSuite) TestProjectCreateGithub() {
@@ -729,7 +733,7 @@ func (s *EndToEndTestSuite) TestBranchCreate() {
 	output = s.runCommand(s.createBranch(projectID, "", "RELEASE", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBranchName)
 	output = s.runCommand(s.createBranch(uuid.Nil, branchName, "RELEASE", GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyProjectID)
+	s.Contains(output.StdErr, FailedToFindProject)
 	output = s.runCommand(s.createBranch(projectID, branchName, "INVALID", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBranchType)
 

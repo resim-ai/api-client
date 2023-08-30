@@ -102,7 +102,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 	// the name of another.
 	existingID := checkProjectID(Client, projectName)
 	if existingID != uuid.Nil {
-		log.Fatal("The specified project name matches an existing projects name or ID")
+		log.Fatal("the specified project name matches an existing project's name or ID")
 	}
 	response, err := Client.CreateProjectWithResponse(context.Background(), body)
 	if err != nil {

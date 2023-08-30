@@ -48,7 +48,7 @@ var (
 )
 
 const (
-	projectKey          = "project"
+	projectKey            = "project"
 	projectNameKey        = "name"
 	projectDescriptionKey = "description"
 	projectGithubKey      = "github"
@@ -126,7 +126,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 func getProject(ccmd *cobra.Command, args []string) {
 	var project *api.Project
 	if viper.IsSet(projectKey) {
-		projectID := getProjectID(Client, viper.GetString(projectNameKey))
+		projectID := getProjectID(Client, viper.GetString(projectKey))
 		response, err := Client.GetProjectWithResponse(context.Background(), projectID)
 		if err != nil {
 			log.Fatal("unable to retrieve project:", err)
@@ -171,7 +171,7 @@ func checkProjectID(client api.ClientWithResponsesInterface, identifier string) 
 	// that matches the identifier string.
 	var projectID uuid.UUID = uuid.Nil
 	// First try the assumption that identifier is a UUID.
-	projectID, err := uuid.Parse(viper.GetString(identifier))
+	projectID, err := uuid.Parse(identifier)
 	if err == nil {
 		// The identifier is a uuid - but does it refer to an existing project?
 		response, _ := client.GetProjectWithResponse(context.Background(), projectID)

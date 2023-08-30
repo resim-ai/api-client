@@ -630,7 +630,7 @@ func (s *EndToEndTestSuite) TestHelp() {
 		Command: "help",
 	}
 	output := s.runCommand([]CommandBuilder{runCommand}, ExpectNoError)
-	s.Contains(output.StdOut, "Usage:")
+	s.Contains(output.StdOut, "USAGE")
 }
 
 func (s *EndToEndTestSuite) TestProjectCommands() {

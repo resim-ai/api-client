@@ -8,6 +8,7 @@ import (
 
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -72,4 +73,16 @@ func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {
 	}
 
 	defer credentialCache.SaveCredentialCache()
+}
+
+func AliasNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	switch name {
+	case "project-id":
+		name = "project"
+		break
+	case "project-name":
+		name = "project"
+		break
+	}
+	return pflag.NormalizedName(name)
 }

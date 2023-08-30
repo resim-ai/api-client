@@ -12,6 +12,7 @@ import (
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -64,10 +65,12 @@ func init() {
 
 	getProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project")
 	getProjectCmd.MarkFlagRequired(projectKey)
+	getProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(getProjectCmd)
 
 	deleteProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project to delete")
 	deleteProjectCmd.MarkFlagRequired(projectKey)
+	deleteProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(deleteProjectCmd)
 
 	rootCmd.AddCommand(projectCmd)
@@ -225,4 +228,16 @@ func getProjectID(client api.ClientWithResponsesInterface, identifier string) uu
 		log.Fatal("failed to find project with name or ID: ", identifier)
 	}
 	return projectID
+}
+
+func aliasProjectNameFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	switch name {
+	case "name":
+		name = "project"
+		break
+	case "project-id":
+		name = "project"
+		break
+	}
+	return pflag.NormalizedName(name)
 }

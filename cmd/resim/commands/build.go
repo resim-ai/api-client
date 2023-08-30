@@ -52,6 +52,7 @@ func init() {
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
 	createBuildCmd.MarkFlagRequired(buildBranchNameKey)
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
+	createBuildCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	buildCmd.AddCommand(createBuildCmd)
 	rootCmd.AddCommand(buildCmd)
 }

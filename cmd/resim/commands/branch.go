@@ -44,6 +44,7 @@ func init() {
 	createBranchCmd.Flags().String(branchTypeKey, "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
 	createBranchCmd.MarkFlagRequired(branchTypeKey)
 	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in github action friendly format")
+	createBranchCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	branchCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(branchCmd)
 }

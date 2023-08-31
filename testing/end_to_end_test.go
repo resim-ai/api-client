@@ -113,7 +113,7 @@ const (
 	EmptyProjectDescription string = "empty project description"
 	FailedToFindProject     string = "failed to find project"
 	DeletedProject          string = "Deleted project"
-  ProjectNameCollision    string = "project name matches an existing"
+	ProjectNameCollision    string = "project name matches an existing"
 	// Branch Messages
 	CreatedBranch       string = "Created branch"
 	GithubCreatedBranch string = "branch_id="
@@ -676,7 +676,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	output = s.runCommand(s.getProjectByName(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 
-  // Validate that using the id as another project name throws an error.
+	// Validate that using the id as another project name throws an error.
 	output = s.runCommand(s.createProject(project.ProjectID.String(), "description", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, ProjectNameCollision)
 

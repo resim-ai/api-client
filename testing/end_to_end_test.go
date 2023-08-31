@@ -6,7 +6,9 @@
 // It is not intended to catch edge cases or weird interactions; that's the realm of unit testing.
 
 // To run:
-//    go test -v -tags end_to_end ./testing
+// RESIM_CLIENT_ID=<> RESIM_CLIENT_SECRET=<> CONFIG=staging go test -v -tags end_to_end ./testing
+//
+// See the README for more information on how to run the tests.
 
 package testing
 

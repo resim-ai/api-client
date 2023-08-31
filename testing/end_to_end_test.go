@@ -155,6 +155,7 @@ const (
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
 
 func (s *EndToEndTestSuite) TearDownSuite() {
+	os.Remove(fmt.Sprintf("%s/%s", s.CliPath, CliName))
 	os.Remove(s.CliPath)
 }
 
@@ -200,7 +201,7 @@ func (s *EndToEndTestSuite) buildCLI() string {
 	err = buildCmd.Run()
 	s.NoError(err)
 	fmt.Println("Successfully built CLI")
-	return outputPath
+	return tmpDir
 }
 
 func (s *EndToEndTestSuite) foldFlags(flags []Flag) []string {
@@ -223,7 +224,7 @@ func (s *EndToEndTestSuite) buildCommand(commandBuilders []CommandBuilder) *exec
 			allCommands = append(allCommands, flag)
 		}
 	}
-	return exec.Command(s.CliPath, allCommands...)
+	return exec.Command(fmt.Sprintf("%s/%s", s.CliPath, CliName), allCommands...)
 }
 
 func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder, expectError bool) Output {

@@ -179,16 +179,6 @@ func (s *EndToEndTestSuite) SetupSuite() {
 		os.Exit(1)
 	}
 
-	// // Validate the client credential environment variables are set:
-	// if !viper.IsSet(ClientID) {
-	// 	fmt.Fprintf(os.Stderr, "error: %v environment variable must be set", ClientID)
-	// 	os.Exit(1)
-	// }
-	// if !viper.IsSet(ClientSecret) {
-	// 	fmt.Fprintf(os.Stderr, "error: %v environment variable must be set", ClientSecret)
-	// 	os.Exit(1)
-	// }
-
 	s.CliPath = s.buildCLI()
 }
 

@@ -48,6 +48,14 @@ func init() {
 	rootCmd.AddCommand(branchCmd)
 }
 
+func listBranches(ccmd *cobra.Command, args []string) {
+	projectID, err := uuid.Parse(viper.GetString(branchProjectIDKey))
+	if err != nil || projectID == uuid.Nil {
+		log.Fatal("empty project ID")
+	}
+
+}
+
 func createBranch(ccmd *cobra.Command, args []string) {
 	if !viper.GetBool(branchGithubKey) {
 		fmt.Println("Creating a branch...")

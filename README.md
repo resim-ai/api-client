@@ -67,6 +67,11 @@ We track issues and feature requests using [Github Issues](https://github.com/re
 
 You will need Go installed.
 
+### Building the client
+
+  cd cmd/resim
+  go build
+
 ### Regenerating the client
 
 Whenever the API spec changes, you will need to regenerate the generated code:

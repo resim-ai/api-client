@@ -27,6 +27,13 @@ var (
 		Run:    createBuild,
 		PreRun: RegisterViperFlagsAndSetClient,
 	}
+	listBuildsCmd = &cobra.Command{
+		Use:    "list",
+		Short:  "list - Lists existing builds",
+		Long:   ``,
+		Run:    listBuilds,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
 )
 
 const (
@@ -52,8 +59,51 @@ func init() {
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
 	createBuildCmd.MarkFlagRequired(buildBranchNameKey)
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
+
+	listBuildsCmd.Flags().String(buildProjectNameKey, "", "List builds associated with this project")
+	listBuildsCmd.MarkFlagRequired(buildProjectNameKey)
+	listBuildsCmd.Flags().String(buildBranchNameKey, "", "List builds associated with this branch")
+	listBuildsCmd.MarkFlagRequired(buildBranchNameKey)
+
 	buildCmd.AddCommand(createBuildCmd)
+	buildCmd.AddCommand(listBuildsCmd)
 	rootCmd.AddCommand(buildCmd)
+}
+
+func listBuilds(ccmd *cobra.Command, args []string) {
+	// Check if the project exists, by listing projects:
+	projectName := viper.GetString(buildProjectNameKey)
+	projectID := getProjectIDForName(Client, projectName)
+
+	// Check if the branch exists, by listing branches:
+	branchName := viper.GetString(buildBranchNameKey)
+	branchID := getBranchIDForName(Client, projectID, branchName)
+
+	var pageToken *string = nil
+
+	for {
+		response, err := Client.ListBuildsForBranchWithResponse(
+			context.Background(), projectID, branchID, &api.ListBuildsForBranchParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list builds:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list builds", response.HTTPResponse)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.Builds == nil {
+			log.Fatal("no builds")
+		}
+		builds := *response.JSON200.Builds
+		for _, build := range builds {
+			fmt.Println(build.BranchID)
+		}
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
 }
 
 func createBuild(ccmd *cobra.Command, args []string) {

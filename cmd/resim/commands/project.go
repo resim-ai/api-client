@@ -12,6 +12,7 @@ import (
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
@@ -48,7 +49,7 @@ var (
 )
 
 const (
-	projectIDKey          = "project-id"
+	projectKey            = "project"
 	projectNameKey        = "name"
 	projectDescriptionKey = "description"
 	projectGithubKey      = "github"
@@ -62,14 +63,14 @@ func init() {
 	createProjectCmd.Flags().Bool(projectGithubKey, false, "Whether to output format in github action friendly format")
 	projectCmd.AddCommand(createProjectCmd)
 
-	getProjectCmd.Flags().String(projectIDKey, "", "The ID of the project to get")
-	getProjectCmd.Flags().String(projectNameKey, "", "The Name of the project to get (e.g. my-project)")
-	getProjectCmd.MarkFlagsMutuallyExclusive(projectIDKey, projectNameKey)
+	getProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project")
+	getProjectCmd.MarkFlagRequired(projectKey)
+	getProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(getProjectCmd)
 
-	deleteProjectCmd.Flags().String(projectIDKey, "", "The ID of the project to delete")
-	deleteProjectCmd.Flags().String(projectNameKey, "", "The Name of the project to delete (e.g. my-project)")
-	deleteProjectCmd.MarkFlagsMutuallyExclusive(projectIDKey, projectNameKey)
+	deleteProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project to delete")
+	deleteProjectCmd.MarkFlagRequired(projectKey)
+	deleteProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(deleteProjectCmd)
 
 	rootCmd.AddCommand(projectCmd)
@@ -96,7 +97,13 @@ func createProject(ccmd *cobra.Command, args []string) {
 		Name:        &projectName,
 		Description: &projectDescription,
 	}
-
+	// Because we allow users to pass both names and IDs to locate projects, we
+	// need to protect the edge case that a user specifes the ID of one project as
+	// the name of another.
+	existingID := checkProjectID(Client, projectName)
+	if existingID != uuid.Nil {
+		log.Fatal("the specified project name matches an existing project's name or ID")
+	}
 	response, err := Client.CreateProjectWithResponse(context.Background(), body)
 	if err != nil {
 		log.Fatal(err)
@@ -121,11 +128,8 @@ func createProject(ccmd *cobra.Command, args []string) {
 
 func getProject(ccmd *cobra.Command, args []string) {
 	var project *api.Project
-	if viper.IsSet(projectIDKey) {
-		projectID, err := uuid.Parse(viper.GetString(projectIDKey))
-		if err != nil {
-			log.Fatal("unable to parse project ID: ", err)
-		}
+	if viper.IsSet(projectKey) {
+		projectID := getProjectID(Client, viper.GetString(projectKey))
 		response, err := Client.GetProjectWithResponse(context.Background(), projectID)
 		if err != nil {
 			log.Fatal("unable to retrieve project:", err)
@@ -135,15 +139,6 @@ func getProject(ccmd *cobra.Command, args []string) {
 		} else {
 			ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse)
 		}
-		project = response.JSON200
-	} else if viper.IsSet(projectNameKey) {
-		projectName := viper.GetString(projectNameKey)
-		projectID := getProjectIDForName(Client, projectName)
-		response, err := Client.GetProjectWithResponse(context.Background(), projectID)
-		if err != nil {
-			log.Fatal("unable to retrieve project:", err)
-		}
-		ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse)
 		project = response.JSON200
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
@@ -156,15 +151,8 @@ func getProject(ccmd *cobra.Command, args []string) {
 
 func deleteProject(ccmd *cobra.Command, args []string) {
 	var projectID uuid.UUID
-	if viper.IsSet(projectIDKey) {
-		var err error
-		projectID, err = uuid.Parse(viper.GetString(projectIDKey))
-		if err != nil {
-			log.Fatal("unable to parse project ID: ", err)
-		}
-	} else if viper.IsSet(projectNameKey) {
-		projectName := viper.GetString(projectNameKey)
-		projectID = getProjectIDForName(Client, projectName)
+	if viper.IsSet(projectKey) {
+		projectID = getProjectID(Client, viper.GetString(projectKey))
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
 	}
@@ -181,9 +169,23 @@ func deleteProject(ccmd *cobra.Command, args []string) {
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func getProjectIDForName(client api.ClientWithResponsesInterface, projectName string) uuid.UUID {
-	// Page through projects until we find the one we want:
+func checkProjectID(client api.ClientWithResponsesInterface, identifier string) uuid.UUID {
+	// Page through projects until we find the one with either a name or an ID
+	// that matches the identifier string.
 	var projectID uuid.UUID = uuid.Nil
+	// First try the assumption that identifier is a UUID.
+	projectID, err := uuid.Parse(identifier)
+	if err == nil {
+		// The identifier is a uuid - but does it refer to an existing project?
+		response, _ := client.GetProjectWithResponse(context.Background(), projectID)
+		if response.HTTPResponse.StatusCode == http.StatusOK {
+			// Project found with ID
+			return projectID
+		}
+	}
+	// If we're here then either the identifier is not a UUID or the UUID was not
+	// found. Users could choose to name projects with UUIDs so regardless of how
+	// we got here we now search for identifier as a string name.
 	var pageToken *string = nil
 pageLoop:
 	for {
@@ -199,7 +201,6 @@ pageLoop:
 		if response.JSON200 == nil {
 			log.Fatal("empty response")
 		}
-
 		pageToken = response.JSON200.NextPageToken
 		projects := *response.JSON200.Projects
 		for _, project := range projects {
@@ -209,7 +210,7 @@ pageLoop:
 			if project.ProjectID == nil {
 				log.Fatal("project ID is empty")
 			}
-			if *project.Name == projectName {
+			if *project.Name == identifier {
 				projectID = *project.ProjectID
 				break pageLoop
 			}
@@ -218,8 +219,25 @@ pageLoop:
 			break
 		}
 	}
+	return projectID
+}
+
+func getProjectID(client api.ClientWithResponsesInterface, identifier string) uuid.UUID {
+	projectID := checkProjectID(client, identifier)
 	if projectID == uuid.Nil {
-		log.Fatal("failed to find project with requested name: ", projectName)
+		log.Fatal("failed to find project with name or ID: ", identifier)
 	}
 	return projectID
+}
+
+func aliasProjectNameFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	switch name {
+	case "name":
+		name = "project"
+		break
+	case "project-id":
+		name = "project"
+		break
+	}
+	return pflag.NormalizedName(name)
 }

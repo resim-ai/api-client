@@ -31,7 +31,7 @@ var (
 
 const (
 	branchNameKey      = "name"
-	branchProjectIDKey = "project-id"
+	branchProjectIDKey = "project"
 	branchTypeKey      = "type"
 	branchGithubKey    = "github"
 )
@@ -39,11 +39,12 @@ const (
 func init() {
 	createBranchCmd.Flags().String(branchNameKey, "", "The name of the branch, often a repository name")
 	createBranchCmd.MarkFlagRequired(branchNameKey)
-	createBranchCmd.Flags().String(branchProjectIDKey, "", "The ID of the project to associate the branch to")
+	createBranchCmd.Flags().String(branchProjectIDKey, "", "The name or ID of the project to associate with the branch")
 	createBranchCmd.MarkFlagRequired(branchProjectIDKey)
 	createBranchCmd.Flags().String(branchTypeKey, "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
 	createBranchCmd.MarkFlagRequired(branchTypeKey)
 	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in github action friendly format")
+	createBranchCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	branchCmd.AddCommand(createBranchCmd)
 	rootCmd.AddCommand(branchCmd)
 }
@@ -61,10 +62,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a branch...")
 	}
 	// Parse the various arguments from command line
-	projectID, err := uuid.Parse(viper.GetString(branchProjectIDKey))
-	if err != nil || projectID == uuid.Nil {
-		log.Fatal("empty project ID")
-	}
+	projectID := getProjectID(Client, viper.GetString(branchProjectIDKey))
 
 	branchName := viper.GetString(branchNameKey)
 	if branchName == "" {

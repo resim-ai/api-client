@@ -6,20 +6,26 @@
 // It is not intended to catch edge cases or weird interactions; that's the realm of unit testing.
 
 // To run:
-//    go test -v -tags end_to_end ./testing
+// RESIM_CLIENT_ID=<> RESIM_CLIENT_SECRET=<> CONFIG=staging go test -v -tags end_to_end ./testing
+//
+// See the README for more information on how to run the tests.
 
 package testing
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )
@@ -39,26 +45,32 @@ const (
 const (
 	TempDirSuffix string = "cli-test"
 	CliName       string = "resim"
+	ExpectNoError bool   = false
+	ExpectError   bool   = true
 )
 
 type CliConfig struct {
 	AuthKeyProviderDomain string
 	ApiEndpoint           string
+	E2EBucket             string
 }
 
 var DevConfig = CliConfig{
 	AuthKeyProviderDomain: "https://resim-dev.us.auth0.com/",
 	ApiEndpoint:           "https://$DEPLOYMENT.api.dev.resim.io/v1/",
+	E2EBucket:             "dev-$DEPLOYMENT-e2e",
 }
 
 var StagingConfig = CliConfig{
 	AuthKeyProviderDomain: "https://resim-dev.us.auth0.com/",
 	ApiEndpoint:           "https://api.resim.io/v1/",
+	E2EBucket:             "rerun-staging-e2e",
 }
 
 var ProdConfig = CliConfig{
 	AuthKeyProviderDomain: "https://resim.us.auth0.com/",
 	ApiEndpoint:           "https://api.resim.ai/v1/",
+	E2EBucket:             "resim-e2e",
 }
 
 type EndToEndTestSuite struct {
@@ -82,7 +94,68 @@ type Output struct {
 	StdErr string
 }
 
+// CLI Input Bool Flags:
+const (
+	AutoCreateBranchTrue  bool = true
+	AutoCreateBranchFalse bool = false
+	GithubTrue            bool = true
+	GithubFalse           bool = false
+	BatchExitStatusTrue   bool = true
+	BatchExitStatusFalse  bool = false
+)
+
+// CLI Output Messages. Perhaps overkill, but we validate that successful actions
+// from the CLI (i.e. exit code 0) have an expected output that contains a given substring.
+const (
+	// Project Messages
+	CreatedProject          string = "Created project"
+	GithubCreatedProject    string = "project_id="
+	FailedToCreateProject   string = "failed to create project"
+	EmptyProjectName        string = "empty project name"
+	EmptyProjectDescription string = "empty project description"
+	InvalidProjectID        string = "unable to parse project ID"
+	FailedToFindProject     string = "failed to find project"
+	DeletedProject          string = "Deleted project"
+	// Branch Messages
+	CreatedBranch       string = "Created branch"
+	GithubCreatedBranch string = "branch_id="
+	EmptyBranchName     string = "empty branch name"
+	EmptyProjectID      string = "empty project ID"
+	InvalidBranchType   string = "invalid branch type"
+	// Build Messages
+	CreatedBuild          string = "Created build"
+	GithubCreatedBuild    string = "build_id="
+	EmptyBuildDescription string = "empty build description"
+	EmptyBuildImage       string = "empty build image URI"
+	EmptyBuildVersion     string = "empty build version"
+	BranchNotExist        string = "Branch does not exist"
+	// Experience Messages
+	CreatedExperience          string = "Created experience"
+	GithubCreatedExperience    string = "experience_id="
+	EmptyExperienceName        string = "empty experience name"
+	EmptyExperienceDescription string = "empty experience description"
+	EmptyExperienceLocation    string = "empty experience location"
+	// Batch Messages
+	CreatedBatch               string = "Created batch"
+	FailedToCreateBatch        string = "failed to create batch"
+	InvalidBuildID             string = "failed to parse build ID"
+	BranchTagMutuallyExclusive string = "mutually exclusive parameters"
+	InvalidBatchName           string = "unable to find batch"
+	InvalidBatchID             string = "unable to parse batch ID"
+	// Log Messages
+	CreatedLog       string = "Created log"
+	GithubCreatedLog string = "log_location="
+	EmptyLogFileName string = "empty log file name"
+	EmptyLogChecksum string = "No checksum was provided"
+	EmptyLogBatchID  string = "empty batch ID"
+	EmptyLogJobID    string = "empty job ID"
+	InvalidJobID     string = "unable to parse job ID"
+)
+
+var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
+
 func (s *EndToEndTestSuite) TearDownSuite() {
+	os.Remove(fmt.Sprintf("%s/%s", s.CliPath, CliName))
 	os.Remove(s.CliPath)
 }
 
@@ -96,6 +169,7 @@ func (s *EndToEndTestSuite) SetupSuite() {
 			os.Exit(1)
 		}
 		s.Config.ApiEndpoint = strings.Replace(s.Config.ApiEndpoint, "$DEPLOYMENT", deployment, 1)
+		s.Config.E2EBucket = strings.Replace(s.Config.E2EBucket, "$DEPLOYMENT", deployment, 1)
 	case Staging:
 		s.Config = StagingConfig
 	case Prod:
@@ -127,7 +201,7 @@ func (s *EndToEndTestSuite) buildCLI() string {
 	err = buildCmd.Run()
 	s.NoError(err)
 	fmt.Println("Successfully built CLI")
-	return outputPath
+	return tmpDir
 }
 
 func (s *EndToEndTestSuite) foldFlags(flags []Flag) []string {
@@ -150,21 +224,406 @@ func (s *EndToEndTestSuite) buildCommand(commandBuilders []CommandBuilder) *exec
 			allCommands = append(allCommands, flag)
 		}
 	}
-	return exec.Command(s.CliPath, allCommands...)
+	return exec.Command(fmt.Sprintf("%s/%s", s.CliPath, CliName), allCommands...)
 }
 
-func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder) Output {
+func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder, expectError bool) Output {
 	var stdout, stderr bytes.Buffer
 	cmd := s.buildCommand(commandBuilders)
 	fmt.Println("About to run command: ", cmd.String())
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-	s.NoError(err)
+	if expectError {
+		s.Error(err)
+	} else {
+		s.NoError(err)
+	}
 	return Output{
 		StdOut: stdout.String(),
 		StdErr: stderr.String(),
 	}
+}
+
+func (s *EndToEndTestSuite) createProject(projectName string, description string, github bool) []CommandBuilder {
+	// We build a create project command with the name and description flags
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: projectName,
+			},
+			{
+				Name:  "--description",
+				Value: description,
+			},
+		},
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{projectCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) getProjectByName(projectName string) []CommandBuilder {
+	// We build a get project command with the name flag
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: projectName,
+			},
+		},
+	}
+	return []CommandBuilder{projectCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) deleteProjectByName(projectName string) []CommandBuilder {
+	// We build a get project command with the name flag
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	deleteCommand := CommandBuilder{
+		Command: "delete",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: projectName,
+			},
+		},
+	}
+	return []CommandBuilder{projectCommand, deleteCommand}
+}
+
+func (s *EndToEndTestSuite) getProjectByID(projectID string) []CommandBuilder {
+	// We build a get project command with the name flag
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--project-id",
+				Value: projectID,
+			},
+		},
+	}
+	return []CommandBuilder{projectCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) deleteProjectByID(projectID string) []CommandBuilder {
+	// We build a get project command with the name flag
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	deleteCommand := CommandBuilder{
+		Command: "delete",
+		Flags: []Flag{
+			{
+				Name:  "--project-id",
+				Value: projectID,
+			},
+		},
+	}
+	return []CommandBuilder{projectCommand, deleteCommand}
+}
+
+func (s *EndToEndTestSuite) createBranch(projectID uuid.UUID, name string, branchType string, github bool) []CommandBuilder {
+	branchCommand := CommandBuilder{
+		Command: "branches",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: name,
+			},
+			{
+				Name:  "--project-id",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--type",
+				Value: branchType,
+			},
+		},
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{branchCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, description string, image string, version string, github bool, autoCreateBranch bool) []CommandBuilder {
+	// Now create the build:
+	buildCommand := CommandBuilder{
+		Command: "builds",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--project-name",
+				Value: projectName,
+			},
+			{
+				Name:  "--branch-name",
+				Value: branchName,
+			},
+			{
+				Name:  "--description",
+				Value: description,
+			},
+			{
+				Name:  "--image",
+				Value: image,
+			},
+			{
+				Name:  "--version",
+				Value: version,
+			},
+		},
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	if autoCreateBranch {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--auto-create-branch",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{buildCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) createExperience(name string, description string, location string, github bool) []CommandBuilder {
+	// We build a create experience command with the name, description, location flags
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: name,
+			},
+			{
+				Name:  "--description",
+				Value: description,
+			},
+			{
+				Name:  "--location",
+				Value: location,
+			},
+		},
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{experienceCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) createBatch(buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string) []CommandBuilder {
+	// We build a create batch command with the build-id, experience-ids, experience-tag-ids, and experience-tag-names flags
+	// We do not require any specific combination of these flags, and validate in tests that the CLI only allows one of TagIDs or TagNames
+	// and that at least one of the experiences flags is provided.
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--build-id",
+				Value: buildID,
+			},
+		},
+	}
+	if len(experienceIDs) > 0 {
+		// Join experience ids with a ',' for CLI input
+		experienceIDsString := strings.Join(experienceIDs, ", ")
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--experience-ids",
+			Value: experienceIDsString,
+		})
+	}
+	if len(experienceTagIDs) > 0 {
+		experienceTagIDsString := strings.Join(experienceTagIDs, ", ")
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--experience-tag-ids",
+			Value: experienceTagIDsString,
+		})
+	}
+	if len(experienceTagNames) > 0 {
+		experienceTags := strings.Join(experienceTagNames, ", ")
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--experience-tag-names",
+			Value: experienceTags,
+		})
+
+	}
+	return []CommandBuilder{batchCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) getBatchByName(batchName string, exitStatus bool) []CommandBuilder {
+	// We build a get batch command with the name flag
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--batch-name",
+				Value: batchName,
+			},
+		},
+	}
+	if exitStatus {
+		getCommand.Flags = append(getCommand.Flags, Flag{
+			Name:  "--exit-status",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{batchCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) getBatchByID(batchID string, exitStatus bool) []CommandBuilder {
+	// We build a get batch command with the name flag
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--batch-id",
+				Value: batchID,
+			},
+		},
+	}
+	if exitStatus {
+		getCommand.Flags = append(getCommand.Flags, Flag{
+			Name:  "--exit-status",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{batchCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) getBatchJobsByName(batchName string) []CommandBuilder {
+	// We build a get batch command with the name flag
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	getCommand := CommandBuilder{
+		Command: "jobs",
+		Flags: []Flag{
+			{
+				Name:  "--batch-name",
+				Value: batchName,
+			},
+		},
+	}
+	return []CommandBuilder{batchCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) getBatchJobsByID(batchID string) []CommandBuilder {
+	// We build a get batch command with the name flag
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	getCommand := CommandBuilder{
+		Command: "jobs",
+		Flags: []Flag{
+			{
+				Name:  "--batch-id",
+				Value: batchID,
+			},
+		},
+	}
+	return []CommandBuilder{batchCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) createLog(batchID uuid.UUID, jobID uuid.UUID, name string, fileSize string, checksum string, github bool) []CommandBuilder {
+	logCommand := CommandBuilder{
+		Command: "logs",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--batch-id",
+				Value: batchID.String(),
+			},
+			{
+				Name:  "--job-id",
+				Value: jobID.String(),
+			},
+			{
+				Name:  "--name",
+				Value: name,
+			},
+			{
+				Name:  "--file-size",
+				Value: fileSize, //passed as string
+			},
+			{
+				Name:  "--checksum",
+				Value: checksum,
+			},
+		},
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{logCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) listLogs(batchID string, jobID string) []CommandBuilder {
+	logCommand := CommandBuilder{
+		Command: "logs",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--batch-id",
+				Value: batchID,
+			},
+			{
+				Name:  "--job-id",
+				Value: jobID,
+			},
+		},
+	}
+	return []CommandBuilder{logCommand, listCommand}
 }
 
 // As a first test, we expect the help command to run successfully
@@ -173,67 +632,477 @@ func (s *EndToEndTestSuite) TestHelp() {
 	runCommand := CommandBuilder{
 		Command: "help",
 	}
-	output := s.runCommand([]CommandBuilder{runCommand})
-	s.Contains(output.StdOut, "Usage:")
+	output := s.runCommand([]CommandBuilder{runCommand}, ExpectNoError)
+	s.Contains(output.StdOut, "USAGE")
 }
 
-func (s *EndToEndTestSuite) TestProjectCreate() {
+func (s *EndToEndTestSuite) TestProjectCommands() {
 	fmt.Println("Testing project create command")
+	// Check we can successfully create a project with a unique name
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedProject)
+	s.Empty(output.StdErr)
+	// Validate that repeating that name leads to an error:
+	output = s.runCommand(s.createProject(projectName, "description", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, FailedToCreateProject)
+	// Validate that omitting the name leads to an error:
+	output = s.runCommand(s.createProject("", "description", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyProjectName)
+	// Validate that omitting the description leads to an error:
+	output = s.runCommand(s.createProject(projectName, "", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyProjectDescription)
 
-	// We build a create project command with the name and description flags
-	projectCommand := CommandBuilder{
-		Command: "project",
-	}
-	createCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: projectName,
-			},
-			{
-				Name:  "--description",
-				Value: "description",
-			},
-		},
-	}
-	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
-	s.Contains(output.StdOut, "Created project")
+	// Now get, verify, and delete the project:
+	fmt.Println("Testing project get command")
+	output = s.runCommand(s.getProjectByName(projectName), ExpectNoError)
+	var project api.Project
+	err := json.Unmarshal([]byte(output.StdOut), &project)
+	s.NoError(err)
+	s.Equal(projectName, *project.Name)
+	s.Empty(output.StdErr)
+
+	// Attempt to get project by id:
+	output = s.runCommand(s.getProjectByID((*project.ProjectID).String()), ExpectNoError)
+	var project2 api.Project
+	err = json.Unmarshal([]byte(output.StdOut), &project2)
+	s.NoError(err)
+	s.Equal(projectName, *project.Name)
+	s.Empty(output.StdErr)
+	// Attempt to get a project with empty name and id:
+	output = s.runCommand(s.getProjectByID(""), ExpectError)
+	s.Contains(output.StdErr, InvalidProjectID)
+	// Non-existentt project:
+	output = s.runCommand(s.getProjectByID(uuid.Nil.String()), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+	// Blank name:
+	output = s.runCommand(s.getProjectByName(""), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+
+	fmt.Println("Testing project delete command")
+	output = s.runCommand(s.deleteProjectByName(projectName), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+	// Verify that attempting to re-delete will fail:
+	output = s.runCommand(s.deleteProjectByName(projectName), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+	// Verify that a valid project ID is needed:
+	output = s.runCommand(s.deleteProjectByID(""), ExpectError)
+	s.Contains(output.StdErr, InvalidProjectID)
 }
 
 func (s *EndToEndTestSuite) TestProjectCreateGithub() {
 	fmt.Println("Testing project create command, with --github flag")
-
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
-	// We build a create project command with the name and description flags
-	projectCommand := CommandBuilder{
-		Command: "project",
-	}
-	createCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--name",
-				Value: projectName,
-			},
-			{
-				Name:  "--description",
-				Value: "description",
-			},
-			{
-				Name:  "--github",
-				Value: "",
-			},
-		},
-	}
-	output := s.runCommand([]CommandBuilder{projectCommand, createCommand})
-	s.Contains(output.StdOut, "project_id=")
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
 	// We expect to be able to parse the project ID as a UUID
-	projectIDString := output.StdOut[len("project_id=") : len(output.StdOut)-1]
-	uuid.MustParse(projectIDString)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// Now get, verify, and delete the project:
+	output = s.runCommand(s.getProjectByID(projectIDString), ExpectNoError)
+	var project api.Project
+	err := json.Unmarshal([]byte(output.StdOut), &project)
+	s.NoError(err)
+	s.Equal(projectName, *project.Name)
+	s.Equal(projectID, *project.ProjectID)
+	s.Empty(output.StdErr)
+	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 
+// Test branch creation:
+func (s *EndToEndTestSuite) TestBranchCreate() {
+	fmt.Println("Testing branch creation")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(projectID, branchName, "RELEASE", GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedBranch)
+	// Validate that  missing name, project, or type returns errors:
+	output = s.runCommand(s.createBranch(projectID, "", "RELEASE", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyBranchName)
+	output = s.runCommand(s.createBranch(uuid.Nil, branchName, "RELEASE", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyProjectID)
+	output = s.runCommand(s.createBranch(projectID, branchName, "INVALID", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidBranchType)
+
+	// Delete the test project
+	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestBranchCreateGithub() {
+	fmt.Println("Testing branch creation, with --github flag")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Delete the test project
+	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+}
+
+// Test the build creation:
+func (s *EndToEndTestSuite) TestBuildCreate() {
+	fmt.Println("Testing build creation")
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedBuild)
+	// Verify that each of the required flags are required:
+	output = s.runCommand(s.createBuild(projectName, branchName, "", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyBuildDescription)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyBuildImage)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyBuildVersion)
+	output = s.runCommand(s.createBuild("", branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+	output = s.runCommand(s.createBuild(projectName, "", "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	s.Contains(output.StdErr, BranchNotExist)
+	// Delete the project:
+	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+}
+
+func (s *EndToEndTestSuite) TestBuildCreateGithub() {
+	fmt.Println("Testing build creation, with --github flag")
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+}
+
+func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
+	fmt.Println("Testing build creation with the auto-create-branch flag")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create a branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build: (with auto-create-branch flag). We expect this to succeed without any additional information
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
+	s.Contains(output.StdOut, CreatedBuild)
+	s.NotContains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", branchName))
+
+	// Now try to create a build with a new branch name:
+	newBranchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBuild(projectName, newBranchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.1", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
+	s.Contains(output.StdOut, CreatedBuild)
+	s.Contains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", newBranchName))
+	s.Contains(output.StdOut, CreatedBranch)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+}
+
+func (s *EndToEndTestSuite) TestExperienceCreate() {
+	fmt.Println("Testing experience creation command")
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output := s.runCommand(s.createExperience(experienceName, "description", "location", GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedExperience)
+	s.Empty(output.StdErr)
+	// Validate we cannot create experiences without values for the required flags:
+	output = s.runCommand(s.createExperience("", "description", "location", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyExperienceName)
+	output = s.runCommand(s.createExperience(experienceName, "", "location", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyExperienceDescription)
+	output = s.runCommand(s.createExperience(experienceName, "description", "", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyExperienceLocation)
+
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+}
+
+func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
+	fmt.Println("Testing experience creation command, with --github flag")
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output := s.runCommand(s.createExperience(experienceName, "description", "location", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString)
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+}
+
+func (s *EndToEndTestSuite) TestBatchAndLogs() {
+	// First create two experiences:
+	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output := s.runCommand(s.createExperience(experienceName1, "description", experienceLocation, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	experienceID1 := uuid.MustParse(experienceIDString1)
+
+	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output = s.runCommand(s.createExperience(experienceName2, "description", experienceLocation, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	experienceID2 := uuid.MustParse(experienceIDString2)
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+
+	// Then create a project, branch, build:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output = s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(uuid.MustParse(projectIDString), branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	buildID := uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// Now create a batch:
+	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}), ExpectNoError)
+	s.Contains(output.StdOut, CreatedBatch)
+	s.Empty(output.StdErr)
+
+	// Extract from "Batch ID:" to the next newline:
+	re := regexp.MustCompile(`Batch ID: (.+?)\n`)
+	matches := re.FindStringSubmatch(output.StdOut)
+	s.Equal(2, len(matches))
+	batchIDString := strings.TrimSpace(matches[1])
+	batchID := uuid.MustParse(batchIDString)
+	// Extract the batch name:
+	re = regexp.MustCompile(`Batch name: (.+?)\n`)
+	matches = re.FindStringSubmatch(output.StdOut)
+	s.Equal(2, len(matches))
+	batchNameString := strings.TrimSpace(matches[1])
+	// RePun:
+	batchNameParts := strings.Split(batchNameString, "-")
+	s.Equal(3, len(batchNameParts))
+	// Try a batch without any experiences:
+	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}), ExpectError)
+	s.Contains(output.StdErr, FailedToCreateBatch)
+	// Try a batch without a build id:
+	output = s.runCommand(s.createBatch("", []string{experienceIDString1, experienceIDString2}, []string{}, []string{}), ExpectError)
+	s.Contains(output.StdErr, InvalidBuildID)
+	// Try a batch with both experience tag ids and experience tag names (even if fake):
+	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{"tag-id"}, []string{"tag-name"}), ExpectError)
+	s.Contains(output.StdErr, BranchTagMutuallyExclusive)
+
+	// Get batch passing the status flag. We need to manually execute and grab the exit code:
+	// Since we have just submitted the batch, we would expect it to be running or submitted
+	// but we check that the exit code is in the acceptable range:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(s.getBatchByName(batchNameString, BatchExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 failed
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 5*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(s.getBatchByName(batchNameString, BatchExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	var batch api.Batch
+	err := json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(batchNameString, *batch.FriendlyName)
+	s.Equal(batchID, *batch.BatchID)
+	// Validate that it succeeded:
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+	// Get the batch by ID:
+	output = s.runCommand(s.getBatchByID(batchIDString, BatchExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(batchNameString, *batch.FriendlyName)
+	s.Equal(batchID, *batch.BatchID)
+	// Validate that it succeeded:
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+
+	// Pass blank name / id to batches get:
+	output = s.runCommand(s.getBatchByName("", BatchExitStatusFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchName)
+	output = s.runCommand(s.getBatchByID("", BatchExitStatusFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchID)
+	// Now grab the jobs from the batch:
+	output = s.runCommand(s.getBatchJobsByName(batchNameString), ExpectNoError)
+	// Marshal into a struct:
+	var jobs []api.Job
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(2, len(jobs))
+	for _, job := range jobs {
+		s.Contains([]uuid.UUID{experienceID1, experienceID2}, *job.ExperienceID)
+		s.Equal(buildID, *job.BuildID)
+	}
+	output = s.runCommand(s.getBatchJobsByID(batchIDString), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(2, len(jobs))
+	for _, job := range jobs {
+		s.Contains([]uuid.UUID{experienceID1, experienceID2}, *job.ExperienceID)
+		s.Equal(buildID, *job.BuildID)
+	}
+
+	jobID1 := *jobs[0].JobID
+	jobID2 := *jobs[1].JobID
+	// Pass blank name / id to batches jobs:
+	output = s.runCommand(s.getBatchJobsByName(""), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchName)
+	output = s.runCommand(s.getBatchJobsByID(""), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchID)
+
+	// Finally, create logs
+	logName := fmt.Sprintf("test-log-%s", uuid.New().String())
+	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "checksum", GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedLog)
+	// Validate that all required flags are required:
+	output = s.runCommand(s.createLog(uuid.Nil, jobID1, logName, "100", "checksum", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyLogBatchID)
+	output = s.runCommand(s.createLog(batchID, uuid.Nil, logName, "100", "checksum", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyLogJobID)
+	output = s.runCommand(s.createLog(batchID, jobID1, "", "100", "checksum", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyLogFileName)
+
+	// TODO(iainjwhiteside): we can't check the empty file size easily in this framework
+
+	// Checksum is actually optional, but warned about:
+	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "", GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, EmptyLogChecksum)
+
+	// Create w/ the github flag:
+	logName = fmt.Sprintf("test-log-%s", uuid.New().String())
+	output = s.runCommand(s.createLog(batchID, jobID2, logName, "100", "checksum", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedLog)
+	log1Location := output.StdOut[len(GithubCreatedLog) : len(output.StdOut)-1]
+	s.Contains(log1Location, "s3://")
+	// Create a second log to test parsing:
+	logName2 := fmt.Sprintf("test-log-%s", uuid.New().String())
+	output = s.runCommand(s.createLog(batchID, jobID2, logName2, "100", "checksum", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedLog)
+	log2Location := output.StdOut[len(GithubCreatedLog) : len(output.StdOut)-1]
+	s.Contains(log2Location, "s3://")
+
+	// List logs:
+	output = s.runCommand(s.listLogs(batchIDString, jobID2.String()), ExpectNoError)
+	// Marshal into a struct:
+	var logs []api.Log
+	err = json.Unmarshal([]byte(output.StdOut), &logs)
+	s.NoError(err)
+	s.Len(logs, 5)
+	for _, log := range logs {
+		s.Equal(jobID2, *log.JobID)
+		s.Contains([]string{logName, logName2, "inputs.zip", "stderr.log", "stdout.log"}, *log.FileName)
+	}
+
+	// Pass blank name / id to logs:
+	output = s.runCommand(s.listLogs("not-a-uuid", jobID2.String()), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchID)
+	output = s.runCommand(s.listLogs(batchIDString, "not-a-uuid"), ExpectError)
+	s.Contains(output.StdErr, InvalidJobID)
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+}
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()
 	viper.SetDefault(Config, Dev)

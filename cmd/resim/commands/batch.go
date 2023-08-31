@@ -88,7 +88,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	// Parse the UUIDs from the command line
 	buildID, err := uuid.Parse(viper.GetString(buildIDKey))
 	if err != nil || buildID == uuid.Nil {
-		log.Fatal(err)
+		log.Fatal("failed to parse build ID: ", err)
 	}
 	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
 
@@ -130,7 +130,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	batch := *response.JSON201
 
 	// Report the results back to the user
-	fmt.Println("Created Batch Successfully!")
+	fmt.Println("Created batch successfully!")
 	if batch.BatchID == nil {
 		log.Fatal("empty ID")
 	}

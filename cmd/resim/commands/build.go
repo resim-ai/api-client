@@ -61,8 +61,8 @@ func init() {
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
 	createBuildCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
-	listBuildsCmd.Flags().String(buildProjectNameKey, "", "List builds associated with this project")
-	listBuildsCmd.MarkFlagRequired(buildProjectNameKey)
+	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
+	listBuildsCmd.MarkFlagRequired(buildProjectKey)
 	listBuildsCmd.Flags().String(buildBranchNameKey, "", "List builds associated with this branch")
 	listBuildsCmd.MarkFlagRequired(buildBranchNameKey)
 
@@ -73,8 +73,8 @@ func init() {
 
 func listBuilds(ccmd *cobra.Command, args []string) {
 	// Check if the project exists, by listing projects:
-	projectName := viper.GetString(buildProjectNameKey)
-	projectID := getProjectIDForName(Client, projectName)
+	projectName := viper.GetString(buildProjectKey)
+	projectID := getProjectID(Client, projectName)
 
 	// Check if the branch exists, by listing branches:
 	branchName := viper.GetString(buildBranchNameKey)

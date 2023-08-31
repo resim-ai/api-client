@@ -802,6 +802,7 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateGithub() {
@@ -828,6 +829,7 @@ func (s *EndToEndTestSuite) TestBuildCreateGithub() {
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
@@ -860,6 +862,7 @@ func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
 	s.Contains(output.StdOut, CreatedBuild)
 	s.Contains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", newBranchName))
 	s.Contains(output.StdOut, CreatedBranch)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 }
 
 func (s *EndToEndTestSuite) TestExperienceCreate() {
@@ -875,6 +878,8 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	s.Contains(output.StdErr, EmptyExperienceDescription)
 	output = s.runCommand(s.createExperience(experienceName, "description", "", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceLocation)
+
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
 }
 
 func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
@@ -885,6 +890,7 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
 }
 
 func (s *EndToEndTestSuite) TestBatchAndLogs() {
@@ -905,6 +911,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	experienceID2 := uuid.MustParse(experienceIDString2)
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
 
 	// Then create a project, branch, build:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -928,7 +935,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	buildID := uuid.MustParse(buildIDString)
-
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 	// Now create a batch:
 	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBatch)

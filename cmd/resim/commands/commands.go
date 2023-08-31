@@ -55,7 +55,7 @@ func Execute() error {
 }
 
 func OutputJson(data interface{}) {
-	o, err := json.MarshalIndent(data, "", " ")
+	o, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatal("could not marshal to json:", err)
 	}

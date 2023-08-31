@@ -1087,6 +1087,11 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdErr, InvalidBatchID)
 	output = s.runCommand(s.listLogs(batchIDString, "not-a-uuid"), ExpectError)
 	s.Contains(output.StdErr, InvalidJobID)
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()

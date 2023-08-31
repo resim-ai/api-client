@@ -838,7 +838,6 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	// Now create the build:
 
 	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
-	// s.Contains(output.StdOut, CreatedBuild)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
 

@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
@@ -51,6 +52,14 @@ func rootCommand(cmd *cobra.Command, args []string) {
 func Execute() error {
 	ApplyReSimStyle(rootCmd)
 	return rootCmd.Execute()
+}
+
+func OutputJson(data interface{}) {
+	o, err := json.MarshalIndent(data, "", " ")
+	if err != nil {
+		log.Fatal("could not marshal to json:", err)
+	}
+	fmt.Println(string(o))
 }
 
 func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {

@@ -46,6 +46,14 @@ var (
 		Run:    deleteProject,
 		PreRun: RegisterViperFlagsAndSetClient,
 	}
+
+	listProjectsCmd = &cobra.Command{
+		Use:    "list",
+		Short:  "list - Lists projects",
+		Long:   ``,
+		Run:    listProjects,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
 )
 
 const (
@@ -73,7 +81,37 @@ func init() {
 	deleteProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(deleteProjectCmd)
 
+	projectCmd.AddCommand(listProjectsCmd)
+
 	rootCmd.AddCommand(projectCmd)
+}
+
+func listProjects(ccmd *cobra.Command, args []string) {
+	var pageToken *string = nil
+
+	var allProjects []api.Project
+
+	for {
+		response, err := Client.ListProjectsWithResponse(
+			context.Background(), &api.ListProjectsParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list projects:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse)
+		if response.JSON200 == nil {
+			log.Fatal("empty response")
+		}
+		pageToken = response.JSON200.NextPageToken
+		allProjects = append(allProjects, *response.JSON200.Projects...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+
+	OutputJson(allProjects)
 }
 
 func createProject(ccmd *cobra.Command, args []string) {

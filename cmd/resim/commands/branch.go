@@ -27,34 +27,70 @@ var (
 		Run:    createBranch,
 		PreRun: RegisterViperFlagsAndSetClient,
 	}
+	listBranchesCmd = &cobra.Command{
+		Use:    "list",
+		Short:  "list - List branches for a project",
+		Long:   ``,
+		Run:    listBranches,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
 )
 
 const (
-	branchNameKey      = "name"
-	branchProjectIDKey = "project"
-	branchTypeKey      = "type"
-	branchGithubKey    = "github"
+	branchNameKey    = "name"
+	branchProjectKey = "project"
+	branchTypeKey    = "type"
+	branchGithubKey  = "github"
 )
 
 func init() {
 	createBranchCmd.Flags().String(branchNameKey, "", "The name of the branch, often a repository name")
 	createBranchCmd.MarkFlagRequired(branchNameKey)
-	createBranchCmd.Flags().String(branchProjectIDKey, "", "The name or ID of the project to associate with the branch")
-	createBranchCmd.MarkFlagRequired(branchProjectIDKey)
+	createBranchCmd.Flags().String(branchProjectKey, "", "The name or ID of the project to associate with the branch")
+	createBranchCmd.MarkFlagRequired(branchProjectKey)
 	createBranchCmd.Flags().String(branchTypeKey, "", "The type of the branch: 'RELEASE', 'MAIN', or 'CHANGE_REQUEST'")
 	createBranchCmd.MarkFlagRequired(branchTypeKey)
-	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in github action friendly format")
+	createBranchCmd.Flags().Bool(branchGithubKey, false, "Whether to output format in GitHub Actions friendly format")
 	createBranchCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
+	listBranchesCmd.Flags().String(branchProjectKey, "", "The name or ID of the project from which to list branches")
+	listBranchesCmd.MarkFlagRequired(branchProjectKey)
+	listBranchesCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
 	branchCmd.AddCommand(createBranchCmd)
+	branchCmd.AddCommand(listBranchesCmd)
 	rootCmd.AddCommand(branchCmd)
 }
 
 func listBranches(ccmd *cobra.Command, args []string) {
-	projectID, err := uuid.Parse(viper.GetString(branchProjectIDKey))
-	if err != nil || projectID == uuid.Nil {
-		log.Fatal("empty project ID")
+	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+
+	var pageToken *string = nil
+
+	var allBranches []api.Branch
+
+	for {
+		response, err := Client.ListBranchesForProjectWithResponse(
+			context.Background(), projectID, &api.ListBranchesForProjectParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list branches:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.Branches == nil {
+			log.Fatal("no branches")
+		}
+		allBranches = append(allBranches, *response.JSON200.Branches...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
 	}
 
+	OutputJson(allBranches)
 }
 
 func createBranch(ccmd *cobra.Command, args []string) {
@@ -62,7 +98,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a branch...")
 	}
 	// Parse the various arguments from command line
-	projectID := getProjectID(Client, viper.GetString(branchProjectIDKey))
+	projectID := getProjectID(Client, viper.GetString(branchProjectKey))
 
 	branchName := viper.GetString(branchNameKey)
 	if branchName == "" {

@@ -82,6 +82,8 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 
 	var pageToken *string = nil
 
+	var allBuilds []api.Build
+
 	for {
 		response, err := Client.ListBuildsForBranchWithResponse(
 			context.Background(), projectID, branchID, &api.ListBuildsForBranchParams{
@@ -97,14 +99,13 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		builds := *response.JSON200.Builds
-		for _, build := range builds {
-			fmt.Println(build.BranchID)
-		}
+		allBuilds = append(allBuilds, *response.JSON200.Builds...)
 		if pageToken == nil || *pageToken == "" {
 			break
 		}
 	}
+
+	OutputJson(allBuilds)
 }
 
 func createBuild(ccmd *cobra.Command, args []string) {

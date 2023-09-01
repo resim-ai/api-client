@@ -922,7 +922,6 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	experienceID2 := uuid.MustParse(experienceIDString2)
 	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
 
-
 	// Then create a project, branch, build:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output = s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)

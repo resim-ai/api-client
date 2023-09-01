@@ -69,8 +69,7 @@ You will need Go installed.
 
 ### Building the client
 
-  cd cmd/resim
-  go build
+  go build -o resim ./cmd/resim
 
 ### Regenerating the client
 

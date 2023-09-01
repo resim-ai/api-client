@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"os"
 
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
@@ -55,11 +56,10 @@ func Execute() error {
 }
 
 func OutputJson(data interface{}) {
-	o, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		log.Fatal("could not marshal to json:", err)
-	}
-	fmt.Println(string(o))
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	enc.Encode(data)
 }
 
 func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {

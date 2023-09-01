@@ -2,9 +2,11 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
+	"os"
 
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
@@ -51,6 +53,13 @@ func rootCommand(cmd *cobra.Command, args []string) {
 func Execute() error {
 	ApplyReSimStyle(rootCmd)
 	return rootCmd.Execute()
+}
+
+func OutputJson(data interface{}) {
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	enc.Encode(data)
 }
 
 func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {

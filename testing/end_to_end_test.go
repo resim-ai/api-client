@@ -179,16 +179,6 @@ func (s *EndToEndTestSuite) SetupSuite() {
 		os.Exit(1)
 	}
 
-	// Validate the client credential environment variables are set:
-	if !viper.IsSet(ClientID) {
-		fmt.Fprintf(os.Stderr, "error: %v environment variable must be set", ClientID)
-		os.Exit(1)
-	}
-	if !viper.IsSet(ClientSecret) {
-		fmt.Fprintf(os.Stderr, "error: %v environment variable must be set", ClientSecret)
-		os.Exit(1)
-	}
-
 	s.CliPath = s.buildCLI()
 }
 
@@ -270,6 +260,16 @@ func (s *EndToEndTestSuite) createProject(projectName string, description string
 		})
 	}
 	return []CommandBuilder{projectCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) listProjects() []CommandBuilder {
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+	}
+	return []CommandBuilder{projectCommand, listCommand}
 }
 
 func (s *EndToEndTestSuite) getProjectByName(projectName string) []CommandBuilder {
@@ -370,6 +370,22 @@ func (s *EndToEndTestSuite) createBranch(projectID uuid.UUID, name string, branc
 	return []CommandBuilder{branchCommand, createCommand}
 }
 
+func (s *EndToEndTestSuite) listBranches(projectID uuid.UUID) []CommandBuilder {
+	branchCommand := CommandBuilder{
+		Command: "branch",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+		},
+	}
+	return []CommandBuilder{branchCommand, listCommand}
+}
+
 func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, description string, image string, version string, github bool, autoCreateBranch bool) []CommandBuilder {
 	// Now create the build:
 	buildCommand := CommandBuilder{
@@ -413,6 +429,26 @@ func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, d
 		})
 	}
 	return []CommandBuilder{buildCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string) []CommandBuilder {
+	buildCommand := CommandBuilder{
+		Command: "build",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--branch-name",
+				Value: branchName,
+			},
+		},
+	}
+	return []CommandBuilder{buildCommand, listCommand}
 }
 
 func (s *EndToEndTestSuite) createExperience(name string, description string, location string, github bool) []CommandBuilder {
@@ -654,6 +690,10 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	output = s.runCommand(s.createProject(projectName, "", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyProjectDescription)
 
+	// Check we can list the projects, and our new project is in it:
+	output = s.runCommand(s.listProjects(), ExpectNoError)
+	s.Contains(output.StdOut, projectName)
+
 	// Now get, verify, and delete the project:
 	fmt.Println("Testing project get command")
 	output = s.runCommand(s.getProjectByName(projectName), ExpectNoError)
@@ -741,6 +781,10 @@ func (s *EndToEndTestSuite) TestBranchCreate() {
 	output = s.runCommand(s.createBranch(projectID, branchName, "INVALID", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBranchType)
 
+	// Check we can list the branches, and our new branch is in it:
+	output = s.runCommand(s.listBranches(projectID), ExpectNoError)
+	s.Contains(output.StdOut, branchName)
+
 	// Delete the test project
 	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
@@ -793,8 +837,15 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 
 	// Now create the build:
 
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectNoError)
-	s.Contains(output.StdOut, CreatedBuild)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+
+	// Check we can list the builds, and our new build is in it:
+	output = s.runCommand(s.listBuilds(projectID, branchName), ExpectNoError)
+	s.Contains(output.StdOut, branchIDString)
+	s.Contains(output.StdOut, buildIDString)
+
 	// Verify that each of the required flags are required:
 	output = s.runCommand(s.createBuild(projectName, branchName, "", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildDescription)

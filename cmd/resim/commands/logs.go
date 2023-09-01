@@ -2,11 +2,9 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -186,8 +184,5 @@ func listLogs(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
-	enc.Encode(logs)
+	OutputJson(logs)
 }

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"os"
 
 	"github.com/jmespath/go-jmespath"
 	"github.com/resim-ai/api-client/api"
@@ -56,29 +57,19 @@ func Execute() error {
 }
 
 func OutputJson(data interface{}, query string) {
-	var o interface{}
-	var err error
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
 
 	if query != "" {
 		query_result, err := jmespath.Search(query, data)
 		if err != nil {
 			log.Fatal("invalid jmespath query:", err)
 		}
-		o, err = json.MarshalIndent(query_result, "", "  ")
+		enc.Encode(query_result)
 	} else {
-		o, err = json.MarshalIndent(data, "", "  ")
+		enc.Encode(data)
 	}
-	// o, err := json.MarshalIndent(query_result, "", "  ")
-	if err != nil {
-		log.Fatal("could not marshal to json:", err)
-	}
-
-	o2, ok := o.([]byte)
-	if !ok {
-		log.Fatalln("could not convert result to bytes")
-	}
-
-	fmt.Println(string(o2))
 }
 
 func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {

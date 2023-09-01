@@ -184,5 +184,5 @@ func listLogs(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
-	OutputJson(logs)
+	OutputJson(logs, "[]")
 }

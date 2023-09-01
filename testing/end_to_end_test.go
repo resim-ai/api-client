@@ -281,7 +281,7 @@ func (s *EndToEndTestSuite) getProjectByName(projectName string) []CommandBuilde
 		Command: "get",
 		Flags: []Flag{
 			{
-				Name:  "--name",
+				Name:  "--project",
 				Value: projectName,
 			},
 		},
@@ -315,7 +315,7 @@ func (s *EndToEndTestSuite) getProjectByID(projectID string) []CommandBuilder {
 		Command: "get",
 		Flags: []Flag{
 			{
-				Name:  "--project-id",
+				Name:  "--project",
 				Value: projectID,
 			},
 		},
@@ -332,7 +332,7 @@ func (s *EndToEndTestSuite) deleteProjectByID(projectID string) []CommandBuilder
 		Command: "delete",
 		Flags: []Flag{
 			{
-				Name:  "--project-id",
+				Name:  "--project",
 				Value: projectID,
 			},
 		},
@@ -352,7 +352,7 @@ func (s *EndToEndTestSuite) createBranch(projectID uuid.UUID, name string, branc
 				Value: name,
 			},
 			{
-				Name:  "--project-id",
+				Name:  "--project",
 				Value: projectID.String(),
 			},
 			{
@@ -379,7 +379,7 @@ func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, d
 		Command: "create",
 		Flags: []Flag{
 			{
-				Name:  "--project-name",
+				Name:  "--project",
 				Value: projectName,
 			},
 			{

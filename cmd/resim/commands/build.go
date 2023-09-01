@@ -44,6 +44,7 @@ const (
 	buildBranchNameKey       = "branch-name"
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
+	buildQueryKey            = "query"
 )
 
 func init() {
@@ -65,6 +66,7 @@ func init() {
 	listBuildsCmd.MarkFlagRequired(buildProjectKey)
 	listBuildsCmd.Flags().String(buildBranchNameKey, "", "List builds associated with this branch")
 	listBuildsCmd.MarkFlagRequired(buildBranchNameKey)
+	listBuildsCmd.Flags().String(buildQueryKey, "[]", "JMESPath query for filtering list")
 
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
@@ -79,6 +81,8 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 	// Check if the branch exists, by listing branches:
 	branchName := viper.GetString(buildBranchNameKey)
 	branchID := getBranchIDForName(Client, projectID, branchName)
+
+	buildQuery := viper.GetString(buildQueryKey)
 
 	var pageToken *string = nil
 
@@ -105,7 +109,7 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	OutputJson(allBuilds)
+	OutputJson(allBuilds, buildQuery)
 }
 
 func createBuild(ccmd *cobra.Command, args []string) {

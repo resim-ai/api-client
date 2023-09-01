@@ -61,6 +61,7 @@ const (
 	projectNameKey        = "name"
 	projectDescriptionKey = "description"
 	projectGithubKey      = "github"
+	projectQueryKey       = "query"
 )
 
 func init() {
@@ -81,12 +82,15 @@ func init() {
 	deleteProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(deleteProjectCmd)
 
+	listProjectsCmd.Flags().String(projectQueryKey, "[]", "JMESPath query for filtering list")
 	projectCmd.AddCommand(listProjectsCmd)
 
 	rootCmd.AddCommand(projectCmd)
 }
 
 func listProjects(ccmd *cobra.Command, args []string) {
+	projectQuery := viper.GetString(projectQueryKey)
+
 	var pageToken *string = nil
 
 	var allProjects []api.Project
@@ -111,7 +115,7 @@ func listProjects(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	OutputJson(allProjects)
+	OutputJson(allProjects, projectQuery)
 }
 
 func createProject(ccmd *cobra.Command, args []string) {

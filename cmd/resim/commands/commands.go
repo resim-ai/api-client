@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 
+	"github.com/jmespath/go-jmespath"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -54,12 +55,30 @@ func Execute() error {
 	return rootCmd.Execute()
 }
 
-func OutputJson(data interface{}) {
-	o, err := json.MarshalIndent(data, "", "  ")
+func OutputJson(data interface{}, query string) {
+	var o interface{}
+	var err error
+
+	if query != "" {
+		query_result, err := jmespath.Search(query, data)
+		if err != nil {
+			log.Fatal("invalid jmespath query:", err)
+		}
+		o, err = json.MarshalIndent(query_result, "", "  ")
+	} else {
+		o, err = json.MarshalIndent(data, "", "  ")
+	}
+	// o, err := json.MarshalIndent(query_result, "", "  ")
 	if err != nil {
 		log.Fatal("could not marshal to json:", err)
 	}
-	fmt.Println(string(o))
+
+	o2, ok := o.([]byte)
+	if !ok {
+		log.Fatalln("could not convert result to bytes")
+	}
+
+	fmt.Println(string(o2))
 }
 
 func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {

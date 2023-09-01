@@ -41,6 +41,7 @@ const (
 	branchProjectKey = "project"
 	branchTypeKey    = "type"
 	branchGithubKey  = "github"
+	branchQueryKey   = "query"
 )
 
 func init() {
@@ -55,6 +56,7 @@ func init() {
 
 	listBranchesCmd.Flags().String(branchProjectKey, "", "The name or ID of the project from which to list branches")
 	listBranchesCmd.MarkFlagRequired(branchProjectKey)
+	listBranchesCmd.Flags().String(branchQueryKey, "[]", "JMESPath query for filtering list")
 	listBranchesCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	branchCmd.AddCommand(createBranchCmd)
@@ -64,6 +66,8 @@ func init() {
 
 func listBranches(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+
+	branchQuery := viper.GetString(branchQueryKey)
 
 	var pageToken *string = nil
 
@@ -90,7 +94,7 @@ func listBranches(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	OutputJson(allBranches)
+	OutputJson(allBranches, branchQuery)
 }
 
 func createBranch(ccmd *cobra.Command, args []string) {

@@ -137,6 +137,7 @@ const (
 	EmptyExperienceLocation    string = "empty experience location"
 	// Batch Messages
 	CreatedBatch               string = "Created batch"
+	GithubCreatedBatch         string = "batch_id="
 	FailedToCreateBatch        string = "failed to create batch"
 	InvalidBuildID             string = "failed to parse build ID"
 	BranchTagMutuallyExclusive string = "mutually exclusive parameters"
@@ -482,7 +483,7 @@ func (s *EndToEndTestSuite) createExperience(name string, description string, lo
 	return []CommandBuilder{experienceCommand, createCommand}
 }
 
-func (s *EndToEndTestSuite) createBatch(buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string) []CommandBuilder {
+func (s *EndToEndTestSuite) createBatch(buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string, github bool) []CommandBuilder {
 	// We build a create batch command with the build-id, experience-ids, experience-tag-ids, and experience-tag-names flags
 	// We do not require any specific combination of these flags, and validate in tests that the CLI only allows one of TagIDs or TagNames
 	// and that at least one of the experiences flags is provided.
@@ -519,7 +520,12 @@ func (s *EndToEndTestSuite) createBatch(buildID string, experienceIDs []string, 
 			Name:  "--experience-tag-names",
 			Value: experienceTags,
 		})
-
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
 	}
 	return []CommandBuilder{batchCommand, createCommand}
 }
@@ -996,8 +1002,14 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	buildID := uuid.MustParse(buildIDString)
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// Create a batch with the github flag set and check the output
+	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH)
+
 	// Now create a batch:
-	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}), ExpectNoError)
+	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBatch)
 	s.Empty(output.StdErr)
 
@@ -1016,13 +1028,13 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	batchNameParts := strings.Split(batchNameString, "-")
 	s.Equal(3, len(batchNameParts))
 	// Try a batch without any experiences:
-	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}), ExpectError)
+	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, FailedToCreateBatch)
 	// Try a batch without a build id:
-	output = s.runCommand(s.createBatch("", []string{experienceIDString1, experienceIDString2}, []string{}, []string{}), ExpectError)
+	output = s.runCommand(s.createBatch("", []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildID)
 	// Try a batch with both experience tag ids and experience tag names (even if fake):
-	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{"tag-id"}, []string{"tag-name"}), ExpectError)
+	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{"tag-id"}, []string{"tag-name"}, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, BranchTagMutuallyExclusive)
 
 	// Get batch passing the status flag. We need to manually execute and grab the exit code:

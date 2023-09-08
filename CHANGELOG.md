@@ -1,5 +1,7 @@
 # resim CLI Changelog
 
+## [Unreleased]
+
 ### Changed
 
 - Any list commands will now, by default, order by recency, listing newest items first

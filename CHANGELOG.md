@@ -1,6 +1,6 @@
 # resim CLI Changelog
 
-## Unreleased
+## [Unreleased]
 
 ### Changed
 

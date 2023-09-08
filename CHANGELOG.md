@@ -3,6 +3,7 @@
 ### Changed
 
 - Any list commands will now, by default, order by recency, listing newest items first
+- Commands that accept a `--branch` flag can now be passed either a branch name or ID
 
 ## [v0.1.21] 2023-09-07
 

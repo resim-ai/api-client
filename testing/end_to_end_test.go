@@ -239,7 +239,7 @@ func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder, expectE
 func (s *EndToEndTestSuite) createProject(projectName string, description string, github bool) []CommandBuilder {
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
-		Command: "project",
+		Command: "projects",
 	}
 	createCommand := CommandBuilder{
 		Command: "create",
@@ -265,7 +265,7 @@ func (s *EndToEndTestSuite) createProject(projectName string, description string
 
 func (s *EndToEndTestSuite) listProjects() []CommandBuilder {
 	projectCommand := CommandBuilder{
-		Command: "project",
+		Command: "project", // Implicitly testing alias to old singular noun
 	}
 	listCommand := CommandBuilder{
 		Command: "list",
@@ -273,10 +273,10 @@ func (s *EndToEndTestSuite) listProjects() []CommandBuilder {
 	return []CommandBuilder{projectCommand, listCommand}
 }
 
-func (s *EndToEndTestSuite) getProjectByName(projectName string) []CommandBuilder {
+func (s *EndToEndTestSuite) getProject(projectName string) []CommandBuilder {
 	// We build a get project command with the name flag
 	projectCommand := CommandBuilder{
-		Command: "project",
+		Command: "projects",
 	}
 	getCommand := CommandBuilder{
 		Command: "get",
@@ -290,10 +290,10 @@ func (s *EndToEndTestSuite) getProjectByName(projectName string) []CommandBuilde
 	return []CommandBuilder{projectCommand, getCommand}
 }
 
-func (s *EndToEndTestSuite) deleteProjectByName(projectName string) []CommandBuilder {
+func (s *EndToEndTestSuite) deleteProject(projectName string) []CommandBuilder {
 	// We build a get project command with the name flag
 	projectCommand := CommandBuilder{
-		Command: "project",
+		Command: "projects",
 	}
 	deleteCommand := CommandBuilder{
 		Command: "delete",
@@ -301,40 +301,6 @@ func (s *EndToEndTestSuite) deleteProjectByName(projectName string) []CommandBui
 			{
 				Name:  "--name",
 				Value: projectName,
-			},
-		},
-	}
-	return []CommandBuilder{projectCommand, deleteCommand}
-}
-
-func (s *EndToEndTestSuite) getProjectByID(projectID string) []CommandBuilder {
-	// We build a get project command with the name flag
-	projectCommand := CommandBuilder{
-		Command: "project",
-	}
-	getCommand := CommandBuilder{
-		Command: "get",
-		Flags: []Flag{
-			{
-				Name:  "--project",
-				Value: projectID,
-			},
-		},
-	}
-	return []CommandBuilder{projectCommand, getCommand}
-}
-
-func (s *EndToEndTestSuite) deleteProjectByID(projectID string) []CommandBuilder {
-	// We build a get project command with the name flag
-	projectCommand := CommandBuilder{
-		Command: "project",
-	}
-	deleteCommand := CommandBuilder{
-		Command: "delete",
-		Flags: []Flag{
-			{
-				Name:  "--project",
-				Value: projectID,
 			},
 		},
 	}
@@ -373,7 +339,7 @@ func (s *EndToEndTestSuite) createBranch(projectID uuid.UUID, name string, branc
 
 func (s *EndToEndTestSuite) listBranches(projectID uuid.UUID) []CommandBuilder {
 	branchCommand := CommandBuilder{
-		Command: "branch",
+		Command: "branch", // Implicitly testing old singular noun
 	}
 	listCommand := CommandBuilder{
 		Command: "list",
@@ -434,7 +400,7 @@ func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, d
 
 func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string) []CommandBuilder {
 	buildCommand := CommandBuilder{
-		Command: "build",
+		Command: "build", // Implicitly testing singular noun alias
 	}
 	listCommand := CommandBuilder{
 		Command: "list",
@@ -650,7 +616,7 @@ func (s *EndToEndTestSuite) createLog(batchID uuid.UUID, jobID uuid.UUID, name s
 
 func (s *EndToEndTestSuite) listLogs(batchID string, jobID string) []CommandBuilder {
 	logCommand := CommandBuilder{
-		Command: "logs",
+		Command: "log",
 	}
 	listCommand := CommandBuilder{
 		Command: "list",
@@ -702,7 +668,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 
 	// Now get, verify, and delete the project:
 	fmt.Println("Testing project get command")
-	output = s.runCommand(s.getProjectByName(projectName), ExpectNoError)
+	output = s.runCommand(s.getProject(projectName), ExpectNoError)
 	var project api.Project
 	err := json.Unmarshal([]byte(output.StdOut), &project)
 	s.NoError(err)
@@ -710,20 +676,20 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	s.Empty(output.StdErr)
 
 	// Attempt to get project by id:
-	output = s.runCommand(s.getProjectByID((*project.ProjectID).String()), ExpectNoError)
+	output = s.runCommand(s.getProject((*project.ProjectID).String()), ExpectNoError)
 	var project2 api.Project
 	err = json.Unmarshal([]byte(output.StdOut), &project2)
 	s.NoError(err)
 	s.Equal(projectName, *project.Name)
 	s.Empty(output.StdErr)
 	// Attempt to get a project with empty name and id:
-	output = s.runCommand(s.getProjectByID(""), ExpectError)
+	output = s.runCommand(s.getProject(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Non-existent project:
-	output = s.runCommand(s.getProjectByID(uuid.Nil.String()), ExpectError)
+	output = s.runCommand(s.getProject(uuid.Nil.String()), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Blank name:
-	output = s.runCommand(s.getProjectByName(""), ExpectError)
+	output = s.runCommand(s.getProject(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 
 	// Validate that using the id as another project name throws an error.
@@ -731,14 +697,14 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	s.Contains(output.StdErr, ProjectNameCollision)
 
 	fmt.Println("Testing project delete command")
-	output = s.runCommand(s.deleteProjectByName(projectName), ExpectNoError)
+	output = s.runCommand(s.deleteProject(projectName), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 	// Verify that attempting to re-delete will fail:
-	output = s.runCommand(s.deleteProjectByName(projectName), ExpectError)
+	output = s.runCommand(s.deleteProject(projectName), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Verify that a valid project ID is needed:
-	output = s.runCommand(s.deleteProjectByID(""), ExpectError)
+	output = s.runCommand(s.deleteProject(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 }
 
@@ -751,14 +717,14 @@ func (s *EndToEndTestSuite) TestProjectCreateGithub() {
 	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
 	projectID := uuid.MustParse(projectIDString)
 	// Now get, verify, and delete the project:
-	output = s.runCommand(s.getProjectByID(projectIDString), ExpectNoError)
+	output = s.runCommand(s.getProject(projectIDString), ExpectNoError)
 	var project api.Project
 	err := json.Unmarshal([]byte(output.StdOut), &project)
 	s.NoError(err)
 	s.Equal(projectName, *project.Name)
 	s.Equal(projectID, *project.ProjectID)
 	s.Empty(output.StdErr)
-	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 }
@@ -792,7 +758,7 @@ func (s *EndToEndTestSuite) TestBranchCreate() {
 	s.Contains(output.StdOut, branchName)
 
 	// Delete the test project
-	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 }
@@ -817,7 +783,7 @@ func (s *EndToEndTestSuite) TestBranchCreateGithub() {
 	uuid.MustParse(branchIDString)
 
 	// Delete the test project
-	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 }
@@ -869,7 +835,7 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	output = s.runCommand(s.createBuild(projectName, "", "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, BranchNotExist)
 	// Delete the project:
-	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
@@ -901,6 +867,11 @@ func (s *EndToEndTestSuite) TestBuildCreateGithub() {
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
@@ -934,6 +905,11 @@ func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
 	s.Contains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", newBranchName))
 	s.Contains(output.StdOut, CreatedBranch)
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 
 func (s *EndToEndTestSuite) TestExperienceCreate() {
@@ -1173,7 +1149,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdErr, InvalidJobID)
 
 	// Delete the project:
-	output = s.runCommand(s.deleteProjectByID(projectIDString), ExpectNoError)
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 }

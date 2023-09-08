@@ -50,13 +50,14 @@ const (
 	experienceIDsKey      = "experience-ids"
 	experienceTagIDsKey   = "experience-tag-ids"
 	experienceTagNamesKey = "experience-tag-names"
-
-	batchIDKey    = "batch-id"
-	batchNameKey  = "batch-name"
-	exitStatusKey = "exit-status"
+	batchIDKey            = "batch-id"
+	batchNameKey          = "batch-name"
+	batchGithubKey        = "github"
+	exitStatusKey         = "exit-status"
 )
 
 func init() {
+	createBatchCmd.Flags().Bool(batchGithubKey, false, "Whether to output format in github action friendly format")
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
 	createBatchCmd.MarkFlagRequired(buildIDKey)
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
@@ -83,7 +84,10 @@ func init() {
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {
-	fmt.Println("Creating a batch...")
+	batchGithub := viper.GetBool(batchGithubKey)
+	if !batchGithub {
+		fmt.Println("Creating a batch...")
+	}
 
 	// Parse the UUIDs from the command line
 	buildID, err := uuid.Parse(viper.GetString(buildIDKey))
@@ -129,20 +133,30 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 	batch := *response.JSON201
 
-	// Report the results back to the user
-	fmt.Println("Created batch successfully!")
+	if !batchGithub {
+		// Report the results back to the user
+		fmt.Println("Created batch successfully!")
+	}
 	if batch.BatchID == nil {
 		log.Fatal("empty ID")
 	}
-	fmt.Println("Batch ID:", batch.BatchID.String())
+	if !batchGithub {
+		fmt.Println("Batch ID:", batch.BatchID.String())
+	} else {
+		fmt.Printf("batch_id=%s\n", batch.BatchID.String())
+	}
 	if batch.FriendlyName == nil {
 		log.Fatal("empty name")
 	}
-	fmt.Println("Batch name:", *batch.FriendlyName)
+	if !batchGithub {
+		fmt.Println("Batch name:", *batch.FriendlyName)
+	}
 	if batch.Status == nil {
 		log.Fatal("empty status")
 	}
-	fmt.Println("Status:", *batch.Status)
+	if !batchGithub {
+		fmt.Println("Status:", *batch.Status)
+	}
 }
 
 func getBatch(ccmd *cobra.Command, args []string) {

@@ -96,6 +96,7 @@ func listProjects(ccmd *cobra.Command, args []string) {
 			context.Background(), &api.ListProjectsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
 			log.Fatal("failed to list projects:", err)
@@ -231,6 +232,7 @@ pageLoop:
 			context.Background(), &api.ListProjectsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
 			log.Fatal("failed to list projects:", err)

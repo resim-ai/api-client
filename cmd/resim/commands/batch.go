@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -179,6 +180,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		for {
 			response, err := Client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 			if err != nil {
 				log.Fatal("unable to list batches:", err)
@@ -247,7 +249,9 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 	pageLoop:
 		for {
 			response, err := Client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
+				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 			if err != nil {
 				log.Fatal("unable to list batches:", err)
@@ -279,6 +283,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 	var pageToken *string = nil
 	for {
 		response, err := Client.ListJobsWithResponse(context.Background(), batchID, &api.ListJobsParams{
+			PageSize:  Ptr(100),
 			PageToken: pageToken,
 		})
 		if err != nil {

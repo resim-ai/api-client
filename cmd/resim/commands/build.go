@@ -89,6 +89,7 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 			context.Background(), projectID, branchID, &api.ListBuildsForBranchParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
 			log.Fatal("failed to list builds:", err)

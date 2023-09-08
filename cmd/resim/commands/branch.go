@@ -74,6 +74,7 @@ func listBranches(ccmd *cobra.Command, args []string) {
 			context.Background(), projectID, &api.ListBranchesForProjectParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
 			log.Fatal("failed to list branches:", err)
@@ -147,6 +148,7 @@ pageLoop:
 			context.Background(), projectID, &api.ListBranchesForProjectParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
 			log.Fatal("failed to list branches:", err)

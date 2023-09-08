@@ -41,7 +41,7 @@ const (
 	buildImageURIKey         = "image"
 	buildVersionKey          = "version"
 	buildProjectKey          = "project"
-	buildBranchNameKey       = "branch-name"
+	buildBranchKey           = "branch"
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
 )
@@ -55,16 +55,17 @@ func init() {
 	createBuildCmd.MarkFlagRequired(buildVersionKey)
 	createBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project to create the build in")
 	createBuildCmd.MarkFlagRequired(buildProjectKey)
-	createBuildCmd.Flags().String(buildBranchNameKey, "", "The name of the branch to nest the build in, usually the associated git branch")
+	createBuildCmd.Flags().String(buildBranchKey, "", "The name or ID of the branch to nest the build in, usually the associated git branch")
+	createBuildCmd.MarkFlagRequired(buildBranchKey)
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
-	createBuildCmd.MarkFlagRequired(buildBranchNameKey)
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
 	createBuildCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
 	listBuildsCmd.MarkFlagRequired(buildProjectKey)
-	listBuildsCmd.Flags().String(buildBranchNameKey, "", "List builds associated with this branch")
-	listBuildsCmd.MarkFlagRequired(buildBranchNameKey)
+	listBuildsCmd.Flags().String(buildBranchKey, "", "List builds associated with this branch")
+	listBuildsCmd.MarkFlagRequired(buildBranchKey)
+	listBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
@@ -76,9 +77,9 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 	projectName := viper.GetString(buildProjectKey)
 	projectID := getProjectID(Client, projectName)
 
-	// Check if the branch exists, by listing branches:
-	branchName := viper.GetString(buildBranchNameKey)
-	branchID := getBranchIDForName(Client, projectID, branchName)
+	// Check if the branch exists, by listing branches (and fail if branch not found):
+	branchName := viper.GetString(buildBranchKey)
+	branchID := getBranchID(Client, projectID, branchName, true)
 
 	var pageToken *string = nil
 
@@ -134,9 +135,9 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	// Check if the project exists, by listing projects:
 	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
 
-	// Check if the branch exists, by listing branches:
-	branchName := viper.GetString(buildBranchNameKey)
-	branchID := getBranchIDForName(Client, projectID, branchName)
+	// Check if the branch exists, by listing branches, returning uuid.Nil if branch not found:
+	branchName := viper.GetString(buildBranchKey)
+	branchID := getBranchID(Client, projectID, branchName, false)
 
 	if branchID == uuid.Nil {
 		if viper.GetBool(buildAutoCreateBranchKey) {

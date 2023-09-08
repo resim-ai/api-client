@@ -88,10 +88,10 @@ func AliasNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
 	case "project-id":
 		name = "project"
-		break
 	case "project-name":
 		name = "project"
-		break
+	case "branch-name":
+		name = "branch"
 	}
 	return pflag.NormalizedName(name)
 }

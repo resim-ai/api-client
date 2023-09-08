@@ -400,7 +400,7 @@ func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, d
 				Value: projectName,
 			},
 			{
-				Name:  "--branch-name",
+				Name:  "--branch",
 				Value: branchName,
 			},
 			{
@@ -444,7 +444,7 @@ func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string) [
 				Value: projectID.String(),
 			},
 			{
-				Name:  "--branch-name",
+				Name:  "--branch",
 				Value: branchName,
 			},
 		},
@@ -839,7 +839,7 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	s.Contains(output.StdOut, GithubCreatedBranch)
 	// We expect to be able to parse the branch ID as a UUID
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
-	uuid.MustParse(branchIDString)
+	branchID := uuid.MustParse(branchIDString)
 
 	// Now create the build:
 
@@ -849,6 +849,11 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 
 	// Check we can list the builds, and our new build is in it:
 	output = s.runCommand(s.listBuilds(projectID, branchName), ExpectNoError)
+	s.Contains(output.StdOut, branchIDString)
+	s.Contains(output.StdOut, buildIDString)
+
+	// Check we can list the builds by passing in the branchID, and our new build is in it:
+	output = s.runCommand(s.listBuilds(projectID, branchID.String()), ExpectNoError)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
 
@@ -1172,6 +1177,253 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 }
+
+func (s *EndToEndTestSuite) TestAliases() {
+	fmt.Println("Testing project and branch aliases")
+	// First create a project, manually:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now get the project using the old aliased commands:
+	// We build a get project command with the name flag
+	projectCommand := CommandBuilder{
+		Command: "project",
+	}
+	getByNameCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: projectName,
+			},
+		},
+	}
+	getByIDCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--project-id",
+				Value: projectID.String(),
+			},
+		},
+	}
+	output = s.runCommand([]CommandBuilder{projectCommand, getByNameCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	// Marshal into a struct:
+	var project api.Project
+	err := json.Unmarshal([]byte(output.StdOut), &project)
+	s.NoError(err)
+	s.Equal(projectName, *project.Name)
+	s.Equal(projectID, *project.ProjectID)
+	// Try with the ID:
+	output = s.runCommand([]CommandBuilder{projectCommand, getByIDCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &project)
+	s.NoError(err)
+	s.Equal(projectName, *project.Name)
+	s.Equal(projectID, *project.ProjectID)
+
+	// Now create a branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Empty(output.StdErr)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	branchID := uuid.MustParse(branchIDString)
+
+	// We list branches by project-id and project-name to test the aliasing:
+	branchCommand := CommandBuilder{
+		Command: "branch",
+	}
+	listBranchesByNameCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project-name",
+				Value: projectName,
+			},
+		},
+	}
+	listBranchesByIDCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project-id",
+				Value: projectID.String(),
+			},
+		},
+	}
+	output = s.runCommand([]CommandBuilder{branchCommand, listBranchesByNameCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	// Marshal into a struct:
+	var branches []api.Branch
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(1, len(branches))
+	s.Equal(branchName, *branches[0].Name)
+	s.Equal(branchID, *branches[0].BranchID)
+	s.Equal(projectID, *branches[0].ProjectID)
+	// Now try by ID:
+	output = s.runCommand([]CommandBuilder{branchCommand, listBranchesByIDCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(1, len(branches))
+	s.Equal(branchName, *branches[0].Name)
+	s.Equal(branchID, *branches[0].BranchID)
+	s.Equal(projectID, *branches[0].ProjectID)
+
+	// Now create a build:
+	buildCommand := CommandBuilder{
+		Command: "builds",
+	}
+	createBuildWithNamesCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--project-name",
+				Value: projectName,
+			},
+			{
+				Name:  "--branch-name",
+				Value: branchName,
+			},
+			{
+				Name:  "--description",
+				Value: "description",
+			},
+			{
+				Name:  "--image",
+				Value: "image",
+			},
+			{
+				Name:  "--version",
+				Value: "version",
+			},
+		},
+	}
+	createBuildWithIDCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--project-id",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--branch-name",
+				Value: branchName,
+			},
+			{
+				Name:  "--description",
+				Value: "description",
+			},
+			{
+				Name:  "--image",
+				Value: "image",
+			},
+			{
+				Name:  "--version",
+				Value: "version",
+			},
+		},
+	}
+	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	s.Contains(output.StdOut, CreatedBuild)
+	// Now try to create using the id for projects:
+	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithIDCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	s.Contains(output.StdOut, CreatedBuild)
+
+	// Now, list build with ID and name
+	listBuildByNameCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project-name",
+				Value: projectName,
+			},
+			{
+				Name:  "--branch-name",
+				Value: branchName,
+			},
+		},
+	}
+	listBuildByIDCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project-id",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--branch-name",
+				Value: branchName,
+			},
+		},
+	}
+	// List by name
+	output = s.runCommand([]CommandBuilder{buildCommand, listBuildByNameCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	// Marshal into a struct:
+	var builds []api.Build
+	err = json.Unmarshal([]byte(output.StdOut), &builds)
+	s.NoError(err)
+	s.Equal(2, len(builds))
+	// List by id
+	output = s.runCommand([]CommandBuilder{buildCommand, listBuildByIDCommand}, ExpectNoError)
+	s.Empty(output.StdErr)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &builds)
+	s.NoError(err)
+	s.Equal(2, len(builds))
+
+	// Delete the project, using the aliased command:
+	deleteProjectCommand := CommandBuilder{
+		Command: "project",
+	}
+	deleteProjectByIDCommand := CommandBuilder{
+		Command: "delete",
+		Flags: []Flag{
+			{
+				Name:  "--project-id",
+				Value: projectID.String(),
+			},
+		},
+	}
+	output = s.runCommand([]CommandBuilder{deleteProjectCommand, deleteProjectByIDCommand}, ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+
+	// Finally, create a new project to verify deletion with the old 'name' flag:
+	projectName = fmt.Sprintf("test-project-%s", uuid.New().String())
+	output = s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Empty(output.StdErr)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString = output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	uuid.MustParse(projectIDString)
+	// Delete the project, using the aliased command:
+	deleteProjectByNameCommand := CommandBuilder{
+		Command: "delete",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: projectName,
+			},
+		},
+	}
+	output = s.runCommand([]CommandBuilder{deleteProjectCommand, deleteProjectByNameCommand}, ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+}
+
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()
 	viper.SetDefault(Config, Dev)

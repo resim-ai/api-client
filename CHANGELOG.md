@@ -1,24 +1,28 @@
-# resim CLI Changelog
+# Changelog
 
-## [Unreleased]
+See also https://docs.resim.ai/changelog/ for all ReSim changes
 
-### Changed
+## ReSim CLI
+
+### Unreleased
+
+#### Changed
 
 - Any list commands will now, by default, order by recency, listing newest items first
 
-## [v0.1.21] 2023-09-07
+### v0.1.21 - September 7 2023
 
-### Added
+#### Added
 
 - The batch `create` subcommand now has an optional `--github` flag. Passing this flag causes the batch ID to be output in a form suitable for use in scripts and pipelines, e.g. in GitHub Actions
 
-## [v0.1.20] 2023-09-01
+### v0.1.20 - September 1 2023
 
-### Added
+#### Added
 
 - The builds, branches and projects commands now have a `list` subcommand 
 
-### Changed
+#### Changed
 
 - Help output for commands now distinguishes between required and optional flags
 - Commands that accept a `--project` flag can now be passed either a project name or ID

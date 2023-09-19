@@ -138,9 +138,32 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	}
 }
 
-func getBranchIDForName(client api.ClientWithResponsesInterface, projectID uuid.UUID, buildBranchName string) uuid.UUID {
-	// Page through branches until we find the one we want:
+// Returns the branch ID for the given branch identifier. If the branch identifier is a name, it is looked up. If it is a UUID, it is returned as-is.
+// If the branch is not found, uuid.Nil is returned unless failWhenNotFound is true, when it will log a fatal error.
+func getBranchID(client api.ClientWithResponsesInterface, projectID uuid.UUID, branchIdentifier string, failWhenNotFound bool) uuid.UUID {
+	branchID := checkBranchID(client, projectID, branchIdentifier)
+	if branchID == uuid.Nil && failWhenNotFound {
+		log.Fatalf("branch '%s' not found", branchIdentifier)
+	}
+	return branchID
+}
+
+// TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
+func checkBranchID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string) uuid.UUID {
 	var branchID uuid.UUID = uuid.Nil
+	// First try the assumption that identifier is a UUID.
+	branchID, err := uuid.Parse(identifier)
+	if err == nil {
+		// The identifier is a uuid - but does it refer to an existing branch?
+		response, _ := client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
+		if response.HTTPResponse.StatusCode == http.StatusOK {
+			// Branch found with ID
+			return branchID
+		}
+	}
+	// If we're here then either the identifier is not a UUID or the UUID was not
+	// found. Users could choose to name branches with UUIDs so regardless of how
+	// we got here we now search for identifier as a string name.
 	var pageToken *string = nil
 pageLoop:
 	for {
@@ -154,14 +177,19 @@ pageLoop:
 			log.Fatal("failed to list branches:", err)
 		}
 		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse)
-
-		pageToken = response.JSON200.NextPageToken
-		if response.JSON200 == nil || response.JSON200.Branches == nil {
-			log.Fatal("no branches")
+		if response.JSON200 == nil {
+			log.Fatal("empty response")
 		}
+		pageToken = response.JSON200.NextPageToken
 		branches := *response.JSON200.Branches
 		for _, branch := range branches {
-			if *branch.Name == buildBranchName {
+			if branch.Name == nil {
+				log.Fatal("branch has no name")
+			}
+			if branch.BranchID == nil {
+				log.Fatal("branch ID is empty")
+			}
+			if *branch.Name == identifier {
 				branchID = *branch.BranchID
 				break pageLoop
 			}
@@ -170,6 +198,5 @@ pageLoop:
 			break
 		}
 	}
-
 	return branchID
 }

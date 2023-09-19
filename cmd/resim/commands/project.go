@@ -274,10 +274,8 @@ func aliasProjectNameFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
 	case "name":
 		name = "project"
-		break
 	case "project-id":
 		name = "project"
-		break
 	}
 	return pflag.NormalizedName(name)
 }

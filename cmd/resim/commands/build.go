@@ -161,7 +161,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 				fmt.Printf("Created branch with ID %v\n", branchID)
 			}
 		} else {
-			log.Fatal("Branch does not exist, and auto_create_branch is false, so not creating branch")
+			log.Fatal("Branch does not exist, and auto-create-branch is false, so not creating branch")
 		}
 	}
 

@@ -132,7 +132,7 @@ const (
 	// Metrics Build Messages
 	CreatedMetricsBuild       string = "Created metrics build"
 	GithubCreatedMetricsBuild string = "metrics_build_id="
-	EmptyMetricsBuildName     string = "empty metrics build description"
+	EmptyMetricsBuildName     string = "empty metrics build name"
 	EmptyMetricsBuildImage    string = "empty metrics build image URI"
 	EmptyMetricsBuildVersion  string = "empty metrics build version"
 	// Experience Messages
@@ -1056,14 +1056,22 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	buildID := uuid.MustParse(buildIDString)
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
-	// Create a batch with the github flag set and check the output
+
+	// Create a metrics build:
+	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world", "version", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the build ID as a UUID
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	uuid.MustParse(metricsBuildIDString)
+
+	// Create a batch without metrics with the github flag set and check the output
 	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, "", GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	metricsBuildID := uuid.MustParse(batchIDStringGH)
 
-	// Now create a batch:
-	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, "", GithubFalse), ExpectNoError)
+	// Now create a batch without the github flag, but with metrics
+	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, metricsBuildIDString, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBatch)
 	s.Empty(output.StdErr)
 
@@ -1126,6 +1134,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.NoError(err)
 	s.Equal(batchNameString, *batch.FriendlyName)
 	s.Equal(batchID, *batch.BatchID)
+	s.Equal(metricsBuildID, *batch.MetricsBuildID)
 	// Validate that it succeeded:
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
 	// Get the batch by ID:
@@ -1235,13 +1244,11 @@ func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
 	s.Empty(output.StdErr)
 	// Verify that each of the required flags are required:
 	output = s.runCommand(s.createMetricsBuild("", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyBuildDescription)
+	s.Contains(output.StdErr, EmptyMetricsBuildName)
 	output = s.runCommand(s.createMetricsBuild("name", "", "1.0.0", GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyBuildImage)
+	s.Contains(output.StdErr, EmptyMetricsBuildImage)
 	output = s.runCommand(s.createMetricsBuild("name", "public.ecr.aws/docker/library/hello-world", "", GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyBuildVersion)
-	output = s.runCommand(s.createMetricsBuild("name", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse), ExpectError)
-	s.Contains(output.StdErr, FailedToFindProject)
+	s.Contains(output.StdErr, EmptyMetricsBuildVersion)
 
 }
 

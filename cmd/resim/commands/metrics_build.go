@@ -14,10 +14,10 @@ import (
 
 var (
 	metricsBuildCmd = &cobra.Command{
-		Use:     "metricsBuilds",
-		Short:   "metricsBuilds contains commands for creating and managing metrics builds",
+		Use:     "metrics-builds",
+		Short:   "metrics-builds contains commands for creating and managing metrics builds",
 		Long:    ``,
-		Aliases: []string{"metricsBuild"},
+		Aliases: []string{"metricsBuild, metricsBuilds, metrics-build"},
 	}
 	createMetricsBuildCmd = &cobra.Command{
 		Use:    "create",

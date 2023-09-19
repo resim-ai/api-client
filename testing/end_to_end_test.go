@@ -129,6 +129,12 @@ const (
 	EmptyBuildImage       string = "empty build image URI"
 	EmptyBuildVersion     string = "empty build version"
 	BranchNotExist        string = "Branch does not exist"
+	// Metrics Build Messages
+	CreatedMetricsBuild       string = "Created metrics build"
+	GithubCreatedMetricsBuild string = "metrics_build_id="
+	EmptyMetricsBuildName     string = "empty metrics build description"
+	EmptyMetricsBuildImage    string = "empty metrics build image URI"
+	EmptyMetricsBuildVersion  string = "empty metrics build version"
 	// Experience Messages
 	CreatedExperience          string = "Created experience"
 	GithubCreatedExperience    string = "experience_id="
@@ -450,6 +456,48 @@ func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string) [
 		},
 	}
 	return []CommandBuilder{buildCommand, listCommand}
+}
+
+func (s *EndToEndTestSuite) createMetricsBuild(name string, image string, version string, github bool) []CommandBuilder {
+	// Now create the metrics build:
+	metricsBuildCommand := CommandBuilder{
+		Command: "metrics-builds",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--name",
+				Value: name,
+			},
+			{
+				Name:  "--image",
+				Value: image,
+			},
+			{
+				Name:  "--version",
+				Value: version,
+			},
+		},
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{metricsBuildCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) listMetricsBuilds() []CommandBuilder {
+	metricsBuildsCommand := CommandBuilder{
+		Command: "metrics-build",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags:   []Flag{},
+	}
+	return []CommandBuilder{metricsBuildsCommand, listCommand}
 }
 
 func (s *EndToEndTestSuite) createExperience(name string, description string, location string, github bool) []CommandBuilder {
@@ -1178,6 +1226,36 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 }
+
+// Test the metrics builds:
+func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
+	fmt.Println("Testing metrics build creation")
+	output := s.runCommand(s.createMetricsBuild("metrics-build", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedMetricsBuild)
+	s.Empty(output.StdErr)
+	// Verify that each of the required flags are required:
+	output = s.runCommand(s.createMetricsBuild("", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyBuildDescription)
+	output = s.runCommand(s.createMetricsBuild("name", "", "1.0.0", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyBuildImage)
+	output = s.runCommand(s.createMetricsBuild("name", "public.ecr.aws/docker/library/hello-world", "", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyBuildVersion)
+	output = s.runCommand(s.createMetricsBuild("name", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+
+}
+
+func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
+	fmt.Println("Testing metrics build creation, with --github flag")
+	output := s.runCommand(s.createMetricsBuild("metrics-build", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue), ExpectNoError)
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	uuid.MustParse(metricsBuildIDString)
+
+	// Check we can list the metrics builds, and our new metrics build is in it:
+	output = s.runCommand(s.listMetricsBuilds(), ExpectNoError)
+	s.Contains(output.StdOut, metricsBuildIDString)
+}
+
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()
 	viper.SetDefault(Config, Dev)

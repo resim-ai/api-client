@@ -91,6 +91,15 @@ type Batch struct {
 // BatchID defines model for batchID.
 type BatchID = openapi_types.UUID
 
+// BatchMetric defines model for batchMetric.
+type BatchMetric struct {
+	Name  *MetricName       `json:"name,omitempty"`
+	Value *BatchMetricValue `json:"value,omitempty"`
+}
+
+// BatchMetricValue defines model for batchMetricValue.
+type BatchMetricValue = float64
+
 // BatchStatus defines model for batchStatus.
 type BatchStatus string
 
@@ -727,6 +736,9 @@ type ClientInterface interface {
 	// ListMetricsDataForMetricsDataIDs request
 	ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListBatchMetrics request
+	ListBatchMetrics(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListBuilds request
 	ListBuilds(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1136,6 +1148,18 @@ func (c *Client) CreateMetricsData(ctx context.Context, batchID BatchID, jobID J
 
 func (c *Client) ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListMetricsDataForMetricsDataIDsRequest(c.Server, batchID, jobID, metricsDataID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchMetrics(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchMetricsRequest(c.Server, batchID)
 	if err != nil {
 		return nil, err
 	}
@@ -2864,6 +2888,40 @@ func NewListMetricsDataForMetricsDataIDsRequest(server string, batchID BatchID, 
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBatchMetricsRequest generates requests for ListBatchMetrics
+func NewListBatchMetricsRequest(server string, batchID BatchID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metrics", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -5041,6 +5099,9 @@ type ClientWithResponsesInterface interface {
 	// ListMetricsDataForMetricsDataIDsWithResponse request
 	ListMetricsDataForMetricsDataIDsWithResponse(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListMetricsDataForMetricsDataIDsResponse, error)
 
+	// ListBatchMetricsWithResponse request
+	ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error)
+
 	// ListBuildsWithResponse request
 	ListBuildsWithResponse(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*ListBuildsResponse, error)
 
@@ -5599,6 +5660,30 @@ func (r ListMetricsDataForMetricsDataIDsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListMetricsDataForMetricsDataIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchMetricsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		BatchMetrics *[]BatchMetric `json:"batchMetrics,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchMetricsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchMetricsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -6719,6 +6804,15 @@ func (c *ClientWithResponses) ListMetricsDataForMetricsDataIDsWithResponse(ctx c
 	return ParseListMetricsDataForMetricsDataIDsResponse(rsp)
 }
 
+// ListBatchMetricsWithResponse request returning *ListBatchMetricsResponse
+func (c *ClientWithResponses) ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error) {
+	rsp, err := c.ListBatchMetrics(ctx, batchID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchMetricsResponse(rsp)
+}
+
 // ListBuildsWithResponse request returning *ListBuildsResponse
 func (c *ClientWithResponses) ListBuildsWithResponse(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*ListBuildsResponse, error) {
 	rsp, err := c.ListBuilds(ctx, params, reqEditors...)
@@ -7631,6 +7725,34 @@ func ParseListMetricsDataForMetricsDataIDsResponse(rsp *http.Response) (*ListMet
 		var dest struct {
 			MetricsData   *[]MetricsData `json:"metricsData,omitempty"`
 			NextPageToken *string        `json:"nextPageToken,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchMetricsResponse parses an HTTP response from a ListBatchMetricsWithResponse call
+func ParseListBatchMetricsResponse(rsp *http.Response) (*ListBatchMetricsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchMetricsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			BatchMetrics *[]BatchMetric `json:"batchMetrics,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err

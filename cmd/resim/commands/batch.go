@@ -54,6 +54,7 @@ const (
 	batchIDKey            = "batch-id"
 	batchNameKey          = "batch-name"
 	batchGithubKey        = "github"
+	batchMetricsBuildKey  = "metrics-build-id"
 	exitStatusKey         = "exit-status"
 )
 
@@ -61,6 +62,7 @@ func init() {
 	createBatchCmd.Flags().Bool(batchGithubKey, false, "Whether to output format in github action friendly format")
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
 	createBatchCmd.MarkFlagRequired(buildIDKey)
+	createBatchCmd.Flags().String(batchMetricsBuildKey, "", "The ID of the metrics build to use in this batch.")
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
 	createBatchCmd.Flags().String(experienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
@@ -97,6 +99,14 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
 
+	metricsBuildID := uuid.Nil
+	if viper.IsSet(batchMetricsBuildKey) {
+		metricsBuildID, err = uuid.Parse(viper.GetString(batchMetricsBuildKey))
+		if err != nil {
+			log.Fatal("failed to parse metrics-build ID: ", err)
+		}
+	}
+
 	if !viper.IsSet(experienceIDsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) {
 		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
 	}
@@ -121,6 +131,10 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		BuildID:          &buildID,
 		ExperienceIDs:    &experienceIDs,
 		ExperienceTagIDs: &experienceTagIDs,
+	}
+
+	if metricsBuildID != uuid.Nil {
+		body.MetricsBuildID = &metricsBuildID
 	}
 
 	response, err := Client.CreateBatchWithResponse(context.Background(), body)

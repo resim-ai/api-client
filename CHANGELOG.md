@@ -14,6 +14,7 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 #### Changed
 
 - Any list commands will now, by default, order by recency, listing newest items first
+- Commands that accept a `--branch` flag can now be passed either a branch name or ID
 
 ### v0.1.21 - September 7 2023
 

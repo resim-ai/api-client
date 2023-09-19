@@ -17,7 +17,7 @@ var (
 		Use:     "metrics-builds",
 		Short:   "metrics-builds contains commands for creating and managing metrics builds",
 		Long:    ``,
-		Aliases: []string{"metricsBuild, metricsBuilds, metrics-build"},
+		Aliases: []string{"metricsBuild, metricsBuilds, metricBuild, metricBuilds, metrics-build"},
 	}
 	createMetricsBuildCmd = &cobra.Command{
 		Use:    "create",

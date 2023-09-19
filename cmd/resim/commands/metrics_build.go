@@ -45,7 +45,7 @@ const (
 func init() {
 	createMetricsBuildCmd.Flags().String(metricsBuildNameKey, "", "The name of the metrics build")
 	createMetricsBuildCmd.MarkFlagRequired(metricsBuildNameKey)
-	createMetricsBuildCmd.Flags().String(metricsBuildImageURIKey, "", "The URI of the docker image")
+	createMetricsBuildCmd.Flags().String(metricsBuildImageURIKey, "", "The URI of the docker image, including the tag")
 	createMetricsBuildCmd.MarkFlagRequired(metricsBuildImageURIKey)
 	createMetricsBuildCmd.Flags().String(metricsBuildVersionKey, "", "The version of the metrics build image, usually a commit ID or tag")
 	createMetricsBuildCmd.MarkFlagRequired(metricsBuildVersionKey)

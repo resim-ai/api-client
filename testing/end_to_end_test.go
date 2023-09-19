@@ -1062,13 +1062,13 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the build ID as a UUID
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
-	uuid.MustParse(metricsBuildIDString)
+	metricsBuildID := uuid.MustParse(metricsBuildIDString)
 
 	// Create a batch without metrics with the github flag set and check the output
 	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, "", GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	metricsBuildID := uuid.MustParse(batchIDStringGH)
+	uuid.MustParse(batchIDStringGH)
 
 	// Now create a batch without the github flag, but with metrics
 	output = s.runCommand(s.createBatch(buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, metricsBuildIDString, GithubFalse), ExpectNoError)

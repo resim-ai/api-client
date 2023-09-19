@@ -1242,8 +1242,8 @@ func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
 	// Check we can list the metrics builds, and our new metrics build is in it:
 	output = s.runCommand(s.listMetricsBuilds(), ExpectNoError)
 	s.Contains(output.StdOut, metricsBuildIDString)
+}
 
-  
 func (s *EndToEndTestSuite) TestAliases() {
 	fmt.Println("Testing project and branch aliases")
 	// First create a project, manually:

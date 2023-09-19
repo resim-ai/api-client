@@ -491,7 +491,7 @@ func (s *EndToEndTestSuite) createMetricsBuild(name string, image string, versio
 
 func (s *EndToEndTestSuite) listMetricsBuilds() []CommandBuilder {
 	metricsBuildsCommand := CommandBuilder{
-		Command: "metrics-build",
+		Command: "metrics-builds",
 	}
 	listCommand := CommandBuilder{
 		Command: "list",

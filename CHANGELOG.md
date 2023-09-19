@@ -8,7 +8,9 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 #### Added
 
+- Metrics builds can now be created and listed with `metrics-build create/list` (ordered by recency)
 - The batch `create` subcommand now has an optional `--metrics-build-id` flag, used to specify a metrics build to run as part of the batch.
+
 #### Changed
 
 - Any list commands will now, by default, order by recency, listing newest items first

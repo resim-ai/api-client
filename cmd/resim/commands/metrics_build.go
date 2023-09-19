@@ -88,7 +88,7 @@ func listMetricsBuilds(ccmd *cobra.Command, args []string) {
 func createMetricsBuild(ccmd *cobra.Command, args []string) {
 	metricsBuildGithub := viper.GetBool(metricsBuildGithubKey)
 	if !metricsBuildGithub {
-		fmt.Println("Creating a metricsBuild...")
+		fmt.Println("Creating a metrics build...")
 	}
 
 	// Parse the various arguments from command line

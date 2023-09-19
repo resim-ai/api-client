@@ -735,12 +735,9 @@ type ClientInterface interface {
 
 	// ListMetricsDataForMetricsDataIDs request
 	ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-<<<<<<< HEAD
-=======
 
 	// ListBatchMetrics request
 	ListBatchMetrics(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
->>>>>>> e330194 (updated client)
 
 	// ListBuilds request
 	ListBuilds(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1151,8 +1148,6 @@ func (c *Client) CreateMetricsData(ctx context.Context, batchID BatchID, jobID J
 
 func (c *Client) ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListMetricsDataForMetricsDataIDsRequest(c.Server, batchID, jobID, metricsDataID, params)
-<<<<<<< HEAD
-=======
 	if err != nil {
 		return nil, err
 	}
@@ -1165,7 +1160,6 @@ func (c *Client) ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID B
 
 func (c *Client) ListBatchMetrics(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchMetricsRequest(c.Server, batchID)
->>>>>>> e330194 (updated client)
 	if err != nil {
 		return nil, err
 	}
@@ -2896,8 +2890,6 @@ func NewListMetricsDataForMetricsDataIDsRequest(server string, batchID BatchID, 
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
-<<<<<<< HEAD
-=======
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -2932,7 +2924,6 @@ func NewListBatchMetricsRequest(server string, batchID BatchID) (*http.Request, 
 		return nil, err
 	}
 
->>>>>>> e330194 (updated client)
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
@@ -5107,12 +5098,9 @@ type ClientWithResponsesInterface interface {
 
 	// ListMetricsDataForMetricsDataIDsWithResponse request
 	ListMetricsDataForMetricsDataIDsWithResponse(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListMetricsDataForMetricsDataIDsResponse, error)
-<<<<<<< HEAD
-=======
 
 	// ListBatchMetricsWithResponse request
 	ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error)
->>>>>>> e330194 (updated client)
 
 	// ListBuildsWithResponse request
 	ListBuildsWithResponse(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*ListBuildsResponse, error)
@@ -5672,8 +5660,6 @@ func (r ListMetricsDataForMetricsDataIDsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListMetricsDataForMetricsDataIDsResponse) StatusCode() int {
-<<<<<<< HEAD
-=======
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -5698,7 +5684,6 @@ func (r ListBatchMetricsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListBatchMetricsResponse) StatusCode() int {
->>>>>>> e330194 (updated client)
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -6817,8 +6802,6 @@ func (c *ClientWithResponses) ListMetricsDataForMetricsDataIDsWithResponse(ctx c
 		return nil, err
 	}
 	return ParseListMetricsDataForMetricsDataIDsResponse(rsp)
-<<<<<<< HEAD
-=======
 }
 
 // ListBatchMetricsWithResponse request returning *ListBatchMetricsResponse
@@ -6828,7 +6811,6 @@ func (c *ClientWithResponses) ListBatchMetricsWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseListBatchMetricsResponse(rsp)
->>>>>>> e330194 (updated client)
 }
 
 // ListBuildsWithResponse request returning *ListBuildsResponse
@@ -7744,8 +7726,6 @@ func ParseListMetricsDataForMetricsDataIDsResponse(rsp *http.Response) (*ListMet
 			MetricsData   *[]MetricsData `json:"metricsData,omitempty"`
 			NextPageToken *string        `json:"nextPageToken,omitempty"`
 		}
-<<<<<<< HEAD
-=======
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -7774,7 +7754,6 @@ func ParseListBatchMetricsResponse(rsp *http.Response) (*ListBatchMetricsRespons
 		var dest struct {
 			BatchMetrics *[]BatchMetric `json:"batchMetrics,omitempty"`
 		}
->>>>>>> e330194 (updated client)
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

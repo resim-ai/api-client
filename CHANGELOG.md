@@ -6,6 +6,8 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 ### Unreleased
 
+### v0.1.22 - September 19 2023
+
 #### Added
 
 - Metrics builds can now be created and listed with `metrics-build create/list` (ordered by recency)

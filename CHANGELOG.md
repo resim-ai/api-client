@@ -6,6 +6,22 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 ### Unreleased
 
+### v0.1.23 - September 29 2023
+
+#### Added
+
+- The `experiences` command now has:
+  - `tag` and `untag` subcommands for tagging and untagging experiences
+  - A `list` subcommand for listing experiences
+
+- There is a new `experience-tags` command with the following subcommands:
+  - `create`
+  - `list-experiences` for listing the experiences with a given tag
+
+#### Changed
+
+- The `batch create` subcommand now supports specifying experiences and experience tags by name or ID, using the new `--experiences` and `--experience-tags` flags. (The existing flags are still supported.)
+
 ### v0.1.22 - September 19 2023
 
 #### Added

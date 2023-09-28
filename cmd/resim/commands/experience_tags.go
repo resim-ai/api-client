@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -9,7 +10,123 @@ import (
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
+
+var (
+	experienceTagCmd = &cobra.Command{
+		Use:     "experience-tags",
+		Short:   "experience-tags contains commands for creating and managing experience tags",
+		Long:    ``,
+		Aliases: []string{"experience-tag"},
+	}
+	createExperienceTagCmd = &cobra.Command{
+		Use:    "create",
+		Short:  "create - Creates a new experience tag",
+		Long:   ``,
+		Run:    createExperienceTag,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
+	listExperiencesWithTagCmd = &cobra.Command{
+		Use:    "list-experiences",
+		Short:  "list-experiences - Lists the experiences for a tag",
+		Long:   ``,
+		Run:    listExperiencesWithTag,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
+)
+
+const (
+	experienceTagNameKey        = "name"
+	experienceTagDescriptionKey = "description"
+	experienceTagExperiencesKey = "experiences"
+)
+
+func init() {
+	createExperienceTagCmd.Flags().String(experienceTagNameKey, "", "The name of the experience tag")
+	createExperienceTagCmd.MarkFlagRequired(experienceTagNameKey)
+	createExperienceTagCmd.Flags().String(experienceTagDescriptionKey, "", "The description of the experience tag")
+	createExperienceTagCmd.MarkFlagRequired(experienceTagDescriptionKey)
+	createExperienceTagCmd.Flags().String(experienceTagExperiencesKey, "", "Which experiences to add to this tag on tag creation")
+	experienceTagCmd.AddCommand(createExperienceTagCmd)
+	listExperiencesWithTagCmd.Flags().String(experienceTagNameKey, "", "The name of the experience tag")
+	listExperiencesWithTagCmd.MarkFlagRequired(experienceTagNameKey)
+	experienceTagCmd.AddCommand(listExperiencesWithTagCmd)
+	rootCmd.AddCommand(experienceTagCmd)
+}
+
+func createExperienceTag(ccmd *cobra.Command, args []string) {
+	experienceTagName := viper.GetString(experienceTagNameKey)
+	if experienceTagName == "" {
+		log.Fatal("empty experience tag name")
+	}
+
+	experienceTagDescription := viper.GetString(experienceTagDescriptionKey)
+	if experienceTagDescription == "" {
+		log.Fatal("empty experience tag description")
+	}
+
+	// add experiences if they are set
+
+	body := api.CreateExperienceTagJSONRequestBody{
+		Name:        &experienceTagName,
+		Description: &experienceTagDescription,
+	}
+
+	response, err := Client.CreateExperienceTagWithResponse(context.Background(), body)
+	if err != nil {
+		log.Fatal("failed to create experience tag: ", err)
+	}
+	ValidateResponse(http.StatusCreated, "failed to create experience tag", response.HTTPResponse)
+	if response.JSON201 == nil {
+		log.Fatal("empty response")
+	}
+	experienceTag := response.JSON201
+	if experienceTag.ExperienceTagID == nil {
+		log.Fatal("no experience tag ID")
+	}
+
+	fmt.Println("Created experience tag")
+	fmt.Printf("Experience Tag: %s\n", *experienceTag.Name)
+}
+
+func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
+	experienceTagName := viper.GetString(experienceTagNameKey)
+	if experienceTagName == "" {
+		log.Fatal("empty experience tag name")
+	}
+
+	experienceTagID := getExperienceTagIDForName(Client, experienceTagName)
+
+	var pageToken *string = nil
+	var experiences []api.Experience
+
+	for {
+		response, err := Client.ListExperiencesWithExperienceTagWithResponse(
+			context.Background(),
+			experienceTagID,
+			&api.ListExperiencesWithExperienceTagParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list experiences: ", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
+			log.Fatal("no experiences in tag ", experienceTagName)
+		}
+		experiences = append(experiences, *response.JSON200.Experiences...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+
+	OutputJson(experiences)
+}
 
 // This function takes a comma-separated list of experience tag names represented as a string
 // and returns a separated array of parsed UUIDs.

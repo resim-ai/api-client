@@ -25,3 +25,26 @@ func parseUUIDs(commaSeparatedUUIDs string) []uuid.UUID {
 	}
 	return result
 }
+
+func parseUUIDsAndNames(commaSeparatedInput string) ([]uuid.UUID, []string) {
+	if commaSeparatedInput == "" {
+		return []uuid.UUID{}, []string{}
+	}
+
+	resultUUIDs := make([]uuid.UUID, 0)
+	resultStrings := make([]string, 0)
+
+	strs := strings.Split(commaSeparatedInput, ",")
+
+	for i := 0; i < len(strs); i++ {
+		str := strings.TrimSpace(strs[i])
+		v, err := uuid.Parse(str)
+		if err == nil {
+			resultUUIDs = append(resultUUIDs, v)
+		} else {
+			resultStrings = append(resultStrings, str)
+		}
+	}
+
+	return resultUUIDs, resultStrings
+}

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -49,8 +50,10 @@ var (
 const (
 	buildIDKey            = "build-id"
 	experienceIDsKey      = "experience-ids"
+	experiencesKey        = "experiences"
 	experienceTagIDsKey   = "experience-tag-ids"
 	experienceTagNamesKey = "experience-tag-names"
+	experienceTagsKey     = "experience-tags"
 	batchIDKey            = "batch-id"
 	batchNameKey          = "batch-name"
 	batchGithubKey        = "github"
@@ -63,9 +66,12 @@ func init() {
 	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
 	createBatchCmd.MarkFlagRequired(buildIDKey)
 	createBatchCmd.Flags().String(batchMetricsBuildKey, "", "The ID of the metrics build to use in this batch.")
+	// the separate ID and name flags for experiences and experience tags are kept for backwards compatibility
 	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
+	createBatchCmd.Flags().String(experiencesKey, "", "List of experience names or list of experience IDs to run, comma-separated")
 	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
 	createBatchCmd.Flags().String(experienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
+	createBatchCmd.Flags().String(experienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
 	// TODO(simon) We want at least one of the above flags. The function we want
 	// is: .MarkFlagsOneRequired this was merged into Cobra recently:
 	// https://github.com/spf13/cobra/pull/1952 - but we need to wait for a stable
@@ -92,12 +98,31 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a batch...")
 	}
 
-	// Parse the UUIDs from the command line
+	if !viper.IsSet(experienceIDsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) && !viper.IsSet(experiencesKey) && !viper.IsSet(experienceTagsKey) {
+		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
+	}
+
+	// Parse the build ID
 	buildID, err := uuid.Parse(viper.GetString(buildIDKey))
 	if err != nil || buildID == uuid.Nil {
 		log.Fatal("failed to parse build ID: ", err)
 	}
-	experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
+
+	var allExperienceIDs []uuid.UUID
+	var allExperienceNames []string
+
+	// Parse --experience-ids
+	if viper.IsSet(experienceIDsKey) {
+		experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
+		allExperienceIDs = append(allExperienceIDs, experienceIDs...)
+	}
+
+	// Parse --experiences into either IDs or names
+	if viper.IsSet(experiencesKey) {
+		experienceIDs, experienceNames := parseUUIDsAndNames(viper.GetString(experiencesKey))
+		allExperienceIDs = append(allExperienceIDs, experienceIDs...)
+		allExperienceNames = append(allExperienceNames, experienceNames...)
+	}
 
 	metricsBuildID := uuid.Nil
 	if viper.IsSet(batchMetricsBuildKey) {
@@ -107,36 +132,61 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	if !viper.IsSet(experienceIDsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) {
-		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
-	}
-
 	if viper.IsSet(experienceTagIDsKey) && viper.IsSet(experienceTagNamesKey) {
 		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", experienceTagNamesKey, experienceTagIDsKey))
 	}
 
-	// Obtain experience tag ids.
-	var experienceTagIDs []uuid.UUID
-	// If the user passes IDs directly, parse them:
-	if viper.GetString(experienceTagIDsKey) != "" {
-		experienceTagIDs = parseUUIDs(viper.GetString(experienceTagIDsKey))
-	}
-	// If the user passes names, grab the ids:
-	if viper.GetString(experienceTagNamesKey) != "" {
-		experienceTagIDs = parseExperienceTagNames(Client, viper.GetString(experienceTagNamesKey))
+	var allExperienceTagIDs []uuid.UUID
+	var allExperienceTagNames []string
+
+	// Parse --experience-tag-ids
+	if viper.IsSet(experienceTagIDsKey) {
+		experienceTagIDs := parseUUIDs(viper.GetString(experienceTagIDsKey))
+		allExperienceTagIDs = append(allExperienceTagIDs, experienceTagIDs...)
 	}
 
-	// Build the request body and make the request
+	// Parse --experience-tag-names:
+	if viper.IsSet(experienceTagNamesKey) {
+		experienceTagNames := strings.Split(viper.GetString(experienceTagNamesKey), ",")
+		for i := range experienceTagNames {
+			experienceTagNames[i] = strings.TrimSpace(experienceTagNames[i])
+		}
+		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
+	}
+
+	// Parse --experience-tags
+	if viper.IsSet(experienceTagsKey) {
+		experienceTagIDs, experienceTagNames := parseUUIDsAndNames(viper.GetString(experienceTagsKey))
+		allExperienceTagIDs = append(allExperienceTagIDs, experienceTagIDs...)
+		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
+	}
+
+	// Build the request body
 	body := api.CreateBatchJSONRequestBody{
-		BuildID:          &buildID,
-		ExperienceIDs:    &experienceIDs,
-		ExperienceTagIDs: &experienceTagIDs,
+		BuildID: &buildID,
+	}
+
+	if allExperienceIDs != nil {
+		body.ExperienceIDs = &allExperienceIDs
+	}
+
+	if allExperienceNames != nil {
+		body.ExperienceNames = &allExperienceNames
+	}
+
+	if allExperienceTagIDs != nil {
+		body.ExperienceTagIDs = &allExperienceTagIDs
+	}
+
+	if allExperienceTagNames != nil {
+		body.ExperienceTagNames = &allExperienceTagNames
 	}
 
 	if metricsBuildID != uuid.Nil {
 		body.MetricsBuildID = &metricsBuildID
 	}
 
+	// Make the request
 	response, err := Client.CreateBatchWithResponse(context.Background(), body)
 	if err != nil {
 		log.Fatal("failed to create batch:", err)

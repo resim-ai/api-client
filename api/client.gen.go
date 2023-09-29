@@ -157,7 +157,7 @@ type Experience struct {
 	Description       *string            `json:"description,omitempty"`
 	ExperienceID      *ExperienceID      `json:"experienceID,omitempty"`
 	Location          *string            `json:"location,omitempty"`
-	Name              *string            `json:"name,omitempty"`
+	Name              *ExperienceName    `json:"name,omitempty"`
 	OrgID             *OrgID             `json:"orgID,omitempty"`
 	UserID            *UserID            `json:"userID,omitempty"`
 }
@@ -165,18 +165,24 @@ type Experience struct {
 // ExperienceID defines model for experienceID.
 type ExperienceID = openapi_types.UUID
 
+// ExperienceName defines model for experienceName.
+type ExperienceName = string
+
 // ExperienceTag defines model for experienceTag.
 type ExperienceTag struct {
 	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
 	Description       *string            `json:"description,omitempty"`
 	ExperienceTagID   *ExperienceTagID   `json:"experienceTagID,omitempty"`
-	Name              *string            `json:"name,omitempty"`
+	Name              *ExperienceTagName `json:"name,omitempty"`
 	OrgID             *OrgID             `json:"orgID,omitempty"`
 	UserID            *UserID            `json:"userID,omitempty"`
 }
 
 // ExperienceTagID defines model for experienceTagID.
 type ExperienceTagID = openapi_types.UUID
+
+// ExperienceTagName defines model for experienceTagName.
+type ExperienceTagName = string
 
 // FileName defines model for fileName.
 type FileName = string
@@ -395,10 +401,12 @@ type ListBatchesParams struct {
 
 // CreateBatchJSONBody defines parameters for CreateBatch.
 type CreateBatchJSONBody struct {
-	BuildID          *BuildID           `json:"buildID,omitempty"`
-	ExperienceIDs    *[]ExperienceID    `json:"experienceIDs"`
-	ExperienceTagIDs *[]ExperienceTagID `json:"experienceTagIDs"`
-	MetricsBuildID   *MetricsBuildID    `json:"metricsBuildID,omitempty"`
+	BuildID            *BuildID             `json:"buildID,omitempty"`
+	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
+	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
+	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
+	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
+	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
 }
 
 // ListJobsParams defines parameters for ListJobs.

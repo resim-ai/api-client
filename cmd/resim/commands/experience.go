@@ -6,7 +6,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -25,13 +27,36 @@ var (
 		Run:    createExperience,
 		PreRun: RegisterViperFlagsAndSetClient,
 	}
+	listExperiencesCmd = &cobra.Command{
+		Use:    "list",
+		Short:  "list - Lists experiences",
+		Long:   ``,
+		Run:    listExperiences,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
+	tagExperienceCmd = &cobra.Command{
+		Use:    "tag",
+		Short:  "tag - Add a tag to an experience",
+		Long:   ``,
+		Run:    tagExperience,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
+	untagExperienceCmd = &cobra.Command{
+		Use:    "untag",
+		Short:  "untag - Remove a tag from an experience",
+		Long:   ``,
+		Run:    untagExperience,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
 )
 
 const (
 	experienceNameKey        = "name"
+	experienceIDKey          = "id"
 	experienceDescriptionKey = "description"
 	experienceLocationKey    = "location"
 	experienceGithubKey      = "github"
+	experienceTagKey         = "tag"
 )
 
 func init() {
@@ -43,6 +68,17 @@ func init() {
 	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
+	experienceCmd.AddCommand(listExperiencesCmd)
+	tagExperienceCmd.Flags().String(experienceTagKey, "", "The name of the tag to add")
+	tagExperienceCmd.MarkFlagRequired(experienceTagKey)
+	tagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to tag")
+	tagExperienceCmd.MarkFlagRequired(experienceNameKey)
+	experienceCmd.AddCommand(tagExperienceCmd)
+	untagExperienceCmd.Flags().String(experienceTagKey, "", "The name of the tag to remove")
+	untagExperienceCmd.MarkFlagRequired(experienceTagKey)
+	untagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to untag")
+	untagExperienceCmd.MarkFlagRequired(experienceNameKey)
+	experienceCmd.AddCommand(untagExperienceCmd)
 	rootCmd.AddCommand(experienceCmd)
 }
 
@@ -94,4 +130,87 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		fmt.Println("Created experience successfully!")
 		fmt.Printf("Experience ID: %s\n", experience.ExperienceID.String())
 	}
+}
+
+func listExperiences(ccmd *cobra.Command, args []string) {
+	var pageToken *string = nil
+
+	var allExperiences []api.Experience
+
+	for {
+		response, err := Client.ListExperiencesWithResponse(
+			context.Background(), &api.ListExperiencesParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
+			})
+		if err != nil {
+			log.Fatal("failed to list experiences:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
+			log.Fatal("no experiences")
+		}
+		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+
+	OutputJson(allExperiences)
+}
+
+func tagExperience(ccmd *cobra.Command, args []string) {
+	experienceTagName := viper.GetString(experienceTagKey)
+	if experienceTagName == "" {
+		log.Fatal("empty experience tag name")
+	}
+
+	experienceID, err := uuid.Parse(viper.GetString(experienceIDKey))
+	if err != nil || experienceID == uuid.Nil {
+		log.Fatal("failed to parse experience ID: ", err)
+	}
+
+	experienceTagID := getExperienceTagIDForName(Client, experienceTagName)
+
+	response, err := Client.AddExperienceTagToExperienceWithResponse(
+		context.Background(),
+		experienceTagID,
+		experienceID,
+	)
+	if err != nil {
+		log.Fatal("failed to tag experience", err)
+	}
+	if response.HTTPResponse.StatusCode == 409 {
+		log.Fatal("failed to tag experience, it may already be tagged ", experienceTagName)
+	}
+	ValidateResponse(http.StatusCreated, "failed to tag experience", response.HTTPResponse)
+}
+
+func untagExperience(ccmd *cobra.Command, args []string) {
+	experienceTagName := viper.GetString(experienceTagKey)
+	if experienceTagName == "" {
+		log.Fatal("empty experience tag name")
+	}
+
+	experienceID, err := uuid.Parse(viper.GetString(experienceIDKey))
+	if err != nil || experienceID == uuid.Nil {
+		log.Fatal("failed to parse experience ID: ", err)
+	}
+
+	experienceTagID := getExperienceTagIDForName(Client, experienceTagName)
+	response, err := Client.RemoveExperienceTagFromExperienceWithResponse(
+		context.Background(),
+		experienceTagID,
+		experienceID,
+	)
+	if err != nil {
+		log.Fatal("failed to untag experience: ", err)
+	}
+	if response.HTTPResponse.StatusCode == 404 {
+		log.Fatal("failed to untag experience, it may not be tagged ", experienceTagName)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to untag experience", response.HTTPResponse)
 }

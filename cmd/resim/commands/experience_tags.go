@@ -28,6 +28,13 @@ var (
 		Run:    createExperienceTag,
 		PreRun: RegisterViperFlagsAndSetClient,
 	}
+	listExperienceTagsCmd = &cobra.Command{
+		Use:    "list",
+		Short:  "list - List experience tags",
+		Long:   ``,
+		Run:    listExperienceTags,
+		PreRun: RegisterViperFlagsAndSetClient,
+	}
 	listExperiencesWithTagCmd = &cobra.Command{
 		Use:    "list-experiences",
 		Short:  "list-experiences - Lists the experiences for a tag",
@@ -50,6 +57,7 @@ func init() {
 	createExperienceTagCmd.MarkFlagRequired(experienceTagDescriptionKey)
 	createExperienceTagCmd.Flags().String(experienceTagExperiencesKey, "", "Which experiences to add to this tag on tag creation")
 	experienceTagCmd.AddCommand(createExperienceTagCmd)
+	experienceTagCmd.AddCommand(listExperienceTagsCmd)
 	listExperiencesWithTagCmd.Flags().String(experienceTagNameKey, "", "The name of the experience tag")
 	listExperiencesWithTagCmd.MarkFlagRequired(experienceTagNameKey)
 	experienceTagCmd.AddCommand(listExperiencesWithTagCmd)
@@ -89,6 +97,34 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 
 	fmt.Println("Created experience tag")
 	fmt.Printf("Experience Tag: %s\n", *experienceTag.Name)
+}
+
+func listExperienceTags(ccmd *cobra.Command, args []string) {
+	var pageToken *string = nil
+	var experienceTags []api.ExperienceTag
+
+	for {
+		response, err := Client.ListExperienceTagsWithResponse(context.Background(),
+			&api.ListExperienceTagsParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list experience tags: ", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list experience tags", response.HTTPResponse)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || len(*response.JSON200.ExperienceTags) == 0 {
+			log.Fatal("no experience tags")
+		}
+		experienceTags = append(experienceTags, *response.JSON200.ExperienceTags...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+
+	OutputJson(experienceTags)
 }
 
 func listExperiencesWithTag(ccmd *cobra.Command, args []string) {

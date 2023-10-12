@@ -518,6 +518,18 @@ func (s *EndToEndTestSuite) createExperienceTag(name string, description string)
 	return []CommandBuilder{experienceTagCommand, createCommand}
 }
 
+func (s *EndToEndTestSuite) listExperienceTags() []CommandBuilder {
+	experienceTagCommand := CommandBuilder{
+		Command: "experience-tags",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags:   []Flag{},
+	}
+
+	return []CommandBuilder{experienceTagCommand, listCommand}
+}
+
 func (s *EndToEndTestSuite) tagExperience(tag string, experienceID uuid.UUID) []CommandBuilder {
 	tagExperienceCommand := CommandBuilder{
 		Command: "experience",
@@ -1139,6 +1151,10 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// Create an experience tag:
 	tagName := fmt.Sprintf("test-tag-%s", uuid.New().String())
 	output = s.runCommand(s.createExperienceTag(tagName, "testing tag"), ExpectNoError)
+
+	// List experience tags and check the list contains the tag we just created
+	output = s.runCommand(s.listExperienceTags(), ExpectNoError)
+	s.Contains(output.StdOut, tagName)
 
 	// Tag one of the experiences:
 	output = s.runCommand(s.tagExperience(tagName, experienceID1), ExpectNoError)

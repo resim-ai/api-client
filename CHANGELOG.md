@@ -6,6 +6,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 ### Unreleased
 
+Changes in this section will be included in the next release.
+
+#### Added
+
+- The `experience-tags` command now has a `list` subcommand.
+
 ### v0.1.23 - September 29 2023
 
 #### Added

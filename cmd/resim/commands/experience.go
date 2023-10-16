@@ -51,12 +51,13 @@ var (
 )
 
 const (
-	experienceNameKey        = "name"
-	experienceIDKey          = "id"
-	experienceDescriptionKey = "description"
-	experienceLocationKey    = "location"
-	experienceGithubKey      = "github"
-	experienceTagKey         = "tag"
+	experienceNameKey          = "name"
+	experienceIDKey            = "id"
+	experienceDescriptionKey   = "description"
+	experienceLocationKey      = "location"
+	experienceLaunchProfileKey = "launch-profile"
+	experienceGithubKey        = "github"
+	experienceTagKey           = "tag"
 )
 
 func init() {
@@ -66,6 +67,7 @@ func init() {
 	createExperienceCmd.MarkFlagRequired(experienceDescriptionKey)
 	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
 	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
+	createExperienceCmd.Flags().String(experienceLaunchProfileKey, "", "The UUID of the launch profile for this experience")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
 	experienceCmd.AddCommand(listExperiencesCmd)
@@ -108,6 +110,18 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		Name:        &experienceName,
 		Description: &experienceDescription,
 		Location:    &experienceLocation,
+	}
+
+	if viper.IsSet(experienceLaunchProfileKey) {
+		experienceLaunchProfileString := viper.GetString(experienceLaunchProfileKey)
+		if experienceLaunchProfileString == "" {
+			log.Fatal("empty experience launch profile")
+		}
+		experienceLaunchProfile, err := uuid.Parse(experienceLaunchProfileString)
+		if err != nil || experienceLaunchProfile == uuid.Nil {
+			log.Fatal("failed to parse experience launch profile: ", err)
+		}
+		body.LaunchProfileID = &experienceLaunchProfile
 	}
 
 	response, err := Client.CreateExperienceWithResponse(context.Background(), body)

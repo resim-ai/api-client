@@ -156,6 +156,7 @@ type Experience struct {
 	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
 	Description       *string            `json:"description,omitempty"`
 	ExperienceID      *ExperienceID      `json:"experienceID,omitempty"`
+	LaunchProfileID   *LaunchProfileID   `json:"launchProfileID,omitempty"`
 	Location          *string            `json:"location,omitempty"`
 	Name              *ExperienceName    `json:"name,omitempty"`
 	OrgID             *OrgID             `json:"orgID,omitempty"`
@@ -209,6 +210,20 @@ type JobID = openapi_types.UUID
 
 // JobStatus defines model for jobStatus.
 type JobStatus string
+
+// LaunchProfile defines model for launchProfile.
+type LaunchProfile struct {
+	Gpus            *int             `json:"gpus,omitempty"`
+	LaunchProfileID *LaunchProfileID `json:"launchProfileID,omitempty"`
+	MemoryMib       *int             `json:"memory_mib,omitempty"`
+	Name            *string          `json:"name,omitempty"`
+	OrgID           *OrgID           `json:"orgID,omitempty"`
+	UserID          *UserID          `json:"userID,omitempty"`
+	Vcpus           *int             `json:"vcpus,omitempty"`
+}
+
+// LaunchProfileID defines model for launchProfileID.
+type LaunchProfileID = openapi_types.UUID
 
 // LineNumber defines model for lineNumber.
 type LineNumber = int32
@@ -499,6 +514,18 @@ type ListExperienceTagsForExperienceParams struct {
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
+// ListLaunchProfilesParams defines parameters for ListLaunchProfiles.
+type ListLaunchProfilesParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// UpdateLaunchProfileJSONBody defines parameters for UpdateLaunchProfile.
+type UpdateLaunchProfileJSONBody struct {
+	LaunchProfile *LaunchProfile `json:"launchProfile,omitempty"`
+	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
+}
+
 // ListMetricsBuildsParams defines parameters for ListMetricsBuilds.
 type ListMetricsBuildsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -585,6 +612,12 @@ type CreateExperienceJSONRequestBody = Experience
 
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
 type UpdateExperienceJSONRequestBody UpdateExperienceJSONBody
+
+// CreateLaunchProfileJSONRequestBody defines body for CreateLaunchProfile for application/json ContentType.
+type CreateLaunchProfileJSONRequestBody = LaunchProfile
+
+// UpdateLaunchProfileJSONRequestBody defines body for UpdateLaunchProfile for application/json ContentType.
+type UpdateLaunchProfileJSONRequestBody UpdateLaunchProfileJSONBody
 
 // CreateMetricsBuildJSONRequestBody defines body for CreateMetricsBuild for application/json ContentType.
 type CreateMetricsBuildJSONRequestBody = MetricsBuild
@@ -805,6 +838,25 @@ type ClientInterface interface {
 
 	// Health request
 	Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListLaunchProfiles request
+	ListLaunchProfiles(ctx context.Context, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateLaunchProfileWithBody request with any body
+	CreateLaunchProfileWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateLaunchProfile(ctx context.Context, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteLaunchProfile request
+	DeleteLaunchProfile(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetLaunchProfile request
+	GetLaunchProfile(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateLaunchProfileWithBody request with any body
+	UpdateLaunchProfileWithBody(ctx context.Context, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateLaunchProfile(ctx context.Context, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMetricsBuilds request
 	ListMetricsBuilds(ctx context.Context, params *ListMetricsBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1420,6 +1472,90 @@ func (c *Client) ListExperienceTagsForExperience(ctx context.Context, experience
 
 func (c *Client) Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewHealthRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListLaunchProfiles(ctx context.Context, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListLaunchProfilesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateLaunchProfileWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLaunchProfileRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateLaunchProfile(ctx context.Context, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLaunchProfileRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteLaunchProfile(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteLaunchProfileRequest(c.Server, launchProfileID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetLaunchProfile(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLaunchProfileRequest(c.Server, launchProfileID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateLaunchProfileWithBody(ctx context.Context, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateLaunchProfileRequestWithBody(c.Server, launchProfileID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateLaunchProfile(ctx context.Context, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateLaunchProfileRequest(c.Server, launchProfileID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3780,6 +3916,226 @@ func NewHealthRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewListLaunchProfilesRequest generates requests for ListLaunchProfiles
+func NewListLaunchProfilesRequest(server string, params *ListLaunchProfilesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/launchProfiles")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateLaunchProfileRequest calls the generic CreateLaunchProfile builder with application/json body
+func NewCreateLaunchProfileRequest(server string, body CreateLaunchProfileJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateLaunchProfileRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateLaunchProfileRequestWithBody generates requests for CreateLaunchProfile with any type of body
+func NewCreateLaunchProfileRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/launchProfiles")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteLaunchProfileRequest generates requests for DeleteLaunchProfile
+func NewDeleteLaunchProfileRequest(server string, launchProfileID LaunchProfileID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "launchProfileID", runtime.ParamLocationPath, launchProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/launchProfiles/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetLaunchProfileRequest generates requests for GetLaunchProfile
+func NewGetLaunchProfileRequest(server string, launchProfileID LaunchProfileID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "launchProfileID", runtime.ParamLocationPath, launchProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/launchProfiles/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateLaunchProfileRequest calls the generic UpdateLaunchProfile builder with application/json body
+func NewUpdateLaunchProfileRequest(server string, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateLaunchProfileRequestWithBody(server, launchProfileID, "application/json", bodyReader)
+}
+
+// NewUpdateLaunchProfileRequestWithBody generates requests for UpdateLaunchProfile with any type of body
+func NewUpdateLaunchProfileRequestWithBody(server string, launchProfileID LaunchProfileID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "launchProfileID", runtime.ParamLocationPath, launchProfileID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/launchProfiles/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListMetricsBuildsRequest generates requests for ListMetricsBuilds
 func NewListMetricsBuildsRequest(server string, params *ListMetricsBuildsParams) (*http.Request, error) {
 	var err error
@@ -5169,6 +5525,25 @@ type ClientWithResponsesInterface interface {
 	// HealthWithResponse request
 	HealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthResponse, error)
 
+	// ListLaunchProfilesWithResponse request
+	ListLaunchProfilesWithResponse(ctx context.Context, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*ListLaunchProfilesResponse, error)
+
+	// CreateLaunchProfileWithBodyWithResponse request with any body
+	CreateLaunchProfileWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error)
+
+	CreateLaunchProfileWithResponse(ctx context.Context, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error)
+
+	// DeleteLaunchProfileWithResponse request
+	DeleteLaunchProfileWithResponse(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*DeleteLaunchProfileResponse, error)
+
+	// GetLaunchProfileWithResponse request
+	GetLaunchProfileWithResponse(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*GetLaunchProfileResponse, error)
+
+	// UpdateLaunchProfileWithBodyWithResponse request with any body
+	UpdateLaunchProfileWithBodyWithResponse(ctx context.Context, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error)
+
+	UpdateLaunchProfileWithResponse(ctx context.Context, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error)
+
 	// ListMetricsBuildsWithResponse request
 	ListMetricsBuildsWithResponse(ctx context.Context, params *ListMetricsBuildsParams, reqEditors ...RequestEditorFn) (*ListMetricsBuildsResponse, error)
 
@@ -6076,6 +6451,118 @@ func (r HealthResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r HealthResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListLaunchProfilesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		Builds        *[]LaunchProfile `json:"builds,omitempty"`
+		NextPageToken *string          `json:"nextPageToken,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListLaunchProfilesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListLaunchProfilesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateLaunchProfileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *LaunchProfile
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateLaunchProfileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateLaunchProfileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteLaunchProfileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteLaunchProfileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteLaunchProfileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetLaunchProfileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LaunchProfile
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLaunchProfileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLaunchProfileResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateLaunchProfileResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LaunchProfile
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateLaunchProfileResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateLaunchProfileResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -7004,6 +7491,67 @@ func (c *ClientWithResponses) HealthWithResponse(ctx context.Context, reqEditors
 		return nil, err
 	}
 	return ParseHealthResponse(rsp)
+}
+
+// ListLaunchProfilesWithResponse request returning *ListLaunchProfilesResponse
+func (c *ClientWithResponses) ListLaunchProfilesWithResponse(ctx context.Context, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*ListLaunchProfilesResponse, error) {
+	rsp, err := c.ListLaunchProfiles(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListLaunchProfilesResponse(rsp)
+}
+
+// CreateLaunchProfileWithBodyWithResponse request with arbitrary body returning *CreateLaunchProfileResponse
+func (c *ClientWithResponses) CreateLaunchProfileWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error) {
+	rsp, err := c.CreateLaunchProfileWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLaunchProfileResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateLaunchProfileWithResponse(ctx context.Context, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error) {
+	rsp, err := c.CreateLaunchProfile(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLaunchProfileResponse(rsp)
+}
+
+// DeleteLaunchProfileWithResponse request returning *DeleteLaunchProfileResponse
+func (c *ClientWithResponses) DeleteLaunchProfileWithResponse(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*DeleteLaunchProfileResponse, error) {
+	rsp, err := c.DeleteLaunchProfile(ctx, launchProfileID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteLaunchProfileResponse(rsp)
+}
+
+// GetLaunchProfileWithResponse request returning *GetLaunchProfileResponse
+func (c *ClientWithResponses) GetLaunchProfileWithResponse(ctx context.Context, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*GetLaunchProfileResponse, error) {
+	rsp, err := c.GetLaunchProfile(ctx, launchProfileID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLaunchProfileResponse(rsp)
+}
+
+// UpdateLaunchProfileWithBodyWithResponse request with arbitrary body returning *UpdateLaunchProfileResponse
+func (c *ClientWithResponses) UpdateLaunchProfileWithBodyWithResponse(ctx context.Context, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error) {
+	rsp, err := c.UpdateLaunchProfileWithBody(ctx, launchProfileID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateLaunchProfileResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateLaunchProfileWithResponse(ctx context.Context, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error) {
+	rsp, err := c.UpdateLaunchProfile(ctx, launchProfileID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateLaunchProfileResponse(rsp)
 }
 
 // ListMetricsBuildsWithResponse request returning *ListMetricsBuildsResponse
@@ -8174,6 +8722,129 @@ func ParseHealthResponse(rsp *http.Response) (*HealthResponse, error) {
 	response := &HealthResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListLaunchProfilesResponse parses an HTTP response from a ListLaunchProfilesWithResponse call
+func ParseListLaunchProfilesResponse(rsp *http.Response) (*ListLaunchProfilesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListLaunchProfilesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			Builds        *[]LaunchProfile `json:"builds,omitempty"`
+			NextPageToken *string          `json:"nextPageToken,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateLaunchProfileResponse parses an HTTP response from a CreateLaunchProfileWithResponse call
+func ParseCreateLaunchProfileResponse(rsp *http.Response) (*CreateLaunchProfileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateLaunchProfileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest LaunchProfile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteLaunchProfileResponse parses an HTTP response from a DeleteLaunchProfileWithResponse call
+func ParseDeleteLaunchProfileResponse(rsp *http.Response) (*DeleteLaunchProfileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteLaunchProfileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetLaunchProfileResponse parses an HTTP response from a GetLaunchProfileWithResponse call
+func ParseGetLaunchProfileResponse(rsp *http.Response) (*GetLaunchProfileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLaunchProfileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LaunchProfile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateLaunchProfileResponse parses an HTTP response from a UpdateLaunchProfileWithResponse call
+func ParseUpdateLaunchProfileResponse(rsp *http.Response) (*UpdateLaunchProfileResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateLaunchProfileResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LaunchProfile
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil

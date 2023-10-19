@@ -1355,10 +1355,10 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	var logs []api.Log
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 4)
+	s.Len(logs, 6)
 	for _, log := range logs {
 		s.Equal(jobID2, *log.JobID)
-		s.Contains([]string{logName, logName2, "experience-container.log", "metrics-container.log"}, *log.FileName)
+		s.Contains([]string{logName, logName2, "experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log"}, *log.FileName)
 	}
 
 	// Pass blank name / id to logs:

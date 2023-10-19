@@ -12,6 +12,10 @@ Changes in this section will be included in the next release.
 
 - The `experience-tags` command now has a `list` subcommand.
 
+#### Changed
+
+- The `experiences create` command now accepts an (optional) `launch-profile` parameter to explicitly select a launch profile
+
 ### v0.1.23 - September 29 2023
 
 #### Added

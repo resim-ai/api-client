@@ -10,6 +10,7 @@ Changes in this section will be included in the next release.
 
 #### Added
 
+- The CLI will now prompt for interactive login if a client ID and secret are not provided.
 - The `experience-tags` command now has a `list` subcommand.
 
 #### Changed

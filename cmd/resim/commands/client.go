@@ -21,14 +21,13 @@ import (
 )
 
 const (
-	urlKey               = "url"
-	authURLKey           = "auth-url"
-	clientIDKey          = "client-id"
-	clientSecretKey      = "client-secret"
-	flagInteractiveLogin = "interactive-login"
+	urlKey                   = "url"
+	authURLKey               = "auth-url"
+	clientIDKey              = "client-id"
+	clientSecretKey          = "client-secret"
+	devInteractiveClientKey  = "dev-interactive-client"
+	prodInteractiveClientKey = "prod-interactive-client"
 )
-
-var cliClientIds = map[string]string{"https://resim-dev.us.auth0.com/": "k6OJ7tHwJMxyk7oMJBFlNotFNwZYmctp", "https://resim.us.auth0.com/": "TODO"}
 
 const CredentialCacheFilename = "cache.json"
 
@@ -45,7 +44,10 @@ func init() {
 	viper.SetDefault(authURLKey, "https://resim.us.auth0.com/")
 	rootCmd.PersistentFlags().String(clientIDKey, "", "Authentication credentials client ID")
 	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
-	rootCmd.PersistentFlags().Bool(flagInteractiveLogin, false, "Whether to use an interactive login or local client credentials")
+	rootCmd.PersistentFlags().String(devInteractiveClientKey, "", "Client ID for dev interactive login")
+	viper.SetDefault(devInteractiveClientKey, "FRp56l6LHj93nx9AKotXRzjbxPNy7exE")
+	rootCmd.PersistentFlags().String(prodInteractiveClientKey, "", "Client ID for prod interactive login")
+	viper.SetDefault(prodInteractiveClientKey, "uSwxZcgA2nRVn7Sazu9oNx9woqG6zQGi")
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache, error) {
@@ -54,8 +56,6 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 	if err != nil {
 		log.Println("Initializing credential cache")
 	}
-
-	interactiveLogin := viper.GetBool(flagInteractiveLogin)
 
 	tokenURL, err := url.JoinPath(viper.GetString(authURLKey), "/oauth/token")
 	if err != nil {
@@ -68,17 +68,16 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 
 	var tokenSource oauth2.TokenSource
 
-	if interactiveLogin {
-		clientID := ""
-		if mapClientID, ok := cliClientIds[viper.GetString(authURLKey)]; ok {
-			clientID = mapClientID
-		} else {
+	if viper.GetString(clientIDKey) == "" {
+		var clientID string
+		switch viper.GetString(authURLKey) {
+		case "https://resim-dev.us.auth0.com/":
+			clientID = viper.GetString(devInteractiveClientKey)
+		case "https://resim.us.auth0.com/":
+			clientID = viper.GetString(prodInteractiveClientKey)
+		default:
 			log.Fatal("couldn't find CLI client ID for auth-url")
 		}
-
-		// opts := url.Values{
-		// 	"audience": []string{"https://api.resim.ai"},
-		// }
 
 		config := &oauth2.Config{
 			ClientID: clientID,
@@ -87,31 +86,35 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 				TokenURL:      tokenURL,
 			},
 			Scopes: []string{
-				"offline_access", "experiences:read", "experiences:write", "experienceTags:read", "experienceTags:write", "projects:read", "projects:write", "batches:read", "batches:write", "builds:read", "builds:write", "view:read", "view:write"},
+				"offline_access",
+			},
 		}
 
-		response, err := config.DeviceAuth(ctx, oauth2.SetAuthURLParam("audience", "https://api.resim.ai"))
-		if err != nil {
-			panic(err)
-		}
+		cache.ClientID = clientID
+		if token, ok := cache.Tokens[clientID]; ok {
+			cache.TokenSource = config.TokenSource(ctx, &token)
+		} else {
+			response, err := config.DeviceAuth(ctx, oauth2.SetAuthURLParam("audience", "https://api.resim.ai"))
+			if err != nil {
+				log.Fatal("unable to initiate device auth: ", err)
+			}
 
-		browser.OpenURL(response.VerificationURIComplete)
-		fmt.Printf("If your browser hasn't opened automatically, please open\n%s\n", response.VerificationURI)
-		fmt.Printf("and enter code\n%s\n", response.UserCode)
-		token, err := config.DeviceAccessToken(ctx, response)
-		if err != nil {
-			panic(err)
-		}
-		// fmt.Println(token)
+			browser.OpenURL(response.VerificationURIComplete)
+			fmt.Printf("If your browser hasn't opened automatically, please open\n%s\n", response.VerificationURIComplete)
+			fmt.Printf("and enter code\n%s\n", response.UserCode)
+			token, err := config.DeviceAccessToken(ctx, response)
+			if err != nil {
+				log.Fatal("unable to complete device auth: ", err)
+			}
 
-		tokenSource = config.TokenSource(ctx, token)
+			tokenSource = config.TokenSource(ctx, token)
+			cache.TokenSource = tokenSource
+		}
 	} else {
 		clientID := viper.GetString(clientIDKey)
 		if clientID == "" {
 			return nil, nil, errors.New("client-id must be specified")
 		}
-
-		cache.ClientID = clientID
 
 		clientSecret := viper.GetString(clientSecretKey)
 		if clientSecret == "" {
@@ -125,13 +128,18 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 			EndpointParams: url.Values{
 				"audience": []string{"https://api.resim.ai"},
 			},
+			Scopes: []string{
+				"offline_access",
+			},
 		}
-	}
+		tokenSource = config.TokenSource(ctx)
 
-	if token, ok := cache.Tokens[clientID]; ok {
-		cache.TokenSource = oauth2.ReuseTokenSource(&token, config.TokenSource(ctx))
-	} else {
-		cache.TokenSource = config.TokenSource(ctx)
+		cache.ClientID = clientID
+		if token, ok := cache.Tokens[clientID]; ok {
+			cache.TokenSource = oauth2.ReuseTokenSource(&token, tokenSource)
+		} else {
+			cache.TokenSource = tokenSource
+		}
 	}
 
 	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)

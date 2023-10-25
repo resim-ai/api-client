@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cli/browser"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -19,11 +21,14 @@ import (
 )
 
 const (
-	urlKey          = "url"
-	authURLKey      = "auth-url"
-	clientIDKey     = "client-id"
-	clientSecretKey = "client-secret"
+	urlKey               = "url"
+	authURLKey           = "auth-url"
+	clientIDKey          = "client-id"
+	clientSecretKey      = "client-secret"
+	flagInteractiveLogin = "interactive-login"
 )
+
+var cliClientIds = map[string]string{"https://resim-dev.us.auth0.com/": "k6OJ7tHwJMxyk7oMJBFlNotFNwZYmctp", "https://resim.us.auth0.com/": "TODO"}
 
 const CredentialCacheFilename = "cache.json"
 
@@ -40,6 +45,7 @@ func init() {
 	viper.SetDefault(authURLKey, "https://resim.us.auth0.com/")
 	rootCmd.PersistentFlags().String(clientIDKey, "", "Authentication credentials client ID")
 	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
+	rootCmd.PersistentFlags().Bool(flagInteractiveLogin, false, "Whether to use an interactive login or local client credentials")
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache, error) {
@@ -49,26 +55,77 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 		log.Println("Initializing credential cache")
 	}
 
-	clientID := viper.GetString(clientIDKey)
-	if clientID == "" {
-		return nil, nil, errors.New("client-id must be specified")
-	}
-	cache.ClientID = clientID
-	clientSecret := viper.GetString(clientSecretKey)
-	if clientSecret == "" {
-		return nil, nil, errors.New("client-secret must be specified")
-	}
+	interactiveLogin := viper.GetBool(flagInteractiveLogin)
+
 	tokenURL, err := url.JoinPath(viper.GetString(authURLKey), "/oauth/token")
 	if err != nil {
 		log.Fatal("unable to create token URL: ", err)
 	}
-	config := clientcredentials.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		TokenURL:     tokenURL,
-		EndpointParams: url.Values{
-			"audience": []string{"https://api.resim.ai"},
-		},
+	authURL, err := url.JoinPath(viper.GetString(authURLKey), "/oauth/device/code")
+	if err != nil {
+		log.Fatal("unable to create authURL: ", err)
+	}
+
+	var tokenSource oauth2.TokenSource
+
+	if interactiveLogin {
+		clientID := ""
+		if mapClientID, ok := cliClientIds[viper.GetString(authURLKey)]; ok {
+			clientID = mapClientID
+		} else {
+			log.Fatal("couldn't find CLI client ID for auth-url")
+		}
+
+		// opts := url.Values{
+		// 	"audience": []string{"https://api.resim.ai"},
+		// }
+
+		config := &oauth2.Config{
+			ClientID: clientID,
+			Endpoint: oauth2.Endpoint{
+				DeviceAuthURL: authURL,
+				TokenURL:      tokenURL,
+			},
+			Scopes: []string{
+				"offline_access", "experiences:read", "experiences:write", "experienceTags:read", "experienceTags:write", "projects:read", "projects:write", "batches:read", "batches:write", "builds:read", "builds:write", "view:read", "view:write"},
+		}
+
+		response, err := config.DeviceAuth(ctx, oauth2.SetAuthURLParam("audience", "https://api.resim.ai"))
+		if err != nil {
+			panic(err)
+		}
+
+		browser.OpenURL(response.VerificationURIComplete)
+		fmt.Printf("If your browser hasn't opened automatically, please open\n%s\n", response.VerificationURI)
+		fmt.Printf("and enter code\n%s\n", response.UserCode)
+		token, err := config.DeviceAccessToken(ctx, response)
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Println(token)
+
+		tokenSource = config.TokenSource(ctx, token)
+	} else {
+		clientID := viper.GetString(clientIDKey)
+		if clientID == "" {
+			return nil, nil, errors.New("client-id must be specified")
+		}
+
+		cache.ClientID = clientID
+
+		clientSecret := viper.GetString(clientSecretKey)
+		if clientSecret == "" {
+			return nil, nil, errors.New("client-secret must be specified for non-interactive login")
+		}
+
+		config := clientcredentials.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			TokenURL:     tokenURL,
+			EndpointParams: url.Values{
+				"audience": []string{"https://api.resim.ai"},
+			},
+		}
 	}
 
 	if token, ok := cache.Tokens[clientID]; ok {

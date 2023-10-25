@@ -26,7 +26,11 @@ Or you can install using `go install`:
 
 ## Authentication
 
-The ReSim CLI authenticates using client credentials (a client ID and a client secret).  These are obtained by contacting ReSim.  
+When you run any command, if you don't have a cached authentication token, the CLI will prompt you to log in using a web browser.
+
+### Non-Interactive Auth
+
+If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using client credentials (a client ID and a client secret). These are obtained by contacting ReSim.  
 
 Client credentials can be specified on the commandline with the `--client-id` and `--client-secret` flags, or in the environment as
 `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET`.

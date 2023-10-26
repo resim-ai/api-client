@@ -8,8 +8,11 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.1.24 - October 25 2023
+
 #### Added
 
+- The CLI will now prompt for interactive login if a client ID and secret are not provided.
 - The `experience-tags` command now has a `list` subcommand.
 
 #### Changed

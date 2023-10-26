@@ -45,9 +45,9 @@ func init() {
 	rootCmd.PersistentFlags().String(clientIDKey, "", "Authentication credentials client ID")
 	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
 	rootCmd.PersistentFlags().String(devInteractiveClientKey, "", "Client ID for dev interactive login")
-	viper.SetDefault(devInteractiveClientKey, "FRp56l6LHj93nx9AKotXRzjbxPNy7exE")
+	viper.SetDefault(devInteractiveClientKey, "Rg1F0ZOCBmVYje4UVrS3BKIh4T2nCW9y")
 	rootCmd.PersistentFlags().String(prodInteractiveClientKey, "", "Client ID for prod interactive login")
-	viper.SetDefault(prodInteractiveClientKey, "uSwxZcgA2nRVn7Sazu9oNx9woqG6zQGi")
+	viper.SetDefault(prodInteractiveClientKey, "gTp1Y0kOyQ7QzIo2lZm0auGM6FJZZVvy")
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache, error) {
@@ -127,9 +127,6 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 			TokenURL:     tokenURL,
 			EndpointParams: url.Values{
 				"audience": []string{"https://api.resim.ai"},
-			},
-			Scopes: []string{
-				"offline_access",
 			},
 		}
 		tokenSource = config.TokenSource(ctx)

@@ -2,6 +2,11 @@ module github.com/resim-ai/api-client
 
 go 1.20
 
+retract (
+	v0.1.24
+	v0.1.25
+)
+
 require (
 	github.com/cli/browser v1.3.0
 	github.com/deepmap/oapi-codegen v1.13.4

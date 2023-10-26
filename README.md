@@ -71,8 +71,6 @@ We track issues and feature requests using [Github Issues](https://github.com/re
 
 The release workflow will run when a tag matching `v*` is pushed, so to do a release from `main` tag the relevant commit with the next appropriate version number.
 
-If a release is found to contain issues, it can be deleted from the GitHub releases page.
-
 ### Dependencies
 
 You will need Go installed.

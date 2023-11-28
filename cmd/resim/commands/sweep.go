@@ -67,7 +67,7 @@ func init() {
 	createSweepCmd.Flags().String(sweepMetricsBuildKey, "", "The ID of the metrics build to use in this sweep.")
 	createSweepCmd.Flags().String(sweepExperiencesKey, "", "List of experience names or list of experience IDs to run, comma-separated")
 	createSweepCmd.Flags().String(sweepExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
-	createSweepCmd.Flags().String(sweepGridSearchConfigKey, "", "Location of a json file listing parameter names and values to perform an exhaustive (combinatorial!) grid search. The json should be a list of key:value pairs, where the key is the parameter name and the values are a list of values to sample.")
+	createSweepCmd.Flags().String(sweepGridSearchConfigKey, "", "Location of a json file listing parameter names and values to perform an exhaustive (combinatorial!) grid search. The json should be a list of objects with 'name' and 'values' the values are a list of values to sample.")
 	createSweepCmd.Flags().String(sweepParameterNameKey, "", "The name of a single parameter to sweep.")
 	createSweepCmd.Flags().StringSlice(sweepParameterValuesKey, []string{}, "A comma separated list of parameter values to sweep.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
@@ -175,7 +175,8 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 	// Build the request body
 	body := api.CreateParameterSweepJSONRequestBody{
-		BuildID: &buildID,
+		BuildID:    &buildID,
+		Parameters: &sweepParameters,
 	}
 
 	if allExperienceIDs != nil {

@@ -1591,7 +1591,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	sweepIDStringGH := output.StdOut[len(GithubCreatedSweep) : len(output.StdOut)-1]
 	uuid.MustParse(sweepIDStringGH)
 
-	// Create a sweep with (only) experience tagsnames using the --experience-tags flag and a config file location
+	// Create a sweep with (only) experience tag names using the --experience-tags flag and a config file location
 	// The config file location is in a subdirectory of the testing directory called 'data' and is called valid_sweep_config.json:
 	// Find the current working directory:
 	cwd, err := os.Getwd()

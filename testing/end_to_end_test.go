@@ -1629,8 +1629,8 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Contains(output.StdErr, ConfigParamsMutuallyExclusive)
 
 	// Try a sweep with an invalid config
-	configLocation = fmt.Sprintf("%s/data/invalid_sweep_config.json", cwd)
-	output = s.runCommand(s.createSweep(buildIDString, []string{}, []string{tagName}, "", "", []string{}, configLocation, GithubFalse), ExpectError)
+	invalidConfigLocation := fmt.Sprintf("%s/data/invalid_sweep_config.json", cwd)
+	output = s.runCommand(s.createSweep(buildIDString, []string{}, []string{tagName}, "", "", []string{}, invalidConfigLocation, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidGridSearchFile)
 
 	// Get sweep passing the status flag. We need to manually execute and grab the exit code:

@@ -1696,7 +1696,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	for _, param := range passedParameters {
 		numBatches *= len(*param.Values)
 	}
-	s.Len(sweep.Batches, numBatches)
+	s.Len(*sweep.Batches, numBatches)
 
 	// Pass blank name / id to batches get:
 	output = s.runCommand(s.getSweepByName("", ExitStatusFalse), ExpectError)

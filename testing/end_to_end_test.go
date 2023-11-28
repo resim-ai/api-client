@@ -1684,6 +1684,10 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Contains(output.StdErr, InvalidSweepName)
 	output = s.runCommand(s.getSweepByID("", ExitStatusFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidSweepID)
+
+	// Check we can list the sweeps, and our new sweep is in it:
+	output = s.runCommand(s.listSweeps(), ExpectNoError)
+	s.Contains(output.StdOut, sweepNameString)
 }
 
 // Test the metrics builds:

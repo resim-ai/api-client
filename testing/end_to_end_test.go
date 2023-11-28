@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -100,8 +101,8 @@ const (
 	AutoCreateBranchFalse bool = false
 	GithubTrue            bool = true
 	GithubFalse           bool = false
-	BatchExitStatusTrue   bool = true
-	BatchExitStatusFalse  bool = false
+	ExitStatusTrue        bool = true
+	ExitStatusFalse       bool = false
 )
 
 // CLI Output Messages. Perhaps overkill, but we validate that successful actions
@@ -157,9 +158,18 @@ const (
 	EmptyLogBatchID  string = "empty batch ID"
 	EmptyLogJobID    string = "empty job ID"
 	InvalidJobID     string = "unable to parse job ID"
+	// Sweep Messages
+	CreatedSweep                  string = "Created sweep"
+	GithubCreatedSweep            string = "sweep_id="
+	FailedToCreateSweep           string = "failed to create sweep"
+	ConfigParamsMutuallyExclusive string = "if any flags in the group"
+	InvalidSweepName              string = "unable to find sweep"
+	InvalidSweepID                string = "unable to parse sweep ID"
+	InvalidGridSearchFile         string = "failed to parse grid search config file"
 )
 
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
+var AcceptableSweepStatusCodes = [...]int{0, 2, 3, 4} // we do not have cancelled for sweeps yet
 
 func (s *EndToEndTestSuite) TearDownSuite() {
 	os.Remove(fmt.Sprintf("%s/%s", s.CliPath, CliName))
@@ -677,7 +687,7 @@ func (s *EndToEndTestSuite) getBatchByName(batchName string, exitStatus bool) []
 }
 
 func (s *EndToEndTestSuite) getBatchByID(batchID string, exitStatus bool) []CommandBuilder {
-	// We build a get batch command with the name flag
+	// We build a get batch command with the id flag
 	batchCommand := CommandBuilder{
 		Command: "batches",
 	}
@@ -789,6 +799,127 @@ func (s *EndToEndTestSuite) listLogs(batchID string, jobID string) []CommandBuil
 		},
 	}
 	return []CommandBuilder{logCommand, listCommand}
+}
+
+func (s *EndToEndTestSuite) createSweep(buildID string, experiences []string, experienceTags []string, metricsBuildID string, parameterName string, parameterValues []string, configFileLocation string, github bool) []CommandBuilder {
+	// We build a create sweep command with the build-id, experiences, experience-tags, and metrics-build-id flags
+	// We additionally require either the parameter-name and parameter-values flags, or the grid-search-config flag
+	// We do not require any specific combination of these flags, and validate in tests that the CLI only allows one
+	// of parameter or config files and that at least one of the experiences flags is provided.
+	sweepCommand := CommandBuilder{
+		Command: "sweeps",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--build-id",
+				Value: buildID,
+			},
+		},
+	}
+	if len(experiences) > 0 {
+		experiencesString := strings.Join(experiences, ",")
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--experiences",
+			Value: experiencesString,
+		})
+	}
+	if len(experienceTags) > 0 {
+		experienceTagsString := strings.Join(experienceTags, ",")
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--experience-tags",
+			Value: experienceTagsString,
+		})
+	}
+	if len(metricsBuildID) > 0 {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--metrics-build-id",
+			Value: metricsBuildID,
+		})
+	}
+	if parameterName != "" {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--parameter-name",
+			Value: parameterName,
+		})
+	}
+	if len(parameterValues) > 0 {
+		parameterValuesString := strings.Join(parameterValues, ",")
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--parameter-values",
+			Value: parameterValuesString,
+		})
+	}
+	if configFileLocation != "" {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--grid-search-config",
+			Value: configFileLocation,
+		})
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{sweepCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) getSweepByName(sweepName string, exitStatus bool) []CommandBuilder {
+	// We build a get sweep command with the name flag
+	sweepCommand := CommandBuilder{
+		Command: "sweep",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--sweep-name",
+				Value: sweepName,
+			},
+		},
+	}
+	if exitStatus {
+		getCommand.Flags = append(getCommand.Flags, Flag{
+			Name:  "--exit-status",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{sweepCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) getSweepByID(sweepID string, exitStatus bool) []CommandBuilder {
+	// We build a get sweep command with the id flag
+	batchCommand := CommandBuilder{
+		Command: "sweeps",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--sweep-id",
+				Value: sweepID,
+			},
+		},
+	}
+	if exitStatus {
+		getCommand.Flags = append(getCommand.Flags, Flag{
+			Name:  "--exit-status",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{batchCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) listSweeps() []CommandBuilder {
+	sweepCommand := CommandBuilder{
+		Command: "sweep", // Implicitly testing alias to singular noun
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+	}
+	return []CommandBuilder{sweepCommand, listCommand}
 }
 
 // As a first test, we expect the help command to run successfully
@@ -1240,7 +1371,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// Since we have just submitted the batch, we would expect it to be running or submitted
 	// but we check that the exit code is in the acceptable range:
 	s.Eventually(func() bool {
-		cmd := s.buildCommand(s.getBatchByName(batchNameString, BatchExitStatusTrue))
+		cmd := s.buildCommand(s.getBatchByName(batchNameString, ExitStatusTrue))
 		var stdout, stderr bytes.Buffer
 		fmt.Println("About to run command: ", cmd.String())
 		cmd.Stdout = &stdout
@@ -1264,7 +1395,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 		return complete
 	}, 5*time.Minute, 10*time.Second)
 	// Grab the batch and validate the status, first by name then by ID:
-	output = s.runCommand(s.getBatchByName(batchNameString, BatchExitStatusFalse), ExpectNoError)
+	output = s.runCommand(s.getBatchByName(batchNameString, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
 	var batch api.Batch
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
@@ -1275,7 +1406,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// Validate that it succeeded:
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
 	// Get the batch by ID:
-	output = s.runCommand(s.getBatchByID(batchIDString, BatchExitStatusFalse), ExpectNoError)
+	output = s.runCommand(s.getBatchByID(batchIDString, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	s.NoError(err)
@@ -1285,9 +1416,9 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
 
 	// Pass blank name / id to batches get:
-	output = s.runCommand(s.getBatchByName("", BatchExitStatusFalse), ExpectError)
+	output = s.runCommand(s.getBatchByName("", ExitStatusFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchName)
-	output = s.runCommand(s.getBatchByID("", BatchExitStatusFalse), ExpectError)
+	output = s.runCommand(s.getBatchByID("", ExitStatusFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchID)
 	// Now grab the jobs from the batch:
 	output = s.runCommand(s.getBatchJobsByName(batchNameString), ExpectNoError)
@@ -1371,6 +1502,211 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
+	// First create two experiences:
+	experienceName1 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output := s.runCommand(s.createExperience(experienceName1, "description", experienceLocation, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	experienceID1 := uuid.MustParse(experienceIDString1)
+
+	experienceName2 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
+	output = s.runCommand(s.createExperience(experienceName2, "description", experienceLocation, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	experienceID2 := uuid.MustParse(experienceIDString2)
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+
+	// Then create a project, branch, build:
+	projectName := fmt.Sprintf("sweep-test-project-%s", uuid.New().String())
+	output = s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	uuid.MustParse(projectIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("sweep-test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(uuid.MustParse(projectIDString), branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+
+	// Create a metrics build:
+	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world", "version", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the build ID as a UUID
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	uuid.MustParse(metricsBuildIDString)
+
+	// Create an experience tag:
+	tagName := fmt.Sprintf("test-tag-%s", uuid.New().String())
+	output = s.runCommand(s.createExperienceTag(tagName, "testing tag"), ExpectNoError)
+
+	// List experience tags and check the list contains the tag we just created
+	output = s.runCommand(s.listExperienceTags(), ExpectNoError)
+	s.Contains(output.StdOut, tagName)
+
+	// Tag one of the experiences:
+	output = s.runCommand(s.tagExperience(tagName, experienceID1), ExpectNoError)
+
+	// Adding the same tag again should error:
+	output = s.runCommand(s.tagExperience(tagName, experienceID1), ExpectError)
+
+	// List experiences for the tag
+	output = s.runCommand(s.listExperiencesWithTag(tagName), ExpectNoError)
+	var tagExperiences []api.Experience
+	err := json.Unmarshal([]byte(output.StdOut), &tagExperiences)
+	s.NoError(err)
+	s.Equal(1, len(tagExperiences))
+
+	// Tag 2nd, check list contains 2 experiences
+	output = s.runCommand(s.tagExperience(tagName, experienceID2), ExpectNoError)
+	output = s.runCommand(s.listExperiencesWithTag(tagName), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &tagExperiences)
+	s.NoError(err)
+	s.Equal(2, len(tagExperiences))
+
+	// Define the parameters:
+	parameterName := "test-parameter"
+	parameterValues := []string{"value1", "value2", "value3"}
+	// Create a sweep with (only) experience names using the --experiences flag and specific parameter name and values (and "" for no config file location)
+	output = s.runCommand(s.createSweep(buildIDString, []string{experienceName1, experienceName2}, []string{}, metricsBuildIDString, parameterName, parameterValues, "", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSweep)
+	sweepIDStringGH := output.StdOut[len(GithubCreatedSweep) : len(output.StdOut)-1]
+	uuid.MustParse(sweepIDStringGH)
+
+	// Create a sweep with (only) experience tag names using the --experience-tags flag and a config file location
+	// The config file location is in a subdirectory of the testing directory called 'data' and is called valid_sweep_config.json:
+	// Find the current working directory:
+	cwd, err := os.Getwd()
+	s.NoError(err)
+	// Create the config location:
+	configLocation := fmt.Sprintf("%s/data/valid_sweep_config.json", cwd)
+	output = s.runCommand(s.createSweep(buildIDString, []string{}, []string{tagName}, "", "", []string{}, configLocation, GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedSweep)
+	s.Empty(output.StdErr)
+
+	// Extract from "Sweep ID:" to the next newline:
+	re := regexp.MustCompile(`Sweep ID: (.+?)\n`)
+	matches := re.FindStringSubmatch(output.StdOut)
+	s.Equal(2, len(matches))
+	secondSweepIDString := strings.TrimSpace(matches[1])
+	secondSweepID := uuid.MustParse(secondSweepIDString)
+	// Extract the sweep name:
+	re = regexp.MustCompile(`Sweep name: (.+?)\n`)
+	matches = re.FindStringSubmatch(output.StdOut)
+	s.Equal(2, len(matches))
+	sweepNameString := strings.TrimSpace(matches[1])
+	// RePun:
+	sweepNameParts := strings.Split(sweepNameString, "-")
+	s.Equal(3, len(sweepNameParts))
+	// Try a sweep without any experiences:
+	output = s.runCommand(s.createSweep(buildIDString, []string{}, []string{}, "", parameterName, parameterValues, "", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, FailedToCreateSweep)
+	// Try a sweep without a build id:
+	output = s.runCommand(s.createSweep("", []string{experienceIDString1, experienceIDString2}, []string{}, "", parameterName, parameterValues, "", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidBuildID)
+
+	// Try a sweep with both parameter name and config (even if fake):
+	output = s.runCommand(s.createSweep("", []string{experienceIDString1, experienceIDString2}, []string{}, "", parameterName, parameterValues, "config location", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, ConfigParamsMutuallyExclusive)
+
+	// Try a sweep with an invalid config
+	invalidConfigLocation := fmt.Sprintf("%s/data/invalid_sweep_config.json", cwd)
+	output = s.runCommand(s.createSweep(buildIDString, []string{}, []string{tagName}, "", "", []string{}, invalidConfigLocation, GithubFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidGridSearchFile)
+
+	// Get sweep passing the status flag. We need to manually execute and grab the exit code:
+	// Since we have just submitted the sweep, we would expect it to be running or submitted
+	// but we check that the exit code is in the acceptable range:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(s.getSweepByName(sweepNameString, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableSweepStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 2 failed
+		complete := (exitCode == 0 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for sweep completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Sweep completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the sweep and validate the status, first by name then by ID:
+	output = s.runCommand(s.getSweepByName(sweepNameString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	var sweep api.ParameterSweep
+	err = json.Unmarshal([]byte(output.StdOut), &sweep)
+	s.NoError(err)
+	s.Equal(sweepNameString, *sweep.Name)
+	s.Equal(secondSweepID, *sweep.ParameterSweepID)
+	// Validate that it succeeded:
+	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
+	// Get the sweep by ID:
+	output = s.runCommand(s.getSweepByID(secondSweepIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &sweep)
+	s.NoError(err)
+	s.Equal(sweepNameString, *sweep.Name)
+	s.Equal(secondSweepID, *sweep.ParameterSweepID)
+	// Validate that it succeeded:
+	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
+
+	// Validate that the sweep has the correct parameters:
+	passedParameters := []api.SweepParameter{}
+	// Read from the valid config file:
+	configFile, err := os.Open(configLocation)
+	s.NoError(err)
+	defer configFile.Close()
+	byteValue, err := io.ReadAll(configFile)
+	s.NoError(err)
+	err = json.Unmarshal(byteValue, &passedParameters)
+	s.NoError(err)
+	s.Equal(passedParameters, *sweep.Parameters)
+	// Figure out how many batches to expect:
+	numBatches := 1
+	for _, param := range passedParameters {
+		numBatches *= len(*param.Values)
+	}
+	s.Len(*sweep.Batches, numBatches)
+
+	// Pass blank name / id to batches get:
+	output = s.runCommand(s.getSweepByName("", ExitStatusFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidSweepName)
+	output = s.runCommand(s.getSweepByID("", ExitStatusFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidSweepID)
+
+	// Check we can list the sweeps, and our new sweep is in it:
+	output = s.runCommand(s.listSweeps(), ExpectNoError)
+	s.Contains(output.StdOut, sweepNameString)
 }
 
 // Test the metrics builds:

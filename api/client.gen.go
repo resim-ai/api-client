@@ -24,11 +24,13 @@ const (
 
 // Defines values for BatchStatus.
 const (
-	BatchStatusCANCELLED BatchStatus = "CANCELLED"
-	BatchStatusFAILED    BatchStatus = "FAILED"
-	BatchStatusRUNNING   BatchStatus = "RUNNING"
-	BatchStatusSUBMITTED BatchStatus = "SUBMITTED"
-	BatchStatusSUCCEEDED BatchStatus = "SUCCEEDED"
+	BatchStatusBATCHMETRICSQUEUED  BatchStatus = "BATCH_METRICS_QUEUED"
+	BatchStatusBATCHMETRICSRUNNING BatchStatus = "BATCH_METRICS_RUNNING"
+	BatchStatusCANCELLED           BatchStatus = "CANCELLED"
+	BatchStatusEXPERIENCESRUNNING  BatchStatus = "EXPERIENCES_RUNNING"
+	BatchStatusFAILED              BatchStatus = "FAILED"
+	BatchStatusSUBMITTED           BatchStatus = "SUBMITTED"
+	BatchStatusSUCCEEDED           BatchStatus = "SUCCEEDED"
 )
 
 // Defines values for BranchType.
@@ -51,10 +53,10 @@ const (
 
 // Defines values for MetricStatus.
 const (
-	FAILED        MetricStatus = "FAILED"
-	NOTAPPLICABLE MetricStatus = "NOT_APPLICABLE"
-	PASSED        MetricStatus = "PASSED"
-	RAW           MetricStatus = "RAW"
+	MetricStatusFAILED        MetricStatus = "FAILED"
+	MetricStatusNOTAPPLICABLE MetricStatus = "NOT_APPLICABLE"
+	MetricStatusPASSED        MetricStatus = "PASSED"
+	MetricStatusRAW           MetricStatus = "RAW"
 )
 
 // Defines values for MetricType.
@@ -74,6 +76,15 @@ const (
 	TYPETRAJECTORY   ObjectType = "TYPE_TRAJECTORY"
 )
 
+// Defines values for ParameterSweepStatus.
+const (
+	ParameterSweepStatusFAILED    ParameterSweepStatus = "FAILED"
+	ParameterSweepStatusQUEUED    ParameterSweepStatus = "QUEUED"
+	ParameterSweepStatusRUNNING   ParameterSweepStatus = "RUNNING"
+	ParameterSweepStatusSUBMITTED ParameterSweepStatus = "SUBMITTED"
+	ParameterSweepStatusSUCCEEDED ParameterSweepStatus = "SUCCEEDED"
+)
+
 // Batch defines model for batch.
 type Batch struct {
 	BatchID                      *BatchID           `json:"batchID,omitempty"`
@@ -84,6 +95,7 @@ type Batch struct {
 	InstantiatedExperienceTagIDs *[]ExperienceTagID `json:"instantiatedExperienceTagIDs,omitempty"`
 	MetricsBuildID               *MetricsBuildID    `json:"metricsBuildID,omitempty"`
 	OrgID                        *OrgID             `json:"orgID,omitempty"`
+	Parameters                   *map[string]string `json:"parameters,omitempty"`
 	Status                       *BatchStatus       `json:"status,omitempty"`
 	UserID                       *UserID            `json:"userID,omitempty"`
 }
@@ -93,12 +105,31 @@ type BatchID = openapi_types.UUID
 
 // BatchMetric defines model for batchMetric.
 type BatchMetric struct {
-	Name  *MetricName       `json:"name,omitempty"`
-	Value *BatchMetricValue `json:"value,omitempty"`
+	BatchID           *BatchID           `json:"batchID,omitempty"`
+	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
+	MetricID          *MetricID          `json:"metricID,omitempty"`
+	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
+	Name              *MetricName        `json:"name,omitempty"`
+	OrgID             *OrgID             `json:"orgID,omitempty"`
+	Status            *MetricStatus      `json:"status,omitempty"`
+	Type              *MetricType        `json:"type,omitempty"`
+	UserID            *UserID            `json:"userID,omitempty"`
+	Value             *MetricValue       `json:"value"`
 }
 
-// BatchMetricValue defines model for batchMetricValue.
-type BatchMetricValue = float64
+// BatchMetricsData defines model for batchMetricsData.
+type BatchMetricsData struct {
+	BatchID           *BatchID             `json:"batchID,omitempty"`
+	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	DataID            *MetricsDataID       `json:"dataID,omitempty"`
+	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
+	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
+	Name              *string              `json:"name,omitempty"`
+	OrgID             *OrgID               `json:"orgID,omitempty"`
+	UserID            *UserID              `json:"userID,omitempty"`
+}
 
 // BatchStatus defines model for batchStatus.
 type BatchStatus string
@@ -196,17 +227,46 @@ type FriendlyName = string
 
 // Job defines model for job.
 type Job struct {
-	BuildID        *BuildID      `json:"buildID,omitempty"`
-	ExperienceID   *ExperienceID `json:"experienceID,omitempty"`
-	JobID          *JobID        `json:"jobID,omitempty"`
-	JobStatus      *JobStatus    `json:"jobStatus,omitempty"`
-	OrgID          *OrgID        `json:"orgID,omitempty"`
-	OutputLocation *string       `json:"outputLocation,omitempty"`
-	UserID         *UserID       `json:"userID,omitempty"`
+	BuildID        *BuildID           `json:"buildID,omitempty"`
+	ExperienceID   *ExperienceID      `json:"experienceID,omitempty"`
+	JobID          *JobID             `json:"jobID,omitempty"`
+	JobStatus      *JobStatus         `json:"jobStatus,omitempty"`
+	OrgID          *OrgID             `json:"orgID,omitempty"`
+	OutputLocation *string            `json:"outputLocation,omitempty"`
+	Parameters     *map[string]string `json:"parameters,omitempty"`
+	UserID         *UserID            `json:"userID,omitempty"`
 }
 
 // JobID defines model for jobID.
 type JobID = openapi_types.UUID
+
+// JobMetric defines model for jobMetric.
+type JobMetric struct {
+	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
+	JobID             *JobID             `json:"jobID,omitempty"`
+	MetricID          *MetricID          `json:"metricID,omitempty"`
+	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
+	Name              *MetricName        `json:"name,omitempty"`
+	OrgID             *OrgID             `json:"orgID,omitempty"`
+	Status            *MetricStatus      `json:"status,omitempty"`
+	Type              *MetricType        `json:"type,omitempty"`
+	UserID            *UserID            `json:"userID,omitempty"`
+	Value             *MetricValue       `json:"value"`
+}
+
+// JobMetricsData defines model for jobMetricsData.
+type JobMetricsData struct {
+	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	DataID            *MetricsDataID       `json:"dataID,omitempty"`
+	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
+	JobID             *JobID               `json:"jobID,omitempty"`
+	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
+	Name              *string              `json:"name,omitempty"`
+	OrgID             *OrgID               `json:"orgID,omitempty"`
+	UserID            *UserID              `json:"userID,omitempty"`
+}
 
 // JobStatus defines model for jobStatus.
 type JobStatus string
@@ -218,6 +278,7 @@ type LaunchProfile struct {
 	MemoryMib       *int             `json:"memory_mib,omitempty"`
 	Name            *string          `json:"name,omitempty"`
 	OrgID           *OrgID           `json:"orgID,omitempty"`
+	SharedMemoryMb  *int             `json:"shared_memory_mb,omitempty"`
 	UserID          *UserID          `json:"userID,omitempty"`
 	Vcpus           *int             `json:"vcpus,omitempty"`
 }
@@ -256,7 +317,6 @@ type Metric struct {
 	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
 	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
 	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
-	JobID             *JobID             `json:"jobID,omitempty"`
 	MetricID          *MetricID          `json:"metricID,omitempty"`
 	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
 	Name              *MetricName        `json:"name,omitempty"`
@@ -316,7 +376,6 @@ type MetricsData struct {
 	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
-	JobID             *JobID               `json:"jobID,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
 	Name              *string              `json:"name,omitempty"`
 	OrgID             *OrgID               `json:"orgID,omitempty"`
@@ -325,8 +384,8 @@ type MetricsData struct {
 
 // MetricsDataAndMetricID defines model for metricsDataAndMetricID.
 type MetricsDataAndMetricID struct {
-	MetricID    *MetricID    `json:"metricID,omitempty"`
-	MetricsData *MetricsData `json:"metricsData,omitempty"`
+	MetricID    *MetricID       `json:"metricID,omitempty"`
+	MetricsData *JobMetricsData `json:"metricsData,omitempty"`
 }
 
 // MetricsDataID defines model for metricsDataID.
@@ -350,6 +409,24 @@ type ObjectType string
 // OrgID defines model for orgID.
 type OrgID = string
 
+// ParameterSweep defines model for parameterSweep.
+type ParameterSweep struct {
+	Batches           *[]BatchID            `json:"batches,omitempty"`
+	CreationTimestamp *CreationTimestamp    `json:"creationTimestamp,omitempty"`
+	Name              *string               `json:"name,omitempty"`
+	OrgID             *OrgID                `json:"orgID,omitempty"`
+	ParameterSweepID  *ParameterSweepID     `json:"parameterSweepID,omitempty"`
+	Parameters        *[]SweepParameter     `json:"parameters,omitempty"`
+	Status            *ParameterSweepStatus `json:"status,omitempty"`
+	UserID            *UserID               `json:"userID,omitempty"`
+}
+
+// ParameterSweepID defines model for parameterSweepID.
+type ParameterSweepID = openapi_types.UUID
+
+// ParameterSweepStatus defines model for parameterSweepStatus.
+type ParameterSweepStatus string
+
 // Project defines model for project.
 type Project struct {
 	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
@@ -362,6 +439,12 @@ type Project struct {
 
 // ProjectID defines model for projectID.
 type ProjectID = openapi_types.UUID
+
+// SweepParameter defines model for sweepParameter.
+type SweepParameter struct {
+	Name   *string   `json:"name,omitempty"`
+	Values *[]string `json:"values,omitempty"`
+}
 
 // UpdateMask defines model for updateMask.
 type UpdateMask = []string
@@ -422,6 +505,7 @@ type CreateBatchJSONBody struct {
 	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
 	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
 	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Parameters         *map[string]string   `json:"parameters"`
 }
 
 // ListJobsParams defines parameters for ListJobs.
@@ -440,6 +524,7 @@ type ListLogsForJobParams struct {
 type ListMetricsForJobParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // ListMetricsForMetricIDsParams defines parameters for ListMetricsForMetricIDs.
@@ -465,6 +550,39 @@ type ListMetricsDataForJobParams struct {
 
 // ListMetricsDataForMetricsDataIDsParams defines parameters for ListMetricsDataForMetricsDataIDs.
 type ListMetricsDataForMetricsDataIDsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListBatchMetricsParams defines parameters for ListBatchMetrics.
+type ListBatchMetricsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListBatchMetricsForBatchMetricIDsParams defines parameters for ListBatchMetricsForBatchMetricIDs.
+type ListBatchMetricsForBatchMetricIDsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListBatchMetricsDataForBatchMetricIDsParams defines parameters for ListBatchMetricsDataForBatchMetricIDs.
+type ListBatchMetricsDataForBatchMetricIDsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// AddBatchMetricsDataToBatchMetricJSONBody defines parameters for AddBatchMetricsDataToBatchMetric.
+type AddBatchMetricsDataToBatchMetricJSONBody = []MetricsDataID
+
+// ListBatchMetricsDataParams defines parameters for ListBatchMetricsData.
+type ListBatchMetricsDataParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListBatchMetricsDataForBatchMetricsDataIDsParams defines parameters for ListBatchMetricsDataForBatchMetricsDataIDs.
+type ListBatchMetricsDataForBatchMetricsDataIDsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -579,6 +697,24 @@ type SetupSandboxJSONBody struct {
 	UserID *string `json:"userID,omitempty"`
 }
 
+// ListParameterSweepsParams defines parameters for ListParameterSweeps.
+type ListParameterSweepsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// CreateParameterSweepJSONBody defines parameters for CreateParameterSweep.
+type CreateParameterSweepJSONBody struct {
+	BuildID            *BuildID             `json:"buildID,omitempty"`
+	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
+	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
+	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
+	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
+	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Parameters         *[]SweepParameter    `json:"parameters,omitempty"`
+}
+
 // ListViewSessionsParams defines parameters for ListViewSessions.
 type ListViewSessionsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -593,13 +729,22 @@ type CreateBatchJSONRequestBody CreateBatchJSONBody
 type CreateLogJSONRequestBody = Log
 
 // CreateMetricJSONRequestBody defines body for CreateMetric for application/json ContentType.
-type CreateMetricJSONRequestBody = Metric
+type CreateMetricJSONRequestBody = JobMetric
 
 // AddMetricsDataToMetricJSONRequestBody defines body for AddMetricsDataToMetric for application/json ContentType.
 type AddMetricsDataToMetricJSONRequestBody = AddMetricsDataToMetricJSONBody
 
 // CreateMetricsDataJSONRequestBody defines body for CreateMetricsData for application/json ContentType.
-type CreateMetricsDataJSONRequestBody = MetricsData
+type CreateMetricsDataJSONRequestBody = JobMetricsData
+
+// CreateBatchMetricJSONRequestBody defines body for CreateBatchMetric for application/json ContentType.
+type CreateBatchMetricJSONRequestBody = BatchMetric
+
+// AddBatchMetricsDataToBatchMetricJSONRequestBody defines body for AddBatchMetricsDataToBatchMetric for application/json ContentType.
+type AddBatchMetricsDataToBatchMetricJSONRequestBody = AddBatchMetricsDataToBatchMetricJSONBody
+
+// CreateBatchMetricsDataJSONRequestBody defines body for CreateBatchMetricsData for application/json ContentType.
+type CreateBatchMetricsDataJSONRequestBody = BatchMetricsData
 
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
 type CreateExperienceTagJSONRequestBody = ExperienceTag
@@ -639,6 +784,9 @@ type DestroySandboxJSONRequestBody DestroySandboxJSONBody
 
 // SetupSandboxJSONRequestBody defines body for SetupSandbox for application/json ContentType.
 type SetupSandboxJSONRequestBody SetupSandboxJSONBody
+
+// CreateParameterSweepJSONRequestBody defines body for CreateParameterSweep for application/json ContentType.
+type CreateParameterSweepJSONRequestBody CreateParameterSweepJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -778,7 +926,34 @@ type ClientInterface interface {
 	ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBatchMetrics request
-	ListBatchMetrics(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListBatchMetrics(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBatchMetricWithBody request with any body
+	CreateBatchMetricWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBatchMetric(ctx context.Context, batchID BatchID, body CreateBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchMetricsForBatchMetricIDs request
+	ListBatchMetricsForBatchMetricIDs(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchMetricsDataForBatchMetricIDs request
+	ListBatchMetricsDataForBatchMetricIDs(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsDataForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddBatchMetricsDataToBatchMetricWithBody request with any body
+	AddBatchMetricsDataToBatchMetricWithBody(ctx context.Context, batchID BatchID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddBatchMetricsDataToBatchMetric(ctx context.Context, batchID BatchID, metricID MetricID, body AddBatchMetricsDataToBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchMetricsData request
+	ListBatchMetricsData(ctx context.Context, batchID BatchID, params *ListBatchMetricsDataParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBatchMetricsDataWithBody request with any body
+	CreateBatchMetricsDataWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBatchMetricsData(ctx context.Context, batchID BatchID, body CreateBatchMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchMetricsDataForBatchMetricsDataIDs request
+	ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBuilds request
 	ListBuilds(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -928,6 +1103,17 @@ type ClientInterface interface {
 	SetupSandboxWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	SetupSandbox(ctx context.Context, body SetupSandboxJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListParameterSweeps request
+	ListParameterSweeps(ctx context.Context, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateParameterSweepWithBody request with any body
+	CreateParameterSweepWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateParameterSweep(ctx context.Context, body CreateParameterSweepJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetParameterSweep request
+	GetParameterSweep(ctx context.Context, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListViewSessions request
 	ListViewSessions(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1218,8 +1404,128 @@ func (c *Client) ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID B
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListBatchMetrics(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListBatchMetricsRequest(c.Server, batchID)
+func (c *Client) ListBatchMetrics(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchMetricsRequest(c.Server, batchID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchMetricWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchMetricRequestWithBody(c.Server, batchID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchMetric(ctx context.Context, batchID BatchID, body CreateBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchMetricRequest(c.Server, batchID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchMetricsForBatchMetricIDs(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchMetricsForBatchMetricIDsRequest(c.Server, batchID, metricID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchMetricsDataForBatchMetricIDs(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsDataForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchMetricsDataForBatchMetricIDsRequest(c.Server, batchID, metricID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddBatchMetricsDataToBatchMetricWithBody(ctx context.Context, batchID BatchID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddBatchMetricsDataToBatchMetricRequestWithBody(c.Server, batchID, metricID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddBatchMetricsDataToBatchMetric(ctx context.Context, batchID BatchID, metricID MetricID, body AddBatchMetricsDataToBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddBatchMetricsDataToBatchMetricRequest(c.Server, batchID, metricID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchMetricsData(ctx context.Context, batchID BatchID, params *ListBatchMetricsDataParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchMetricsDataRequest(c.Server, batchID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchMetricsDataWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchMetricsDataRequestWithBody(c.Server, batchID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchMetricsData(ctx context.Context, batchID BatchID, body CreateBatchMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchMetricsDataRequest(c.Server, batchID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchMetricsDataForBatchMetricsDataIDsRequest(c.Server, batchID, metricsDataID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1878,6 +2184,54 @@ func (c *Client) SetupSandbox(ctx context.Context, body SetupSandboxJSONRequestB
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListParameterSweeps(ctx context.Context, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListParameterSweepsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateParameterSweepWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateParameterSweepRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateParameterSweep(ctx context.Context, body CreateParameterSweepJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateParameterSweepRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetParameterSweep(ctx context.Context, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetParameterSweepRequest(c.Server, sweepID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListViewSessions(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListViewSessionsRequest(c.Server, params)
 	if err != nil {
@@ -2525,6 +2879,22 @@ func NewListMetricsForJobRequest(server string, batchID BatchID, jobID JobID, pa
 
 		}
 
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -3043,7 +3413,7 @@ func NewListMetricsDataForMetricsDataIDsRequest(server string, batchID BatchID, 
 }
 
 // NewListBatchMetricsRequest generates requests for ListBatchMetrics
-func NewListBatchMetricsRequest(server string, batchID BatchID) (*http.Request, error) {
+func NewListBatchMetricsRequest(server string, batchID BatchID, params *ListBatchMetricsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3066,6 +3436,501 @@ func NewListBatchMetricsRequest(server string, batchID BatchID) (*http.Request, 
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateBatchMetricRequest calls the generic CreateBatchMetric builder with application/json body
+func NewCreateBatchMetricRequest(server string, batchID BatchID, body CreateBatchMetricJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBatchMetricRequestWithBody(server, batchID, "application/json", bodyReader)
+}
+
+// NewCreateBatchMetricRequestWithBody generates requests for CreateBatchMetric with any type of body
+func NewCreateBatchMetricRequestWithBody(server string, batchID BatchID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metrics", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBatchMetricsForBatchMetricIDsRequest generates requests for ListBatchMetricsForBatchMetricIDs
+func NewListBatchMetricsForBatchMetricIDsRequest(server string, batchID BatchID, metricID []MetricID, params *ListBatchMetricsForBatchMetricIDsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metrics/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBatchMetricsDataForBatchMetricIDsRequest generates requests for ListBatchMetricsDataForBatchMetricIDs
+func NewListBatchMetricsDataForBatchMetricIDsRequest(server string, batchID BatchID, metricID []MetricID, params *ListBatchMetricsDataForBatchMetricIDsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metrics/%s/metricsData", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddBatchMetricsDataToBatchMetricRequest calls the generic AddBatchMetricsDataToBatchMetric builder with application/json body
+func NewAddBatchMetricsDataToBatchMetricRequest(server string, batchID BatchID, metricID MetricID, body AddBatchMetricsDataToBatchMetricJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddBatchMetricsDataToBatchMetricRequestWithBody(server, batchID, metricID, "application/json", bodyReader)
+}
+
+// NewAddBatchMetricsDataToBatchMetricRequestWithBody generates requests for AddBatchMetricsDataToBatchMetric with any type of body
+func NewAddBatchMetricsDataToBatchMetricRequestWithBody(server string, batchID BatchID, metricID MetricID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metrics/%s/metricsData", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBatchMetricsDataRequest generates requests for ListBatchMetricsData
+func NewListBatchMetricsDataRequest(server string, batchID BatchID, params *ListBatchMetricsDataParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metricsData", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateBatchMetricsDataRequest calls the generic CreateBatchMetricsData builder with application/json body
+func NewCreateBatchMetricsDataRequest(server string, batchID BatchID, body CreateBatchMetricsDataJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBatchMetricsDataRequestWithBody(server, batchID, "application/json", bodyReader)
+}
+
+// NewCreateBatchMetricsDataRequestWithBody generates requests for CreateBatchMetricsData with any type of body
+func NewCreateBatchMetricsDataRequestWithBody(server string, batchID BatchID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metricsData", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBatchMetricsDataForBatchMetricsDataIDsRequest generates requests for ListBatchMetricsDataForBatchMetricsDataIDs
+func NewListBatchMetricsDataForBatchMetricsDataIDsRequest(server string, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "metricsDataID", runtime.ParamLocationPath, metricsDataID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metricsData/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -5171,6 +6036,161 @@ func NewSetupSandboxRequestWithBody(server string, contentType string, body io.R
 	return req, nil
 }
 
+// NewListParameterSweepsRequest generates requests for ListParameterSweeps
+func NewListParameterSweepsRequest(server string, params *ListParameterSweepsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sweeps")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateParameterSweepRequest calls the generic CreateParameterSweep builder with application/json body
+func NewCreateParameterSweepRequest(server string, body CreateParameterSweepJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateParameterSweepRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateParameterSweepRequestWithBody generates requests for CreateParameterSweep with any type of body
+func NewCreateParameterSweepRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sweeps")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetParameterSweepRequest generates requests for GetParameterSweep
+func NewGetParameterSweepRequest(server string, sweepID ParameterSweepID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "sweepID", runtime.ParamLocationPath, sweepID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/sweeps/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListViewSessionsRequest generates requests for ListViewSessions
 func NewListViewSessionsRequest(server string, params *ListViewSessionsParams) (*http.Request, error) {
 	var err error
@@ -5464,7 +6484,34 @@ type ClientWithResponsesInterface interface {
 	ListMetricsDataForMetricsDataIDsWithResponse(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListMetricsDataForMetricsDataIDsResponse, error)
 
 	// ListBatchMetricsWithResponse request
-	ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error)
+	ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error)
+
+	// CreateBatchMetricWithBodyWithResponse request with any body
+	CreateBatchMetricWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchMetricResponse, error)
+
+	CreateBatchMetricWithResponse(ctx context.Context, batchID BatchID, body CreateBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchMetricResponse, error)
+
+	// ListBatchMetricsForBatchMetricIDsWithResponse request
+	ListBatchMetricsForBatchMetricIDsWithResponse(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsForBatchMetricIDsResponse, error)
+
+	// ListBatchMetricsDataForBatchMetricIDsWithResponse request
+	ListBatchMetricsDataForBatchMetricIDsWithResponse(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsDataForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricIDsResponse, error)
+
+	// AddBatchMetricsDataToBatchMetricWithBodyWithResponse request with any body
+	AddBatchMetricsDataToBatchMetricWithBodyWithResponse(ctx context.Context, batchID BatchID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddBatchMetricsDataToBatchMetricResponse, error)
+
+	AddBatchMetricsDataToBatchMetricWithResponse(ctx context.Context, batchID BatchID, metricID MetricID, body AddBatchMetricsDataToBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*AddBatchMetricsDataToBatchMetricResponse, error)
+
+	// ListBatchMetricsDataWithResponse request
+	ListBatchMetricsDataWithResponse(ctx context.Context, batchID BatchID, params *ListBatchMetricsDataParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataResponse, error)
+
+	// CreateBatchMetricsDataWithBodyWithResponse request with any body
+	CreateBatchMetricsDataWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchMetricsDataResponse, error)
+
+	CreateBatchMetricsDataWithResponse(ctx context.Context, batchID BatchID, body CreateBatchMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchMetricsDataResponse, error)
+
+	// ListBatchMetricsDataForBatchMetricsDataIDsWithResponse request
+	ListBatchMetricsDataForBatchMetricsDataIDsWithResponse(ctx context.Context, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricsDataIDsResponse, error)
 
 	// ListBuildsWithResponse request
 	ListBuildsWithResponse(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*ListBuildsResponse, error)
@@ -5614,6 +6661,17 @@ type ClientWithResponsesInterface interface {
 	SetupSandboxWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*SetupSandboxResponse, error)
 
 	SetupSandboxWithResponse(ctx context.Context, body SetupSandboxJSONRequestBody, reqEditors ...RequestEditorFn) (*SetupSandboxResponse, error)
+
+	// ListParameterSweepsWithResponse request
+	ListParameterSweepsWithResponse(ctx context.Context, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*ListParameterSweepsResponse, error)
+
+	// CreateParameterSweepWithBodyWithResponse request with any body
+	CreateParameterSweepWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateParameterSweepResponse, error)
+
+	CreateParameterSweepWithResponse(ctx context.Context, body CreateParameterSweepJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateParameterSweepResponse, error)
+
+	// GetParameterSweepWithResponse request
+	GetParameterSweepWithResponse(ctx context.Context, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*GetParameterSweepResponse, error)
 
 	// ListViewSessionsWithResponse request
 	ListViewSessionsWithResponse(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*ListViewSessionsResponse, error)
@@ -5859,8 +6917,8 @@ type ListMetricsForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		Metrics       *[]Metric `json:"metrics,omitempty"`
-		NextPageToken *string   `json:"nextPageToken,omitempty"`
+		Metrics       *[]JobMetric `json:"metrics,omitempty"`
+		NextPageToken *string      `json:"nextPageToken,omitempty"`
 	}
 }
 
@@ -5883,7 +6941,7 @@ func (r ListMetricsForJobResponse) StatusCode() int {
 type CreateMetricResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *Metric
+	JSON201      *JobMetric
 }
 
 // Status returns HTTPResponse.Status
@@ -5906,8 +6964,8 @@ type ListMetricsForMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		Metrics       *[]Metric `json:"metrics,omitempty"`
-		NextPageToken *string   `json:"nextPageToken,omitempty"`
+		Metrics       *[]JobMetric `json:"metrics,omitempty"`
+		NextPageToken *string      `json:"nextPageToken,omitempty"`
 	}
 }
 
@@ -5981,8 +7039,8 @@ type ListMetricsDataForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		MetricsData   *[]MetricsData `json:"metricsData,omitempty"`
-		NextPageToken *string        `json:"nextPageToken,omitempty"`
+		MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
+		NextPageToken *string           `json:"nextPageToken,omitempty"`
 	}
 }
 
@@ -6005,7 +7063,7 @@ func (r ListMetricsDataForJobResponse) StatusCode() int {
 type CreateMetricsDataResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *MetricsData
+	JSON201      *JobMetricsData
 }
 
 // Status returns HTTPResponse.Status
@@ -6028,8 +7086,8 @@ type ListMetricsDataForMetricsDataIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		MetricsData   *[]MetricsData `json:"metricsData,omitempty"`
-		NextPageToken *string        `json:"nextPageToken,omitempty"`
+		MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
+		NextPageToken *string           `json:"nextPageToken,omitempty"`
 	}
 }
 
@@ -6053,7 +7111,8 @@ type ListBatchMetricsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		BatchMetrics *[]BatchMetric `json:"batchMetrics,omitempty"`
+		BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
+		NextPageToken *string        `json:"nextPageToken,omitempty"`
 	}
 }
 
@@ -6067,6 +7126,178 @@ func (r ListBatchMetricsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListBatchMetricsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBatchMetricResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *BatchMetric
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBatchMetricResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBatchMetricResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchMetricsForBatchMetricIDsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
+		NextPageToken *string        `json:"nextPageToken,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchMetricsForBatchMetricIDsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchMetricsForBatchMetricIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchMetricsDataForBatchMetricIDsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		BatchMetricsDataAndIDs *[]struct {
+			BatchMetricID    *MetricID         `json:"batchMetricID,omitempty"`
+			BatchMetricsData *BatchMetricsData `json:"batchMetricsData,omitempty"`
+		} `json:"batchMetricsDataAndIDs,omitempty"`
+		NextPageToken *string `json:"nextPageToken,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchMetricsDataForBatchMetricIDsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchMetricsDataForBatchMetricIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddBatchMetricsDataToBatchMetricResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *struct {
+		BatchMetricID       *MetricID        `json:"batchMetricID,omitempty"`
+		BatchMetricsDataIDs *[]MetricsDataID `json:"batchMetricsDataIDs,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r AddBatchMetricsDataToBatchMetricResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddBatchMetricsDataToBatchMetricResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchMetricsDataResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
+		NextPageToken    *string             `json:"nextPageToken,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchMetricsDataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchMetricsDataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBatchMetricsDataResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *BatchMetricsData
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBatchMetricsDataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBatchMetricsDataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchMetricsDataForBatchMetricsDataIDsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
+		NextPageToken    *string             `json:"nextPageToken,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -6997,6 +8228,75 @@ func (r SetupSandboxResponse) StatusCode() int {
 	return 0
 }
 
+type ListParameterSweepsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		NextPageToken *string           `json:"nextPageToken,omitempty"`
+		Sweeps        *[]ParameterSweep `json:"sweeps,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListParameterSweepsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListParameterSweepsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateParameterSweepResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *ParameterSweep
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateParameterSweepResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateParameterSweepResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetParameterSweepResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ParameterSweep
+}
+
+// Status returns HTTPResponse.Status
+func (r GetParameterSweepResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetParameterSweepResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListViewSessionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -7300,12 +8600,99 @@ func (c *ClientWithResponses) ListMetricsDataForMetricsDataIDsWithResponse(ctx c
 }
 
 // ListBatchMetricsWithResponse request returning *ListBatchMetricsResponse
-func (c *ClientWithResponses) ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error) {
-	rsp, err := c.ListBatchMetrics(ctx, batchID, reqEditors...)
+func (c *ClientWithResponses) ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error) {
+	rsp, err := c.ListBatchMetrics(ctx, batchID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParseListBatchMetricsResponse(rsp)
+}
+
+// CreateBatchMetricWithBodyWithResponse request with arbitrary body returning *CreateBatchMetricResponse
+func (c *ClientWithResponses) CreateBatchMetricWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchMetricResponse, error) {
+	rsp, err := c.CreateBatchMetricWithBody(ctx, batchID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchMetricResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBatchMetricWithResponse(ctx context.Context, batchID BatchID, body CreateBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchMetricResponse, error) {
+	rsp, err := c.CreateBatchMetric(ctx, batchID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchMetricResponse(rsp)
+}
+
+// ListBatchMetricsForBatchMetricIDsWithResponse request returning *ListBatchMetricsForBatchMetricIDsResponse
+func (c *ClientWithResponses) ListBatchMetricsForBatchMetricIDsWithResponse(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsForBatchMetricIDsResponse, error) {
+	rsp, err := c.ListBatchMetricsForBatchMetricIDs(ctx, batchID, metricID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchMetricsForBatchMetricIDsResponse(rsp)
+}
+
+// ListBatchMetricsDataForBatchMetricIDsWithResponse request returning *ListBatchMetricsDataForBatchMetricIDsResponse
+func (c *ClientWithResponses) ListBatchMetricsDataForBatchMetricIDsWithResponse(ctx context.Context, batchID BatchID, metricID []MetricID, params *ListBatchMetricsDataForBatchMetricIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricIDsResponse, error) {
+	rsp, err := c.ListBatchMetricsDataForBatchMetricIDs(ctx, batchID, metricID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchMetricsDataForBatchMetricIDsResponse(rsp)
+}
+
+// AddBatchMetricsDataToBatchMetricWithBodyWithResponse request with arbitrary body returning *AddBatchMetricsDataToBatchMetricResponse
+func (c *ClientWithResponses) AddBatchMetricsDataToBatchMetricWithBodyWithResponse(ctx context.Context, batchID BatchID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddBatchMetricsDataToBatchMetricResponse, error) {
+	rsp, err := c.AddBatchMetricsDataToBatchMetricWithBody(ctx, batchID, metricID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddBatchMetricsDataToBatchMetricResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddBatchMetricsDataToBatchMetricWithResponse(ctx context.Context, batchID BatchID, metricID MetricID, body AddBatchMetricsDataToBatchMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*AddBatchMetricsDataToBatchMetricResponse, error) {
+	rsp, err := c.AddBatchMetricsDataToBatchMetric(ctx, batchID, metricID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddBatchMetricsDataToBatchMetricResponse(rsp)
+}
+
+// ListBatchMetricsDataWithResponse request returning *ListBatchMetricsDataResponse
+func (c *ClientWithResponses) ListBatchMetricsDataWithResponse(ctx context.Context, batchID BatchID, params *ListBatchMetricsDataParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataResponse, error) {
+	rsp, err := c.ListBatchMetricsData(ctx, batchID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchMetricsDataResponse(rsp)
+}
+
+// CreateBatchMetricsDataWithBodyWithResponse request with arbitrary body returning *CreateBatchMetricsDataResponse
+func (c *ClientWithResponses) CreateBatchMetricsDataWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchMetricsDataResponse, error) {
+	rsp, err := c.CreateBatchMetricsDataWithBody(ctx, batchID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchMetricsDataResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBatchMetricsDataWithResponse(ctx context.Context, batchID BatchID, body CreateBatchMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchMetricsDataResponse, error) {
+	rsp, err := c.CreateBatchMetricsData(ctx, batchID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchMetricsDataResponse(rsp)
+}
+
+// ListBatchMetricsDataForBatchMetricsDataIDsWithResponse request returning *ListBatchMetricsDataForBatchMetricsDataIDsResponse
+func (c *ClientWithResponses) ListBatchMetricsDataForBatchMetricsDataIDsWithResponse(ctx context.Context, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricsDataIDsResponse, error) {
+	rsp, err := c.ListBatchMetricsDataForBatchMetricsDataIDs(ctx, batchID, metricsDataID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp)
 }
 
 // ListBuildsWithResponse request returning *ListBuildsResponse
@@ -7781,6 +9168,41 @@ func (c *ClientWithResponses) SetupSandboxWithResponse(ctx context.Context, body
 	return ParseSetupSandboxResponse(rsp)
 }
 
+// ListParameterSweepsWithResponse request returning *ListParameterSweepsResponse
+func (c *ClientWithResponses) ListParameterSweepsWithResponse(ctx context.Context, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*ListParameterSweepsResponse, error) {
+	rsp, err := c.ListParameterSweeps(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListParameterSweepsResponse(rsp)
+}
+
+// CreateParameterSweepWithBodyWithResponse request with arbitrary body returning *CreateParameterSweepResponse
+func (c *ClientWithResponses) CreateParameterSweepWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateParameterSweepResponse, error) {
+	rsp, err := c.CreateParameterSweepWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateParameterSweepResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateParameterSweepWithResponse(ctx context.Context, body CreateParameterSweepJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateParameterSweepResponse, error) {
+	rsp, err := c.CreateParameterSweep(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateParameterSweepResponse(rsp)
+}
+
+// GetParameterSweepWithResponse request returning *GetParameterSweepResponse
+func (c *ClientWithResponses) GetParameterSweepWithResponse(ctx context.Context, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*GetParameterSweepResponse, error) {
+	rsp, err := c.GetParameterSweep(ctx, sweepID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetParameterSweepResponse(rsp)
+}
+
 // ListViewSessionsWithResponse request returning *ListViewSessionsResponse
 func (c *ClientWithResponses) ListViewSessionsWithResponse(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*ListViewSessionsResponse, error) {
 	rsp, err := c.ListViewSessions(ctx, params, reqEditors...)
@@ -8082,8 +9504,8 @@ func ParseListMetricsForJobResponse(rsp *http.Response) (*ListMetricsForJobRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			Metrics       *[]Metric `json:"metrics,omitempty"`
-			NextPageToken *string   `json:"nextPageToken,omitempty"`
+			Metrics       *[]JobMetric `json:"metrics,omitempty"`
+			NextPageToken *string      `json:"nextPageToken,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -8110,7 +9532,7 @@ func ParseCreateMetricResponse(rsp *http.Response) (*CreateMetricResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Metric
+		var dest JobMetric
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8137,8 +9559,8 @@ func ParseListMetricsForMetricIDsResponse(rsp *http.Response) (*ListMetricsForMe
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			Metrics       *[]Metric `json:"metrics,omitempty"`
-			NextPageToken *string   `json:"nextPageToken,omitempty"`
+			Metrics       *[]JobMetric `json:"metrics,omitempty"`
+			NextPageToken *string      `json:"nextPageToken,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -8224,8 +9646,8 @@ func ParseListMetricsDataForJobResponse(rsp *http.Response) (*ListMetricsDataFor
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			MetricsData   *[]MetricsData `json:"metricsData,omitempty"`
-			NextPageToken *string        `json:"nextPageToken,omitempty"`
+			MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
+			NextPageToken *string           `json:"nextPageToken,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -8252,7 +9674,7 @@ func ParseCreateMetricsDataResponse(rsp *http.Response) (*CreateMetricsDataRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest MetricsData
+		var dest JobMetricsData
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -8279,8 +9701,8 @@ func ParseListMetricsDataForMetricsDataIDsResponse(rsp *http.Response) (*ListMet
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			MetricsData   *[]MetricsData `json:"metricsData,omitempty"`
-			NextPageToken *string        `json:"nextPageToken,omitempty"`
+			MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
+			NextPageToken *string           `json:"nextPageToken,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -8308,7 +9730,208 @@ func ParseListBatchMetricsResponse(rsp *http.Response) (*ListBatchMetricsRespons
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			BatchMetrics *[]BatchMetric `json:"batchMetrics,omitempty"`
+			BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
+			NextPageToken *string        `json:"nextPageToken,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateBatchMetricResponse parses an HTTP response from a CreateBatchMetricWithResponse call
+func ParseCreateBatchMetricResponse(rsp *http.Response) (*CreateBatchMetricResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBatchMetricResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest BatchMetric
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchMetricsForBatchMetricIDsResponse parses an HTTP response from a ListBatchMetricsForBatchMetricIDsWithResponse call
+func ParseListBatchMetricsForBatchMetricIDsResponse(rsp *http.Response) (*ListBatchMetricsForBatchMetricIDsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchMetricsForBatchMetricIDsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
+			NextPageToken *string        `json:"nextPageToken,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchMetricsDataForBatchMetricIDsResponse parses an HTTP response from a ListBatchMetricsDataForBatchMetricIDsWithResponse call
+func ParseListBatchMetricsDataForBatchMetricIDsResponse(rsp *http.Response) (*ListBatchMetricsDataForBatchMetricIDsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchMetricsDataForBatchMetricIDsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			BatchMetricsDataAndIDs *[]struct {
+				BatchMetricID    *MetricID         `json:"batchMetricID,omitempty"`
+				BatchMetricsData *BatchMetricsData `json:"batchMetricsData,omitempty"`
+			} `json:"batchMetricsDataAndIDs,omitempty"`
+			NextPageToken *string `json:"nextPageToken,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddBatchMetricsDataToBatchMetricResponse parses an HTTP response from a AddBatchMetricsDataToBatchMetricWithResponse call
+func ParseAddBatchMetricsDataToBatchMetricResponse(rsp *http.Response) (*AddBatchMetricsDataToBatchMetricResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddBatchMetricsDataToBatchMetricResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest struct {
+			BatchMetricID       *MetricID        `json:"batchMetricID,omitempty"`
+			BatchMetricsDataIDs *[]MetricsDataID `json:"batchMetricsDataIDs,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchMetricsDataResponse parses an HTTP response from a ListBatchMetricsDataWithResponse call
+func ParseListBatchMetricsDataResponse(rsp *http.Response) (*ListBatchMetricsDataResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchMetricsDataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
+			NextPageToken    *string             `json:"nextPageToken,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateBatchMetricsDataResponse parses an HTTP response from a CreateBatchMetricsDataWithResponse call
+func ParseCreateBatchMetricsDataResponse(rsp *http.Response) (*CreateBatchMetricsDataResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBatchMetricsDataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest BatchMetricsData
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchMetricsDataForBatchMetricsDataIDsResponse parses an HTTP response from a ListBatchMetricsDataForBatchMetricsDataIDsWithResponse call
+func ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp *http.Response) (*ListBatchMetricsDataForBatchMetricsDataIDsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchMetricsDataForBatchMetricsDataIDsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
+			NextPageToken    *string             `json:"nextPageToken,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
@@ -9304,6 +10927,87 @@ func ParseSetupSandboxResponse(rsp *http.Response) (*SetupSandboxResponse, error
 	response := &SetupSandboxResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListParameterSweepsResponse parses an HTTP response from a ListParameterSweepsWithResponse call
+func ParseListParameterSweepsResponse(rsp *http.Response) (*ListParameterSweepsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListParameterSweepsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			NextPageToken *string           `json:"nextPageToken,omitempty"`
+			Sweeps        *[]ParameterSweep `json:"sweeps,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateParameterSweepResponse parses an HTTP response from a CreateParameterSweepWithResponse call
+func ParseCreateParameterSweepResponse(rsp *http.Response) (*CreateParameterSweepResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateParameterSweepResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ParameterSweep
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetParameterSweepResponse parses an HTTP response from a GetParameterSweepWithResponse call
+func ParseGetParameterSweepResponse(rsp *http.Response) (*GetParameterSweepResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetParameterSweepResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ParameterSweep
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil

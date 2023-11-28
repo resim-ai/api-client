@@ -67,9 +67,9 @@ func init() {
 	createBatchCmd.MarkFlagRequired(batchBuildIDKey)
 	createBatchCmd.Flags().String(batchMetricsBuildKey, "", "The ID of the metrics build to use in this batch.")
 	// the separate ID and name flags for experiences and experience tags are kept for backwards compatibility
-	createBatchCmd.Flags().String(batchExperienceIDsKey, "", "Comma-separated list of experience ids to run.")
+	createBatchCmd.Flags().String(batchExperienceIDsKey, "", "Comma-separated list of experience IDs to run.")
 	createBatchCmd.Flags().String(batchExperiencesKey, "", "List of experience names or list of experience IDs to run, comma-separated")
-	createBatchCmd.Flags().String(batchExperienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
+	createBatchCmd.Flags().String(batchExperienceTagIDsKey, "", "Comma-separated list of experience tag IDs to run.")
 	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
 	// TODO(simon) We want at least one of the above flags. The function we want

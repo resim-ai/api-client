@@ -48,30 +48,30 @@ var (
 )
 
 const (
-	buildIDKey            = "build-id"
-	experienceIDsKey      = "experience-ids"
-	experiencesKey        = "experiences"
-	experienceTagIDsKey   = "experience-tag-ids"
-	experienceTagNamesKey = "experience-tag-names"
-	experienceTagsKey     = "experience-tags"
-	batchIDKey            = "batch-id"
-	batchNameKey          = "batch-name"
-	batchGithubKey        = "github"
-	batchMetricsBuildKey  = "metrics-build-id"
-	exitStatusKey         = "exit-status"
+	batchBuildIDKey            = "build-id"
+	batchExperienceIDsKey      = "experience-ids"
+	batchExperiencesKey        = "experiences"
+	batchExperienceTagIDsKey   = "experience-tag-ids"
+	batchExperienceTagNamesKey = "experience-tag-names"
+	batchExperienceTagsKey     = "experience-tags"
+	batchIDKey                 = "batch-id"
+	batchNameKey               = "batch-name"
+	batchGithubKey             = "github"
+	batchMetricsBuildKey       = "metrics-build-id"
+	batchExitStatusKey         = "exit-status"
 )
 
 func init() {
 	createBatchCmd.Flags().Bool(batchGithubKey, false, "Whether to output format in github action friendly format")
-	createBatchCmd.Flags().String(buildIDKey, "", "The ID of the build.")
-	createBatchCmd.MarkFlagRequired(buildIDKey)
+	createBatchCmd.Flags().String(batchBuildIDKey, "", "The ID of the build.")
+	createBatchCmd.MarkFlagRequired(batchBuildIDKey)
 	createBatchCmd.Flags().String(batchMetricsBuildKey, "", "The ID of the metrics build to use in this batch.")
 	// the separate ID and name flags for experiences and experience tags are kept for backwards compatibility
-	createBatchCmd.Flags().String(experienceIDsKey, "", "Comma-separated list of experience ids to run.")
-	createBatchCmd.Flags().String(experiencesKey, "", "List of experience names or list of experience IDs to run, comma-separated")
-	createBatchCmd.Flags().String(experienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
-	createBatchCmd.Flags().String(experienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
-	createBatchCmd.Flags().String(experienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
+	createBatchCmd.Flags().String(batchExperienceIDsKey, "", "Comma-separated list of experience ids to run.")
+	createBatchCmd.Flags().String(batchExperiencesKey, "", "List of experience names or list of experience IDs to run, comma-separated")
+	createBatchCmd.Flags().String(batchExperienceTagIDsKey, "", "Comma-separated list of experience tag ids to run.")
+	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
+	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
 	// TODO(simon) We want at least one of the above flags. The function we want
 	// is: .MarkFlagsOneRequired this was merged into Cobra recently:
 	// https://github.com/spf13/cobra/pull/1952 - but we need to wait for a stable
@@ -81,7 +81,7 @@ func init() {
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	getBatchCmd.Flags().Bool(exitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
+	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	batchCmd.AddCommand(getBatchCmd)
 
 	jobsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve jobs for.")
@@ -98,12 +98,12 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a batch...")
 	}
 
-	if !viper.IsSet(experienceIDsKey) && !viper.IsSet(experienceTagIDsKey) && !viper.IsSet(experienceTagNamesKey) && !viper.IsSet(experiencesKey) && !viper.IsSet(experienceTagsKey) {
+	if !viper.IsSet(batchExperienceIDsKey) && !viper.IsSet(batchExperienceTagIDsKey) && !viper.IsSet(batchExperienceTagNamesKey) && !viper.IsSet(batchExperiencesKey) && !viper.IsSet(batchExperienceTagsKey) {
 		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
 	}
 
 	// Parse the build ID
-	buildID, err := uuid.Parse(viper.GetString(buildIDKey))
+	buildID, err := uuid.Parse(viper.GetString(batchBuildIDKey))
 	if err != nil || buildID == uuid.Nil {
 		log.Fatal("failed to parse build ID: ", err)
 	}
@@ -112,14 +112,14 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	var allExperienceNames []string
 
 	// Parse --experience-ids
-	if viper.IsSet(experienceIDsKey) {
-		experienceIDs := parseUUIDs(viper.GetString(experienceIDsKey))
+	if viper.IsSet(batchExperienceIDsKey) {
+		experienceIDs := parseUUIDs(viper.GetString(batchExperienceIDsKey))
 		allExperienceIDs = append(allExperienceIDs, experienceIDs...)
 	}
 
 	// Parse --experiences into either IDs or names
-	if viper.IsSet(experiencesKey) {
-		experienceIDs, experienceNames := parseUUIDsAndNames(viper.GetString(experiencesKey))
+	if viper.IsSet(batchExperiencesKey) {
+		experienceIDs, experienceNames := parseUUIDsAndNames(viper.GetString(batchExperiencesKey))
 		allExperienceIDs = append(allExperienceIDs, experienceIDs...)
 		allExperienceNames = append(allExperienceNames, experienceNames...)
 	}
@@ -132,22 +132,22 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	if viper.IsSet(experienceTagIDsKey) && viper.IsSet(experienceTagNamesKey) {
-		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", experienceTagNamesKey, experienceTagIDsKey))
+	if viper.IsSet(batchExperienceTagIDsKey) && viper.IsSet(batchExperienceTagNamesKey) {
+		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", batchExperienceTagNamesKey, batchExperienceTagIDsKey))
 	}
 
 	var allExperienceTagIDs []uuid.UUID
 	var allExperienceTagNames []string
 
 	// Parse --experience-tag-ids
-	if viper.IsSet(experienceTagIDsKey) {
-		experienceTagIDs := parseUUIDs(viper.GetString(experienceTagIDsKey))
+	if viper.IsSet(batchExperienceTagIDsKey) {
+		experienceTagIDs := parseUUIDs(viper.GetString(batchExperienceTagIDsKey))
 		allExperienceTagIDs = append(allExperienceTagIDs, experienceTagIDs...)
 	}
 
 	// Parse --experience-tag-names:
-	if viper.IsSet(experienceTagNamesKey) {
-		experienceTagNames := strings.Split(viper.GetString(experienceTagNamesKey), ",")
+	if viper.IsSet(batchExperienceTagNamesKey) {
+		experienceTagNames := strings.Split(viper.GetString(batchExperienceTagNamesKey), ",")
 		for i := range experienceTagNames {
 			experienceTagNames[i] = strings.TrimSpace(experienceTagNames[i])
 		}
@@ -155,8 +155,8 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse --experience-tags
-	if viper.IsSet(experienceTagsKey) {
-		experienceTagIDs, experienceTagNames := parseUUIDsAndNames(viper.GetString(experienceTagsKey))
+	if viper.IsSet(batchExperienceTagsKey) {
+		experienceTagIDs, experienceTagNames := parseUUIDsAndNames(viper.GetString(batchExperienceTagsKey))
 		allExperienceTagIDs = append(allExperienceTagIDs, experienceTagIDs...)
 		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
 	}
@@ -272,7 +272,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		log.Fatal("must specify either the batch ID or the batch name")
 	}
 
-	if viper.GetBool(exitStatusKey) {
+	if viper.GetBool(batchExitStatusKey) {
 		if batch.Status == nil {
 			log.Fatal("no status returned")
 		}
@@ -283,7 +283,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			os.Exit(2)
 		case api.BatchStatusSUBMITTED:
 			os.Exit(3)
-		case api.BatchStatusRUNNING:
+		case api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
 			os.Exit(4)
 		case api.BatchStatusCANCELLED:
 			os.Exit(5)

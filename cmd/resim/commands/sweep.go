@@ -211,14 +211,11 @@ func createSweep(ccmd *cobra.Command, args []string) {
 	}
 	sweep := *response.JSON201
 
-	if !sweepGithub {
-		// Report the results back to the user
-		fmt.Println("Created sweep successfully!")
-	}
 	if sweep.ParameterSweepID == nil {
 		log.Fatal("empty ID")
 	}
 	if !sweepGithub {
+		fmt.Println("Created sweep successfully!")
 		fmt.Println("Sweep ID:", sweep.ParameterSweepID.String())
 	} else {
 		fmt.Printf("sweep_id=%s\n", sweep.ParameterSweepID.String())

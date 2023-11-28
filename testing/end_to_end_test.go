@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -1678,6 +1679,24 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Equal(secondSweepID, *sweep.ParameterSweepID)
 	// Validate that it succeeded:
 	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
+
+	// Validate that the sweep has the correct parameters:
+	passedParameters := []api.SweepParameter{}
+	// Read from the valid config file:
+	configFile, err := os.Open(configLocation)
+	s.NoError(err)
+	defer configFile.Close()
+	byteValue, err := io.ReadAll(configFile)
+	s.NoError(err)
+	err = json.Unmarshal(byteValue, &passedParameters)
+	s.NoError(err)
+	s.Equal(passedParameters, sweep.Parameters)
+	// Figure out how many batches to expect:
+	numBatches := 1
+	for _, param := range passedParameters {
+		numBatches *= len(*param.Values)
+	}
+	s.Len(sweep.Batches, numBatches)
 
 	// Pass blank name / id to batches get:
 	output = s.runCommand(s.getSweepByName("", ExitStatusFalse), ExpectError)

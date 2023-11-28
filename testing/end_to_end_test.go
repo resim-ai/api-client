@@ -1690,7 +1690,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.NoError(err)
 	err = json.Unmarshal(byteValue, &passedParameters)
 	s.NoError(err)
-	s.Equal(passedParameters, sweep.Parameters)
+	s.Equal(passedParameters, *sweep.Parameters)
 	// Figure out how many batches to expect:
 	numBatches := 1
 	for _, param := range passedParameters {

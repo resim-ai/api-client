@@ -91,7 +91,8 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 		}
 
 		cache.ClientID = clientID
-		if token, ok := cache.Tokens[clientID]; ok {
+		token, ok := cache.Tokens[clientID]
+		if ok && token.Valid() {
 			cache.TokenSource = config.TokenSource(ctx, &token)
 		} else {
 			response, err := config.DeviceAuth(ctx, oauth2.SetAuthURLParam("audience", "https://api.resim.ai"))
@@ -165,7 +166,9 @@ func (c *CredentialCache) SaveCredentialCache() {
 	if err != nil {
 		log.Println("error getting token:", err)
 	}
-	c.Tokens[c.ClientID] = *token
+	if token != nil {
+		c.Tokens[c.ClientID] = *token
+	}
 
 	data, err := json.Marshal(c.Tokens)
 	if err != nil {

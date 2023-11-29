@@ -8,6 +8,11 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.1.28 - November 30 2023
+
+#### Changed
+- Fixed a bug in the handling of invalid/expired cached tokens.
+
 ### v0.1.27 - November 29 2023
 
 #### Added

@@ -54,6 +54,7 @@ const (
 	batchExperienceTagIDsKey   = "experience-tag-ids"
 	batchExperienceTagNamesKey = "experience-tag-names"
 	batchExperienceTagsKey     = "experience-tags"
+	batchParameterKey          = "parameter"
 	batchIDKey                 = "batch-id"
 	batchNameKey               = "batch-name"
 	batchGithubKey             = "github"
@@ -72,6 +73,7 @@ func init() {
 	createBatchCmd.Flags().String(batchExperienceTagIDsKey, "", "Comma-separated list of experience tag IDs to run.")
 	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
+	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
 	// TODO(simon) We want at least one of the above flags. The function we want
 	// is: .MarkFlagsOneRequired this was merged into Cobra recently:
 	// https://github.com/spf13/cobra/pull/1952 - but we need to wait for a stable
@@ -161,9 +163,23 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
 	}
 
+	// Parse --parameter (if any provided)
+	parameters := map[string]string{}
+	if viper.IsSet(batchParameterKey) {
+		parameterStrings := viper.GetStringSlice(batchParameterKey)
+		for _, parameterString := range parameterStrings {
+			parameter := strings.Split(parameterString, ":")
+			if len(parameter) != 2 {
+				log.Fatal("failed to parse parameter: ", parameterString, " - must be in the format <parameter-name>:<parameter-value>")
+			}
+			parameters[parameter[0]] = parameter[1]
+		}
+	}
+
 	// Build the request body
 	body := api.CreateBatchJSONRequestBody{
-		BuildID: &buildID,
+		BuildID:    &buildID,
+		Parameters: &parameters,
 	}
 
 	if allExperienceIDs != nil {

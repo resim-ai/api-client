@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.1.29 - November 30 2023
+
+#### Added
+
+- Introduces the ability to specify build parameters when creating batches.
+
 ### v0.1.28 - November 30 2023
 
 #### Changed

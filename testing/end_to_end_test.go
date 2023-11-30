@@ -1566,7 +1566,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	metricsBuildID := uuid.MustParse(metricsBuildIDString)
 
 	// Create a batch with (only) experience names using the --experiences flag with some parameters
-	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{experienceName}, []string{}, "", GithubTrue, expectedParameterMap), ExpectNoError)
+	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{experienceName}, []string{}, metricsBuildIDString, GithubTrue, expectedParameterMap), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	batchID := uuid.MustParse(batchIDStringGH)

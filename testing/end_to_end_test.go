@@ -654,12 +654,6 @@ func (s *EndToEndTestSuite) createBatch(buildID string, experienceIDs []string, 
 			Value: metricsBuildID,
 		})
 	}
-	if len(metricsBuildID) > 0 {
-		createCommand.Flags = append(createCommand.Flags, Flag{
-			Name:  "--metrics-build-id",
-			Value: metricsBuildID,
-		})
-	}
 	if len(parameters) > 0 {
 		for key, value := range parameters {
 			createCommand.Flags = append(createCommand.Flags, Flag{

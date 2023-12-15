@@ -7,6 +7,9 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 ### Unreleased
 
 Changes in this section will be included in the next release.
+#### Changed
+
+- The CLI validates image URIs when builds and metrics builds are created.
 
 ### v0.1.28 - November 30 2023
 

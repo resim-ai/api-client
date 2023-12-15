@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
@@ -130,6 +131,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	buildImageURI := viper.GetString(buildImageURIKey)
 	if buildImageURI == "" {
 		log.Fatal("empty build image URI")
+	}
+	// Validate that the image URI is valid:
+	_, err := name.ParseReference(buildImageURI, name.StrictValidation)
+	if err != nil {
+		log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
 	}
 
 	// Check if the project exists, by listing projects:

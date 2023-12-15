@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
@@ -105,6 +106,11 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 	metricsBuildImageURI := viper.GetString(metricsBuildImageURIKey)
 	if metricsBuildImageURI == "" {
 		log.Fatal("empty metrics build image URI")
+	}
+	// Validate that the image URI is valid:
+	_, err := name.ParseReference(metricsBuildImageURI, name.StrictValidation)
+	if err != nil {
+		log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
 	}
 
 	body := api.CreateMetricsBuildJSONRequestBody{

@@ -1,6 +1,8 @@
 module github.com/resim-ai/api-client
 
-go 1.20
+go 1.21
+
+toolchain go1.21.5
 
 retract (
 	v0.1.25
@@ -11,7 +13,7 @@ require (
 	github.com/cli/browser v1.3.0
 	github.com/deepmap/oapi-codegen v1.13.4
 	github.com/fatih/color v1.13.0
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.5.0
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.16.0
 	golang.org/x/oauth2 v0.13.0

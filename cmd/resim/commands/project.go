@@ -211,15 +211,16 @@ func deleteProject(ccmd *cobra.Command, args []string) {
 func checkProjectID(client api.ClientWithResponsesInterface, identifier string) uuid.UUID {
 	// Page through projects until we find the one with either a name or an ID
 	// that matches the identifier string.
-	var projectID uuid.UUID = uuid.Nil
+	projectID := uuid.Nil
 	// First try the assumption that identifier is a UUID.
-	projectID, err := uuid.Parse(identifier)
+	err := uuid.Validate(identifier)
 	if err == nil {
 		// The identifier is a uuid - but does it refer to an existing project?
-		response, _ := client.GetProjectWithResponse(context.Background(), projectID)
+		potentialProjectID := uuid.MustParse(identifier)
+		response, _ := client.GetProjectWithResponse(context.Background(), potentialProjectID)
 		if response.HTTPResponse.StatusCode == http.StatusOK {
 			// Project found with ID
-			return projectID
+			return potentialProjectID
 		}
 	}
 	// If we're here then either the identifier is not a UUID or the UUID was not

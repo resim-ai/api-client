@@ -150,15 +150,16 @@ func getBranchID(client api.ClientWithResponsesInterface, projectID uuid.UUID, b
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
 func checkBranchID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string) uuid.UUID {
-	var branchID uuid.UUID = uuid.Nil
+	branchID := uuid.Nil
 	// First try the assumption that identifier is a UUID.
-	branchID, err := uuid.Parse(identifier)
+	err := uuid.Validate(identifier)
 	if err == nil {
 		// The identifier is a uuid - but does it refer to an existing branch?
-		response, _ := client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
+		potentialBranchID := uuid.MustParse(identifier)
+		response, _ := client.GetBranchForProjectWithResponse(context.Background(), projectID, potentialBranchID)
 		if response.HTTPResponse.StatusCode == http.StatusOK {
 			// Branch found with ID
-			return branchID
+			return potentialBranchID
 		}
 	}
 	// If we're here then either the identifier is not a UUID or the UUID was not

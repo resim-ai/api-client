@@ -128,6 +128,7 @@ const (
 	GithubCreatedBuild    string = "build_id="
 	EmptyBuildDescription string = "empty build description"
 	EmptyBuildImage       string = "empty build image URI"
+	InvalidBuildImage     string = "failed to parse the image URI"
 	EmptyBuildVersion     string = "empty build version"
 	BranchNotExist        string = "Branch does not exist"
 	// Metrics Build Messages
@@ -135,6 +136,7 @@ const (
 	GithubCreatedMetricsBuild string = "metrics_build_id="
 	EmptyMetricsBuildName     string = "empty metrics build name"
 	EmptyMetricsBuildImage    string = "empty metrics build image URI"
+	InvalidMetricsBuildImage  string = "failed to parse the image URI"
 	EmptyMetricsBuildVersion  string = "empty metrics build version"
 	// Experience Messages
 	CreatedExperience          string = "Created experience"
@@ -1105,7 +1107,7 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 
 	// Now create the build:
 
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
 
@@ -1120,16 +1122,19 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	s.Contains(output.StdOut, buildIDString)
 
 	// Verify that each of the required flags are required:
-	output = s.runCommand(s.createBuild(projectName, branchName, "", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildDescription)
 	output = s.runCommand(s.createBuild(projectName, branchName, "description", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildImage)
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildVersion)
-	output = s.runCommand(s.createBuild("", branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild("", branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
-	output = s.runCommand(s.createBuild(projectName, "", "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, "", "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, BranchNotExist)
+	// Validate the image URI is required to be valid and have a tag:
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidBuildImage)
 	// Delete the project:
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
@@ -1157,7 +1162,7 @@ func (s *EndToEndTestSuite) TestBuildCreateGithub() {
 	uuid.MustParse(branchIDString)
 
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -1190,13 +1195,13 @@ func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
 	uuid.MustParse(branchIDString)
 
 	// Now create the build: (with auto-create-branch flag). We expect this to succeed without any additional information
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBuild)
 	s.NotContains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", branchName))
 
 	// Now try to create a build with a new branch name:
 	newBranchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
-	output = s.runCommand(s.createBuild(projectName, newBranchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.1", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, newBranchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.1", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBuild)
 	s.Contains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", newBranchName))
 	s.Contains(output.StdOut, CreatedBranch)
@@ -1275,7 +1280,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	uuid.MustParse(branchIDString)
 
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -1283,7 +1288,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 
 	// Create a metrics build:
-	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world", "version", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the build ID as a UUID
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
@@ -1649,7 +1654,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	uuid.MustParse(branchIDString)
 
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -1657,7 +1662,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 
 	// Create a metrics build:
-	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world", "version", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the build ID as a UUID
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
@@ -1820,22 +1825,24 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 // Test the metrics builds:
 func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
 	fmt.Println("Testing metrics build creation")
-	output := s.runCommand(s.createMetricsBuild("metrics-build", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse), ExpectNoError)
+	output := s.runCommand(s.createMetricsBuild("metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedMetricsBuild)
 	s.Empty(output.StdErr)
 	// Verify that each of the required flags are required:
-	output = s.runCommand(s.createMetricsBuild("", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse), ExpectError)
+	output = s.runCommand(s.createMetricsBuild("", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildName)
 	output = s.runCommand(s.createMetricsBuild("name", "", "1.0.0", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildImage)
-	output = s.runCommand(s.createMetricsBuild("name", "public.ecr.aws/docker/library/hello-world", "", GithubFalse), ExpectError)
+	output = s.runCommand(s.createMetricsBuild("name", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildVersion)
+	output = s.runCommand(s.createMetricsBuild("name", "public.ecr.aws/docker/library/hello-world", "1.1.1", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidMetricsBuildImage)
 
 }
 
 func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
 	fmt.Println("Testing metrics build creation, with --github flag")
-	output := s.runCommand(s.createMetricsBuild("metrics-build", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue), ExpectNoError)
+	output := s.runCommand(s.createMetricsBuild("metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue), ExpectNoError)
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
 	uuid.MustParse(metricsBuildIDString)
 
@@ -1966,7 +1973,7 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 			{
 				Name:  "--image",
-				Value: "image",
+				Value: "public.ecr.aws/docker/library/hello-world:latest",
 			},
 			{
 				Name:  "--version",
@@ -1991,7 +1998,7 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 			{
 				Name:  "--image",
-				Value: "image",
+				Value: "public.ecr.aws/docker/library/hello-world:latest",
 			},
 			{
 				Name:  "--version",

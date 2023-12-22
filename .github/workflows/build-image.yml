@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 env:
-  IMAGE_NAME: core
+  IMAGE_NAME: api-client
   DOCKERFILE_PATH: .devcontainer/Dockerfile
   ECR_REPOSITORY: public.ecr.aws/resim/api-client
   HUB_REPOSITORY: resimai/api-client

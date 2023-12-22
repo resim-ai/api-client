@@ -12,9 +12,12 @@ Changes in this section will be included in the next release.
 
 - Introduces the ability to specify build parameters when creating batches. For example: `batch create ... --parameter "param1:foo","param2:bar"`. This will pass a `parameters.json` file upon test execution, just as with sweeps.
 
+### v0.1.29 - December 21 2023
+
 #### Changed
 
 - The CLI validates image URIs when builds and metrics builds are created.
+- Fixed a bug with parsing UUIDs
 
 ### v0.1.28 - November 30 2023
 

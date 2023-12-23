@@ -96,7 +96,7 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to list builds:", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list builds", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list builds", response.HTTPResponse, response.Body)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
@@ -161,7 +161,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 				log.Fatal("failed to create branch:", err)
 			}
 			ValidateResponse(http.StatusCreated, fmt.Sprintf("failed to create a new branch with name %v", branchName),
-				response.HTTPResponse)
+				response.HTTPResponse, response.Body)
 			branchID = *response.JSON201.BranchID
 			if !buildGithub {
 				fmt.Printf("Created branch with ID %v\n", branchID)
@@ -181,7 +181,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("unable to create build:", err)
 	}
-	ValidateResponse(http.StatusCreated, "unable to create build", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "unable to create build", response.HTTPResponse, response.Body)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}

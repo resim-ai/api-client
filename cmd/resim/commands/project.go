@@ -101,7 +101,7 @@ func listProjects(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to list projects:", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse, response.Body)
 		if response.JSON200 == nil {
 			log.Fatal("empty response")
 		}
@@ -147,7 +147,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ValidateResponse(http.StatusCreated, "failed to create project", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "failed to create project", response.HTTPResponse, response.Body)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}
@@ -176,7 +176,7 @@ func getProject(ccmd *cobra.Command, args []string) {
 		if response.HTTPResponse.StatusCode == http.StatusNotFound {
 			log.Fatal("failed to find project with requested id: ", projectID.String())
 		} else {
-			ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse)
+			ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse, response.Body)
 		}
 		project = response.JSON200
 	} else {
@@ -202,7 +202,7 @@ func deleteProject(ccmd *cobra.Command, args []string) {
 	if response.HTTPResponse.StatusCode == http.StatusNotFound {
 		log.Fatal("failed to delete project. No project exists with requested id: ", projectID.String())
 	} else {
-		ValidateResponse(http.StatusNoContent, "unable to delete project", response.HTTPResponse)
+		ValidateResponse(http.StatusNoContent, "unable to delete project", response.HTTPResponse, response.Body)
 	}
 	fmt.Println("Deleted project successfully!")
 }
@@ -238,7 +238,7 @@ pageLoop:
 		if err != nil {
 			log.Fatal("failed to list projects:", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list projects", response.HTTPResponse, response.Body)
 		if response.JSON200 == nil {
 			log.Fatal("empty response")
 		}

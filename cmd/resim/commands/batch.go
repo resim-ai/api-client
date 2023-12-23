@@ -207,7 +207,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to create batch:", err)
 	}
-	ValidateResponse(http.StatusCreated, "failed to create batch", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "failed to create batch", response.HTTPResponse, response.Body)
 
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
@@ -251,7 +251,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("unable to retrieve batch:", err)
 		}
-		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse, response.Body)
 		batch = response.JSON200
 	} else if viper.IsSet(batchNameKey) {
 		batchName := viper.GetString(batchNameKey)
@@ -265,7 +265,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatal("unable to list batches:", err)
 			}
-			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse)
+			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, response.Body)
 			if response.JSON200.Batches == nil {
 				log.Fatal("unable to find batch: ", batchName)
 			}
@@ -336,7 +336,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatal("unable to list batches:", err)
 			}
-			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse)
+			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, response.Body)
 			if response.JSON200.Batches == nil {
 				log.Fatal("unable to find batch: ", batchName)
 			}
@@ -369,7 +369,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("unable to list jobs:", err)
 		}
-		ValidateResponse(http.StatusOK, "unable to list jobs", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "unable to list jobs", response.HTTPResponse, response.Body)
 		if response.JSON200.Jobs == nil {
 			log.Fatal("unable to list jobs")
 		}

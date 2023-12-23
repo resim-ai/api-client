@@ -204,7 +204,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to create sweep:", err)
 	}
-	ValidateResponse(http.StatusCreated, "failed to create sweep", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "failed to create sweep", response.HTTPResponse, response.Body)
 
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
@@ -245,7 +245,7 @@ func getSweep(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("unable to retrieve sweep:", err)
 		}
-		ValidateResponse(http.StatusOK, "unable to retrieve sweep", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "unable to retrieve sweep", response.HTTPResponse, response.Body)
 		sweep = response.JSON200
 	} else if viper.IsSet(sweepNameKey) {
 		sweepName := viper.GetString(sweepNameKey)
@@ -259,7 +259,7 @@ func getSweep(ccmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatal("unable to list sweeps:", err)
 			}
-			ValidateResponse(http.StatusOK, "unable to list sweeps", response.HTTPResponse)
+			ValidateResponse(http.StatusOK, "unable to list sweeps", response.HTTPResponse, response.Body)
 			if response.JSON200.Sweeps == nil {
 				log.Fatal("unable to find sweep: ", sweepName)
 			}
@@ -321,7 +321,7 @@ func listSweeps(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to list parameter sweeps:", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list parameter sweeps", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list parameter sweeps", response.HTTPResponse, response.Body)
 		if response.JSON200 == nil {
 			log.Fatal("empty response")
 		}

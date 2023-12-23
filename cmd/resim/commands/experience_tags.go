@@ -86,7 +86,7 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to create experience tag: ", err)
 	}
-	ValidateResponse(http.StatusCreated, "failed to create experience tag", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "failed to create experience tag", response.HTTPResponse, response.Body)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}
@@ -112,7 +112,7 @@ func listExperienceTags(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to list experience tags: ", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list experience tags", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list experience tags", response.HTTPResponse, response.Body)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.ExperienceTags) == 0 {
@@ -149,7 +149,7 @@ func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to list experiences: ", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
@@ -196,7 +196,7 @@ pageLoop:
 		if err != nil {
 			log.Fatal("unable to list experience tags:", err)
 		}
-		ValidateResponse(http.StatusOK, "unable to list experience tags", listResponse.HTTPResponse)
+		ValidateResponse(http.StatusOK, "unable to list experience tags", listResponse.HTTPResponse, listResponse.Body)
 		if listResponse.JSON200 == nil {
 			log.Fatal("empty response")
 		}

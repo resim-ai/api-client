@@ -79,7 +79,6 @@ const (
 // Defines values for ParameterSweepStatus.
 const (
 	ParameterSweepStatusFAILED    ParameterSweepStatus = "FAILED"
-	ParameterSweepStatusQUEUED    ParameterSweepStatus = "QUEUED"
 	ParameterSweepStatusRUNNING   ParameterSweepStatus = "RUNNING"
 	ParameterSweepStatusSUBMITTED ParameterSweepStatus = "SUBMITTED"
 	ParameterSweepStatusSUCCEEDED ParameterSweepStatus = "SUCCEEDED"
@@ -87,17 +86,19 @@ const (
 
 // Batch defines model for batch.
 type Batch struct {
-	BatchID                      *BatchID           `json:"batchID,omitempty"`
-	BuildID                      *BuildID           `json:"buildID,omitempty"`
-	CreationTimestamp            *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	FriendlyName                 *FriendlyName      `json:"friendlyName,omitempty"`
-	InstantiatedExperienceIDs    *[]ExperienceID    `json:"instantiatedExperienceIDs,omitempty"`
-	InstantiatedExperienceTagIDs *[]ExperienceTagID `json:"instantiatedExperienceTagIDs,omitempty"`
-	MetricsBuildID               *MetricsBuildID    `json:"metricsBuildID,omitempty"`
-	OrgID                        *OrgID             `json:"orgID,omitempty"`
-	Parameters                   *map[string]string `json:"parameters,omitempty"`
-	Status                       *BatchStatus       `json:"status,omitempty"`
-	UserID                       *UserID            `json:"userID,omitempty"`
+	BatchID                      *BatchID                `json:"batchID,omitempty"`
+	BuildID                      *BuildID                `json:"buildID,omitempty"`
+	CreationTimestamp            *Timestamp              `json:"creationTimestamp,omitempty"`
+	FriendlyName                 *FriendlyName           `json:"friendlyName,omitempty"`
+	InstantiatedExperienceIDs    *[]ExperienceID         `json:"instantiatedExperienceIDs,omitempty"`
+	InstantiatedExperienceTagIDs *[]ExperienceTagID      `json:"instantiatedExperienceTagIDs,omitempty"`
+	LastUpdatedTimestamp         *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
+	MetricsBuildID               *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	OrgID                        *OrgID                  `json:"orgID,omitempty"`
+	Parameters                   *map[string]interface{} `json:"parameters,omitempty"`
+	Status                       *BatchStatus            `json:"status,omitempty"`
+	StatusHistory                *BatchStatusHistory     `json:"statusHistory,omitempty"`
+	UserID                       *UserID                 `json:"userID,omitempty"`
 }
 
 // BatchID defines model for batchID.
@@ -105,24 +106,24 @@ type BatchID = openapi_types.UUID
 
 // BatchMetric defines model for batchMetric.
 type BatchMetric struct {
-	BatchID           *BatchID           `json:"batchID,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
-	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
-	MetricID          *MetricID          `json:"metricID,omitempty"`
-	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
-	Name              *MetricName        `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	Status            *MetricStatus      `json:"status,omitempty"`
-	Type              *MetricType        `json:"type,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Value             *MetricValue       `json:"value"`
+	BatchID           *BatchID         `json:"batchID,omitempty"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation  `json:"fileLocation,omitempty"`
+	MetricID          *MetricID        `json:"metricID,omitempty"`
+	MetricURL         *MetricURL       `json:"metricURL,omitempty"`
+	Name              *MetricName      `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	Status            *MetricStatus    `json:"status,omitempty"`
+	Type              *MetricType      `json:"type,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
+	Value             *MetricValue     `json:"value"`
 }
 
 // BatchMetricsData defines model for batchMetricsData.
 type BatchMetricsData struct {
 	BatchID           *BatchID             `json:"batchID,omitempty"`
-	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
@@ -134,15 +135,21 @@ type BatchMetricsData struct {
 // BatchStatus defines model for batchStatus.
 type BatchStatus string
 
+// BatchStatusHistory defines model for batchStatusHistory.
+type BatchStatusHistory = []struct {
+	Status    *BatchStatus `json:"status,omitempty"`
+	UpdatedAt *Timestamp   `json:"updatedAt,omitempty"`
+}
+
 // Branch defines model for branch.
 type Branch struct {
-	BranchID          *BranchID          `json:"branchID,omitempty"`
-	BranchType        *BranchType        `json:"branchType,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Name              *string            `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	BranchID          *BranchID   `json:"branchID,omitempty"`
+	BranchType        *BranchType `json:"branchType,omitempty"`
+	CreationTimestamp *Timestamp  `json:"creationTimestamp,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	OrgID             *OrgID      `json:"orgID,omitempty"`
+	ProjectID         *ProjectID  `json:"projectID,omitempty"`
+	UserID            *UserID     `json:"userID,omitempty"`
 }
 
 // BranchID defines model for branchID.
@@ -153,15 +160,15 @@ type BranchType string
 
 // Build defines model for build.
 type Build struct {
-	BranchID          *BranchID          `json:"branchID,omitempty"`
-	BuildID           *BuildID           `json:"buildID,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Description       *BuildDescription  `json:"description,omitempty"`
-	ImageUri          *BuildImageUri     `json:"imageUri,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Version           *BuildVersion      `json:"version,omitempty"`
+	BranchID          *BranchID         `json:"branchID,omitempty"`
+	BuildID           *BuildID          `json:"buildID,omitempty"`
+	CreationTimestamp *Timestamp        `json:"creationTimestamp,omitempty"`
+	Description       *BuildDescription `json:"description,omitempty"`
+	ImageUri          *BuildImageUri    `json:"imageUri,omitempty"`
+	OrgID             *OrgID            `json:"orgID,omitempty"`
+	ProjectID         *ProjectID        `json:"projectID,omitempty"`
+	UserID            *UserID           `json:"userID,omitempty"`
+	Version           *BuildVersion     `json:"version,omitempty"`
 }
 
 // BuildDescription defines model for buildDescription.
@@ -179,19 +186,16 @@ type BuildVersion = string
 // Checksum defines model for checksum.
 type Checksum = string
 
-// CreationTimestamp defines model for creationTimestamp.
-type CreationTimestamp = time.Time
-
 // Experience defines model for experience.
 type Experience struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Description       *string            `json:"description,omitempty"`
-	ExperienceID      *ExperienceID      `json:"experienceID,omitempty"`
-	LaunchProfileID   *LaunchProfileID   `json:"launchProfileID,omitempty"`
-	Location          *string            `json:"location,omitempty"`
-	Name              *ExperienceName    `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	Description       *string          `json:"description,omitempty"`
+	ExperienceID      *ExperienceID    `json:"experienceID,omitempty"`
+	LaunchProfileID   *LaunchProfileID `json:"launchProfileID,omitempty"`
+	Location          *string          `json:"location,omitempty"`
+	Name              *ExperienceName  `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
 }
 
 // ExperienceID defines model for experienceID.
@@ -202,7 +206,7 @@ type ExperienceName = string
 
 // ExperienceTag defines model for experienceTag.
 type ExperienceTag struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp         `json:"creationTimestamp,omitempty"`
 	Description       *string            `json:"description,omitempty"`
 	ExperienceTagID   *ExperienceTagID   `json:"experienceTagID,omitempty"`
 	Name              *ExperienceTagName `json:"name,omitempty"`
@@ -227,14 +231,17 @@ type FriendlyName = string
 
 // Job defines model for job.
 type Job struct {
-	BuildID        *BuildID           `json:"buildID,omitempty"`
-	ExperienceID   *ExperienceID      `json:"experienceID,omitempty"`
-	JobID          *JobID             `json:"jobID,omitempty"`
-	JobStatus      *JobStatus         `json:"jobStatus,omitempty"`
-	OrgID          *OrgID             `json:"orgID,omitempty"`
-	OutputLocation *string            `json:"outputLocation,omitempty"`
-	Parameters     *map[string]string `json:"parameters,omitempty"`
-	UserID         *UserID            `json:"userID,omitempty"`
+	BuildID              *BuildID                `json:"buildID,omitempty"`
+	CreationTimestamp    *Timestamp              `json:"creationTimestamp,omitempty"`
+	ExperienceID         *ExperienceID           `json:"experienceID,omitempty"`
+	JobID                *JobID                  `json:"jobID,omitempty"`
+	JobStatus            *JobStatus              `json:"jobStatus,omitempty"`
+	LastUpdatedTimestamp *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
+	OrgID                *OrgID                  `json:"orgID,omitempty"`
+	OutputLocation       *string                 `json:"outputLocation,omitempty"`
+	Parameters           *map[string]interface{} `json:"parameters,omitempty"`
+	StatusHistory        *JobStatusHistory       `json:"statusHistory,omitempty"`
+	UserID               *UserID                 `json:"userID,omitempty"`
 }
 
 // JobID defines model for jobID.
@@ -242,23 +249,23 @@ type JobID = openapi_types.UUID
 
 // JobMetric defines model for jobMetric.
 type JobMetric struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
-	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
-	JobID             *JobID             `json:"jobID,omitempty"`
-	MetricID          *MetricID          `json:"metricID,omitempty"`
-	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
-	Name              *MetricName        `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	Status            *MetricStatus      `json:"status,omitempty"`
-	Type              *MetricType        `json:"type,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Value             *MetricValue       `json:"value"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation  `json:"fileLocation,omitempty"`
+	JobID             *JobID           `json:"jobID,omitempty"`
+	MetricID          *MetricID        `json:"metricID,omitempty"`
+	MetricURL         *MetricURL       `json:"metricURL,omitempty"`
+	Name              *MetricName      `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	Status            *MetricStatus    `json:"status,omitempty"`
+	Type              *MetricType      `json:"type,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
+	Value             *MetricValue     `json:"value"`
 }
 
 // JobMetricsData defines model for jobMetricsData.
 type JobMetricsData struct {
-	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
 	JobID             *JobID               `json:"jobID,omitempty"`
@@ -270,6 +277,12 @@ type JobMetricsData struct {
 
 // JobStatus defines model for jobStatus.
 type JobStatus string
+
+// JobStatusHistory defines model for jobStatusHistory.
+type JobStatusHistory = []struct {
+	Status    *JobStatus `json:"status,omitempty"`
+	UpdatedAt *Timestamp `json:"updatedAt,omitempty"`
+}
 
 // LaunchProfile defines model for launchProfile.
 type LaunchProfile struct {
@@ -291,16 +304,16 @@ type LineNumber = int32
 
 // Log defines model for log.
 type Log struct {
-	Checksum          *Checksum          `json:"checksum,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	FileName          *FileName          `json:"fileName,omitempty"`
-	FileSize          *FileSize          `json:"fileSize,omitempty"`
-	JobID             *JobID             `json:"jobID,omitempty"`
-	Location          *LogLocation       `json:"location,omitempty"`
-	LogID             *LogID             `json:"logID,omitempty"`
-	LogOutputLocation *string            `json:"logOutputLocation,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	Checksum          *Checksum    `json:"checksum,omitempty"`
+	CreationTimestamp *Timestamp   `json:"creationTimestamp,omitempty"`
+	FileName          *FileName    `json:"fileName,omitempty"`
+	FileSize          *FileSize    `json:"fileSize,omitempty"`
+	JobID             *JobID       `json:"jobID,omitempty"`
+	Location          *LogLocation `json:"location,omitempty"`
+	LogID             *LogID       `json:"logID,omitempty"`
+	LogOutputLocation *string      `json:"logOutputLocation,omitempty"`
+	OrgID             *OrgID       `json:"orgID,omitempty"`
+	UserID            *UserID      `json:"userID,omitempty"`
 }
 
 // LogID defines model for logID.
@@ -314,17 +327,17 @@ type McapURL = string
 
 // Metric defines model for metric.
 type Metric struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
-	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
-	MetricID          *MetricID          `json:"metricID,omitempty"`
-	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
-	Name              *MetricName        `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	Status            *MetricStatus      `json:"status,omitempty"`
-	Type              *MetricType        `json:"type,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Value             *MetricValue       `json:"value"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation  `json:"fileLocation,omitempty"`
+	MetricID          *MetricID        `json:"metricID,omitempty"`
+	MetricURL         *MetricURL       `json:"metricURL,omitempty"`
+	Name              *MetricName      `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	Status            *MetricStatus    `json:"status,omitempty"`
+	Type              *MetricType      `json:"type,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
+	Value             *MetricValue     `json:"value"`
 }
 
 // MetricID defines model for metricID.
@@ -350,7 +363,7 @@ type MetricValue = float64
 
 // MetricsBuild defines model for metricsBuild.
 type MetricsBuild struct {
-	CreationTimestamp *CreationTimestamp    `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp            `json:"creationTimestamp,omitempty"`
 	ImageUri          *MetricsBuildImageUri `json:"imageUri,omitempty"`
 	MetricsBuildID    *MetricsBuildID       `json:"metricsBuildID,omitempty"`
 	Name              *MetricsBuildName     `json:"name,omitempty"`
@@ -373,7 +386,7 @@ type MetricsBuildVersion = string
 
 // MetricsData defines model for metricsData.
 type MetricsData struct {
-	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
@@ -411,14 +424,16 @@ type OrgID = string
 
 // ParameterSweep defines model for parameterSweep.
 type ParameterSweep struct {
-	Batches           *[]BatchID            `json:"batches,omitempty"`
-	CreationTimestamp *CreationTimestamp    `json:"creationTimestamp,omitempty"`
-	Name              *string               `json:"name,omitempty"`
-	OrgID             *OrgID                `json:"orgID,omitempty"`
-	ParameterSweepID  *ParameterSweepID     `json:"parameterSweepID,omitempty"`
-	Parameters        *[]SweepParameter     `json:"parameters,omitempty"`
-	Status            *ParameterSweepStatus `json:"status,omitempty"`
-	UserID            *UserID               `json:"userID,omitempty"`
+	Batches              *[]BatchID                   `json:"batches,omitempty"`
+	CreationTimestamp    *Timestamp                   `json:"creationTimestamp,omitempty"`
+	LastUpdatedTimestamp *Timestamp                   `json:"lastUpdatedTimestamp,omitempty"`
+	Name                 *string                      `json:"name,omitempty"`
+	OrgID                *OrgID                       `json:"orgID,omitempty"`
+	ParameterSweepID     *ParameterSweepID            `json:"parameterSweepID,omitempty"`
+	Parameters           *[]SweepParameter            `json:"parameters,omitempty"`
+	Status               *ParameterSweepStatus        `json:"status,omitempty"`
+	StatusHistory        *ParameterSweepStatusHistory `json:"statusHistory,omitempty"`
+	UserID               *UserID                      `json:"userID,omitempty"`
 }
 
 // ParameterSweepID defines model for parameterSweepID.
@@ -427,14 +442,20 @@ type ParameterSweepID = openapi_types.UUID
 // ParameterSweepStatus defines model for parameterSweepStatus.
 type ParameterSweepStatus string
 
+// ParameterSweepStatusHistory defines model for parameterSweepStatusHistory.
+type ParameterSweepStatusHistory = []struct {
+	Status    *ParameterSweepStatus `json:"status,omitempty"`
+	UpdatedAt *Timestamp            `json:"updatedAt,omitempty"`
+}
+
 // Project defines model for project.
 type Project struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Description       *string            `json:"description,omitempty"`
-	Name              *string            `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	CreationTimestamp *Timestamp `json:"creationTimestamp,omitempty"`
+	Description       *string    `json:"description,omitempty"`
+	Name              *string    `json:"name,omitempty"`
+	OrgID             *OrgID     `json:"orgID,omitempty"`
+	ProjectID         *ProjectID `json:"projectID,omitempty"`
+	UserID            *UserID    `json:"userID,omitempty"`
 }
 
 // ProjectID defines model for projectID.
@@ -445,6 +466,9 @@ type SweepParameter struct {
 	Name   *string   `json:"name,omitempty"`
 	Values *[]string `json:"values,omitempty"`
 }
+
+// Timestamp defines model for timestamp.
+type Timestamp = time.Time
 
 // UpdateMask defines model for updateMask.
 type UpdateMask = []string
@@ -468,15 +492,12 @@ type ViewObject struct {
 	OrgID         *OrgID         `json:"orgID,omitempty"`
 	UserID        *UserID        `json:"userID,omitempty"`
 	ViewSessionID *ViewSessionID `json:"viewSessionID,omitempty"`
-	ViewTimestamp *ViewTimestamp `json:"viewTimestamp,omitempty"`
+	ViewTimestamp *Timestamp     `json:"viewTimestamp,omitempty"`
 	ViewURL       *string        `json:"viewURL,omitempty"`
 }
 
 // ViewSessionID defines model for viewSessionID.
 type ViewSessionID = openapi_types.UUID
-
-// ViewTimestamp defines model for viewTimestamp.
-type ViewTimestamp = time.Time
 
 // ViewUpdateID defines model for viewUpdateID.
 type ViewUpdateID = int
@@ -499,13 +520,13 @@ type ListBatchesParams struct {
 
 // CreateBatchJSONBody defines parameters for CreateBatch.
 type CreateBatchJSONBody struct {
-	BuildID            *BuildID             `json:"buildID,omitempty"`
-	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
-	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
-	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
-	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
-	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
-	Parameters         *map[string]string   `json:"parameters"`
+	BuildID            *BuildID                `json:"buildID,omitempty"`
+	ExperienceIDs      *[]ExperienceID         `json:"experienceIDs"`
+	ExperienceNames    *[]ExperienceName       `json:"experienceNames"`
+	ExperienceTagIDs   *[]ExperienceTagID      `json:"experienceTagIDs"`
+	ExperienceTagNames *[]ExperienceTagName    `json:"experienceTagNames"`
+	MetricsBuildID     *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	Parameters         *map[string]interface{} `json:"parameters"`
 }
 
 // ListJobsParams defines parameters for ListJobs.

@@ -16,7 +16,6 @@ Changes in this section will be included in the next release.
 #### Changed
 - Fixed a bug in the reporting of error messages from commands.
 
-
 ### v0.1.29 - December 21 2023
 
 #### Changed

@@ -137,12 +137,33 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("no experience ID")
 	}
 
+	validationResponse, err := Client.ValidateExperienceLocationWithResponse(context.Background(), api.ExperienceLocation{
+		Location: experience.Location,
+	})
+	if err != nil {
+		log.Fatal("could not validate experience after creation", err)
+	}
+
+	var objectsInExperience *[]string
+	var objectsCount *int
+
+	if validationResponse.JSON200 != nil {
+		objectsInExperience = validationResponse.JSON200.Objects
+		objectsCount = validationResponse.JSON200.ObjectCount
+	}
+
 	// Report the results back to the user
 	if experienceGithub {
 		fmt.Printf("experience_id=%s\n", experience.ExperienceID.String())
 	} else {
 		fmt.Println("Created experience successfully!")
 		fmt.Printf("Experience ID: %s\n", experience.ExperienceID.String())
+		if objectsCount != nil && *objectsCount > 0 {
+			fmt.Printf("ReSim found %v file(s) in experience location:\n", *objectsCount)
+			OutputJson(*objectsInExperience)
+		} else {
+			fmt.Println("WARNING: ReSim could not find any files in the provided location.")
+		}
 	}
 }
 

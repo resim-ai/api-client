@@ -40,6 +40,13 @@ const (
 	RELEASE       BranchType = "RELEASE"
 )
 
+// Defines values for ExecutionStep.
+const (
+	BATCHMETRICS ExecutionStep = "BATCH_METRICS"
+	EXPERIENCE   ExecutionStep = "EXPERIENCE"
+	METRICS      ExecutionStep = "METRICS"
+)
+
 // Defines values for JobStatus.
 const (
 	JobStatusCANCELLED         JobStatus = "CANCELLED"
@@ -49,6 +56,17 @@ const (
 	JobStatusMETRICSRUNNING    JobStatus = "METRICS_RUNNING"
 	JobStatusSUBMITTED         JobStatus = "SUBMITTED"
 	JobStatusSUCCEEDED         JobStatus = "SUCCEEDED"
+)
+
+// Defines values for LogType.
+const (
+	ARCHIVELOG       LogType = "ARCHIVE_LOG"
+	CONTAINERLOG     LogType = "CONTAINER_LOG"
+	EXECUTIONLOG     LogType = "EXECUTION_LOG"
+	MCAPLOG          LogType = "MCAP_LOG"
+	METRICSOUTPUTLOG LogType = "METRICS_OUTPUT_LOG"
+	MP4LOG           LogType = "MP4_LOG"
+	OTHERLOG         LogType = "OTHER_LOG"
 )
 
 // Defines values for MetricStatus.
@@ -79,7 +97,6 @@ const (
 // Defines values for ParameterSweepStatus.
 const (
 	ParameterSweepStatusFAILED    ParameterSweepStatus = "FAILED"
-	ParameterSweepStatusQUEUED    ParameterSweepStatus = "QUEUED"
 	ParameterSweepStatusRUNNING   ParameterSweepStatus = "RUNNING"
 	ParameterSweepStatusSUBMITTED ParameterSweepStatus = "SUBMITTED"
 	ParameterSweepStatusSUCCEEDED ParameterSweepStatus = "SUCCEEDED"
@@ -87,17 +104,19 @@ const (
 
 // Batch defines model for batch.
 type Batch struct {
-	BatchID                      *BatchID           `json:"batchID,omitempty"`
-	BuildID                      *BuildID           `json:"buildID,omitempty"`
-	CreationTimestamp            *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	FriendlyName                 *FriendlyName      `json:"friendlyName,omitempty"`
-	InstantiatedExperienceIDs    *[]ExperienceID    `json:"instantiatedExperienceIDs,omitempty"`
-	InstantiatedExperienceTagIDs *[]ExperienceTagID `json:"instantiatedExperienceTagIDs,omitempty"`
-	MetricsBuildID               *MetricsBuildID    `json:"metricsBuildID,omitempty"`
-	OrgID                        *OrgID             `json:"orgID,omitempty"`
-	Parameters                   *map[string]string `json:"parameters,omitempty"`
-	Status                       *BatchStatus       `json:"status,omitempty"`
-	UserID                       *UserID            `json:"userID,omitempty"`
+	BatchID                      *BatchID                `json:"batchID,omitempty"`
+	BuildID                      *BuildID                `json:"buildID,omitempty"`
+	CreationTimestamp            *Timestamp              `json:"creationTimestamp,omitempty"`
+	FriendlyName                 *FriendlyName           `json:"friendlyName,omitempty"`
+	InstantiatedExperienceIDs    *[]ExperienceID         `json:"instantiatedExperienceIDs,omitempty"`
+	InstantiatedExperienceTagIDs *[]ExperienceTagID      `json:"instantiatedExperienceTagIDs,omitempty"`
+	LastUpdatedTimestamp         *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
+	MetricsBuildID               *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	OrgID                        *OrgID                  `json:"orgID,omitempty"`
+	Parameters                   *map[string]interface{} `json:"parameters,omitempty"`
+	Status                       *BatchStatus            `json:"status,omitempty"`
+	StatusHistory                *BatchStatusHistory     `json:"statusHistory,omitempty"`
+	UserID                       *UserID                 `json:"userID,omitempty"`
 }
 
 // BatchID defines model for batchID.
@@ -105,24 +124,24 @@ type BatchID = openapi_types.UUID
 
 // BatchMetric defines model for batchMetric.
 type BatchMetric struct {
-	BatchID           *BatchID           `json:"batchID,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
-	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
-	MetricID          *MetricID          `json:"metricID,omitempty"`
-	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
-	Name              *MetricName        `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	Status            *MetricStatus      `json:"status,omitempty"`
-	Type              *MetricType        `json:"type,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Value             *MetricValue       `json:"value"`
+	BatchID           *BatchID         `json:"batchID,omitempty"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation  `json:"fileLocation,omitempty"`
+	MetricID          *MetricID        `json:"metricID,omitempty"`
+	MetricURL         *MetricURL       `json:"metricURL,omitempty"`
+	Name              *MetricName      `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	Status            *MetricStatus    `json:"status,omitempty"`
+	Type              *MetricType      `json:"type,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
+	Value             *MetricValue     `json:"value"`
 }
 
 // BatchMetricsData defines model for batchMetricsData.
 type BatchMetricsData struct {
 	BatchID           *BatchID             `json:"batchID,omitempty"`
-	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
@@ -134,15 +153,21 @@ type BatchMetricsData struct {
 // BatchStatus defines model for batchStatus.
 type BatchStatus string
 
+// BatchStatusHistory defines model for batchStatusHistory.
+type BatchStatusHistory = []struct {
+	Status    *BatchStatus `json:"status,omitempty"`
+	UpdatedAt *Timestamp   `json:"updatedAt,omitempty"`
+}
+
 // Branch defines model for branch.
 type Branch struct {
-	BranchID          *BranchID          `json:"branchID,omitempty"`
-	BranchType        *BranchType        `json:"branchType,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Name              *string            `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	BranchID          *BranchID   `json:"branchID,omitempty"`
+	BranchType        *BranchType `json:"branchType,omitempty"`
+	CreationTimestamp *Timestamp  `json:"creationTimestamp,omitempty"`
+	Name              *string     `json:"name,omitempty"`
+	OrgID             *OrgID      `json:"orgID,omitempty"`
+	ProjectID         *ProjectID  `json:"projectID,omitempty"`
+	UserID            *UserID     `json:"userID,omitempty"`
 }
 
 // BranchID defines model for branchID.
@@ -153,15 +178,15 @@ type BranchType string
 
 // Build defines model for build.
 type Build struct {
-	BranchID          *BranchID          `json:"branchID,omitempty"`
-	BuildID           *BuildID           `json:"buildID,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Description       *BuildDescription  `json:"description,omitempty"`
-	ImageUri          *BuildImageUri     `json:"imageUri,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Version           *BuildVersion      `json:"version,omitempty"`
+	BranchID          *BranchID         `json:"branchID,omitempty"`
+	BuildID           *BuildID          `json:"buildID,omitempty"`
+	CreationTimestamp *Timestamp        `json:"creationTimestamp,omitempty"`
+	Description       *BuildDescription `json:"description,omitempty"`
+	ImageUri          *BuildImageUri    `json:"imageUri,omitempty"`
+	OrgID             *OrgID            `json:"orgID,omitempty"`
+	ProjectID         *ProjectID        `json:"projectID,omitempty"`
+	UserID            *UserID           `json:"userID,omitempty"`
+	Version           *BuildVersion     `json:"version,omitempty"`
 }
 
 // BuildDescription defines model for buildDescription.
@@ -179,30 +204,41 @@ type BuildVersion = string
 // Checksum defines model for checksum.
 type Checksum = string
 
-// CreationTimestamp defines model for creationTimestamp.
-type CreationTimestamp = time.Time
+// ExecutionStep defines model for executionStep.
+type ExecutionStep string
 
 // Experience defines model for experience.
 type Experience struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Description       *string            `json:"description,omitempty"`
-	ExperienceID      *ExperienceID      `json:"experienceID,omitempty"`
-	LaunchProfileID   *LaunchProfileID   `json:"launchProfileID,omitempty"`
-	Location          *string            `json:"location,omitempty"`
-	Name              *ExperienceName    `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	Description       *string          `json:"description,omitempty"`
+	ExperienceID      *ExperienceID    `json:"experienceID,omitempty"`
+	LaunchProfileID   *LaunchProfileID `json:"launchProfileID,omitempty"`
+	Location          *string          `json:"location,omitempty"`
+	Name              *ExperienceName  `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
 }
 
 // ExperienceID defines model for experienceID.
 type ExperienceID = openapi_types.UUID
+
+// ExperienceLocation defines model for experienceLocation.
+type ExperienceLocation struct {
+	Location *string `json:"location,omitempty"`
+}
+
+// ExperienceLocationContents defines model for experienceLocationContents.
+type ExperienceLocationContents struct {
+	ObjectCount *int      `json:"objectCount,omitempty"`
+	Objects     *[]string `json:"objects,omitempty"`
+}
 
 // ExperienceName defines model for experienceName.
 type ExperienceName = string
 
 // ExperienceTag defines model for experienceTag.
 type ExperienceTag struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp         `json:"creationTimestamp,omitempty"`
 	Description       *string            `json:"description,omitempty"`
 	ExperienceTagID   *ExperienceTagID   `json:"experienceTagID,omitempty"`
 	Name              *ExperienceTagName `json:"name,omitempty"`
@@ -227,14 +263,17 @@ type FriendlyName = string
 
 // Job defines model for job.
 type Job struct {
-	BuildID        *BuildID           `json:"buildID,omitempty"`
-	ExperienceID   *ExperienceID      `json:"experienceID,omitempty"`
-	JobID          *JobID             `json:"jobID,omitempty"`
-	JobStatus      *JobStatus         `json:"jobStatus,omitempty"`
-	OrgID          *OrgID             `json:"orgID,omitempty"`
-	OutputLocation *string            `json:"outputLocation,omitempty"`
-	Parameters     *map[string]string `json:"parameters,omitempty"`
-	UserID         *UserID            `json:"userID,omitempty"`
+	BuildID              *BuildID                `json:"buildID,omitempty"`
+	CreationTimestamp    *Timestamp              `json:"creationTimestamp,omitempty"`
+	ExperienceID         *ExperienceID           `json:"experienceID,omitempty"`
+	JobID                *JobID                  `json:"jobID,omitempty"`
+	JobStatus            *JobStatus              `json:"jobStatus,omitempty"`
+	LastUpdatedTimestamp *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
+	OrgID                *OrgID                  `json:"orgID,omitempty"`
+	OutputLocation       *string                 `json:"outputLocation,omitempty"`
+	Parameters           *map[string]interface{} `json:"parameters,omitempty"`
+	StatusHistory        *JobStatusHistory       `json:"statusHistory,omitempty"`
+	UserID               *UserID                 `json:"userID,omitempty"`
 }
 
 // JobID defines model for jobID.
@@ -242,23 +281,23 @@ type JobID = openapi_types.UUID
 
 // JobMetric defines model for jobMetric.
 type JobMetric struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
-	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
-	JobID             *JobID             `json:"jobID,omitempty"`
-	MetricID          *MetricID          `json:"metricID,omitempty"`
-	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
-	Name              *MetricName        `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	Status            *MetricStatus      `json:"status,omitempty"`
-	Type              *MetricType        `json:"type,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Value             *MetricValue       `json:"value"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation  `json:"fileLocation,omitempty"`
+	JobID             *JobID           `json:"jobID,omitempty"`
+	MetricID          *MetricID        `json:"metricID,omitempty"`
+	MetricURL         *MetricURL       `json:"metricURL,omitempty"`
+	Name              *MetricName      `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	Status            *MetricStatus    `json:"status,omitempty"`
+	Type              *MetricType      `json:"type,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
+	Value             *MetricValue     `json:"value"`
 }
 
 // JobMetricsData defines model for jobMetricsData.
 type JobMetricsData struct {
-	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
 	JobID             *JobID               `json:"jobID,omitempty"`
@@ -270,6 +309,12 @@ type JobMetricsData struct {
 
 // JobStatus defines model for jobStatus.
 type JobStatus string
+
+// JobStatusHistory defines model for jobStatusHistory.
+type JobStatusHistory = []struct {
+	Status    *JobStatus `json:"status,omitempty"`
+	UpdatedAt *Timestamp `json:"updatedAt,omitempty"`
+}
 
 // LaunchProfile defines model for launchProfile.
 type LaunchProfile struct {
@@ -291,16 +336,18 @@ type LineNumber = int32
 
 // Log defines model for log.
 type Log struct {
-	Checksum          *Checksum          `json:"checksum,omitempty"`
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	FileName          *FileName          `json:"fileName,omitempty"`
-	FileSize          *FileSize          `json:"fileSize,omitempty"`
-	JobID             *JobID             `json:"jobID,omitempty"`
-	Location          *LogLocation       `json:"location,omitempty"`
-	LogID             *LogID             `json:"logID,omitempty"`
-	LogOutputLocation *string            `json:"logOutputLocation,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	Checksum          *Checksum      `json:"checksum,omitempty"`
+	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty"`
+	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty"`
+	FileName          *FileName      `json:"fileName,omitempty"`
+	FileSize          *FileSize      `json:"fileSize,omitempty"`
+	JobID             *JobID         `json:"jobID,omitempty"`
+	Location          *LogLocation   `json:"location,omitempty"`
+	LogID             *LogID         `json:"logID,omitempty"`
+	LogOutputLocation *string        `json:"logOutputLocation,omitempty"`
+	LogType           *LogType       `json:"logType,omitempty"`
+	OrgID             *OrgID         `json:"orgID,omitempty"`
+	UserID            *UserID        `json:"userID,omitempty"`
 }
 
 // LogID defines model for logID.
@@ -309,22 +356,25 @@ type LogID = openapi_types.UUID
 // LogLocation defines model for logLocation.
 type LogLocation = string
 
+// LogType defines model for logType.
+type LogType string
+
 // McapURL defines model for mcapURL.
 type McapURL = string
 
 // Metric defines model for metric.
 type Metric struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	DataIDs           *[]MetricsDataID   `json:"dataIDs,omitempty"`
-	FileLocation      *MetricLocation    `json:"fileLocation,omitempty"`
-	MetricID          *MetricID          `json:"metricID,omitempty"`
-	MetricURL         *MetricURL         `json:"metricURL,omitempty"`
-	Name              *MetricName        `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	Status            *MetricStatus      `json:"status,omitempty"`
-	Type              *MetricType        `json:"type,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
-	Value             *MetricValue       `json:"value"`
+	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
+	DataIDs           *[]MetricsDataID `json:"dataIDs,omitempty"`
+	FileLocation      *MetricLocation  `json:"fileLocation,omitempty"`
+	MetricID          *MetricID        `json:"metricID,omitempty"`
+	MetricURL         *MetricURL       `json:"metricURL,omitempty"`
+	Name              *MetricName      `json:"name,omitempty"`
+	OrgID             *OrgID           `json:"orgID,omitempty"`
+	Status            *MetricStatus    `json:"status,omitempty"`
+	Type              *MetricType      `json:"type,omitempty"`
+	UserID            *UserID          `json:"userID,omitempty"`
+	Value             *MetricValue     `json:"value"`
 }
 
 // MetricID defines model for metricID.
@@ -350,7 +400,7 @@ type MetricValue = float64
 
 // MetricsBuild defines model for metricsBuild.
 type MetricsBuild struct {
-	CreationTimestamp *CreationTimestamp    `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp            `json:"creationTimestamp,omitempty"`
 	ImageUri          *MetricsBuildImageUri `json:"imageUri,omitempty"`
 	MetricsBuildID    *MetricsBuildID       `json:"metricsBuildID,omitempty"`
 	Name              *MetricsBuildName     `json:"name,omitempty"`
@@ -373,7 +423,7 @@ type MetricsBuildVersion = string
 
 // MetricsData defines model for metricsData.
 type MetricsData struct {
-	CreationTimestamp *CreationTimestamp   `json:"creationTimestamp,omitempty"`
+	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
@@ -411,14 +461,16 @@ type OrgID = string
 
 // ParameterSweep defines model for parameterSweep.
 type ParameterSweep struct {
-	Batches           *[]BatchID            `json:"batches,omitempty"`
-	CreationTimestamp *CreationTimestamp    `json:"creationTimestamp,omitempty"`
-	Name              *string               `json:"name,omitempty"`
-	OrgID             *OrgID                `json:"orgID,omitempty"`
-	ParameterSweepID  *ParameterSweepID     `json:"parameterSweepID,omitempty"`
-	Parameters        *[]SweepParameter     `json:"parameters,omitempty"`
-	Status            *ParameterSweepStatus `json:"status,omitempty"`
-	UserID            *UserID               `json:"userID,omitempty"`
+	Batches              *[]BatchID                   `json:"batches,omitempty"`
+	CreationTimestamp    *Timestamp                   `json:"creationTimestamp,omitempty"`
+	LastUpdatedTimestamp *Timestamp                   `json:"lastUpdatedTimestamp,omitempty"`
+	Name                 *string                      `json:"name,omitempty"`
+	OrgID                *OrgID                       `json:"orgID,omitempty"`
+	ParameterSweepID     *ParameterSweepID            `json:"parameterSweepID,omitempty"`
+	Parameters           *[]SweepParameter            `json:"parameters,omitempty"`
+	Status               *ParameterSweepStatus        `json:"status,omitempty"`
+	StatusHistory        *ParameterSweepStatusHistory `json:"statusHistory,omitempty"`
+	UserID               *UserID                      `json:"userID,omitempty"`
 }
 
 // ParameterSweepID defines model for parameterSweepID.
@@ -427,14 +479,20 @@ type ParameterSweepID = openapi_types.UUID
 // ParameterSweepStatus defines model for parameterSweepStatus.
 type ParameterSweepStatus string
 
+// ParameterSweepStatusHistory defines model for parameterSweepStatusHistory.
+type ParameterSweepStatusHistory = []struct {
+	Status    *ParameterSweepStatus `json:"status,omitempty"`
+	UpdatedAt *Timestamp            `json:"updatedAt,omitempty"`
+}
+
 // Project defines model for project.
 type Project struct {
-	CreationTimestamp *CreationTimestamp `json:"creationTimestamp,omitempty"`
-	Description       *string            `json:"description,omitempty"`
-	Name              *string            `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	CreationTimestamp *Timestamp `json:"creationTimestamp,omitempty"`
+	Description       *string    `json:"description,omitempty"`
+	Name              *string    `json:"name,omitempty"`
+	OrgID             *OrgID     `json:"orgID,omitempty"`
+	ProjectID         *ProjectID `json:"projectID,omitempty"`
+	UserID            *UserID    `json:"userID,omitempty"`
 }
 
 // ProjectID defines model for projectID.
@@ -445,6 +503,9 @@ type SweepParameter struct {
 	Name   *string   `json:"name,omitempty"`
 	Values *[]string `json:"values,omitempty"`
 }
+
+// Timestamp defines model for timestamp.
+type Timestamp = time.Time
 
 // UpdateMask defines model for updateMask.
 type UpdateMask = []string
@@ -468,15 +529,12 @@ type ViewObject struct {
 	OrgID         *OrgID         `json:"orgID,omitempty"`
 	UserID        *UserID        `json:"userID,omitempty"`
 	ViewSessionID *ViewSessionID `json:"viewSessionID,omitempty"`
-	ViewTimestamp *ViewTimestamp `json:"viewTimestamp,omitempty"`
+	ViewTimestamp *Timestamp     `json:"viewTimestamp,omitempty"`
 	ViewURL       *string        `json:"viewURL,omitempty"`
 }
 
 // ViewSessionID defines model for viewSessionID.
 type ViewSessionID = openapi_types.UUID
-
-// ViewTimestamp defines model for viewTimestamp.
-type ViewTimestamp = time.Time
 
 // ViewUpdateID defines model for viewUpdateID.
 type ViewUpdateID = int
@@ -499,13 +557,13 @@ type ListBatchesParams struct {
 
 // CreateBatchJSONBody defines parameters for CreateBatch.
 type CreateBatchJSONBody struct {
-	BuildID            *BuildID             `json:"buildID,omitempty"`
-	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
-	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
-	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
-	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
-	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
-	Parameters         *map[string]string   `json:"parameters"`
+	BuildID            *BuildID                `json:"buildID,omitempty"`
+	ExperienceIDs      *[]ExperienceID         `json:"experienceIDs"`
+	ExperienceNames    *[]ExperienceName       `json:"experienceNames"`
+	ExperienceTagIDs   *[]ExperienceTagID      `json:"experienceTagIDs"`
+	ExperienceTagNames *[]ExperienceTagName    `json:"experienceTagNames"`
+	MetricsBuildID     *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	Parameters         *map[string]interface{} `json:"parameters"`
 }
 
 // ListJobsParams defines parameters for ListJobs.
@@ -787,6 +845,9 @@ type SetupSandboxJSONRequestBody SetupSandboxJSONBody
 
 // CreateParameterSweepJSONRequestBody defines body for CreateParameterSweep for application/json ContentType.
 type CreateParameterSweepJSONRequestBody CreateParameterSweepJSONBody
+
+// ValidateExperienceLocationJSONRequestBody defines body for ValidateExperienceLocation for application/json ContentType.
+type ValidateExperienceLocationJSONRequestBody = ExperienceLocation
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -1114,6 +1175,11 @@ type ClientInterface interface {
 
 	// GetParameterSweep request
 	GetParameterSweep(ctx context.Context, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ValidateExperienceLocationWithBody request with any body
+	ValidateExperienceLocationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ValidateExperienceLocation(ctx context.Context, body ValidateExperienceLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListViewSessions request
 	ListViewSessions(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2222,6 +2288,30 @@ func (c *Client) CreateParameterSweep(ctx context.Context, body CreateParameterS
 
 func (c *Client) GetParameterSweep(ctx context.Context, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetParameterSweepRequest(c.Server, sweepID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ValidateExperienceLocationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewValidateExperienceLocationRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ValidateExperienceLocation(ctx context.Context, body ValidateExperienceLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewValidateExperienceLocationRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -6191,6 +6281,46 @@ func NewGetParameterSweepRequest(server string, sweepID ParameterSweepID) (*http
 	return req, nil
 }
 
+// NewValidateExperienceLocationRequest calls the generic ValidateExperienceLocation builder with application/json body
+func NewValidateExperienceLocationRequest(server string, body ValidateExperienceLocationJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewValidateExperienceLocationRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewValidateExperienceLocationRequestWithBody generates requests for ValidateExperienceLocation with any type of body
+func NewValidateExperienceLocationRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/validateExperienceLocation")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListViewSessionsRequest generates requests for ListViewSessions
 func NewListViewSessionsRequest(server string, params *ListViewSessionsParams) (*http.Request, error) {
 	var err error
@@ -6672,6 +6802,11 @@ type ClientWithResponsesInterface interface {
 
 	// GetParameterSweepWithResponse request
 	GetParameterSweepWithResponse(ctx context.Context, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*GetParameterSweepResponse, error)
+
+	// ValidateExperienceLocationWithBodyWithResponse request with any body
+	ValidateExperienceLocationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateExperienceLocationResponse, error)
+
+	ValidateExperienceLocationWithResponse(ctx context.Context, body ValidateExperienceLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*ValidateExperienceLocationResponse, error)
 
 	// ListViewSessionsWithResponse request
 	ListViewSessionsWithResponse(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*ListViewSessionsResponse, error)
@@ -8297,6 +8432,28 @@ func (r GetParameterSweepResponse) StatusCode() int {
 	return 0
 }
 
+type ValidateExperienceLocationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ExperienceLocationContents
+}
+
+// Status returns HTTPResponse.Status
+func (r ValidateExperienceLocationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ValidateExperienceLocationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListViewSessionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9201,6 +9358,23 @@ func (c *ClientWithResponses) GetParameterSweepWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseGetParameterSweepResponse(rsp)
+}
+
+// ValidateExperienceLocationWithBodyWithResponse request with arbitrary body returning *ValidateExperienceLocationResponse
+func (c *ClientWithResponses) ValidateExperienceLocationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateExperienceLocationResponse, error) {
+	rsp, err := c.ValidateExperienceLocationWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseValidateExperienceLocationResponse(rsp)
+}
+
+func (c *ClientWithResponses) ValidateExperienceLocationWithResponse(ctx context.Context, body ValidateExperienceLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*ValidateExperienceLocationResponse, error) {
+	rsp, err := c.ValidateExperienceLocation(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseValidateExperienceLocationResponse(rsp)
 }
 
 // ListViewSessionsWithResponse request returning *ListViewSessionsResponse
@@ -11003,6 +11177,32 @@ func ParseGetParameterSweepResponse(rsp *http.Response) (*GetParameterSweepRespo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ParameterSweep
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseValidateExperienceLocationResponse parses an HTTP response from a ValidateExperienceLocationWithResponse call
+func ParseValidateExperienceLocationResponse(rsp *http.Response) (*ValidateExperienceLocationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ValidateExperienceLocationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ExperienceLocationContents
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

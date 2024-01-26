@@ -164,7 +164,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse --parameter (if any provided)
-	parameters := map[string]string{}
+	parameters := map[string]interface{}{}
 	if viper.IsSet(batchParameterKey) {
 		parameterStrings := viper.GetStringSlice(batchParameterKey)
 		for _, parameterString := range parameterStrings {

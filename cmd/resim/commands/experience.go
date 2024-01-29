@@ -128,7 +128,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to create experience: ", err)
 	}
-	ValidateResponse(http.StatusCreated, "failed to create experience", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "failed to create experience", response.HTTPResponse, response.Body)
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}
@@ -182,7 +182,7 @@ func listExperiences(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to list experiences:", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
@@ -221,7 +221,7 @@ func tagExperience(ccmd *cobra.Command, args []string) {
 	if response.HTTPResponse.StatusCode == 409 {
 		log.Fatal("failed to tag experience, it may already be tagged ", experienceTagName)
 	}
-	ValidateResponse(http.StatusCreated, "failed to tag experience", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "failed to tag experience", response.HTTPResponse, response.Body)
 }
 
 func untagExperience(ccmd *cobra.Command, args []string) {
@@ -247,5 +247,5 @@ func untagExperience(ccmd *cobra.Command, args []string) {
 	if response.HTTPResponse.StatusCode == 404 {
 		log.Fatal("failed to untag experience, it may not be tagged ", experienceTagName)
 	}
-	ValidateResponse(http.StatusNoContent, "failed to untag experience", response.HTTPResponse)
+	ValidateResponse(http.StatusNoContent, "failed to untag experience", response.HTTPResponse, response.Body)
 }

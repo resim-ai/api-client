@@ -79,7 +79,7 @@ func listBranches(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to list branches:", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse, response.Body)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Branches == nil {
@@ -120,7 +120,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("unable to create branch: ", err)
 	}
-	ValidateResponse(http.StatusCreated, "unable to create branch", response.HTTPResponse)
+	ValidateResponse(http.StatusCreated, "unable to create branch", response.HTTPResponse, response.Body)
 	if response.JSON201 == nil {
 		log.Fatal("empty branch returned")
 	}
@@ -177,7 +177,7 @@ pageLoop:
 		if err != nil {
 			log.Fatal("failed to list branches:", err)
 		}
-		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse)
+		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse, response.Body)
 		if response.JSON200 == nil {
 			log.Fatal("empty response")
 		}

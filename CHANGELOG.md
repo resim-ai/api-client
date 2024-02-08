@@ -8,6 +8,8 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.1.30 - February 08 2024
+
 #### Added
 
 - Introduces the ability to specify build parameters when creating batches. For example: `batch create ... --parameter "param1:foo","param2:bar"`. This will pass a `parameters.json` file upon test execution, just as with sweeps.

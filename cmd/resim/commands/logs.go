@@ -101,7 +101,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	body := api.CreateLogJSONRequestBody{
+	body := api.CreateJobLogJSONRequestBody{
 		FileName: &logName,
 		FileSize: &logFileSize,
 		Checksum: &logChecksum,
@@ -123,7 +123,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 		jobResponse.HTTPResponse, jobResponse.Body)
 
 	// Create the log entry
-	logResponse, err := Client.CreateLogWithResponse(context.Background(), logBatchID, logJobID, body)
+	logResponse, err := Client.CreateJobLogWithResponse(context.Background(), logBatchID, logJobID, body)
 	if err != nil {
 		log.Fatal("unable to create log: ", err)
 	}
@@ -161,10 +161,10 @@ func listLogs(ccmd *cobra.Command, args []string) {
 		log.Fatal("unable to parse job ID: ", err)
 	}
 
-	logs := []api.Log{}
+	logs := []api.JobLog{}
 	var pageToken *string = nil
 	for {
-		response, err := Client.ListLogsForJobWithResponse(context.Background(), batchID, jobID, &api.ListLogsForJobParams{
+		response, err := Client.ListJobLogsForJobWithResponse(context.Background(), batchID, jobID, &api.ListJobLogsForJobParams{
 			PageToken: pageToken,
 			PageSize:  Ptr(100),
 		})

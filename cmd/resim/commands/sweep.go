@@ -287,13 +287,13 @@ func getSweep(ccmd *cobra.Command, args []string) {
 			log.Fatal("no status returned")
 		}
 		switch *sweep.Status {
-		case api.ParameterSweepStatusSUCCEEDED:
+		case api.SUCCEEDED:
 			os.Exit(0)
-		case api.ParameterSweepStatusFAILED:
+		case api.ERROR:
 			os.Exit(2)
-		case api.ParameterSweepStatusSUBMITTED:
+		case api.SUBMITTED:
 			os.Exit(3)
-		case api.ParameterSweepStatusRUNNING:
+		case api.RUNNING:
 			os.Exit(4)
 		default:
 			log.Fatal("unknown sweep status: ", sweep.Status)

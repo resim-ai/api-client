@@ -27,8 +27,8 @@ const (
 	BatchStatusBATCHMETRICSQUEUED  BatchStatus = "BATCH_METRICS_QUEUED"
 	BatchStatusBATCHMETRICSRUNNING BatchStatus = "BATCH_METRICS_RUNNING"
 	BatchStatusCANCELLED           BatchStatus = "CANCELLED"
+	BatchStatusERROR               BatchStatus = "ERROR"
 	BatchStatusEXPERIENCESRUNNING  BatchStatus = "EXPERIENCES_RUNNING"
-	BatchStatusFAILED              BatchStatus = "FAILED"
 	BatchStatusSUBMITTED           BatchStatus = "SUBMITTED"
 	BatchStatusSUCCEEDED           BatchStatus = "SUCCEEDED"
 )
@@ -50,8 +50,8 @@ const (
 // Defines values for JobStatus.
 const (
 	JobStatusCANCELLED         JobStatus = "CANCELLED"
+	JobStatusERROR             JobStatus = "ERROR"
 	JobStatusEXPERIENCERUNNING JobStatus = "EXPERIENCE_RUNNING"
-	JobStatusFAILED            JobStatus = "FAILED"
 	JobStatusMETRICSQUEUED     JobStatus = "METRICS_QUEUED"
 	JobStatusMETRICSRUNNING    JobStatus = "METRICS_RUNNING"
 	JobStatusSUBMITTED         JobStatus = "SUBMITTED"
@@ -71,10 +71,12 @@ const (
 
 // Defines values for MetricStatus.
 const (
-	MetricStatusFAILED        MetricStatus = "FAILED"
-	MetricStatusNOTAPPLICABLE MetricStatus = "NOT_APPLICABLE"
-	MetricStatusPASSED        MetricStatus = "PASSED"
-	MetricStatusRAW           MetricStatus = "RAW"
+	FAILBLOCK        MetricStatus = "FAIL_BLOCK"
+	FAILWARN         MetricStatus = "FAIL_WARN"
+	NOSTATUSREPORTED MetricStatus = "NO_STATUS_REPORTED"
+	NOTAPPLICABLE    MetricStatus = "NOT_APPLICABLE"
+	PASSED           MetricStatus = "PASSED"
+	RAW              MetricStatus = "RAW"
 )
 
 // Defines values for MetricType.
@@ -96,31 +98,61 @@ const (
 
 // Defines values for ParameterSweepStatus.
 const (
-	ParameterSweepStatusFAILED    ParameterSweepStatus = "FAILED"
-	ParameterSweepStatusRUNNING   ParameterSweepStatus = "RUNNING"
-	ParameterSweepStatusSUBMITTED ParameterSweepStatus = "SUBMITTED"
-	ParameterSweepStatusSUCCEEDED ParameterSweepStatus = "SUCCEEDED"
+	ERROR     ParameterSweepStatus = "ERROR"
+	RUNNING   ParameterSweepStatus = "RUNNING"
+	SUBMITTED ParameterSweepStatus = "SUBMITTED"
+	SUCCEEDED ParameterSweepStatus = "SUCCEEDED"
 )
 
 // Batch defines model for batch.
 type Batch struct {
-	BatchID                      *BatchID                `json:"batchID,omitempty"`
-	BuildID                      *BuildID                `json:"buildID,omitempty"`
-	CreationTimestamp            *Timestamp              `json:"creationTimestamp,omitempty"`
-	FriendlyName                 *FriendlyName           `json:"friendlyName,omitempty"`
-	InstantiatedExperienceIDs    *[]ExperienceID         `json:"instantiatedExperienceIDs,omitempty"`
-	InstantiatedExperienceTagIDs *[]ExperienceTagID      `json:"instantiatedExperienceTagIDs,omitempty"`
-	LastUpdatedTimestamp         *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
-	MetricsBuildID               *MetricsBuildID         `json:"metricsBuildID,omitempty"`
-	OrgID                        *OrgID                  `json:"orgID,omitempty"`
-	Parameters                   *map[string]interface{} `json:"parameters,omitempty"`
-	Status                       *BatchStatus            `json:"status,omitempty"`
-	StatusHistory                *BatchStatusHistory     `json:"statusHistory,omitempty"`
-	UserID                       *UserID                 `json:"userID,omitempty"`
+	BatchID                      *BatchID            `json:"batchID,omitempty"`
+	BatchMetricsStatus           *MetricStatus       `json:"batchMetricsStatus,omitempty"`
+	BuildID                      *BuildID            `json:"buildID,omitempty"`
+	CreationTimestamp            *Timestamp          `json:"creationTimestamp,omitempty"`
+	FriendlyName                 *FriendlyName       `json:"friendlyName,omitempty"`
+	InstantiatedExperienceIDs    *[]ExperienceID     `json:"instantiatedExperienceIDs,omitempty"`
+	InstantiatedExperienceTagIDs *[]ExperienceTagID  `json:"instantiatedExperienceTagIDs,omitempty"`
+	JobsMetricsStatus            *MetricStatus       `json:"jobsMetricsStatus,omitempty"`
+	LastUpdatedTimestamp         *Timestamp          `json:"lastUpdatedTimestamp,omitempty"`
+	MetricsBuildID               *MetricsBuildID     `json:"metricsBuildID,omitempty"`
+	OrgID                        *OrgID              `json:"orgID,omitempty"`
+	OverallMetricsStatus         *MetricStatus       `json:"overallMetricsStatus,omitempty"`
+	Parameters                   *BatchParameters    `json:"parameters,omitempty"`
+	Status                       *BatchStatus        `json:"status,omitempty"`
+	StatusHistory                *BatchStatusHistory `json:"statusHistory,omitempty"`
+	UserID                       *UserID             `json:"userID,omitempty"`
+}
+
+// BatchCreateRequestBody defines model for batchCreateRequestBody.
+type BatchCreateRequestBody struct {
+	BuildID            *BuildID             `json:"buildID,omitempty"`
+	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
+	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
+	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
+	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
+	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Parameters         *BatchParameters     `json:"parameters,omitempty"`
 }
 
 // BatchID defines model for batchID.
 type BatchID = openapi_types.UUID
+
+// BatchLog defines model for batchLog.
+type BatchLog struct {
+	BatchID           *BatchID       `json:"batchID,omitempty"`
+	Checksum          *Checksum      `json:"checksum,omitempty"`
+	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty"`
+	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty"`
+	FileName          *FileName      `json:"fileName,omitempty"`
+	FileSize          *FileSize      `json:"fileSize,omitempty"`
+	Location          *LogLocation   `json:"location,omitempty"`
+	LogID             *LogID         `json:"logID,omitempty"`
+	LogOutputLocation *string        `json:"logOutputLocation,omitempty"`
+	LogType           *LogType       `json:"logType,omitempty"`
+	OrgID             *OrgID         `json:"orgID,omitempty"`
+	UserID            *UserID        `json:"userID,omitempty"`
+}
 
 // BatchMetric defines model for batchMetric.
 type BatchMetric struct {
@@ -150,11 +182,29 @@ type BatchMetricsData struct {
 	UserID            *UserID              `json:"userID,omitempty"`
 }
 
+// BatchMetricsDataAndIDs defines model for batchMetricsDataAndIDs.
+type BatchMetricsDataAndIDs struct {
+	BatchMetricID    *MetricID         `json:"batchMetricID,omitempty"`
+	BatchMetricsData *BatchMetricsData `json:"batchMetricsData,omitempty"`
+}
+
+// BatchMetricsDataToBatchMetric defines model for batchMetricsDataToBatchMetric.
+type BatchMetricsDataToBatchMetric struct {
+	BatchMetricID       *MetricID        `json:"batchMetricID,omitempty"`
+	BatchMetricsDataIDs *[]MetricsDataID `json:"batchMetricsDataIDs,omitempty"`
+}
+
+// BatchParameters defines model for batchParameters.
+type BatchParameters map[string]string
+
 // BatchStatus defines model for batchStatus.
 type BatchStatus string
 
 // BatchStatusHistory defines model for batchStatusHistory.
-type BatchStatusHistory = []struct {
+type BatchStatusHistory = []BatchStatusHistoryType
+
+// BatchStatusHistoryType defines model for batchStatusHistoryType.
+type BatchStatusHistoryType struct {
 	Status    *BatchStatus `json:"status,omitempty"`
 	UpdatedAt *Timestamp   `json:"updatedAt,omitempty"`
 }
@@ -252,6 +302,18 @@ type ExperienceTagID = openapi_types.UUID
 // ExperienceTagName defines model for experienceTagName.
 type ExperienceTagName = string
 
+// ExperienceTagUpdateRequestBody defines model for experienceTagUpdateRequestBody.
+type ExperienceTagUpdateRequestBody struct {
+	ExperienceTag *ExperienceTag `json:"experienceTag,omitempty"`
+	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
+}
+
+// ExperienceUpdateRequestBody defines model for experienceUpdateRequestBody.
+type ExperienceUpdateRequestBody struct {
+	Experience *Experience `json:"experience,omitempty"`
+	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
+}
+
 // FileName defines model for fileName.
 type FileName = string
 
@@ -263,21 +325,38 @@ type FriendlyName = string
 
 // Job defines model for job.
 type Job struct {
-	BuildID              *BuildID                `json:"buildID,omitempty"`
-	CreationTimestamp    *Timestamp              `json:"creationTimestamp,omitempty"`
-	ExperienceID         *ExperienceID           `json:"experienceID,omitempty"`
-	JobID                *JobID                  `json:"jobID,omitempty"`
-	JobStatus            *JobStatus              `json:"jobStatus,omitempty"`
-	LastUpdatedTimestamp *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
-	OrgID                *OrgID                  `json:"orgID,omitempty"`
-	OutputLocation       *string                 `json:"outputLocation,omitempty"`
-	Parameters           *map[string]interface{} `json:"parameters,omitempty"`
-	StatusHistory        *JobStatusHistory       `json:"statusHistory,omitempty"`
-	UserID               *UserID                 `json:"userID,omitempty"`
+	BuildID              *BuildID          `json:"buildID,omitempty"`
+	CreationTimestamp    *Timestamp        `json:"creationTimestamp,omitempty"`
+	ExperienceID         *ExperienceID     `json:"experienceID,omitempty"`
+	JobID                *JobID            `json:"jobID,omitempty"`
+	JobMetricsStatus     *MetricStatus     `json:"jobMetricsStatus,omitempty"`
+	JobStatus            *JobStatus        `json:"jobStatus,omitempty"`
+	LastUpdatedTimestamp *Timestamp        `json:"lastUpdatedTimestamp,omitempty"`
+	OrgID                *OrgID            `json:"orgID,omitempty"`
+	OutputLocation       *string           `json:"outputLocation,omitempty"`
+	Parameters           *BatchParameters  `json:"parameters,omitempty"`
+	StatusHistory        *JobStatusHistory `json:"statusHistory,omitempty"`
+	UserID               *UserID           `json:"userID,omitempty"`
 }
 
 // JobID defines model for jobID.
 type JobID = openapi_types.UUID
+
+// JobLog defines model for jobLog.
+type JobLog struct {
+	Checksum          *Checksum      `json:"checksum,omitempty"`
+	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty"`
+	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty"`
+	FileName          *FileName      `json:"fileName,omitempty"`
+	FileSize          *FileSize      `json:"fileSize,omitempty"`
+	JobID             *JobID         `json:"jobID,omitempty"`
+	Location          *LogLocation   `json:"location,omitempty"`
+	LogID             *LogID         `json:"logID,omitempty"`
+	LogOutputLocation *string        `json:"logOutputLocation,omitempty"`
+	LogType           *LogType       `json:"logType,omitempty"`
+	OrgID             *OrgID         `json:"orgID,omitempty"`
+	UserID            *UserID        `json:"userID,omitempty"`
+}
 
 // JobMetric defines model for jobMetric.
 type JobMetric struct {
@@ -311,7 +390,10 @@ type JobMetricsData struct {
 type JobStatus string
 
 // JobStatusHistory defines model for jobStatusHistory.
-type JobStatusHistory = []struct {
+type JobStatusHistory = []JobStatusHistoryType
+
+// JobStatusHistoryType defines model for jobStatusHistoryType.
+type JobStatusHistoryType struct {
 	Status    *JobStatus `json:"status,omitempty"`
 	UpdatedAt *Timestamp `json:"updatedAt,omitempty"`
 }
@@ -331,8 +413,128 @@ type LaunchProfile struct {
 // LaunchProfileID defines model for launchProfileID.
 type LaunchProfileID = openapi_types.UUID
 
+// LaunchProfileUpdateRequestBody defines model for launchProfileUpdateRequestBody.
+type LaunchProfileUpdateRequestBody struct {
+	LaunchProfile *LaunchProfile `json:"launchProfile,omitempty"`
+	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
+}
+
 // LineNumber defines model for lineNumber.
 type LineNumber = int32
+
+// ListOfBatchLogs defines model for listOfBatchLogs.
+type ListOfBatchLogs struct {
+	Logs          *[]BatchLog `json:"logs,omitempty"`
+	NextPageToken *string     `json:"nextPageToken,omitempty"`
+}
+
+// ListOfBatchMetrics defines model for listOfBatchMetrics.
+type ListOfBatchMetrics struct {
+	BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
+	NextPageToken *string        `json:"nextPageToken,omitempty"`
+}
+
+// ListOfBatchMetricsData defines model for listOfBatchMetricsData.
+type ListOfBatchMetricsData struct {
+	BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
+	NextPageToken    *string             `json:"nextPageToken,omitempty"`
+}
+
+// ListOfBatchMetricsDataForBatchMetricIDs defines model for listOfBatchMetricsDataForBatchMetricIDs.
+type ListOfBatchMetricsDataForBatchMetricIDs struct {
+	BatchMetricsDataAndIDs *[]BatchMetricsDataAndIDs `json:"batchMetricsDataAndIDs,omitempty"`
+	NextPageToken          *string                   `json:"nextPageToken,omitempty"`
+}
+
+// ListOfBatches defines model for listOfBatches.
+type ListOfBatches struct {
+	Batches       *[]Batch `json:"batches,omitempty"`
+	NextPageToken *string  `json:"nextPageToken,omitempty"`
+}
+
+// ListOfBranches defines model for listOfBranches.
+type ListOfBranches struct {
+	Branches      *[]Branch `json:"branches,omitempty"`
+	NextPageToken *string   `json:"nextPageToken,omitempty"`
+}
+
+// ListOfBuilds defines model for listOfBuilds.
+type ListOfBuilds struct {
+	Builds        *[]Build `json:"builds,omitempty"`
+	NextPageToken *string  `json:"nextPageToken,omitempty"`
+}
+
+// ListOfExperienceTags defines model for listOfExperienceTags.
+type ListOfExperienceTags struct {
+	ExperienceTags *[]ExperienceTag `json:"experienceTags,omitempty"`
+	NextPageToken  *string          `json:"nextPageToken,omitempty"`
+}
+
+// ListOfExperiences defines model for listOfExperiences.
+type ListOfExperiences struct {
+	Experiences   *[]Experience `json:"experiences,omitempty"`
+	NextPageToken *string       `json:"nextPageToken,omitempty"`
+}
+
+// ListOfJobLogs defines model for listOfJobLogs.
+type ListOfJobLogs struct {
+	Logs          *[]JobLog `json:"logs,omitempty"`
+	NextPageToken *string   `json:"nextPageToken,omitempty"`
+}
+
+// ListOfJobMetrics defines model for listOfJobMetrics.
+type ListOfJobMetrics struct {
+	Metrics       *[]JobMetric `json:"metrics,omitempty"`
+	NextPageToken *string      `json:"nextPageToken,omitempty"`
+}
+
+// ListOfJobMetricsData defines model for listOfJobMetricsData.
+type ListOfJobMetricsData struct {
+	MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
+	NextPageToken *string           `json:"nextPageToken,omitempty"`
+}
+
+// ListOfJobs defines model for listOfJobs.
+type ListOfJobs struct {
+	Jobs          *[]Job  `json:"jobs,omitempty"`
+	NextPageToken *string `json:"nextPageToken,omitempty"`
+}
+
+// ListOfLaunchProfiles defines model for listOfLaunchProfiles.
+type ListOfLaunchProfiles struct {
+	LaunchProfiles *[]LaunchProfile `json:"launchProfiles,omitempty"`
+	NextPageToken  *string          `json:"nextPageToken,omitempty"`
+}
+
+// ListOfMetricsBuild defines model for listOfMetricsBuild.
+type ListOfMetricsBuild struct {
+	MetricsBuilds *[]MetricsBuild `json:"metricsBuilds,omitempty"`
+	NextPageToken *string         `json:"nextPageToken,omitempty"`
+}
+
+// ListOfMetricsDataAndMetricID defines model for listOfMetricsDataAndMetricID.
+type ListOfMetricsDataAndMetricID struct {
+	MetricsDataAndIDs *[]MetricsDataAndMetricID `json:"metricsDataAndIDs,omitempty"`
+	NextPageToken     *string                   `json:"nextPageToken,omitempty"`
+}
+
+// ListOfParameterSweeps defines model for listOfParameterSweeps.
+type ListOfParameterSweeps struct {
+	NextPageToken *string           `json:"nextPageToken,omitempty"`
+	Sweeps        *[]ParameterSweep `json:"sweeps,omitempty"`
+}
+
+// ListOfProjects defines model for listOfProjects.
+type ListOfProjects struct {
+	NextPageToken *string    `json:"nextPageToken,omitempty"`
+	Projects      *[]Project `json:"projects,omitempty"`
+}
+
+// ListOfViewObjects defines model for listOfViewObjects.
+type ListOfViewObjects struct {
+	NextPageToken *string       `json:"nextPageToken,omitempty"`
+	ViewSessions  *[]ViewObject `json:"viewSessions,omitempty"`
+}
 
 // Log defines model for log.
 type Log struct {
@@ -341,7 +543,6 @@ type Log struct {
 	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty"`
 	FileName          *FileName      `json:"fileName,omitempty"`
 	FileSize          *FileSize      `json:"fileSize,omitempty"`
-	JobID             *JobID         `json:"jobID,omitempty"`
 	Location          *LogLocation   `json:"location,omitempty"`
 	LogID             *LogID         `json:"logID,omitempty"`
 	LogOutputLocation *string        `json:"logOutputLocation,omitempty"`
@@ -375,6 +576,12 @@ type Metric struct {
 	Type              *MetricType      `json:"type,omitempty"`
 	UserID            *UserID          `json:"userID,omitempty"`
 	Value             *MetricValue     `json:"value"`
+}
+
+// MetricDataToMetric defines model for metricDataToMetric.
+type MetricDataToMetric struct {
+	MetricID       *MetricID        `json:"metricID,omitempty"`
+	MetricsDataIDs *[]MetricsDataID `json:"metricsDataIDs,omitempty"`
 }
 
 // MetricID defines model for metricID.
@@ -473,6 +680,17 @@ type ParameterSweep struct {
 	UserID               *UserID                      `json:"userID,omitempty"`
 }
 
+// ParameterSweepCreateRequestBody defines model for parameterSweepCreateRequestBody.
+type ParameterSweepCreateRequestBody struct {
+	BuildID            *BuildID             `json:"buildID,omitempty"`
+	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
+	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
+	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
+	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
+	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Parameters         *[]SweepParameter    `json:"parameters,omitempty"`
+}
+
 // ParameterSweepID defines model for parameterSweepID.
 type ParameterSweepID = openapi_types.UUID
 
@@ -480,7 +698,10 @@ type ParameterSweepID = openapi_types.UUID
 type ParameterSweepStatus string
 
 // ParameterSweepStatusHistory defines model for parameterSweepStatusHistory.
-type ParameterSweepStatusHistory = []struct {
+type ParameterSweepStatusHistory = []ParameterSweepStatusHistoryType
+
+// ParameterSweepStatusHistoryType defines model for parameterSweepStatusHistoryType.
+type ParameterSweepStatusHistoryType struct {
 	Status    *ParameterSweepStatus `json:"status,omitempty"`
 	UpdatedAt *Timestamp            `json:"updatedAt,omitempty"`
 }
@@ -497,6 +718,18 @@ type Project struct {
 
 // ProjectID defines model for projectID.
 type ProjectID = openapi_types.UUID
+
+// ProjectUpdateRequestBody defines model for projectUpdateRequestBody.
+type ProjectUpdateRequestBody struct {
+	Project    *Project    `json:"project,omitempty"`
+	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
+}
+
+// SandboxRequestBody defines model for sandboxRequestBody.
+type SandboxRequestBody struct {
+	OrgID  *string `json:"orgID,omitempty"`
+	UserID *string `json:"userID,omitempty"`
+}
 
 // SweepParameter defines model for sweepParameter.
 type SweepParameter struct {
@@ -533,8 +766,23 @@ type ViewObject struct {
 	ViewURL       *string        `json:"viewURL,omitempty"`
 }
 
+// ViewObjectAndMetadata defines model for viewObjectAndMetadata.
+type ViewObjectAndMetadata struct {
+	ViewMetadata *[]ViewMetadata `json:"viewMetadata,omitempty"`
+	ViewObject   *ViewObject     `json:"viewObject,omitempty"`
+}
+
 // ViewSessionID defines model for viewSessionID.
 type ViewSessionID = openapi_types.UUID
+
+// ViewSessionUpdate defines model for viewSessionUpdate.
+type ViewSessionUpdate struct {
+	Id   *ViewSessionID `json:"id,omitempty"`
+	Mcap *McapURL       `json:"mcap,omitempty"`
+
+	// View A link to view the session.
+	View *string `json:"view,omitempty"`
+}
 
 // ViewUpdateID defines model for viewUpdateID.
 type ViewUpdateID = int
@@ -555,25 +803,14 @@ type ListBatchesParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
-// CreateBatchJSONBody defines parameters for CreateBatch.
-type CreateBatchJSONBody struct {
-	BuildID            *BuildID                `json:"buildID,omitempty"`
-	ExperienceIDs      *[]ExperienceID         `json:"experienceIDs"`
-	ExperienceNames    *[]ExperienceName       `json:"experienceNames"`
-	ExperienceTagIDs   *[]ExperienceTagID      `json:"experienceTagIDs"`
-	ExperienceTagNames *[]ExperienceTagName    `json:"experienceTagNames"`
-	MetricsBuildID     *MetricsBuildID         `json:"metricsBuildID,omitempty"`
-	Parameters         *map[string]interface{} `json:"parameters"`
-}
-
 // ListJobsParams defines parameters for ListJobs.
 type ListJobsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
-// ListLogsForJobParams defines parameters for ListLogsForJob.
-type ListLogsForJobParams struct {
+// ListJobLogsForJobParams defines parameters for ListJobLogsForJob.
+type ListJobLogsForJobParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -608,6 +845,12 @@ type ListMetricsDataForJobParams struct {
 
 // ListMetricsDataForMetricsDataIDsParams defines parameters for ListMetricsDataForMetricsDataIDs.
 type ListMetricsDataForMetricsDataIDsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListBatchLogsForBatchParams defines parameters for ListBatchLogsForBatch.
+type ListBatchLogsForBatchParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -659,12 +902,6 @@ type ListExperienceTagsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
-// UpdateExperienceTagJSONBody defines parameters for UpdateExperienceTag.
-type UpdateExperienceTagJSONBody struct {
-	ExperienceTag *ExperienceTag `json:"experienceTag,omitempty"`
-	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
-}
-
 // ListExperiencesWithExperienceTagParams defines parameters for ListExperiencesWithExperienceTag.
 type ListExperiencesWithExperienceTagParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -676,12 +913,6 @@ type ListExperiencesParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
-}
-
-// UpdateExperienceJSONBody defines parameters for UpdateExperience.
-type UpdateExperienceJSONBody struct {
-	Experience *Experience `json:"experience,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
 }
 
 // ListExperienceTagsForExperienceParams defines parameters for ListExperienceTagsForExperience.
@@ -696,12 +927,6 @@ type ListLaunchProfilesParams struct {
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
-// UpdateLaunchProfileJSONBody defines parameters for UpdateLaunchProfile.
-type UpdateLaunchProfileJSONBody struct {
-	LaunchProfile *LaunchProfile `json:"launchProfile,omitempty"`
-	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
-}
-
 // ListMetricsBuildsParams defines parameters for ListMetricsBuilds.
 type ListMetricsBuildsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -714,12 +939,6 @@ type ListProjectsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
-}
-
-// UpdateProjectJSONBody defines parameters for UpdateProject.
-type UpdateProjectJSONBody struct {
-	Project    *Project    `json:"project,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
 }
 
 // ListBranchesForProjectParams defines parameters for ListBranchesForProject.
@@ -743,34 +962,11 @@ type ListBatchesForBuildParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
-// DestroySandboxJSONBody defines parameters for DestroySandbox.
-type DestroySandboxJSONBody struct {
-	OrgID  *string `json:"orgID,omitempty"`
-	UserID *string `json:"userID,omitempty"`
-}
-
-// SetupSandboxJSONBody defines parameters for SetupSandbox.
-type SetupSandboxJSONBody struct {
-	OrgID  *string `json:"orgID,omitempty"`
-	UserID *string `json:"userID,omitempty"`
-}
-
 // ListParameterSweepsParams defines parameters for ListParameterSweeps.
 type ListParameterSweepsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
-}
-
-// CreateParameterSweepJSONBody defines parameters for CreateParameterSweep.
-type CreateParameterSweepJSONBody struct {
-	BuildID            *BuildID             `json:"buildID,omitempty"`
-	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
-	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
-	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
-	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
-	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
-	Parameters         *[]SweepParameter    `json:"parameters,omitempty"`
 }
 
 // ListViewSessionsParams defines parameters for ListViewSessions.
@@ -781,10 +977,10 @@ type ListViewSessionsParams struct {
 }
 
 // CreateBatchJSONRequestBody defines body for CreateBatch for application/json ContentType.
-type CreateBatchJSONRequestBody CreateBatchJSONBody
+type CreateBatchJSONRequestBody = BatchCreateRequestBody
 
-// CreateLogJSONRequestBody defines body for CreateLog for application/json ContentType.
-type CreateLogJSONRequestBody = Log
+// CreateJobLogJSONRequestBody defines body for CreateJobLog for application/json ContentType.
+type CreateJobLogJSONRequestBody = JobLog
 
 // CreateMetricJSONRequestBody defines body for CreateMetric for application/json ContentType.
 type CreateMetricJSONRequestBody = JobMetric
@@ -795,6 +991,12 @@ type AddMetricsDataToMetricJSONRequestBody = AddMetricsDataToMetricJSONBody
 // CreateMetricsDataJSONRequestBody defines body for CreateMetricsData for application/json ContentType.
 type CreateMetricsDataJSONRequestBody = JobMetricsData
 
+// UpdateJobMetricsStatusJSONRequestBody defines body for UpdateJobMetricsStatus for application/json ContentType.
+type UpdateJobMetricsStatusJSONRequestBody = MetricStatus
+
+// CreateBatchLogJSONRequestBody defines body for CreateBatchLog for application/json ContentType.
+type CreateBatchLogJSONRequestBody = BatchLog
+
 // CreateBatchMetricJSONRequestBody defines body for CreateBatchMetric for application/json ContentType.
 type CreateBatchMetricJSONRequestBody = BatchMetric
 
@@ -804,23 +1006,26 @@ type AddBatchMetricsDataToBatchMetricJSONRequestBody = AddBatchMetricsDataToBatc
 // CreateBatchMetricsDataJSONRequestBody defines body for CreateBatchMetricsData for application/json ContentType.
 type CreateBatchMetricsDataJSONRequestBody = BatchMetricsData
 
+// UpdateBatchMetricsStatusJSONRequestBody defines body for UpdateBatchMetricsStatus for application/json ContentType.
+type UpdateBatchMetricsStatusJSONRequestBody = MetricStatus
+
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
 type CreateExperienceTagJSONRequestBody = ExperienceTag
 
 // UpdateExperienceTagJSONRequestBody defines body for UpdateExperienceTag for application/json ContentType.
-type UpdateExperienceTagJSONRequestBody UpdateExperienceTagJSONBody
+type UpdateExperienceTagJSONRequestBody = ExperienceTagUpdateRequestBody
 
 // CreateExperienceJSONRequestBody defines body for CreateExperience for application/json ContentType.
 type CreateExperienceJSONRequestBody = Experience
 
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
-type UpdateExperienceJSONRequestBody UpdateExperienceJSONBody
+type UpdateExperienceJSONRequestBody = ExperienceUpdateRequestBody
 
 // CreateLaunchProfileJSONRequestBody defines body for CreateLaunchProfile for application/json ContentType.
 type CreateLaunchProfileJSONRequestBody = LaunchProfile
 
 // UpdateLaunchProfileJSONRequestBody defines body for UpdateLaunchProfile for application/json ContentType.
-type UpdateLaunchProfileJSONRequestBody UpdateLaunchProfileJSONBody
+type UpdateLaunchProfileJSONRequestBody = LaunchProfileUpdateRequestBody
 
 // CreateMetricsBuildJSONRequestBody defines body for CreateMetricsBuild for application/json ContentType.
 type CreateMetricsBuildJSONRequestBody = MetricsBuild
@@ -829,7 +1034,7 @@ type CreateMetricsBuildJSONRequestBody = MetricsBuild
 type CreateProjectJSONRequestBody = Project
 
 // UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
-type UpdateProjectJSONRequestBody UpdateProjectJSONBody
+type UpdateProjectJSONRequestBody = ProjectUpdateRequestBody
 
 // CreateBranchForProjectJSONRequestBody defines body for CreateBranchForProject for application/json ContentType.
 type CreateBranchForProjectJSONRequestBody = Branch
@@ -838,13 +1043,13 @@ type CreateBranchForProjectJSONRequestBody = Branch
 type CreateBuildForBranchJSONRequestBody = Build
 
 // DestroySandboxJSONRequestBody defines body for DestroySandbox for application/json ContentType.
-type DestroySandboxJSONRequestBody DestroySandboxJSONBody
+type DestroySandboxJSONRequestBody = SandboxRequestBody
 
 // SetupSandboxJSONRequestBody defines body for SetupSandbox for application/json ContentType.
-type SetupSandboxJSONRequestBody SetupSandboxJSONBody
+type SetupSandboxJSONRequestBody = SandboxRequestBody
 
 // CreateParameterSweepJSONRequestBody defines body for CreateParameterSweep for application/json ContentType.
-type CreateParameterSweepJSONRequestBody CreateParameterSweepJSONBody
+type CreateParameterSweepJSONRequestBody = ParameterSweepCreateRequestBody
 
 // ValidateExperienceLocationJSONRequestBody defines body for ValidateExperienceLocation for application/json ContentType.
 type ValidateExperienceLocationJSONRequestBody = ExperienceLocation
@@ -942,19 +1147,19 @@ type ClientInterface interface {
 	// GetJob request
 	GetJob(ctx context.Context, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListLogsForJob request
-	ListLogsForJob(ctx context.Context, batchID BatchID, jobID JobID, params *ListLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// ListJobLogsForJob request
+	ListJobLogsForJob(ctx context.Context, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateLogWithBody request with any body
-	CreateLogWithBody(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// CreateJobLogWithBody request with any body
+	CreateJobLogWithBody(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	CreateLog(ctx context.Context, batchID BatchID, jobID JobID, body CreateLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	CreateJobLog(ctx context.Context, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteLog request
-	DeleteLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// DeleteJobLog request
+	DeleteJobLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetLog request
-	GetLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetJobLog request
+	GetJobLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMetricsForJob request
 	ListMetricsForJob(ctx context.Context, batchID BatchID, jobID JobID, params *ListMetricsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -986,6 +1191,25 @@ type ClientInterface interface {
 	// ListMetricsDataForMetricsDataIDs request
 	ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// UpdateJobMetricsStatusWithBody request with any body
+	UpdateJobMetricsStatusWithBody(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateJobMetricsStatus(ctx context.Context, batchID BatchID, jobID JobID, body UpdateJobMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchLogsForBatch request
+	ListBatchLogsForBatch(ctx context.Context, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBatchLogWithBody request with any body
+	CreateBatchLogWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBatchLog(ctx context.Context, batchID BatchID, body CreateBatchLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteBatchLog request
+	DeleteBatchLog(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBatchLog request
+	GetBatchLog(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListBatchMetrics request
 	ListBatchMetrics(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1015,6 +1239,11 @@ type ClientInterface interface {
 
 	// ListBatchMetricsDataForBatchMetricsDataIDs request
 	ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBatchMetricsStatusWithBody request with any body
+	UpdateBatchMetricsStatusWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateBatchMetricsStatus(ctx context.Context, batchID BatchID, body UpdateBatchMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBuilds request
 	ListBuilds(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1278,8 +1507,8 @@ func (c *Client) GetJob(ctx context.Context, batchID BatchID, jobID JobID, reqEd
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListLogsForJob(ctx context.Context, batchID BatchID, jobID JobID, params *ListLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListLogsForJobRequest(c.Server, batchID, jobID, params)
+func (c *Client) ListJobLogsForJob(ctx context.Context, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListJobLogsForJobRequest(c.Server, batchID, jobID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1290,8 +1519,8 @@ func (c *Client) ListLogsForJob(ctx context.Context, batchID BatchID, jobID JobI
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateLogWithBody(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLogRequestWithBody(c.Server, batchID, jobID, contentType, body)
+func (c *Client) CreateJobLogWithBody(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJobLogRequestWithBody(c.Server, batchID, jobID, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1302,8 +1531,8 @@ func (c *Client) CreateLogWithBody(ctx context.Context, batchID BatchID, jobID J
 	return c.Client.Do(req)
 }
 
-func (c *Client) CreateLog(ctx context.Context, batchID BatchID, jobID JobID, body CreateLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLogRequest(c.Server, batchID, jobID, body)
+func (c *Client) CreateJobLog(ctx context.Context, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJobLogRequest(c.Server, batchID, jobID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1314,8 +1543,8 @@ func (c *Client) CreateLog(ctx context.Context, batchID BatchID, jobID JobID, bo
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteLogRequest(c.Server, batchID, jobID, logID)
+func (c *Client) DeleteJobLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteJobLogRequest(c.Server, batchID, jobID, logID)
 	if err != nil {
 		return nil, err
 	}
@@ -1326,8 +1555,8 @@ func (c *Client) DeleteLog(ctx context.Context, batchID BatchID, jobID JobID, lo
 	return c.Client.Do(req)
 }
 
-func (c *Client) GetLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetLogRequest(c.Server, batchID, jobID, logID)
+func (c *Client) GetJobLog(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetJobLogRequest(c.Server, batchID, jobID, logID)
 	if err != nil {
 		return nil, err
 	}
@@ -1470,6 +1699,90 @@ func (c *Client) ListMetricsDataForMetricsDataIDs(ctx context.Context, batchID B
 	return c.Client.Do(req)
 }
 
+func (c *Client) UpdateJobMetricsStatusWithBody(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateJobMetricsStatusRequestWithBody(c.Server, batchID, jobID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateJobMetricsStatus(ctx context.Context, batchID BatchID, jobID JobID, body UpdateJobMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateJobMetricsStatusRequest(c.Server, batchID, jobID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchLogsForBatch(ctx context.Context, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchLogsForBatchRequest(c.Server, batchID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchLogWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchLogRequestWithBody(c.Server, batchID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchLog(ctx context.Context, batchID BatchID, body CreateBatchLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchLogRequest(c.Server, batchID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteBatchLog(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteBatchLogRequest(c.Server, batchID, logID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBatchLog(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBatchLogRequest(c.Server, batchID, logID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListBatchMetrics(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchMetricsRequest(c.Server, batchID, params)
 	if err != nil {
@@ -1592,6 +1905,30 @@ func (c *Client) CreateBatchMetricsData(ctx context.Context, batchID BatchID, bo
 
 func (c *Client) ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchMetricsDataForBatchMetricsDataIDsRequest(c.Server, batchID, metricsDataID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateBatchMetricsStatusWithBody(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBatchMetricsStatusRequestWithBody(c.Server, batchID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateBatchMetricsStatus(ctx context.Context, batchID BatchID, body UpdateBatchMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBatchMetricsStatusRequest(c.Server, batchID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2672,8 +3009,8 @@ func NewGetJobRequest(server string, batchID BatchID, jobID JobID) (*http.Reques
 	return req, nil
 }
 
-// NewListLogsForJobRequest generates requests for ListLogsForJob
-func NewListLogsForJobRequest(server string, batchID BatchID, jobID JobID, params *ListLogsForJobParams) (*http.Request, error) {
+// NewListJobLogsForJobRequest generates requests for ListJobLogsForJob
+func NewListJobLogsForJobRequest(server string, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -2751,19 +3088,19 @@ func NewListLogsForJobRequest(server string, batchID BatchID, jobID JobID, param
 	return req, nil
 }
 
-// NewCreateLogRequest calls the generic CreateLog builder with application/json body
-func NewCreateLogRequest(server string, batchID BatchID, jobID JobID, body CreateLogJSONRequestBody) (*http.Request, error) {
+// NewCreateJobLogRequest calls the generic CreateJobLog builder with application/json body
+func NewCreateJobLogRequest(server string, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewCreateLogRequestWithBody(server, batchID, jobID, "application/json", bodyReader)
+	return NewCreateJobLogRequestWithBody(server, batchID, jobID, "application/json", bodyReader)
 }
 
-// NewCreateLogRequestWithBody generates requests for CreateLog with any type of body
-func NewCreateLogRequestWithBody(server string, batchID BatchID, jobID JobID, contentType string, body io.Reader) (*http.Request, error) {
+// NewCreateJobLogRequestWithBody generates requests for CreateJobLog with any type of body
+func NewCreateJobLogRequestWithBody(server string, batchID BatchID, jobID JobID, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -2805,8 +3142,8 @@ func NewCreateLogRequestWithBody(server string, batchID BatchID, jobID JobID, co
 	return req, nil
 }
 
-// NewDeleteLogRequest generates requests for DeleteLog
-func NewDeleteLogRequest(server string, batchID BatchID, jobID JobID, logID LogID) (*http.Request, error) {
+// NewDeleteJobLogRequest generates requests for DeleteJobLog
+func NewDeleteJobLogRequest(server string, batchID BatchID, jobID JobID, logID LogID) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -2853,8 +3190,8 @@ func NewDeleteLogRequest(server string, batchID BatchID, jobID JobID, logID LogI
 	return req, nil
 }
 
-// NewGetLogRequest generates requests for GetLog
-func NewGetLogRequest(server string, batchID BatchID, jobID JobID, logID LogID) (*http.Request, error) {
+// NewGetJobLogRequest generates requests for GetJobLog
+func NewGetJobLogRequest(server string, batchID BatchID, jobID JobID, logID LogID) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -3502,6 +3839,261 @@ func NewListMetricsDataForMetricsDataIDsRequest(server string, batchID BatchID, 
 	return req, nil
 }
 
+// NewUpdateJobMetricsStatusRequest calls the generic UpdateJobMetricsStatus builder with application/json body
+func NewUpdateJobMetricsStatusRequest(server string, batchID BatchID, jobID JobID, body UpdateJobMetricsStatusJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateJobMetricsStatusRequestWithBody(server, batchID, jobID, "application/json", bodyReader)
+}
+
+// NewUpdateJobMetricsStatusRequestWithBody generates requests for UpdateJobMetricsStatus with any type of body
+func NewUpdateJobMetricsStatusRequestWithBody(server string, batchID BatchID, jobID JobID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/jobs/%s/metricsStatus", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBatchLogsForBatchRequest generates requests for ListBatchLogsForBatch
+func NewListBatchLogsForBatchRequest(server string, batchID BatchID, params *ListBatchLogsForBatchParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/logs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateBatchLogRequest calls the generic CreateBatchLog builder with application/json body
+func NewCreateBatchLogRequest(server string, batchID BatchID, body CreateBatchLogJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBatchLogRequestWithBody(server, batchID, "application/json", bodyReader)
+}
+
+// NewCreateBatchLogRequestWithBody generates requests for CreateBatchLog with any type of body
+func NewCreateBatchLogRequestWithBody(server string, batchID BatchID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/logs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteBatchLogRequest generates requests for DeleteBatchLog
+func NewDeleteBatchLogRequest(server string, batchID BatchID, logID LogID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "logID", runtime.ParamLocationPath, logID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/logs/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBatchLogRequest generates requests for GetBatchLog
+func NewGetBatchLogRequest(server string, batchID BatchID, logID LogID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "logID", runtime.ParamLocationPath, logID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/logs/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListBatchMetricsRequest generates requests for ListBatchMetrics
 func NewListBatchMetricsRequest(server string, batchID BatchID, params *ListBatchMetricsParams) (*http.Request, error) {
 	var err error
@@ -4027,6 +4619,53 @@ func NewListBatchMetricsDataForBatchMetricsDataIDsRequest(server string, batchID
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewUpdateBatchMetricsStatusRequest calls the generic UpdateBatchMetricsStatus builder with application/json body
+func NewUpdateBatchMetricsStatusRequest(server string, batchID BatchID, body UpdateBatchMetricsStatusJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateBatchMetricsStatusRequestWithBody(server, batchID, "application/json", bodyReader)
+}
+
+// NewUpdateBatchMetricsStatusRequestWithBody generates requests for UpdateBatchMetricsStatus with any type of body
+func NewUpdateBatchMetricsStatusRequestWithBody(server string, batchID BatchID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/batches/%s/metricsStatus", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -6569,19 +7208,19 @@ type ClientWithResponsesInterface interface {
 	// GetJobWithResponse request
 	GetJobWithResponse(ctx context.Context, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetJobResponse, error)
 
-	// ListLogsForJobWithResponse request
-	ListLogsForJobWithResponse(ctx context.Context, batchID BatchID, jobID JobID, params *ListLogsForJobParams, reqEditors ...RequestEditorFn) (*ListLogsForJobResponse, error)
+	// ListJobLogsForJobWithResponse request
+	ListJobLogsForJobWithResponse(ctx context.Context, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*ListJobLogsForJobResponse, error)
 
-	// CreateLogWithBodyWithResponse request with any body
-	CreateLogWithBodyWithResponse(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLogResponse, error)
+	// CreateJobLogWithBodyWithResponse request with any body
+	CreateJobLogWithBodyWithResponse(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error)
 
-	CreateLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, body CreateLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLogResponse, error)
+	CreateJobLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error)
 
-	// DeleteLogWithResponse request
-	DeleteLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteLogResponse, error)
+	// DeleteJobLogWithResponse request
+	DeleteJobLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteJobLogResponse, error)
 
-	// GetLogWithResponse request
-	GetLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*GetLogResponse, error)
+	// GetJobLogWithResponse request
+	GetJobLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*GetJobLogResponse, error)
 
 	// ListMetricsForJobWithResponse request
 	ListMetricsForJobWithResponse(ctx context.Context, batchID BatchID, jobID JobID, params *ListMetricsForJobParams, reqEditors ...RequestEditorFn) (*ListMetricsForJobResponse, error)
@@ -6613,6 +7252,25 @@ type ClientWithResponsesInterface interface {
 	// ListMetricsDataForMetricsDataIDsWithResponse request
 	ListMetricsDataForMetricsDataIDsWithResponse(ctx context.Context, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListMetricsDataForMetricsDataIDsResponse, error)
 
+	// UpdateJobMetricsStatusWithBodyWithResponse request with any body
+	UpdateJobMetricsStatusWithBodyWithResponse(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateJobMetricsStatusResponse, error)
+
+	UpdateJobMetricsStatusWithResponse(ctx context.Context, batchID BatchID, jobID JobID, body UpdateJobMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateJobMetricsStatusResponse, error)
+
+	// ListBatchLogsForBatchWithResponse request
+	ListBatchLogsForBatchWithResponse(ctx context.Context, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*ListBatchLogsForBatchResponse, error)
+
+	// CreateBatchLogWithBodyWithResponse request with any body
+	CreateBatchLogWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchLogResponse, error)
+
+	CreateBatchLogWithResponse(ctx context.Context, batchID BatchID, body CreateBatchLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchLogResponse, error)
+
+	// DeleteBatchLogWithResponse request
+	DeleteBatchLogWithResponse(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteBatchLogResponse, error)
+
+	// GetBatchLogWithResponse request
+	GetBatchLogWithResponse(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*GetBatchLogResponse, error)
+
 	// ListBatchMetricsWithResponse request
 	ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error)
 
@@ -6642,6 +7300,11 @@ type ClientWithResponsesInterface interface {
 
 	// ListBatchMetricsDataForBatchMetricsDataIDsWithResponse request
 	ListBatchMetricsDataForBatchMetricsDataIDsWithResponse(ctx context.Context, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricsDataIDsResponse, error)
+
+	// UpdateBatchMetricsStatusWithBodyWithResponse request with any body
+	UpdateBatchMetricsStatusWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBatchMetricsStatusResponse, error)
+
+	UpdateBatchMetricsStatusWithResponse(ctx context.Context, batchID BatchID, body UpdateBatchMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBatchMetricsStatusResponse, error)
 
 	// ListBuildsWithResponse request
 	ListBuildsWithResponse(ctx context.Context, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*ListBuildsResponse, error)
@@ -6824,10 +7487,7 @@ type ClientWithResponsesInterface interface {
 type ListBatchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Batches       *[]Batch `json:"batches,omitempty"`
-		NextPageToken *string  `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBatches
 }
 
 // Status returns HTTPResponse.Status
@@ -6914,10 +7574,7 @@ func (r CancelBatchResponse) StatusCode() int {
 type ListJobsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Jobs          *[]Job  `json:"jobs,omitempty"`
-		NextPageToken *string `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfJobs
 }
 
 // Status returns HTTPResponse.Status
@@ -6958,17 +7615,14 @@ func (r GetJobResponse) StatusCode() int {
 	return 0
 }
 
-type ListLogsForJobResponse struct {
+type ListJobLogsForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Logs          *[]Log  `json:"logs,omitempty"`
-		NextPageToken *string `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfJobLogs
 }
 
 // Status returns HTTPResponse.Status
-func (r ListLogsForJobResponse) Status() string {
+func (r ListJobLogsForJobResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -6976,21 +7630,21 @@ func (r ListLogsForJobResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ListLogsForJobResponse) StatusCode() int {
+func (r ListJobLogsForJobResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type CreateLogResponse struct {
+type CreateJobLogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *Log
+	JSON201      *JobLog
 }
 
 // Status returns HTTPResponse.Status
-func (r CreateLogResponse) Status() string {
+func (r CreateJobLogResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -6998,20 +7652,20 @@ func (r CreateLogResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r CreateLogResponse) StatusCode() int {
+func (r CreateJobLogResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type DeleteLogResponse struct {
+type DeleteJobLogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteLogResponse) Status() string {
+func (r DeleteJobLogResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -7019,21 +7673,21 @@ func (r DeleteLogResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteLogResponse) StatusCode() int {
+func (r DeleteJobLogResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type GetLogResponse struct {
+type GetJobLogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *Log
+	JSON200      *JobLog
 }
 
 // Status returns HTTPResponse.Status
-func (r GetLogResponse) Status() string {
+func (r GetJobLogResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -7041,7 +7695,7 @@ func (r GetLogResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r GetLogResponse) StatusCode() int {
+func (r GetJobLogResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -7051,10 +7705,7 @@ func (r GetLogResponse) StatusCode() int {
 type ListMetricsForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Metrics       *[]JobMetric `json:"metrics,omitempty"`
-		NextPageToken *string      `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfJobMetrics
 }
 
 // Status returns HTTPResponse.Status
@@ -7098,10 +7749,7 @@ func (r CreateMetricResponse) StatusCode() int {
 type ListMetricsForMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Metrics       *[]JobMetric `json:"metrics,omitempty"`
-		NextPageToken *string      `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfJobMetrics
 }
 
 // Status returns HTTPResponse.Status
@@ -7123,10 +7771,7 @@ func (r ListMetricsForMetricIDsResponse) StatusCode() int {
 type ListMetricsDataForMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		MetricsDataAndIDs *[]MetricsDataAndMetricID `json:"metricsDataAndIDs,omitempty"`
-		NextPageToken     *string                   `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfMetricsDataAndMetricID
 }
 
 // Status returns HTTPResponse.Status
@@ -7148,10 +7793,7 @@ func (r ListMetricsDataForMetricIDsResponse) StatusCode() int {
 type AddMetricsDataToMetricResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *struct {
-		MetricID       *MetricID        `json:"metricID,omitempty"`
-		MetricsDataIDs *[]MetricsDataID `json:"metricsDataIDs,omitempty"`
-	}
+	JSON201      *MetricDataToMetric
 }
 
 // Status returns HTTPResponse.Status
@@ -7173,10 +7815,7 @@ func (r AddMetricsDataToMetricResponse) StatusCode() int {
 type ListMetricsDataForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
-		NextPageToken *string           `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfJobMetricsData
 }
 
 // Status returns HTTPResponse.Status
@@ -7220,10 +7859,7 @@ func (r CreateMetricsDataResponse) StatusCode() int {
 type ListMetricsDataForMetricsDataIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
-		NextPageToken *string           `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfJobMetricsData
 }
 
 // Status returns HTTPResponse.Status
@@ -7242,13 +7878,119 @@ func (r ListMetricsDataForMetricsDataIDsResponse) StatusCode() int {
 	return 0
 }
 
+type UpdateJobMetricsStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Job
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateJobMetricsStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateJobMetricsStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchLogsForBatchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListOfBatchLogs
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchLogsForBatchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchLogsForBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBatchLogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *BatchLog
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBatchLogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBatchLogResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteBatchLogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteBatchLogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteBatchLogResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBatchLogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BatchLog
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBatchLogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBatchLogResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListBatchMetricsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
-		NextPageToken *string        `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBatchMetrics
 }
 
 // Status returns HTTPResponse.Status
@@ -7292,10 +8034,7 @@ func (r CreateBatchMetricResponse) StatusCode() int {
 type ListBatchMetricsForBatchMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
-		NextPageToken *string        `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBatchMetrics
 }
 
 // Status returns HTTPResponse.Status
@@ -7317,13 +8056,7 @@ func (r ListBatchMetricsForBatchMetricIDsResponse) StatusCode() int {
 type ListBatchMetricsDataForBatchMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		BatchMetricsDataAndIDs *[]struct {
-			BatchMetricID    *MetricID         `json:"batchMetricID,omitempty"`
-			BatchMetricsData *BatchMetricsData `json:"batchMetricsData,omitempty"`
-		} `json:"batchMetricsDataAndIDs,omitempty"`
-		NextPageToken *string `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBatchMetricsDataForBatchMetricIDs
 }
 
 // Status returns HTTPResponse.Status
@@ -7345,10 +8078,7 @@ func (r ListBatchMetricsDataForBatchMetricIDsResponse) StatusCode() int {
 type AddBatchMetricsDataToBatchMetricResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *struct {
-		BatchMetricID       *MetricID        `json:"batchMetricID,omitempty"`
-		BatchMetricsDataIDs *[]MetricsDataID `json:"batchMetricsDataIDs,omitempty"`
-	}
+	JSON201      *BatchMetricsDataToBatchMetric
 }
 
 // Status returns HTTPResponse.Status
@@ -7370,10 +8100,7 @@ func (r AddBatchMetricsDataToBatchMetricResponse) StatusCode() int {
 type ListBatchMetricsDataResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
-		NextPageToken    *string             `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBatchMetricsData
 }
 
 // Status returns HTTPResponse.Status
@@ -7417,10 +8144,7 @@ func (r CreateBatchMetricsDataResponse) StatusCode() int {
 type ListBatchMetricsDataForBatchMetricsDataIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
-		NextPageToken    *string             `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBatchMetricsData
 }
 
 // Status returns HTTPResponse.Status
@@ -7439,13 +8163,32 @@ func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) StatusCode() int {
 	return 0
 }
 
+type UpdateBatchMetricsStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Batch
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateBatchMetricsStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateBatchMetricsStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListBuildsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Builds        *[]Build `json:"builds,omitempty"`
-		NextPageToken *string  `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBuilds
 }
 
 // Status returns HTTPResponse.Status
@@ -7489,10 +8232,7 @@ func (r GetBuildResponse) StatusCode() int {
 type ListExperienceTagsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		ExperienceTags *[]ExperienceTag `json:"experienceTags,omitempty"`
-		NextPageToken  *string          `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfExperienceTags
 }
 
 // Status returns HTTPResponse.Status
@@ -7601,10 +8341,7 @@ func (r UpdateExperienceTagResponse) StatusCode() int {
 type ListExperiencesWithExperienceTagResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Experiences   *[]Experience `json:"experiences,omitempty"`
-		NextPageToken *string       `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfExperiences
 }
 
 // Status returns HTTPResponse.Status
@@ -7668,10 +8405,7 @@ func (r AddExperienceTagToExperienceResponse) StatusCode() int {
 type ListExperiencesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Experiences   *[]Experience `json:"experiences,omitempty"`
-		NextPageToken *string       `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfExperiences
 }
 
 // Status returns HTTPResponse.Status
@@ -7780,10 +8514,7 @@ func (r UpdateExperienceResponse) StatusCode() int {
 type ListExperienceTagsForExperienceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		ExperienceTags *[]ExperienceTag `json:"experienceTags,omitempty"`
-		NextPageToken  *string          `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfExperienceTags
 }
 
 // Status returns HTTPResponse.Status
@@ -7826,10 +8557,7 @@ func (r HealthResponse) StatusCode() int {
 type ListLaunchProfilesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Builds        *[]LaunchProfile `json:"builds,omitempty"`
-		NextPageToken *string          `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfLaunchProfiles
 }
 
 // Status returns HTTPResponse.Status
@@ -7938,10 +8666,7 @@ func (r UpdateLaunchProfileResponse) StatusCode() int {
 type ListMetricsBuildsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		MetricsBuilds *[]MetricsBuild `json:"metricsBuilds,omitempty"`
-		NextPageToken *string         `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfMetricsBuild
 }
 
 // Status returns HTTPResponse.Status
@@ -8007,10 +8732,7 @@ func (r GetMetricsBuildResponse) StatusCode() int {
 type ListProjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		NextPageToken *string    `json:"nextPageToken,omitempty"`
-		Projects      *[]Project `json:"projects,omitempty"`
-	}
+	JSON200      *ListOfProjects
 }
 
 // Status returns HTTPResponse.Status
@@ -8119,10 +8841,7 @@ func (r UpdateProjectResponse) StatusCode() int {
 type ListBranchesForProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Branches      *[]Branch `json:"branches,omitempty"`
-		NextPageToken *string   `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBranches
 }
 
 // Status returns HTTPResponse.Status
@@ -8209,10 +8928,7 @@ func (r GetBranchForProjectResponse) StatusCode() int {
 type ListBuildsForBranchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Builds        *[]Build `json:"builds,omitempty"`
-		NextPageToken *string  `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBuilds
 }
 
 // Status returns HTTPResponse.Status
@@ -8299,10 +9015,7 @@ func (r GetBuildForBranchResponse) StatusCode() int {
 type ListBatchesForBuildResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		Batches       *[]Batch `json:"batches,omitempty"`
-		NextPageToken *string  `json:"nextPageToken,omitempty"`
-	}
+	JSON200      *ListOfBatches
 }
 
 // Status returns HTTPResponse.Status
@@ -8366,10 +9079,7 @@ func (r SetupSandboxResponse) StatusCode() int {
 type ListParameterSweepsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		NextPageToken *string           `json:"nextPageToken,omitempty"`
-		Sweeps        *[]ParameterSweep `json:"sweeps,omitempty"`
-	}
+	JSON200      *ListOfParameterSweeps
 }
 
 // Status returns HTTPResponse.Status
@@ -8457,10 +9167,7 @@ func (r ValidateExperienceLocationResponse) StatusCode() int {
 type ListViewSessionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		NextPageToken *string       `json:"nextPageToken,omitempty"`
-		ViewSessions  *[]ViewObject `json:"viewSessions,omitempty"`
-	}
+	JSON200      *ListOfViewObjects
 }
 
 // Status returns HTTPResponse.Status
@@ -8504,10 +9211,7 @@ func (r CreateViewSessionResponse) StatusCode() int {
 type GetViewSessionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		ViewMetadata *[]ViewMetadata `json:"viewMetadata,omitempty"`
-		ViewObject   *ViewObject     `json:"viewObject,omitempty"`
-	}
+	JSON200      *ViewObjectAndMetadata
 }
 
 // Status returns HTTPResponse.Status
@@ -8529,13 +9233,7 @@ func (r GetViewSessionResponse) StatusCode() int {
 type CreateViewUpdateResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON201      *struct {
-		Id   *ViewSessionID `json:"id,omitempty"`
-		Mcap *McapURL       `json:"mcap,omitempty"`
-
-		// View A link to view the session.
-		View *string `json:"view,omitempty"`
-	}
+	JSON201      *ViewSessionUpdate
 }
 
 // Status returns HTTPResponse.Status
@@ -8616,48 +9314,48 @@ func (c *ClientWithResponses) GetJobWithResponse(ctx context.Context, batchID Ba
 	return ParseGetJobResponse(rsp)
 }
 
-// ListLogsForJobWithResponse request returning *ListLogsForJobResponse
-func (c *ClientWithResponses) ListLogsForJobWithResponse(ctx context.Context, batchID BatchID, jobID JobID, params *ListLogsForJobParams, reqEditors ...RequestEditorFn) (*ListLogsForJobResponse, error) {
-	rsp, err := c.ListLogsForJob(ctx, batchID, jobID, params, reqEditors...)
+// ListJobLogsForJobWithResponse request returning *ListJobLogsForJobResponse
+func (c *ClientWithResponses) ListJobLogsForJobWithResponse(ctx context.Context, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*ListJobLogsForJobResponse, error) {
+	rsp, err := c.ListJobLogsForJob(ctx, batchID, jobID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseListLogsForJobResponse(rsp)
+	return ParseListJobLogsForJobResponse(rsp)
 }
 
-// CreateLogWithBodyWithResponse request with arbitrary body returning *CreateLogResponse
-func (c *ClientWithResponses) CreateLogWithBodyWithResponse(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLogResponse, error) {
-	rsp, err := c.CreateLogWithBody(ctx, batchID, jobID, contentType, body, reqEditors...)
+// CreateJobLogWithBodyWithResponse request with arbitrary body returning *CreateJobLogResponse
+func (c *ClientWithResponses) CreateJobLogWithBodyWithResponse(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error) {
+	rsp, err := c.CreateJobLogWithBody(ctx, batchID, jobID, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateLogResponse(rsp)
+	return ParseCreateJobLogResponse(rsp)
 }
 
-func (c *ClientWithResponses) CreateLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, body CreateLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLogResponse, error) {
-	rsp, err := c.CreateLog(ctx, batchID, jobID, body, reqEditors...)
+func (c *ClientWithResponses) CreateJobLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error) {
+	rsp, err := c.CreateJobLog(ctx, batchID, jobID, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateLogResponse(rsp)
+	return ParseCreateJobLogResponse(rsp)
 }
 
-// DeleteLogWithResponse request returning *DeleteLogResponse
-func (c *ClientWithResponses) DeleteLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteLogResponse, error) {
-	rsp, err := c.DeleteLog(ctx, batchID, jobID, logID, reqEditors...)
+// DeleteJobLogWithResponse request returning *DeleteJobLogResponse
+func (c *ClientWithResponses) DeleteJobLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteJobLogResponse, error) {
+	rsp, err := c.DeleteJobLog(ctx, batchID, jobID, logID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteLogResponse(rsp)
+	return ParseDeleteJobLogResponse(rsp)
 }
 
-// GetLogWithResponse request returning *GetLogResponse
-func (c *ClientWithResponses) GetLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*GetLogResponse, error) {
-	rsp, err := c.GetLog(ctx, batchID, jobID, logID, reqEditors...)
+// GetJobLogWithResponse request returning *GetJobLogResponse
+func (c *ClientWithResponses) GetJobLogWithResponse(ctx context.Context, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*GetJobLogResponse, error) {
+	rsp, err := c.GetJobLog(ctx, batchID, jobID, logID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetLogResponse(rsp)
+	return ParseGetJobLogResponse(rsp)
 }
 
 // ListMetricsForJobWithResponse request returning *ListMetricsForJobResponse
@@ -8756,6 +9454,67 @@ func (c *ClientWithResponses) ListMetricsDataForMetricsDataIDsWithResponse(ctx c
 	return ParseListMetricsDataForMetricsDataIDsResponse(rsp)
 }
 
+// UpdateJobMetricsStatusWithBodyWithResponse request with arbitrary body returning *UpdateJobMetricsStatusResponse
+func (c *ClientWithResponses) UpdateJobMetricsStatusWithBodyWithResponse(ctx context.Context, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateJobMetricsStatusResponse, error) {
+	rsp, err := c.UpdateJobMetricsStatusWithBody(ctx, batchID, jobID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateJobMetricsStatusResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateJobMetricsStatusWithResponse(ctx context.Context, batchID BatchID, jobID JobID, body UpdateJobMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateJobMetricsStatusResponse, error) {
+	rsp, err := c.UpdateJobMetricsStatus(ctx, batchID, jobID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateJobMetricsStatusResponse(rsp)
+}
+
+// ListBatchLogsForBatchWithResponse request returning *ListBatchLogsForBatchResponse
+func (c *ClientWithResponses) ListBatchLogsForBatchWithResponse(ctx context.Context, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*ListBatchLogsForBatchResponse, error) {
+	rsp, err := c.ListBatchLogsForBatch(ctx, batchID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchLogsForBatchResponse(rsp)
+}
+
+// CreateBatchLogWithBodyWithResponse request with arbitrary body returning *CreateBatchLogResponse
+func (c *ClientWithResponses) CreateBatchLogWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchLogResponse, error) {
+	rsp, err := c.CreateBatchLogWithBody(ctx, batchID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchLogResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBatchLogWithResponse(ctx context.Context, batchID BatchID, body CreateBatchLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchLogResponse, error) {
+	rsp, err := c.CreateBatchLog(ctx, batchID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchLogResponse(rsp)
+}
+
+// DeleteBatchLogWithResponse request returning *DeleteBatchLogResponse
+func (c *ClientWithResponses) DeleteBatchLogWithResponse(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteBatchLogResponse, error) {
+	rsp, err := c.DeleteBatchLog(ctx, batchID, logID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteBatchLogResponse(rsp)
+}
+
+// GetBatchLogWithResponse request returning *GetBatchLogResponse
+func (c *ClientWithResponses) GetBatchLogWithResponse(ctx context.Context, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*GetBatchLogResponse, error) {
+	rsp, err := c.GetBatchLog(ctx, batchID, logID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBatchLogResponse(rsp)
+}
+
 // ListBatchMetricsWithResponse request returning *ListBatchMetricsResponse
 func (c *ClientWithResponses) ListBatchMetricsWithResponse(ctx context.Context, batchID BatchID, params *ListBatchMetricsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsResponse, error) {
 	rsp, err := c.ListBatchMetrics(ctx, batchID, params, reqEditors...)
@@ -8850,6 +9609,23 @@ func (c *ClientWithResponses) ListBatchMetricsDataForBatchMetricsDataIDsWithResp
 		return nil, err
 	}
 	return ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp)
+}
+
+// UpdateBatchMetricsStatusWithBodyWithResponse request with arbitrary body returning *UpdateBatchMetricsStatusResponse
+func (c *ClientWithResponses) UpdateBatchMetricsStatusWithBodyWithResponse(ctx context.Context, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBatchMetricsStatusResponse, error) {
+	rsp, err := c.UpdateBatchMetricsStatusWithBody(ctx, batchID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBatchMetricsStatusResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateBatchMetricsStatusWithResponse(ctx context.Context, batchID BatchID, body UpdateBatchMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBatchMetricsStatusResponse, error) {
+	rsp, err := c.UpdateBatchMetricsStatus(ctx, batchID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBatchMetricsStatusResponse(rsp)
 }
 
 // ListBuildsWithResponse request returning *ListBuildsResponse
@@ -9428,10 +10204,7 @@ func ParseListBatchesResponse(rsp *http.Response) (*ListBatchesResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Batches       *[]Batch `json:"batches,omitempty"`
-			NextPageToken *string  `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBatches
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9525,10 +10298,7 @@ func ParseListJobsResponse(rsp *http.Response) (*ListJobsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Jobs          *[]Job  `json:"jobs,omitempty"`
-			NextPageToken *string `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfJobs
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9565,25 +10335,22 @@ func ParseGetJobResponse(rsp *http.Response) (*GetJobResponse, error) {
 	return response, nil
 }
 
-// ParseListLogsForJobResponse parses an HTTP response from a ListLogsForJobWithResponse call
-func ParseListLogsForJobResponse(rsp *http.Response) (*ListLogsForJobResponse, error) {
+// ParseListJobLogsForJobResponse parses an HTTP response from a ListJobLogsForJobWithResponse call
+func ParseListJobLogsForJobResponse(rsp *http.Response) (*ListJobLogsForJobResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListLogsForJobResponse{
+	response := &ListJobLogsForJobResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Logs          *[]Log  `json:"logs,omitempty"`
-			NextPageToken *string `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfJobLogs
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9594,22 +10361,22 @@ func ParseListLogsForJobResponse(rsp *http.Response) (*ListLogsForJobResponse, e
 	return response, nil
 }
 
-// ParseCreateLogResponse parses an HTTP response from a CreateLogWithResponse call
-func ParseCreateLogResponse(rsp *http.Response) (*CreateLogResponse, error) {
+// ParseCreateJobLogResponse parses an HTTP response from a CreateJobLogWithResponse call
+func ParseCreateJobLogResponse(rsp *http.Response) (*CreateJobLogResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &CreateLogResponse{
+	response := &CreateJobLogResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Log
+		var dest JobLog
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9620,15 +10387,15 @@ func ParseCreateLogResponse(rsp *http.Response) (*CreateLogResponse, error) {
 	return response, nil
 }
 
-// ParseDeleteLogResponse parses an HTTP response from a DeleteLogWithResponse call
-func ParseDeleteLogResponse(rsp *http.Response) (*DeleteLogResponse, error) {
+// ParseDeleteJobLogResponse parses an HTTP response from a DeleteJobLogWithResponse call
+func ParseDeleteJobLogResponse(rsp *http.Response) (*DeleteJobLogResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteLogResponse{
+	response := &DeleteJobLogResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -9636,22 +10403,22 @@ func ParseDeleteLogResponse(rsp *http.Response) (*DeleteLogResponse, error) {
 	return response, nil
 }
 
-// ParseGetLogResponse parses an HTTP response from a GetLogWithResponse call
-func ParseGetLogResponse(rsp *http.Response) (*GetLogResponse, error) {
+// ParseGetJobLogResponse parses an HTTP response from a GetJobLogWithResponse call
+func ParseGetJobLogResponse(rsp *http.Response) (*GetJobLogResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &GetLogResponse{
+	response := &GetJobLogResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Log
+		var dest JobLog
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9677,10 +10444,7 @@ func ParseListMetricsForJobResponse(rsp *http.Response) (*ListMetricsForJobRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Metrics       *[]JobMetric `json:"metrics,omitempty"`
-			NextPageToken *string      `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfJobMetrics
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9732,10 +10496,7 @@ func ParseListMetricsForMetricIDsResponse(rsp *http.Response) (*ListMetricsForMe
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Metrics       *[]JobMetric `json:"metrics,omitempty"`
-			NextPageToken *string      `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfJobMetrics
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9761,10 +10522,7 @@ func ParseListMetricsDataForMetricIDsResponse(rsp *http.Response) (*ListMetricsD
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			MetricsDataAndIDs *[]MetricsDataAndMetricID `json:"metricsDataAndIDs,omitempty"`
-			NextPageToken     *string                   `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfMetricsDataAndMetricID
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9790,10 +10548,7 @@ func ParseAddMetricsDataToMetricResponse(rsp *http.Response) (*AddMetricsDataToM
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest struct {
-			MetricID       *MetricID        `json:"metricID,omitempty"`
-			MetricsDataIDs *[]MetricsDataID `json:"metricsDataIDs,omitempty"`
-		}
+		var dest MetricDataToMetric
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9819,10 +10574,7 @@ func ParseListMetricsDataForJobResponse(rsp *http.Response) (*ListMetricsDataFor
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
-			NextPageToken *string           `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfJobMetricsData
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9874,10 +10626,127 @@ func ParseListMetricsDataForMetricsDataIDsResponse(rsp *http.Response) (*ListMet
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
-			NextPageToken *string           `json:"nextPageToken,omitempty"`
+		var dest ListOfJobMetricsData
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
 		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateJobMetricsStatusResponse parses an HTTP response from a UpdateJobMetricsStatusWithResponse call
+func ParseUpdateJobMetricsStatusResponse(rsp *http.Response) (*UpdateJobMetricsStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateJobMetricsStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Job
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchLogsForBatchResponse parses an HTTP response from a ListBatchLogsForBatchWithResponse call
+func ParseListBatchLogsForBatchResponse(rsp *http.Response) (*ListBatchLogsForBatchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchLogsForBatchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListOfBatchLogs
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateBatchLogResponse parses an HTTP response from a CreateBatchLogWithResponse call
+func ParseCreateBatchLogResponse(rsp *http.Response) (*CreateBatchLogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBatchLogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest BatchLog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteBatchLogResponse parses an HTTP response from a DeleteBatchLogWithResponse call
+func ParseDeleteBatchLogResponse(rsp *http.Response) (*DeleteBatchLogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteBatchLogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetBatchLogResponse parses an HTTP response from a GetBatchLogWithResponse call
+func ParseGetBatchLogResponse(rsp *http.Response) (*GetBatchLogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBatchLogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BatchLog
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9903,10 +10772,7 @@ func ParseListBatchMetricsResponse(rsp *http.Response) (*ListBatchMetricsRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
-			NextPageToken *string        `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBatchMetrics
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9958,10 +10824,7 @@ func ParseListBatchMetricsForBatchMetricIDsResponse(rsp *http.Response) (*ListBa
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
-			NextPageToken *string        `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBatchMetrics
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -9987,13 +10850,7 @@ func ParseListBatchMetricsDataForBatchMetricIDsResponse(rsp *http.Response) (*Li
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			BatchMetricsDataAndIDs *[]struct {
-				BatchMetricID    *MetricID         `json:"batchMetricID,omitempty"`
-				BatchMetricsData *BatchMetricsData `json:"batchMetricsData,omitempty"`
-			} `json:"batchMetricsDataAndIDs,omitempty"`
-			NextPageToken *string `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBatchMetricsDataForBatchMetricIDs
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10019,10 +10876,7 @@ func ParseAddBatchMetricsDataToBatchMetricResponse(rsp *http.Response) (*AddBatc
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest struct {
-			BatchMetricID       *MetricID        `json:"batchMetricID,omitempty"`
-			BatchMetricsDataIDs *[]MetricsDataID `json:"batchMetricsDataIDs,omitempty"`
-		}
+		var dest BatchMetricsDataToBatchMetric
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10048,10 +10902,7 @@ func ParseListBatchMetricsDataResponse(rsp *http.Response) (*ListBatchMetricsDat
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
-			NextPageToken    *string             `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBatchMetricsData
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10103,14 +10954,37 @@ func ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp *http.Response)
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
-			NextPageToken    *string             `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBatchMetricsData
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateBatchMetricsStatusResponse parses an HTTP response from a UpdateBatchMetricsStatusWithResponse call
+func ParseUpdateBatchMetricsStatusResponse(rsp *http.Response) (*UpdateBatchMetricsStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateBatchMetricsStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Batch
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
 
 	}
 
@@ -10132,10 +11006,7 @@ func ParseListBuildsResponse(rsp *http.Response) (*ListBuildsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Builds        *[]Build `json:"builds,omitempty"`
-			NextPageToken *string  `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBuilds
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10187,10 +11058,7 @@ func ParseListExperienceTagsResponse(rsp *http.Response) (*ListExperienceTagsRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			ExperienceTags *[]ExperienceTag `json:"experienceTags,omitempty"`
-			NextPageToken  *string          `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfExperienceTags
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10310,10 +11178,7 @@ func ParseListExperiencesWithExperienceTagResponse(rsp *http.Response) (*ListExp
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Experiences   *[]Experience `json:"experiences,omitempty"`
-			NextPageToken *string       `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfExperiences
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10371,10 +11236,7 @@ func ParseListExperiencesResponse(rsp *http.Response) (*ListExperiencesResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Experiences   *[]Experience `json:"experiences,omitempty"`
-			NextPageToken *string       `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfExperiences
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10494,10 +11356,7 @@ func ParseListExperienceTagsForExperienceResponse(rsp *http.Response) (*ListExpe
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			ExperienceTags *[]ExperienceTag `json:"experienceTags,omitempty"`
-			NextPageToken  *string          `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfExperienceTags
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10539,10 +11398,7 @@ func ParseListLaunchProfilesResponse(rsp *http.Response) (*ListLaunchProfilesRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Builds        *[]LaunchProfile `json:"builds,omitempty"`
-			NextPageToken *string          `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfLaunchProfiles
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10662,10 +11518,7 @@ func ParseListMetricsBuildsResponse(rsp *http.Response) (*ListMetricsBuildsRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			MetricsBuilds *[]MetricsBuild `json:"metricsBuilds,omitempty"`
-			NextPageToken *string         `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfMetricsBuild
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10743,10 +11596,7 @@ func ParseListProjectsResponse(rsp *http.Response) (*ListProjectsResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			NextPageToken *string    `json:"nextPageToken,omitempty"`
-			Projects      *[]Project `json:"projects,omitempty"`
-		}
+		var dest ListOfProjects
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10866,10 +11716,7 @@ func ParseListBranchesForProjectResponse(rsp *http.Response) (*ListBranchesForPr
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Branches      *[]Branch `json:"branches,omitempty"`
-			NextPageToken *string   `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBranches
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10963,10 +11810,7 @@ func ParseListBuildsForBranchResponse(rsp *http.Response) (*ListBuildsForBranchR
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Builds        *[]Build `json:"builds,omitempty"`
-			NextPageToken *string  `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBuilds
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11060,10 +11904,7 @@ func ParseListBatchesForBuildResponse(rsp *http.Response) (*ListBatchesForBuildR
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			Batches       *[]Batch `json:"batches,omitempty"`
-			NextPageToken *string  `json:"nextPageToken,omitempty"`
-		}
+		var dest ListOfBatches
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11121,10 +11962,7 @@ func ParseListParameterSweepsResponse(rsp *http.Response) (*ListParameterSweepsR
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			NextPageToken *string           `json:"nextPageToken,omitempty"`
-			Sweeps        *[]ParameterSweep `json:"sweeps,omitempty"`
-		}
+		var dest ListOfParameterSweeps
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11228,10 +12066,7 @@ func ParseListViewSessionsResponse(rsp *http.Response) (*ListViewSessionsRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			NextPageToken *string       `json:"nextPageToken,omitempty"`
-			ViewSessions  *[]ViewObject `json:"viewSessions,omitempty"`
-		}
+		var dest ListOfViewObjects
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11283,10 +12118,7 @@ func ParseGetViewSessionResponse(rsp *http.Response) (*GetViewSessionResponse, e
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			ViewMetadata *[]ViewMetadata `json:"viewMetadata,omitempty"`
-			ViewObject   *ViewObject     `json:"viewObject,omitempty"`
-		}
+		var dest ViewObjectAndMetadata
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11312,13 +12144,7 @@ func ParseCreateViewUpdateResponse(rsp *http.Response) (*CreateViewUpdateRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest struct {
-			Id   *ViewSessionID `json:"id,omitempty"`
-			Mcap *McapURL       `json:"mcap,omitempty"`
-
-			// View A link to view the session.
-			View *string `json:"view,omitempty"`
-		}
+		var dest ViewSessionUpdate
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

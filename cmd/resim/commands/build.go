@@ -87,8 +87,8 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 	var allBuilds []api.Build
 
 	for {
-		response, err := Client.ListBuildsForBranchWithResponse(
-			context.Background(), projectID, branchID, &api.ListBuildsForBranchParams{
+		response, err := Client.ListBuildsForBranchesWithResponse(
+			context.Background(), projectID, []api.BranchID{branchID}, &api.ListBuildsForBranchesParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),

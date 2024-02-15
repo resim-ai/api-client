@@ -124,8 +124,11 @@ type Batch struct {
 	UserID                       *UserID             `json:"userID,omitempty"`
 }
 
-// BatchCreateRequestBody defines model for batchCreateRequestBody.
-type BatchCreateRequestBody struct {
+// BatchID defines model for batchID.
+type BatchID = openapi_types.UUID
+
+// BatchInput defines model for batchInput.
+type BatchInput struct {
 	BuildID            *BuildID             `json:"buildID,omitempty"`
 	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
 	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
@@ -134,9 +137,6 @@ type BatchCreateRequestBody struct {
 	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
 	Parameters         *BatchParameters     `json:"parameters,omitempty"`
 }
-
-// BatchID defines model for batchID.
-type BatchID = openapi_types.UUID
 
 // BatchLog defines model for batchLog.
 type BatchLog struct {
@@ -272,6 +272,12 @@ type Experience struct {
 // ExperienceID defines model for experienceID.
 type ExperienceID = openapi_types.UUID
 
+// ExperienceInput defines model for experienceInput.
+type ExperienceInput struct {
+	Experience *Experience `json:"experience,omitempty"`
+	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
+}
+
 // ExperienceLocation defines model for experienceLocation.
 type ExperienceLocation struct {
 	Location *string `json:"location,omitempty"`
@@ -299,20 +305,14 @@ type ExperienceTag struct {
 // ExperienceTagID defines model for experienceTagID.
 type ExperienceTagID = openapi_types.UUID
 
-// ExperienceTagName defines model for experienceTagName.
-type ExperienceTagName = string
-
-// ExperienceTagUpdateRequestBody defines model for experienceTagUpdateRequestBody.
-type ExperienceTagUpdateRequestBody struct {
+// ExperienceTagInput defines model for experienceTagInput.
+type ExperienceTagInput struct {
 	ExperienceTag *ExperienceTag `json:"experienceTag,omitempty"`
 	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
 }
 
-// ExperienceUpdateRequestBody defines model for experienceUpdateRequestBody.
-type ExperienceUpdateRequestBody struct {
-	Experience *Experience `json:"experience,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
-}
+// ExperienceTagName defines model for experienceTagName.
+type ExperienceTagName = string
 
 // FileName defines model for fileName.
 type FileName = string
@@ -413,8 +413,8 @@ type LaunchProfile struct {
 // LaunchProfileID defines model for launchProfileID.
 type LaunchProfileID = openapi_types.UUID
 
-// LaunchProfileUpdateRequestBody defines model for launchProfileUpdateRequestBody.
-type LaunchProfileUpdateRequestBody struct {
+// LaunchProfileInput defines model for launchProfileInput.
+type LaunchProfileInput struct {
 	LaunchProfile *LaunchProfile `json:"launchProfile,omitempty"`
 	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
 }
@@ -422,116 +422,116 @@ type LaunchProfileUpdateRequestBody struct {
 // LineNumber defines model for lineNumber.
 type LineNumber = int32
 
-// ListOfBatchLogs defines model for listOfBatchLogs.
-type ListOfBatchLogs struct {
+// ListBatchLogsOutput defines model for listBatchLogsOutput.
+type ListBatchLogsOutput struct {
 	Logs          *[]BatchLog `json:"logs,omitempty"`
 	NextPageToken *string     `json:"nextPageToken,omitempty"`
 }
 
-// ListOfBatchMetrics defines model for listOfBatchMetrics.
-type ListOfBatchMetrics struct {
-	BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
-	NextPageToken *string        `json:"nextPageToken,omitempty"`
-}
-
-// ListOfBatchMetricsData defines model for listOfBatchMetricsData.
-type ListOfBatchMetricsData struct {
-	BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
-	NextPageToken    *string             `json:"nextPageToken,omitempty"`
-}
-
-// ListOfBatchMetricsDataForBatchMetricIDs defines model for listOfBatchMetricsDataForBatchMetricIDs.
-type ListOfBatchMetricsDataForBatchMetricIDs struct {
+// ListBatchMetricsDataForBatchMetricIDsOutput defines model for listBatchMetricsDataForBatchMetricIDsOutput.
+type ListBatchMetricsDataForBatchMetricIDsOutput struct {
 	BatchMetricsDataAndIDs *[]BatchMetricsDataAndIDs `json:"batchMetricsDataAndIDs,omitempty"`
 	NextPageToken          *string                   `json:"nextPageToken,omitempty"`
 }
 
-// ListOfBatches defines model for listOfBatches.
-type ListOfBatches struct {
+// ListBatchMetricsDataOutput defines model for listBatchMetricsDataOutput.
+type ListBatchMetricsDataOutput struct {
+	BatchMetricsData *[]BatchMetricsData `json:"batchMetricsData,omitempty"`
+	NextPageToken    *string             `json:"nextPageToken,omitempty"`
+}
+
+// ListBatchMetricsOutput defines model for listBatchMetricsOutput.
+type ListBatchMetricsOutput struct {
+	BatchMetrics  *[]BatchMetric `json:"batchMetrics,omitempty"`
+	NextPageToken *string        `json:"nextPageToken,omitempty"`
+}
+
+// ListBatchesOutput defines model for listBatchesOutput.
+type ListBatchesOutput struct {
 	Batches       *[]Batch `json:"batches,omitempty"`
 	NextPageToken *string  `json:"nextPageToken,omitempty"`
 }
 
-// ListOfBranches defines model for listOfBranches.
-type ListOfBranches struct {
+// ListBranchesOutput defines model for listBranchesOutput.
+type ListBranchesOutput struct {
 	Branches      *[]Branch `json:"branches,omitempty"`
 	NextPageToken *string   `json:"nextPageToken,omitempty"`
 }
 
-// ListOfBuilds defines model for listOfBuilds.
-type ListOfBuilds struct {
+// ListBuildsOutput defines model for listBuildsOutput.
+type ListBuildsOutput struct {
 	Builds        *[]Build `json:"builds,omitempty"`
 	NextPageToken *string  `json:"nextPageToken,omitempty"`
 }
 
-// ListOfExperienceTags defines model for listOfExperienceTags.
-type ListOfExperienceTags struct {
+// ListExperienceTagsOutput defines model for listExperienceTagsOutput.
+type ListExperienceTagsOutput struct {
 	ExperienceTags *[]ExperienceTag `json:"experienceTags,omitempty"`
 	NextPageToken  *string          `json:"nextPageToken,omitempty"`
 }
 
-// ListOfExperiences defines model for listOfExperiences.
-type ListOfExperiences struct {
+// ListExperiencesOutput defines model for listExperiencesOutput.
+type ListExperiencesOutput struct {
 	Experiences   *[]Experience `json:"experiences,omitempty"`
 	NextPageToken *string       `json:"nextPageToken,omitempty"`
 }
 
-// ListOfJobLogs defines model for listOfJobLogs.
-type ListOfJobLogs struct {
+// ListJobLogsOutput defines model for listJobLogsOutput.
+type ListJobLogsOutput struct {
 	Logs          *[]JobLog `json:"logs,omitempty"`
 	NextPageToken *string   `json:"nextPageToken,omitempty"`
 }
 
-// ListOfJobMetrics defines model for listOfJobMetrics.
-type ListOfJobMetrics struct {
-	Metrics       *[]JobMetric `json:"metrics,omitempty"`
-	NextPageToken *string      `json:"nextPageToken,omitempty"`
-}
-
-// ListOfJobMetricsData defines model for listOfJobMetricsData.
-type ListOfJobMetricsData struct {
+// ListJobMetricsDataOutput defines model for listJobMetricsDataOutput.
+type ListJobMetricsDataOutput struct {
 	MetricsData   *[]JobMetricsData `json:"metricsData,omitempty"`
 	NextPageToken *string           `json:"nextPageToken,omitempty"`
 }
 
-// ListOfJobs defines model for listOfJobs.
-type ListOfJobs struct {
+// ListJobMetricsOutput defines model for listJobMetricsOutput.
+type ListJobMetricsOutput struct {
+	Metrics       *[]JobMetric `json:"metrics,omitempty"`
+	NextPageToken *string      `json:"nextPageToken,omitempty"`
+}
+
+// ListJobsOutput defines model for listJobsOutput.
+type ListJobsOutput struct {
 	Jobs          *[]Job  `json:"jobs,omitempty"`
 	NextPageToken *string `json:"nextPageToken,omitempty"`
 }
 
-// ListOfLaunchProfiles defines model for listOfLaunchProfiles.
-type ListOfLaunchProfiles struct {
+// ListLaunchProfilesOutput defines model for listLaunchProfilesOutput.
+type ListLaunchProfilesOutput struct {
 	LaunchProfiles *[]LaunchProfile `json:"launchProfiles,omitempty"`
 	NextPageToken  *string          `json:"nextPageToken,omitempty"`
 }
 
-// ListOfMetricsBuild defines model for listOfMetricsBuild.
-type ListOfMetricsBuild struct {
+// ListMetricsBuildOutput defines model for listMetricsBuildOutput.
+type ListMetricsBuildOutput struct {
 	MetricsBuilds *[]MetricsBuild `json:"metricsBuilds,omitempty"`
 	NextPageToken *string         `json:"nextPageToken,omitempty"`
 }
 
-// ListOfMetricsDataAndMetricID defines model for listOfMetricsDataAndMetricID.
-type ListOfMetricsDataAndMetricID struct {
+// ListMetricsDataAndMetricIDOutput defines model for listMetricsDataAndMetricIDOutput.
+type ListMetricsDataAndMetricIDOutput struct {
 	MetricsDataAndIDs *[]MetricsDataAndMetricID `json:"metricsDataAndIDs,omitempty"`
 	NextPageToken     *string                   `json:"nextPageToken,omitempty"`
 }
 
-// ListOfParameterSweeps defines model for listOfParameterSweeps.
-type ListOfParameterSweeps struct {
+// ListParameterSweepsOutput defines model for listParameterSweepsOutput.
+type ListParameterSweepsOutput struct {
 	NextPageToken *string           `json:"nextPageToken,omitempty"`
 	Sweeps        *[]ParameterSweep `json:"sweeps,omitempty"`
 }
 
-// ListOfProjects defines model for listOfProjects.
-type ListOfProjects struct {
+// ListProjectsOutput defines model for listProjectsOutput.
+type ListProjectsOutput struct {
 	NextPageToken *string    `json:"nextPageToken,omitempty"`
 	Projects      *[]Project `json:"projects,omitempty"`
 }
 
-// ListOfViewObjects defines model for listOfViewObjects.
-type ListOfViewObjects struct {
+// ListViewObjectsOutput defines model for listViewObjectsOutput.
+type ListViewObjectsOutput struct {
 	NextPageToken *string       `json:"nextPageToken,omitempty"`
 	ViewSessions  *[]ViewObject `json:"viewSessions,omitempty"`
 }
@@ -680,8 +680,11 @@ type ParameterSweep struct {
 	UserID               *UserID                      `json:"userID,omitempty"`
 }
 
-// ParameterSweepCreateRequestBody defines model for parameterSweepCreateRequestBody.
-type ParameterSweepCreateRequestBody struct {
+// ParameterSweepID defines model for parameterSweepID.
+type ParameterSweepID = openapi_types.UUID
+
+// ParameterSweepInput defines model for parameterSweepInput.
+type ParameterSweepInput struct {
 	BuildID            *BuildID             `json:"buildID,omitempty"`
 	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
 	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
@@ -690,9 +693,6 @@ type ParameterSweepCreateRequestBody struct {
 	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
 	Parameters         *[]SweepParameter    `json:"parameters,omitempty"`
 }
-
-// ParameterSweepID defines model for parameterSweepID.
-type ParameterSweepID = openapi_types.UUID
 
 // ParameterSweepStatus defines model for parameterSweepStatus.
 type ParameterSweepStatus string
@@ -719,14 +719,14 @@ type Project struct {
 // ProjectID defines model for projectID.
 type ProjectID = openapi_types.UUID
 
-// ProjectUpdateRequestBody defines model for projectUpdateRequestBody.
-type ProjectUpdateRequestBody struct {
+// ProjectUpdateInput defines model for projectUpdateInput.
+type ProjectUpdateInput struct {
 	Project    *Project    `json:"project,omitempty"`
 	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
 }
 
-// SandboxRequestBody defines model for sandboxRequestBody.
-type SandboxRequestBody struct {
+// SandboxInput defines model for sandboxInput.
+type SandboxInput struct {
 	OrgID  *string `json:"orgID,omitempty"`
 	UserID *string `json:"userID,omitempty"`
 }
@@ -948,15 +948,15 @@ type ListBranchesForProjectParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
-// ListBuildsForBranchParams defines parameters for ListBuildsForBranch.
-type ListBuildsForBranchParams struct {
+// ListBuildsForBranchesParams defines parameters for ListBuildsForBranches.
+type ListBuildsForBranchesParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
-// ListBatchesForBuildParams defines parameters for ListBatchesForBuild.
-type ListBatchesForBuildParams struct {
+// ListBatchesForBuildsParams defines parameters for ListBatchesForBuilds.
+type ListBatchesForBuildsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -977,7 +977,7 @@ type ListViewSessionsParams struct {
 }
 
 // CreateBatchJSONRequestBody defines body for CreateBatch for application/json ContentType.
-type CreateBatchJSONRequestBody = BatchCreateRequestBody
+type CreateBatchJSONRequestBody = BatchInput
 
 // CreateJobLogJSONRequestBody defines body for CreateJobLog for application/json ContentType.
 type CreateJobLogJSONRequestBody = JobLog
@@ -1013,19 +1013,19 @@ type UpdateBatchMetricsStatusJSONRequestBody = MetricStatus
 type CreateExperienceTagJSONRequestBody = ExperienceTag
 
 // UpdateExperienceTagJSONRequestBody defines body for UpdateExperienceTag for application/json ContentType.
-type UpdateExperienceTagJSONRequestBody = ExperienceTagUpdateRequestBody
+type UpdateExperienceTagJSONRequestBody = ExperienceTagInput
 
 // CreateExperienceJSONRequestBody defines body for CreateExperience for application/json ContentType.
 type CreateExperienceJSONRequestBody = Experience
 
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
-type UpdateExperienceJSONRequestBody = ExperienceUpdateRequestBody
+type UpdateExperienceJSONRequestBody = ExperienceInput
 
 // CreateLaunchProfileJSONRequestBody defines body for CreateLaunchProfile for application/json ContentType.
 type CreateLaunchProfileJSONRequestBody = LaunchProfile
 
 // UpdateLaunchProfileJSONRequestBody defines body for UpdateLaunchProfile for application/json ContentType.
-type UpdateLaunchProfileJSONRequestBody = LaunchProfileUpdateRequestBody
+type UpdateLaunchProfileJSONRequestBody = LaunchProfileInput
 
 // CreateMetricsBuildJSONRequestBody defines body for CreateMetricsBuild for application/json ContentType.
 type CreateMetricsBuildJSONRequestBody = MetricsBuild
@@ -1034,7 +1034,7 @@ type CreateMetricsBuildJSONRequestBody = MetricsBuild
 type CreateProjectJSONRequestBody = Project
 
 // UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
-type UpdateProjectJSONRequestBody = ProjectUpdateRequestBody
+type UpdateProjectJSONRequestBody = ProjectUpdateInput
 
 // CreateBranchForProjectJSONRequestBody defines body for CreateBranchForProject for application/json ContentType.
 type CreateBranchForProjectJSONRequestBody = Branch
@@ -1043,13 +1043,13 @@ type CreateBranchForProjectJSONRequestBody = Branch
 type CreateBuildForBranchJSONRequestBody = Build
 
 // DestroySandboxJSONRequestBody defines body for DestroySandbox for application/json ContentType.
-type DestroySandboxJSONRequestBody = SandboxRequestBody
+type DestroySandboxJSONRequestBody = SandboxInput
 
 // SetupSandboxJSONRequestBody defines body for SetupSandbox for application/json ContentType.
-type SetupSandboxJSONRequestBody = SandboxRequestBody
+type SetupSandboxJSONRequestBody = SandboxInput
 
 // CreateParameterSweepJSONRequestBody defines body for CreateParameterSweep for application/json ContentType.
-type CreateParameterSweepJSONRequestBody = ParameterSweepCreateRequestBody
+type CreateParameterSweepJSONRequestBody = ParameterSweepInput
 
 // ValidateExperienceLocationJSONRequestBody defines body for ValidateExperienceLocation for application/json ContentType.
 type ValidateExperienceLocationJSONRequestBody = ExperienceLocation
@@ -1367,8 +1367,8 @@ type ClientInterface interface {
 	// GetBranchForProject request
 	GetBranchForProject(ctx context.Context, projectID ProjectID, branchID BranchID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListBuildsForBranch request
-	ListBuildsForBranch(ctx context.Context, projectID ProjectID, branchID BranchID, params *ListBuildsForBranchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// ListBuildsForBranches request
+	ListBuildsForBranches(ctx context.Context, projectID ProjectID, branchID []BranchID, params *ListBuildsForBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// CreateBuildForBranchWithBody request with any body
 	CreateBuildForBranchWithBody(ctx context.Context, projectID ProjectID, branchID BranchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1381,8 +1381,8 @@ type ClientInterface interface {
 	// GetBuildForBranch request
 	GetBuildForBranch(ctx context.Context, projectID ProjectID, branchID BranchID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListBatchesForBuild request
-	ListBatchesForBuild(ctx context.Context, projectID ProjectID, branchID BranchID, buildID BuildID, params *ListBatchesForBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// ListBatchesForBuilds request
+	ListBatchesForBuilds(ctx context.Context, projectID ProjectID, branchID BranchID, buildID []BuildID, params *ListBatchesForBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DestroySandboxWithBody request with any body
 	DestroySandboxWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2467,8 +2467,8 @@ func (c *Client) GetBranchForProject(ctx context.Context, projectID ProjectID, b
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListBuildsForBranch(ctx context.Context, projectID ProjectID, branchID BranchID, params *ListBuildsForBranchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListBuildsForBranchRequest(c.Server, projectID, branchID, params)
+func (c *Client) ListBuildsForBranches(ctx context.Context, projectID ProjectID, branchID []BranchID, params *ListBuildsForBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBuildsForBranchesRequest(c.Server, projectID, branchID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2527,8 +2527,8 @@ func (c *Client) GetBuildForBranch(ctx context.Context, projectID ProjectID, bra
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListBatchesForBuild(ctx context.Context, projectID ProjectID, branchID BranchID, buildID BuildID, params *ListBatchesForBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListBatchesForBuildRequest(c.Server, projectID, branchID, buildID, params)
+func (c *Client) ListBatchesForBuilds(ctx context.Context, projectID ProjectID, branchID BranchID, buildID []BuildID, params *ListBatchesForBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchesForBuildsRequest(c.Server, projectID, branchID, buildID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -6338,8 +6338,8 @@ func NewGetBranchForProjectRequest(server string, projectID ProjectID, branchID 
 	return req, nil
 }
 
-// NewListBuildsForBranchRequest generates requests for ListBuildsForBranch
-func NewListBuildsForBranchRequest(server string, projectID ProjectID, branchID BranchID, params *ListBuildsForBranchParams) (*http.Request, error) {
+// NewListBuildsForBranchesRequest generates requests for ListBuildsForBranches
+func NewListBuildsForBranchesRequest(server string, projectID ProjectID, branchID []BranchID, params *ListBuildsForBranchesParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6583,8 +6583,8 @@ func NewGetBuildForBranchRequest(server string, projectID ProjectID, branchID Br
 	return req, nil
 }
 
-// NewListBatchesForBuildRequest generates requests for ListBatchesForBuild
-func NewListBatchesForBuildRequest(server string, projectID ProjectID, branchID BranchID, buildID BuildID, params *ListBatchesForBuildParams) (*http.Request, error) {
+// NewListBatchesForBuildsRequest generates requests for ListBatchesForBuilds
+func NewListBatchesForBuildsRequest(server string, projectID ProjectID, branchID BranchID, buildID []BuildID, params *ListBatchesForBuildsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -7428,8 +7428,8 @@ type ClientWithResponsesInterface interface {
 	// GetBranchForProjectWithResponse request
 	GetBranchForProjectWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, reqEditors ...RequestEditorFn) (*GetBranchForProjectResponse, error)
 
-	// ListBuildsForBranchWithResponse request
-	ListBuildsForBranchWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, params *ListBuildsForBranchParams, reqEditors ...RequestEditorFn) (*ListBuildsForBranchResponse, error)
+	// ListBuildsForBranchesWithResponse request
+	ListBuildsForBranchesWithResponse(ctx context.Context, projectID ProjectID, branchID []BranchID, params *ListBuildsForBranchesParams, reqEditors ...RequestEditorFn) (*ListBuildsForBranchesResponse, error)
 
 	// CreateBuildForBranchWithBodyWithResponse request with any body
 	CreateBuildForBranchWithBodyWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBuildForBranchResponse, error)
@@ -7442,8 +7442,8 @@ type ClientWithResponsesInterface interface {
 	// GetBuildForBranchWithResponse request
 	GetBuildForBranchWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, buildID BuildID, reqEditors ...RequestEditorFn) (*GetBuildForBranchResponse, error)
 
-	// ListBatchesForBuildWithResponse request
-	ListBatchesForBuildWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, buildID BuildID, params *ListBatchesForBuildParams, reqEditors ...RequestEditorFn) (*ListBatchesForBuildResponse, error)
+	// ListBatchesForBuildsWithResponse request
+	ListBatchesForBuildsWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, buildID []BuildID, params *ListBatchesForBuildsParams, reqEditors ...RequestEditorFn) (*ListBatchesForBuildsResponse, error)
 
 	// DestroySandboxWithBodyWithResponse request with any body
 	DestroySandboxWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DestroySandboxResponse, error)
@@ -7487,7 +7487,7 @@ type ClientWithResponsesInterface interface {
 type ListBatchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatches
+	JSON200      *ListBatchesOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7574,7 +7574,7 @@ func (r CancelBatchResponse) StatusCode() int {
 type ListJobsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfJobs
+	JSON200      *ListJobsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7618,7 +7618,7 @@ func (r GetJobResponse) StatusCode() int {
 type ListJobLogsForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfJobLogs
+	JSON200      *ListJobLogsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7705,7 +7705,7 @@ func (r GetJobLogResponse) StatusCode() int {
 type ListMetricsForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfJobMetrics
+	JSON200      *ListJobMetricsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7749,7 +7749,7 @@ func (r CreateMetricResponse) StatusCode() int {
 type ListMetricsForMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfJobMetrics
+	JSON200      *ListJobMetricsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7771,7 +7771,7 @@ func (r ListMetricsForMetricIDsResponse) StatusCode() int {
 type ListMetricsDataForMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfMetricsDataAndMetricID
+	JSON200      *ListMetricsDataAndMetricIDOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7815,7 +7815,7 @@ func (r AddMetricsDataToMetricResponse) StatusCode() int {
 type ListMetricsDataForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfJobMetricsData
+	JSON200      *ListJobMetricsDataOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7859,7 +7859,7 @@ func (r CreateMetricsDataResponse) StatusCode() int {
 type ListMetricsDataForMetricsDataIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfJobMetricsData
+	JSON200      *ListJobMetricsDataOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7903,7 +7903,7 @@ func (r UpdateJobMetricsStatusResponse) StatusCode() int {
 type ListBatchLogsForBatchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatchLogs
+	JSON200      *ListBatchLogsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -7990,7 +7990,7 @@ func (r GetBatchLogResponse) StatusCode() int {
 type ListBatchMetricsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatchMetrics
+	JSON200      *ListBatchMetricsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8034,7 +8034,7 @@ func (r CreateBatchMetricResponse) StatusCode() int {
 type ListBatchMetricsForBatchMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatchMetrics
+	JSON200      *ListBatchMetricsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8056,7 +8056,7 @@ func (r ListBatchMetricsForBatchMetricIDsResponse) StatusCode() int {
 type ListBatchMetricsDataForBatchMetricIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatchMetricsDataForBatchMetricIDs
+	JSON200      *ListBatchMetricsDataForBatchMetricIDsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8100,7 +8100,7 @@ func (r AddBatchMetricsDataToBatchMetricResponse) StatusCode() int {
 type ListBatchMetricsDataResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatchMetricsData
+	JSON200      *ListBatchMetricsDataOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8144,7 +8144,7 @@ func (r CreateBatchMetricsDataResponse) StatusCode() int {
 type ListBatchMetricsDataForBatchMetricsDataIDsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatchMetricsData
+	JSON200      *ListBatchMetricsDataOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8188,7 +8188,7 @@ func (r UpdateBatchMetricsStatusResponse) StatusCode() int {
 type ListBuildsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBuilds
+	JSON200      *ListBuildsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8232,7 +8232,7 @@ func (r GetBuildResponse) StatusCode() int {
 type ListExperienceTagsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfExperienceTags
+	JSON200      *ListExperienceTagsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8341,7 +8341,7 @@ func (r UpdateExperienceTagResponse) StatusCode() int {
 type ListExperiencesWithExperienceTagResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfExperiences
+	JSON200      *ListExperiencesOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8405,7 +8405,7 @@ func (r AddExperienceTagToExperienceResponse) StatusCode() int {
 type ListExperiencesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfExperiences
+	JSON200      *ListExperiencesOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8514,7 +8514,7 @@ func (r UpdateExperienceResponse) StatusCode() int {
 type ListExperienceTagsForExperienceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfExperienceTags
+	JSON200      *ListExperienceTagsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8557,7 +8557,7 @@ func (r HealthResponse) StatusCode() int {
 type ListLaunchProfilesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfLaunchProfiles
+	JSON200      *ListLaunchProfilesOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8666,7 +8666,7 @@ func (r UpdateLaunchProfileResponse) StatusCode() int {
 type ListMetricsBuildsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfMetricsBuild
+	JSON200      *ListMetricsBuildOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8732,7 +8732,7 @@ func (r GetMetricsBuildResponse) StatusCode() int {
 type ListProjectsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfProjects
+	JSON200      *ListProjectsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8841,7 +8841,7 @@ func (r UpdateProjectResponse) StatusCode() int {
 type ListBranchesForProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBranches
+	JSON200      *ListBranchesOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -8925,14 +8925,14 @@ func (r GetBranchForProjectResponse) StatusCode() int {
 	return 0
 }
 
-type ListBuildsForBranchResponse struct {
+type ListBuildsForBranchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBuilds
+	JSON200      *ListBuildsOutput
 }
 
 // Status returns HTTPResponse.Status
-func (r ListBuildsForBranchResponse) Status() string {
+func (r ListBuildsForBranchesResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -8940,7 +8940,7 @@ func (r ListBuildsForBranchResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ListBuildsForBranchResponse) StatusCode() int {
+func (r ListBuildsForBranchesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -9012,14 +9012,14 @@ func (r GetBuildForBranchResponse) StatusCode() int {
 	return 0
 }
 
-type ListBatchesForBuildResponse struct {
+type ListBatchesForBuildsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfBatches
+	JSON200      *ListBatchesOutput
 }
 
 // Status returns HTTPResponse.Status
-func (r ListBatchesForBuildResponse) Status() string {
+func (r ListBatchesForBuildsResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -9027,7 +9027,7 @@ func (r ListBatchesForBuildResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ListBatchesForBuildResponse) StatusCode() int {
+func (r ListBatchesForBuildsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -9079,7 +9079,7 @@ func (r SetupSandboxResponse) StatusCode() int {
 type ListParameterSweepsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfParameterSweeps
+	JSON200      *ListParameterSweepsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -9167,7 +9167,7 @@ func (r ValidateExperienceLocationResponse) StatusCode() int {
 type ListViewSessionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListOfViewObjects
+	JSON200      *ListViewObjectsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -10014,13 +10014,13 @@ func (c *ClientWithResponses) GetBranchForProjectWithResponse(ctx context.Contex
 	return ParseGetBranchForProjectResponse(rsp)
 }
 
-// ListBuildsForBranchWithResponse request returning *ListBuildsForBranchResponse
-func (c *ClientWithResponses) ListBuildsForBranchWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, params *ListBuildsForBranchParams, reqEditors ...RequestEditorFn) (*ListBuildsForBranchResponse, error) {
-	rsp, err := c.ListBuildsForBranch(ctx, projectID, branchID, params, reqEditors...)
+// ListBuildsForBranchesWithResponse request returning *ListBuildsForBranchesResponse
+func (c *ClientWithResponses) ListBuildsForBranchesWithResponse(ctx context.Context, projectID ProjectID, branchID []BranchID, params *ListBuildsForBranchesParams, reqEditors ...RequestEditorFn) (*ListBuildsForBranchesResponse, error) {
+	rsp, err := c.ListBuildsForBranches(ctx, projectID, branchID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseListBuildsForBranchResponse(rsp)
+	return ParseListBuildsForBranchesResponse(rsp)
 }
 
 // CreateBuildForBranchWithBodyWithResponse request with arbitrary body returning *CreateBuildForBranchResponse
@@ -10058,13 +10058,13 @@ func (c *ClientWithResponses) GetBuildForBranchWithResponse(ctx context.Context,
 	return ParseGetBuildForBranchResponse(rsp)
 }
 
-// ListBatchesForBuildWithResponse request returning *ListBatchesForBuildResponse
-func (c *ClientWithResponses) ListBatchesForBuildWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, buildID BuildID, params *ListBatchesForBuildParams, reqEditors ...RequestEditorFn) (*ListBatchesForBuildResponse, error) {
-	rsp, err := c.ListBatchesForBuild(ctx, projectID, branchID, buildID, params, reqEditors...)
+// ListBatchesForBuildsWithResponse request returning *ListBatchesForBuildsResponse
+func (c *ClientWithResponses) ListBatchesForBuildsWithResponse(ctx context.Context, projectID ProjectID, branchID BranchID, buildID []BuildID, params *ListBatchesForBuildsParams, reqEditors ...RequestEditorFn) (*ListBatchesForBuildsResponse, error) {
+	rsp, err := c.ListBatchesForBuilds(ctx, projectID, branchID, buildID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseListBatchesForBuildResponse(rsp)
+	return ParseListBatchesForBuildsResponse(rsp)
 }
 
 // DestroySandboxWithBodyWithResponse request with arbitrary body returning *DestroySandboxResponse
@@ -10204,7 +10204,7 @@ func ParseListBatchesResponse(rsp *http.Response) (*ListBatchesResponse, error) 
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatches
+		var dest ListBatchesOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10298,7 +10298,7 @@ func ParseListJobsResponse(rsp *http.Response) (*ListJobsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfJobs
+		var dest ListJobsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10350,7 +10350,7 @@ func ParseListJobLogsForJobResponse(rsp *http.Response) (*ListJobLogsForJobRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfJobLogs
+		var dest ListJobLogsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10444,7 +10444,7 @@ func ParseListMetricsForJobResponse(rsp *http.Response) (*ListMetricsForJobRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfJobMetrics
+		var dest ListJobMetricsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10496,7 +10496,7 @@ func ParseListMetricsForMetricIDsResponse(rsp *http.Response) (*ListMetricsForMe
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfJobMetrics
+		var dest ListJobMetricsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10522,7 +10522,7 @@ func ParseListMetricsDataForMetricIDsResponse(rsp *http.Response) (*ListMetricsD
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfMetricsDataAndMetricID
+		var dest ListMetricsDataAndMetricIDOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10574,7 +10574,7 @@ func ParseListMetricsDataForJobResponse(rsp *http.Response) (*ListMetricsDataFor
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfJobMetricsData
+		var dest ListJobMetricsDataOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10626,7 +10626,7 @@ func ParseListMetricsDataForMetricsDataIDsResponse(rsp *http.Response) (*ListMet
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfJobMetricsData
+		var dest ListJobMetricsDataOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10678,7 +10678,7 @@ func ParseListBatchLogsForBatchResponse(rsp *http.Response) (*ListBatchLogsForBa
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatchLogs
+		var dest ListBatchLogsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10772,7 +10772,7 @@ func ParseListBatchMetricsResponse(rsp *http.Response) (*ListBatchMetricsRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatchMetrics
+		var dest ListBatchMetricsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10824,7 +10824,7 @@ func ParseListBatchMetricsForBatchMetricIDsResponse(rsp *http.Response) (*ListBa
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatchMetrics
+		var dest ListBatchMetricsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10850,7 +10850,7 @@ func ParseListBatchMetricsDataForBatchMetricIDsResponse(rsp *http.Response) (*Li
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatchMetricsDataForBatchMetricIDs
+		var dest ListBatchMetricsDataForBatchMetricIDsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10902,7 +10902,7 @@ func ParseListBatchMetricsDataResponse(rsp *http.Response) (*ListBatchMetricsDat
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatchMetricsData
+		var dest ListBatchMetricsDataOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -10954,7 +10954,7 @@ func ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp *http.Response)
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatchMetricsData
+		var dest ListBatchMetricsDataOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11006,7 +11006,7 @@ func ParseListBuildsResponse(rsp *http.Response) (*ListBuildsResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBuilds
+		var dest ListBuildsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11058,7 +11058,7 @@ func ParseListExperienceTagsResponse(rsp *http.Response) (*ListExperienceTagsRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfExperienceTags
+		var dest ListExperienceTagsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11178,7 +11178,7 @@ func ParseListExperiencesWithExperienceTagResponse(rsp *http.Response) (*ListExp
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfExperiences
+		var dest ListExperiencesOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11236,7 +11236,7 @@ func ParseListExperiencesResponse(rsp *http.Response) (*ListExperiencesResponse,
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfExperiences
+		var dest ListExperiencesOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11356,7 +11356,7 @@ func ParseListExperienceTagsForExperienceResponse(rsp *http.Response) (*ListExpe
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfExperienceTags
+		var dest ListExperienceTagsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11398,7 +11398,7 @@ func ParseListLaunchProfilesResponse(rsp *http.Response) (*ListLaunchProfilesRes
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfLaunchProfiles
+		var dest ListLaunchProfilesOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11518,7 +11518,7 @@ func ParseListMetricsBuildsResponse(rsp *http.Response) (*ListMetricsBuildsRespo
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfMetricsBuild
+		var dest ListMetricsBuildOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11596,7 +11596,7 @@ func ParseListProjectsResponse(rsp *http.Response) (*ListProjectsResponse, error
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfProjects
+		var dest ListProjectsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11716,7 +11716,7 @@ func ParseListBranchesForProjectResponse(rsp *http.Response) (*ListBranchesForPr
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBranches
+		var dest ListBranchesOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11795,22 +11795,22 @@ func ParseGetBranchForProjectResponse(rsp *http.Response) (*GetBranchForProjectR
 	return response, nil
 }
 
-// ParseListBuildsForBranchResponse parses an HTTP response from a ListBuildsForBranchWithResponse call
-func ParseListBuildsForBranchResponse(rsp *http.Response) (*ListBuildsForBranchResponse, error) {
+// ParseListBuildsForBranchesResponse parses an HTTP response from a ListBuildsForBranchesWithResponse call
+func ParseListBuildsForBranchesResponse(rsp *http.Response) (*ListBuildsForBranchesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListBuildsForBranchResponse{
+	response := &ListBuildsForBranchesResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBuilds
+		var dest ListBuildsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11889,22 +11889,22 @@ func ParseGetBuildForBranchResponse(rsp *http.Response) (*GetBuildForBranchRespo
 	return response, nil
 }
 
-// ParseListBatchesForBuildResponse parses an HTTP response from a ListBatchesForBuildWithResponse call
-func ParseListBatchesForBuildResponse(rsp *http.Response) (*ListBatchesForBuildResponse, error) {
+// ParseListBatchesForBuildsResponse parses an HTTP response from a ListBatchesForBuildsWithResponse call
+func ParseListBatchesForBuildsResponse(rsp *http.Response) (*ListBatchesForBuildsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListBatchesForBuildResponse{
+	response := &ListBatchesForBuildsResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfBatches
+		var dest ListBatchesOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -11962,7 +11962,7 @@ func ParseListParameterSweepsResponse(rsp *http.Response) (*ListParameterSweepsR
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfParameterSweeps
+		var dest ListParameterSweepsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -12066,7 +12066,7 @@ func ParseListViewSessionsResponse(rsp *http.Response) (*ListViewSessionsRespons
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListOfViewObjects
+		var dest ListViewObjectsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

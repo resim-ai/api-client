@@ -22,18 +22,16 @@ var (
 		Aliases: []string{"build"},
 	}
 	createBuildCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new build",
-		Long:   ``,
-		Run:    createBuild,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new build",
+		Long:  ``,
+		Run:   createBuild,
 	}
 	listBuildsCmd = &cobra.Command{
-		Use:    "list",
-		Short:  "list - Lists existing builds",
-		Long:   ``,
-		Run:    listBuilds,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list",
+		Short: "list - Lists existing builds",
+		Long:  ``,
+		Run:   listBuilds,
 	}
 )
 

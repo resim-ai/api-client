@@ -24,26 +24,23 @@ var (
 		Aliases: []string{"batch"},
 	}
 	createBatchCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new batch",
-		Long:   ``,
-		Run:    createBatch,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new batch",
+		Long:  ``,
+		Run:   createBatch,
 	}
 	getBatchCmd = &cobra.Command{
-		Use:    "get",
-		Short:  "get - Retrieves a batch",
-		Long:   ``,
-		Run:    getBatch,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "get",
+		Short: "get - Retrieves a batch",
+		Long:  ``,
+		Run:   getBatch,
 	}
 
 	jobsBatchCmd = &cobra.Command{
-		Use:    "jobs",
-		Short:  "jobs - Lists the jobs in a batch",
-		Long:   ``,
-		Run:    jobsBatch,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "jobs",
+		Short: "jobs - Lists the jobs in a batch",
+		Long:  ``,
+		Run:   jobsBatch,
 	}
 )
 

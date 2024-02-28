@@ -21,18 +21,16 @@ var (
 		Aliases: []string{"metricsBuild, metricsBuilds, metricBuild, metricBuilds, metrics-build, metric-build, metric-builds"},
 	}
 	createMetricsBuildCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new metrics build",
-		Long:   ``,
-		Run:    createMetricsBuild,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new metrics build",
+		Long:  ``,
+		Run:   createMetricsBuild,
 	}
 	listMetricsBuildsCmd = &cobra.Command{
-		Use:    "list",
-		Short:  "list - Lists existing metrics builds",
-		Long:   ``,
-		Run:    listMetricsBuilds,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list",
+		Short: "list - Lists existing metrics builds",
+		Long:  ``,
+		Run:   listMetricsBuilds,
 	}
 )
 

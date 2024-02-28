@@ -21,18 +21,16 @@ var (
 		Aliases: []string{"log"},
 	}
 	createLogCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new log entry",
-		Long:   ``,
-		Run:    createLog,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new log entry",
+		Long:  ``,
+		Run:   createLog,
 	}
 	listLogsCmd = &cobra.Command{
-		Use:    "list",
-		Short:  "list - Lists the logs for a batch",
-		Long:   ``,
-		Run:    listLogs,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list",
+		Short: "list - Lists the logs for a batch",
+		Long:  ``,
+		Run:   listLogs,
 	}
 )
 

@@ -175,16 +175,11 @@ func (c *CredentialCache) SaveCredentialCache() {
 		return
 	}
 
-	homedir, _ := os.UserHomeDir()
-	expectedDir := strings.ReplaceAll(ConfigPath, "$HOME", homedir)
-	// Check first if the directory exists, and if it does not, create it:
-	if _, err := os.Stat(expectedDir); os.IsNotExist(err) {
-		err := os.Mkdir(expectedDir, 0700)
-		if err != nil {
-			log.Println("error creating directory:", err)
-			return
-		}
+	expectedDir, err := GetConfigDir()
+	if err != nil {
+		return
 	}
+
 	path := filepath.Join(expectedDir, CredentialCacheFilename)
 	err = os.WriteFile(path, data, 0600)
 	if err != nil {

@@ -88,9 +88,6 @@ func init() {
 
 	projectCmd.AddCommand(listProjectsCmd)
 
-	// selectProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project")
-	// selectProjectCmd.MarkFlagRequired(projectKey)
-	// selectProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(selectProjectCmd)
 
 	rootCmd.AddCommand(projectCmd)

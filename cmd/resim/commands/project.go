@@ -53,8 +53,9 @@ var (
 	}
 
 	selectProjectCmd = &cobra.Command{
-		Use:   "select",
+		Use:   "select <project name or id>",
 		Short: "select - Selects default project",
+		Args:  cobra.ExactArgs(1),
 		Long:  ``,
 		Run:   selectProject,
 	}
@@ -87,9 +88,9 @@ func init() {
 
 	projectCmd.AddCommand(listProjectsCmd)
 
-	selectProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project")
-	selectProjectCmd.MarkFlagRequired(projectKey)
-	selectProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
+	// selectProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project")
+	// selectProjectCmd.MarkFlagRequired(projectKey)
+	// selectProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(selectProjectCmd)
 
 	rootCmd.AddCommand(projectCmd)
@@ -135,21 +136,17 @@ func listProjects(ccmd *cobra.Command, args []string) {
 
 func selectProject(ccmd *cobra.Command, args []string) {
 	var project *api.Project
-	if viper.IsSet(projectKey) {
-		projectID := getProjectID(Client, viper.GetString(projectKey))
-		response, err := Client.GetProjectWithResponse(context.Background(), projectID)
-		if err != nil {
-			log.Fatal("unable to retrieve project:", err)
-		}
-		if response.HTTPResponse.StatusCode == http.StatusNotFound {
-			log.Fatal("failed to find project with requested id: ", projectID.String())
-		} else {
-			ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse, response.Body)
-		}
-		project = response.JSON200
-	} else {
-		log.Fatal("must specify either the project ID or the project name")
+	projectID := getProjectID(Client, args[0])
+	response, err := Client.GetProjectWithResponse(context.Background(), projectID)
+	if err != nil {
+		log.Fatal("unable to retrieve project:", err)
 	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatal("failed to find project with requested id: ", projectID.String())
+	} else {
+		ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse, response.Body)
+	}
+	project = response.JSON200
 	// Open the config file as an independent Viper instance. This instance does not have all the flags set.
 	// Therefore we can safely save it again without adding any additional flags.
 	v := viper.New()
@@ -165,6 +162,7 @@ func selectProject(ccmd *cobra.Command, args []string) {
 	}
 	v.Set("project", project.ProjectID)
 	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.json")
+	fmt.Println("Default project set:", *(project.Name))
 }
 
 func createProject(ccmd *cobra.Command, args []string) {

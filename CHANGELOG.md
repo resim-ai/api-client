@@ -10,11 +10,11 @@ Changes in this section will be included in the next release.
 
 #### Added
 
-- Allowed the ability to persist project selection with `select project --project foo". If set via this method, `--project` will no longer be a required flag for other commands.
+- Allowed the ability to persist project selection with `select project foo`. If set via this method, `--project` will no longer be a required flag for other commands.
 
 #### Changed
 
-- `projects list` will list projects by name. A * will denote the active project, if set.
+- `project list` will list projects by name. A * will denote the active project, if set.
 
 ### v0.1.30 - February 08 2024
 

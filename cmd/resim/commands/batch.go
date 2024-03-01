@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -42,6 +43,13 @@ var (
 		Long:  ``,
 		Run:   jobsBatch,
 	}
+
+	waitBatchCmd = &cobra.Command{
+		Use:   "wait",
+		Short: "wait - Wait for job completion",
+		Long:  ``,
+		Run:   waitBatch,
+	}
 )
 
 const (
@@ -57,6 +65,8 @@ const (
 	batchGithubKey             = "github"
 	batchMetricsBuildKey       = "metrics-build-id"
 	batchExitStatusKey         = "exit-status"
+	batchWaitTimeoutKey        = "wait-timeout"
+	batchWaitPollKey           = "poll-every"
 )
 
 func init() {
@@ -87,6 +97,13 @@ func init() {
 	jobsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	jobsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(jobsBatchCmd)
+
+	waitBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
+	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	waitBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish.")
+	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status.")
+	batchCmd.AddCommand(waitBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
 }
@@ -237,10 +254,10 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 }
 
-func getBatch(ccmd *cobra.Command, args []string) {
+func actualGetBatch(batchIDRaw, batchName string) *api.Batch {
 	var batch *api.Batch
-	if viper.IsSet(batchIDKey) {
-		batchID, err := uuid.Parse(viper.GetString(batchIDKey))
+	if batchIDRaw != "" {
+		batchID, err := uuid.Parse(batchIDRaw)
 		if err != nil {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
@@ -250,10 +267,9 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse, response.Body)
 		batch = response.JSON200
-	} else if viper.IsSet(batchNameKey) {
-		batchName := viper.GetString(batchNameKey)
+		return batch
+	} else if batchName != "" {
 		var pageToken *string = nil
-	pageLoop:
 		for {
 			response, err := Client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
 				PageToken: pageToken,
@@ -271,7 +287,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			for _, b := range batches {
 				if b.FriendlyName != nil && *b.FriendlyName == batchName {
 					batch = &b
-					break pageLoop
+					return batch
 				}
 			}
 
@@ -284,6 +300,11 @@ func getBatch(ccmd *cobra.Command, args []string) {
 	} else {
 		log.Fatal("must specify either the batch ID or the batch name")
 	}
+	return batch
+}
+
+func getBatch(ccmd *cobra.Command, args []string) {
+	batch := actualGetBatch(viper.GetString(batchIDKey), viper.GetString(batchNameKey))
 
 	if viper.GetBool(batchExitStatusKey) {
 		if batch.Status == nil {
@@ -312,6 +333,37 @@ func getBatch(ccmd *cobra.Command, args []string) {
 	fmt.Println(string(bytes))
 }
 
+func waitBatch(ccmd *cobra.Command, args []string) {
+	var batch *api.Batch
+	timeout, _ := time.ParseDuration(viper.GetString(batchWaitTimeoutKey))
+	pollWait, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
+	startTime := time.Now()
+	for {
+		batch = actualGetBatch(viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+		if batch.Status == nil {
+			log.Fatal("no status returned")
+		}
+		viper.Set(batchIDKey, batch.BatchID.String())
+		switch *batch.Status {
+		case api.BatchStatusSUCCEEDED:
+			os.Exit(0)
+		case api.BatchStatusFAILED, "ERROR":
+			os.Exit(2)
+		case api.BatchStatusSUBMITTED, api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
+		case api.BatchStatusCANCELLED:
+			os.Exit(5)
+		default:
+			log.Fatal("unknown batch status: ", *batch.Status)
+		}
+
+		if time.Now().After(startTime.Add(timeout)) {
+			log.Fatalf("Failed to reach a final state after %v, last state %s", timeout, *batch.Status)
+			os.Exit(6)
+		}
+		time.Sleep(pollWait)
+	}
+}
+
 func jobsBatch(ccmd *cobra.Command, args []string) {
 	var batchID uuid.UUID
 	var err error
@@ -321,36 +373,8 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
 	} else if viper.IsSet(batchNameKey) {
-		batchName := viper.GetString(batchNameKey)
-		var pageToken *string = nil
-	pageLoop:
-		for {
-			response, err := Client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
-				PageSize:  Ptr(100),
-				PageToken: pageToken,
-				OrderBy:   Ptr("timestamp"),
-			})
-			if err != nil {
-				log.Fatal("unable to list batches:", err)
-			}
-			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, response.Body)
-			if response.JSON200.Batches == nil {
-				log.Fatal("unable to find batch: ", batchName)
-			}
-			batches := *response.JSON200.Batches
-
-			for _, b := range batches {
-				if b.FriendlyName != nil && *b.FriendlyName == batchName {
-					batchID = *b.BatchID
-					break pageLoop
-				}
-			}
-			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
-				pageToken = response.JSON200.NextPageToken
-			} else {
-				log.Fatal("unable to find batch: ", batchName)
-			}
-		}
+		batch := actualGetBatch("", viper.GetString(batchNameKey))
+		batchID = *batch.BatchID
 	} else {
 		log.Fatal("must specify either the batch ID or the batch name")
 	}

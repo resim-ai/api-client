@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -24,35 +25,39 @@ var (
 		Aliases: []string{"project"},
 	}
 	createProjectCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new project",
-		Long:   ``,
-		Run:    createProject,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new project",
+		Long:  ``,
+		Run:   createProject,
 	}
 
 	getProjectCmd = &cobra.Command{
-		Use:    "get",
-		Short:  "get - Gets details about a project",
-		Long:   ``,
-		Run:    getProject,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "get",
+		Short: "get - Gets details about a project",
+		Long:  ``,
+		Run:   getProject,
 	}
 
 	deleteProjectCmd = &cobra.Command{
-		Use:    "delete",
-		Short:  "delete - Deletes a project",
-		Long:   ``,
-		Run:    deleteProject,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "delete",
+		Short: "delete - Deletes a project",
+		Long:  ``,
+		Run:   deleteProject,
 	}
 
 	listProjectsCmd = &cobra.Command{
-		Use:    "list",
-		Short:  "list - Lists projects",
-		Long:   ``,
-		Run:    listProjects,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list",
+		Short: "list - Lists projects",
+		Long:  ``,
+		Run:   listProjects,
+	}
+
+	selectProjectCmd = &cobra.Command{
+		Use:   "select <project name or id>",
+		Short: "select - Selects default project",
+		Args:  cobra.ExactArgs(1),
+		Long:  ``,
+		Run:   selectProject,
 	}
 )
 
@@ -83,6 +88,8 @@ func init() {
 
 	projectCmd.AddCommand(listProjectsCmd)
 
+	projectCmd.AddCommand(selectProjectCmd)
+
 	rootCmd.AddCommand(projectCmd)
 }
 
@@ -111,8 +118,48 @@ func listProjects(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
+	// This command does not have a project flag, so viper must be injecting it from the config
+	defaultProjectUuid, _ := uuid.Parse(viper.GetString(projectKey))
+	for _, project := range allProjects {
+		var isActive string = ""
+		if *project.ProjectID == defaultProjectUuid {
+			isActive = "*"
+		} else {
+			isActive = " "
+		}
+		fmt.Println(isActive, *project.Name)
+	}
+}
 
-	OutputJson(allProjects)
+func selectProject(ccmd *cobra.Command, args []string) {
+	var project *api.Project
+	projectID := getProjectID(Client, args[0])
+	response, err := Client.GetProjectWithResponse(context.Background(), projectID)
+	if err != nil {
+		log.Fatal("unable to retrieve project:", err)
+	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatal("failed to find project with requested id: ", projectID.String())
+	} else {
+		ValidateResponse(http.StatusOK, "unable to retrieve project", response.HTTPResponse, response.Body)
+	}
+	project = response.JSON200
+	// Open the config file as an independent Viper instance. This instance does not have all the flags set.
+	// Therefore we can safely save it again without adding any additional flags.
+	v := viper.New()
+	v.SetConfigName("resim")
+	v.SetConfigType("json")
+	v.AddConfigPath(os.ExpandEnv(ConfigPath))
+	if err := v.ReadInConfig(); err != nil {
+		switch err.(type) {
+		case viper.ConfigFileNotFoundError, *fs.PathError:
+		default:
+			log.Fatal(fmt.Errorf("error reading config file: %v %T", err, err))
+		}
+	}
+	v.Set("project", project.ProjectID)
+	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.json")
+	fmt.Println("Default project set:", *(project.Name))
 }
 
 func createProject(ccmd *cobra.Command, args []string) {

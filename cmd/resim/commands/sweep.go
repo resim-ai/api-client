@@ -23,26 +23,23 @@ var (
 		Aliases: []string{"sweep"},
 	}
 	createSweepCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new parameter sweep",
-		Long:   ``,
-		Run:    createSweep,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new parameter sweep",
+		Long:  ``,
+		Run:   createSweep,
 	}
 	getSweepCmd = &cobra.Command{
-		Use:    "get",
-		Short:  "get - Retrieves a parameter sweep",
-		Long:   ``,
-		Run:    getSweep,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "get",
+		Short: "get - Retrieves a parameter sweep",
+		Long:  ``,
+		Run:   getSweep,
 	}
 
 	listSweepCmd = &cobra.Command{
-		Use:    "list",
-		Short:  "list - Lists all parameter sweeps",
-		Long:   ``,
-		Run:    listSweeps,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list",
+		Short: "list - Lists all parameter sweeps",
+		Long:  ``,
+		Run:   listSweeps,
 	}
 )
 

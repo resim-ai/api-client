@@ -22,25 +22,22 @@ var (
 		Aliases: []string{"experience-tag"},
 	}
 	createExperienceTagCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new experience tag",
-		Long:   ``,
-		Run:    createExperienceTag,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new experience tag",
+		Long:  ``,
+		Run:   createExperienceTag,
 	}
 	listExperienceTagsCmd = &cobra.Command{
-		Use:    "list",
-		Short:  "list - List experience tags",
-		Long:   ``,
-		Run:    listExperienceTags,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list",
+		Short: "list - List experience tags",
+		Long:  ``,
+		Run:   listExperienceTags,
 	}
 	listExperiencesWithTagCmd = &cobra.Command{
-		Use:    "list-experiences",
-		Short:  "list-experiences - Lists the experiences for a tag",
-		Long:   ``,
-		Run:    listExperiencesWithTag,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list-experiences",
+		Short: "list-experiences - Lists the experiences for a tag",
+		Long:  ``,
+		Run:   listExperiencesWithTag,
 	}
 )
 

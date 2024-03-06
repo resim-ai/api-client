@@ -8,6 +8,15 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Added
+
+- Allowed the ability to persist project selection with `select project foo`. If set via this method, `--project` will no longer be a required flag for other commands.
+- Added `batch wait` command that will continuously poll (default: 30s) until a batch reaches a final state (success, failure, cancelled, etc)
+
+#### Changed
+
+- `project list` will list projects by name. A * will denote the active project, if set.
+
 ### v0.1.30 - February 08 2024
 
 #### Added

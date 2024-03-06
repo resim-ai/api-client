@@ -21,18 +21,16 @@ var (
 		Aliases: []string{"branch"},
 	}
 	createBranchCmd = &cobra.Command{
-		Use:    "create",
-		Short:  "create - Creates a new branch",
-		Long:   ``,
-		Run:    createBranch,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "create",
+		Short: "create - Creates a new branch",
+		Long:  ``,
+		Run:   createBranch,
 	}
 	listBranchesCmd = &cobra.Command{
-		Use:    "list",
-		Short:  "list - List branches for a project",
-		Long:   ``,
-		Run:    listBranches,
-		PreRun: RegisterViperFlagsAndSetClient,
+		Use:   "list",
+		Short: "list - List branches for a project",
+		Long:  ``,
+		Run:   listBranches,
 	}
 )
 

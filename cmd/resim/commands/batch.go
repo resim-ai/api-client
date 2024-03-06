@@ -347,7 +347,7 @@ func waitBatch(ccmd *cobra.Command, args []string) {
 		switch *batch.Status {
 		case api.BatchStatusSUCCEEDED:
 			os.Exit(0)
-		case api.BatchStatusFAILED, "ERROR":
+		case api.BatchStatusERROR:
 			os.Exit(2)
 		case api.BatchStatusSUBMITTED, api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
 		case api.BatchStatusCANCELLED:

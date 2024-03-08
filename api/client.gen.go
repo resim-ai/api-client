@@ -195,7 +195,7 @@ type BatchMetricsDataToBatchMetric struct {
 }
 
 // BatchParameters defines model for batchParameters.
-type BatchParameters map[string]string
+type BatchParameters map[string]interface{}
 
 // BatchStatus defines model for batchStatus.
 type BatchStatus string

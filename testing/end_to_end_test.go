@@ -152,14 +152,18 @@ const (
 	BranchTagMutuallyExclusive string = "mutually exclusive parameters"
 	InvalidBatchName           string = "unable to find batch"
 	InvalidBatchID             string = "unable to parse batch ID"
+	RequireBatchName           string = "must specify either the batch ID or the batch name"
 	// Log Messages
-	CreatedLog       string = "Created log"
-	GithubCreatedLog string = "log_location="
-	EmptyLogFileName string = "empty log file name"
-	EmptyLogChecksum string = "No checksum was provided"
-	EmptyLogBatchID  string = "empty batch ID"
-	EmptyLogJobID    string = "empty job ID"
-	InvalidJobID     string = "unable to parse job ID"
+	CreatedLog            string = "Created log"
+	GithubCreatedLog      string = "log_location="
+	EmptyLogFileName      string = "empty log file name"
+	EmptyLogChecksum      string = "No checksum was provided"
+	EmptyLogBatchID       string = "empty batch ID"
+	EmptyLogJobID         string = "empty job ID"
+	EmptyLogType          string = "invalid log type"
+	EmptyLogExecutionStep string = "invalid execution step"
+	InvalidJobID          string = "unable to parse job ID"
+
 	// Sweep Messages
 	CreatedSweep                  string = "Created sweep"
 	GithubCreatedSweep            string = "sweep_id="
@@ -598,7 +602,7 @@ func (s *EndToEndTestSuite) listExperiencesWithTag(tag string) []CommandBuilder 
 	return []CommandBuilder{listExperiencesWithTagCommand, listCommand}
 }
 
-func (s *EndToEndTestSuite) createBatch(buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string, experiences []string, experienceTags []string, metricsBuildID string, github bool, parameters map[string]string) []CommandBuilder {
+func (s *EndToEndTestSuite) createBatch(buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string, experiences []string, experienceTags []string, metricsBuildID string, github bool, parameters map[string]interface{}) []CommandBuilder {
 	// We build a create batch command with the build-id, experience-ids, experience-tag-ids, and experience-tag-names flags
 	// We do not require any specific combination of these flags, and validate in tests that the CLI only allows one of TagIDs or TagNames
 	// and that at least one of the experiences flags is provided.
@@ -753,7 +757,7 @@ func (s *EndToEndTestSuite) getBatchJobsByID(batchID string) []CommandBuilder {
 	return []CommandBuilder{batchCommand, getCommand}
 }
 
-func (s *EndToEndTestSuite) createLog(batchID uuid.UUID, jobID uuid.UUID, name string, fileSize string, checksum string, github bool) []CommandBuilder {
+func (s *EndToEndTestSuite) createLog(batchID uuid.UUID, jobID uuid.UUID, name string, fileSize string, checksum string, logType string, executionStep string, github bool) []CommandBuilder {
 	logCommand := CommandBuilder{
 		Command: "logs",
 	}
@@ -779,6 +783,14 @@ func (s *EndToEndTestSuite) createLog(batchID uuid.UUID, jobID uuid.UUID, name s
 			{
 				Name:  "--checksum",
 				Value: checksum,
+			},
+			{
+				Name:  "--type",
+				Value: logType,
+			},
+			{
+				Name:  "--execution-step",
+				Value: executionStep,
 			},
 		},
 	}
@@ -1106,7 +1118,6 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	branchID := uuid.MustParse(branchIDString)
 
 	// Now create the build:
-
 	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
@@ -1243,7 +1254,7 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 
 func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// This test does not use parameters, so we create an empty parameter map:
-	emptyParameterMap := map[string]string{}
+	emptyParameterMap := map[string]interface{}{}
 	// First create two experiences:
 	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
@@ -1432,9 +1443,16 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 
 	// Pass blank name / id to batches get:
 	output = s.runCommand(s.getBatchByName("", ExitStatusFalse), ExpectError)
-	s.Contains(output.StdErr, InvalidBatchName)
+	s.Contains(output.StdErr, RequireBatchName)
 	output = s.runCommand(s.getBatchByID("", ExitStatusFalse), ExpectError)
+	s.Contains(output.StdErr, RequireBatchName)
+
+	// Pass unknown name / id to batches jobs:
+	output = s.runCommand(s.getBatchByName("does not exist", ExitStatusFalse), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchName)
+	output = s.runCommand(s.getBatchByID("0000-0000-0000-0000-000000000000", ExitStatusFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchID)
+
 	// Now grab the jobs from the batch:
 	output = s.runCommand(s.getBatchJobsByName(batchNameString), ExpectNoError)
 	// Marshal into a struct:
@@ -1460,37 +1478,46 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	jobID2 := *jobs[1].JobID
 	// Pass blank name / id to batches jobs:
 	output = s.runCommand(s.getBatchJobsByName(""), ExpectError)
-	s.Contains(output.StdErr, InvalidBatchName)
+	s.Contains(output.StdErr, RequireBatchName)
 	output = s.runCommand(s.getBatchJobsByID(""), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchID)
 
+	// Pass unknown name / id to batches jobs:
+	output = s.runCommand(s.getBatchJobsByName("does not exist"), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchName)
+
 	// Finally, create logs
 	logName := fmt.Sprintf("test-log-%s", uuid.New().String())
-	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "checksum", GithubFalse), ExpectNoError)
+	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedLog)
 	// Validate that all required flags are required:
-	output = s.runCommand(s.createLog(uuid.Nil, jobID1, logName, "100", "checksum", GithubFalse), ExpectError)
+	output = s.runCommand(s.createLog(uuid.Nil, jobID1, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyLogBatchID)
-	output = s.runCommand(s.createLog(batchID, uuid.Nil, logName, "100", "checksum", GithubFalse), ExpectError)
+	output = s.runCommand(s.createLog(batchID, uuid.Nil, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyLogJobID)
-	output = s.runCommand(s.createLog(batchID, jobID1, "", "100", "checksum", GithubFalse), ExpectError)
+	output = s.runCommand(s.createLog(batchID, jobID1, "", "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyLogFileName)
+
+	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "checksum", "", string(api.EXPERIENCE), GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyLogType)
+	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "checksum", string(api.ARCHIVELOG), "", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyLogExecutionStep)
 
 	// TODO(iainjwhiteside): we can't check the empty file size easily in this framework
 
 	// Checksum is actually optional, but warned about:
-	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "", GithubFalse), ExpectNoError)
+	output = s.runCommand(s.createLog(batchID, jobID1, logName, "100", "", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, EmptyLogChecksum)
 
 	// Create w/ the github flag:
 	logName = fmt.Sprintf("test-log-%s", uuid.New().String())
-	output = s.runCommand(s.createLog(batchID, jobID2, logName, "100", "checksum", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createLog(batchID, jobID2, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedLog)
 	log1Location := output.StdOut[len(GithubCreatedLog) : len(output.StdOut)-1]
 	s.Contains(log1Location, "s3://")
 	// Create a second log to test parsing:
 	logName2 := fmt.Sprintf("test-log-%s", uuid.New().String())
-	output = s.runCommand(s.createLog(batchID, jobID2, logName2, "100", "checksum", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createLog(batchID, jobID2, logName2, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedLog)
 	log2Location := output.StdOut[len(GithubCreatedLog) : len(output.StdOut)-1]
 	s.Contains(log2Location, "s3://")
@@ -1520,7 +1547,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 }
 
 func (s *EndToEndTestSuite) TestParameterizedBatch() {
-	expectedParameterMap := map[string]string{
+	expectedParameterMap := map[string]interface{}{
 		"param1": "value1",
 		"param2": "value2",
 	}
@@ -1550,7 +1577,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	uuid.MustParse(branchIDString)
 
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -1558,7 +1585,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 
 	// Create a metrics build:
-	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world", "version", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild("test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the build ID as a UUID
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
@@ -1606,7 +1633,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	s.Equal(batchID, *batch.BatchID)
 	// Validate that it succeeded:
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
-	s.Equal(expectedParameterMap, *batch.Parameters)
+	s.Equal(api.BatchParameters(expectedParameterMap), *batch.Parameters)
 	s.Equal(buildID, *batch.BuildID)
 	s.Equal(metricsBuildID, *batch.MetricsBuildID)
 	s.Equal([]uuid.UUID{experienceID1}, *batch.InstantiatedExperienceIDs)

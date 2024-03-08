@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -159,22 +158,6 @@ func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
 	}
 
 	OutputJson(experiences)
-}
-
-// This function takes a comma-separated list of experience tag names represented as a string
-// and returns a separated array of parsed UUIDs.
-func parseExperienceTagNames(client api.ClientWithResponsesInterface, commaSeparatedNames string) []uuid.UUID {
-	if commaSeparatedNames == "" {
-		return []uuid.UUID{}
-	}
-	strs := strings.Split(commaSeparatedNames, ",")
-	result := make([]uuid.UUID, len(strs))
-
-	for i := 0; i < len(strs); i++ {
-		id := getExperienceTagIDForName(client, strings.TrimSpace(strs[i]))
-		result[i] = id
-	}
-	return result
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this

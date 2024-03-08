@@ -152,6 +152,7 @@ const (
 	BranchTagMutuallyExclusive string = "mutually exclusive parameters"
 	InvalidBatchName           string = "unable to find batch"
 	InvalidBatchID             string = "unable to parse batch ID"
+	SelectOneRequired          string = "at least one of the flags in the group"
 	// Log Messages
 	CreatedLog       string = "Created log"
 	GithubCreatedLog string = "log_location="
@@ -1374,7 +1375,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Equal(3, len(batchNameParts))
 	// Try a batch without any experiences:
 	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap), ExpectError)
-	s.Contains(output.StdErr, FailedToCreateBatch)
+	s.Contains(output.StdErr, SelectOneRequired)
 	// Try a batch without a build id:
 	output = s.runCommand(s.createBatch("", []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildID)

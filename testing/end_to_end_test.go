@@ -1330,6 +1330,10 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.NoError(err)
 	s.Equal(1, len(tagExperiences))
 
+	// Fail to create a batch without any experience ids, tags, or names
+	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap), ExpectError)
+	s.Contains(output.StdErr, FailedToCreateBatch)
+
 	// Create a batch with (only) experience names using the --experiences flag
 	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceName2}, []string{}, "", GithubTrue, emptyParameterMap), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)

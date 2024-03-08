@@ -46,8 +46,8 @@ var (
 
 	waitBatchCmd = &cobra.Command{
 		Use:   "wait",
-		Short: "wait - Wait for job completion",
-		Long:  ``,
+		Short: "wait - Wait for batch completion",
+		Long:  `Awaits batch completion and returns an exit code corresponding to the batch status. 1 = internal error, 0 = SUCCEEDED, 2=ERROR, 5=CANCELLED, 6=timed out)`,
 		Run:   waitBatch,
 	}
 )
@@ -90,7 +90,7 @@ func init() {
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
+	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = internal error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	batchCmd.AddCommand(getBatchCmd)
 
 	jobsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve jobs for.")
@@ -98,11 +98,11 @@ func init() {
 	jobsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(jobsBatchCmd)
 
-	waitBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
-	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	waitBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to await completion.")
+	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to await completion (e.g. rejoicing-aquamarine-starfish).")
 	waitBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish.")
-	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status.")
+	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish, expressed in Golang duration string.")
+	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
 	batchCmd.AddCommand(waitBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)

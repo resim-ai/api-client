@@ -12,7 +12,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.13.4
 	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.5.0
-	github.com/spf13/cobra v1.7.0
+	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.16.0
 	golang.org/x/oauth2 v0.13.0
 )

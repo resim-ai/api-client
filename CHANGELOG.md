@@ -16,6 +16,7 @@ Changes in this section will be included in the next release.
 #### Changed
 
 - `project list` will list projects by name. A * will denote the active project, if set.
+- Updated to cobra v1.8.0
 
 ### v0.1.30 - February 08 2024
 

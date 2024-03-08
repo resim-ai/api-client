@@ -81,10 +81,7 @@ func init() {
 	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
 	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
-	// TODO(simon) We want at least one of the above flags. The function we want
-	// is: .MarkFlagsOneRequired this was merged into Cobra recently:
-	// https://github.com/spf13/cobra/pull/1952 - but we need to wait for a stable
-	// release and upgrade before implementing here.
+	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
@@ -112,10 +109,6 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	batchGithub := viper.GetBool(batchGithubKey)
 	if !batchGithub {
 		fmt.Println("Creating a batch...")
-	}
-
-	if !viper.IsSet(batchExperienceIDsKey) && !viper.IsSet(batchExperienceTagIDsKey) && !viper.IsSet(batchExperienceTagNamesKey) && !viper.IsSet(batchExperiencesKey) && !viper.IsSet(batchExperienceTagsKey) {
-		log.Fatal("failed to create batch: you must choose at least one experience or experience tag to run")
 	}
 
 	// Parse the build ID

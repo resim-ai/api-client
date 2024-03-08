@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -59,8 +58,6 @@ func TestRequiredFlagProvided(t *testing.T) {
 	configDir := writeStubConfig(configParams)
 	defer os.RemoveAll(configDir)
 	os.Setenv("HOME", configDir)
-	fmt.Println("vipers:", viper.AllKeys())
-	fmt.Println("this: ", viper.GetString("requiredFlag"))
 	// SETUP
 	testCmd := sampleCommand()
 	testCmd.Flags().String("requiredFlag", "", "a required flag")

@@ -1498,7 +1498,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// List logs:
 	output = s.runCommand(s.listLogs(batchIDString, jobID2.String()), ExpectNoError)
 	// Marshal into a struct:
-	var logs []api.Log
+	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
 	s.Len(logs, 6)
@@ -1782,7 +1782,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Equal(sweepNameString, *sweep.Name)
 	s.Equal(secondSweepID, *sweep.ParameterSweepID)
 	// Validate that it succeeded:
-	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
+	s.Equal(api.SUCCEEDED, *sweep.Status)
 	// Get the sweep by ID:
 	output = s.runCommand(s.getSweepByID(secondSweepIDString, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
@@ -1791,7 +1791,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Equal(sweepNameString, *sweep.Name)
 	s.Equal(secondSweepID, *sweep.ParameterSweepID)
 	// Validate that it succeeded:
-	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
+	s.Equal(api.SUCCEEDED, *sweep.Status)
 
 	// Validate that the sweep has the correct parameters:
 	passedParameters := []api.SweepParameter{}

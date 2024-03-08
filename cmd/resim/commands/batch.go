@@ -178,7 +178,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Parse --parameter (if any provided)
-	parameters := map[string]interface{}{}
+	parameters := api.BatchParameters{}
 	if viper.IsSet(batchParameterKey) {
 		parameterStrings := viper.GetStringSlice(batchParameterKey)
 		for _, parameterString := range parameterStrings {
@@ -313,7 +313,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		switch *batch.Status {
 		case api.BatchStatusSUCCEEDED:
 			os.Exit(0)
-		case api.BatchStatusFAILED:
+		case api.BatchStatusERROR:
 			os.Exit(2)
 		case api.BatchStatusSUBMITTED:
 			os.Exit(3)
@@ -347,7 +347,7 @@ func waitBatch(ccmd *cobra.Command, args []string) {
 		switch *batch.Status {
 		case api.BatchStatusSUCCEEDED:
 			os.Exit(0)
-		case api.BatchStatusFAILED, "ERROR":
+		case api.BatchStatusERROR:
 			os.Exit(2)
 		case api.BatchStatusSUBMITTED, api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
 		case api.BatchStatusCANCELLED:

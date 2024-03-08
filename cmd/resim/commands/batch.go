@@ -149,7 +149,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	if viper.IsSet(batchExperienceTagIDsKey) && viper.IsSet(batchExperienceTagNamesKey) {
-		log.Fatal(fmt.Sprintf("failed to create batch: %v and %v are mutually exclusive parameters", batchExperienceTagNamesKey, batchExperienceTagIDsKey))
+		log.Fatalf("failed to create batch: %v and %v are mutually exclusive parameters", batchExperienceTagNamesKey, batchExperienceTagIDsKey)
 	}
 
 	var allExperienceTagIDs []uuid.UUID
@@ -191,7 +191,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Build the request body
-	body := api.CreateBatchJSONRequestBody{
+	body := api.BatchInput{
 		BuildID:    &buildID,
 		Parameters: &parameters,
 	}

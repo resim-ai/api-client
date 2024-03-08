@@ -74,7 +74,7 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 
 	// add experiences if they are set
 
-	body := api.CreateExperienceTagJSONRequestBody{
+	body := api.ExperienceTag{
 		Name:        &experienceTagName,
 		Description: &experienceTagDescription,
 	}

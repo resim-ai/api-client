@@ -109,7 +109,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 		log.Fatal("invalid branch type")
 	}
 
-	body := api.CreateBranchForProjectJSONRequestBody{
+	body := api.Branch{
 		Name:       &branchName,
 		BranchType: &branchType,
 	}

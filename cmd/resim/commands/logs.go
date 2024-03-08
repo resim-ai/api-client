@@ -99,7 +99,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	body := api.CreateJobLogJSONRequestBody{
+	body := api.JobLog{
 		FileName: &logName,
 		FileSize: &logFileSize,
 		Checksum: &logChecksum,

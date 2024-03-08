@@ -171,7 +171,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 	}
 
 	// Build the request body
-	body := api.CreateParameterSweepJSONRequestBody{
+	body := api.ParameterSweepInput{
 		BuildID:    &buildID,
 		Parameters: &sweepParameters,
 	}

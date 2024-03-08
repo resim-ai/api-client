@@ -149,7 +149,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 				fmt.Printf("Branch with name %v doesn't currently exist. Creating... \n", branchName)
 			}
 			// Create the branch
-			body := api.CreateBranchForProjectJSONRequestBody{
+			body := api.Branch{
 				Name:       &branchName,
 				BranchType: Ptr(api.CHANGEREQUEST),
 			}
@@ -169,7 +169,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	body := api.CreateBuildForBranchJSONRequestBody{
+	body := api.Build{
 		Description: &buildDescription,
 		ImageUri:    &buildImageURI,
 		Version:     &buildVersion,

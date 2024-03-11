@@ -111,7 +111,7 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
 	}
 
-	body := api.CreateMetricsBuildJSONRequestBody{
+	body := api.MetricsBuild{
 		Name:     &metricsBuildName,
 		ImageUri: &metricsBuildImageURI,
 		Version:  &metricsBuildVersion,

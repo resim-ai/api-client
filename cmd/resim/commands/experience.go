@@ -102,7 +102,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience location")
 	}
 
-	body := api.CreateExperienceJSONRequestBody{
+	body := api.Experience{
 		Name:        &experienceName,
 		Description: &experienceDescription,
 		Location:    &experienceLocation,

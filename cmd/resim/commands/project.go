@@ -179,7 +179,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty project description")
 	}
 
-	body := api.CreateProjectJSONRequestBody{
+	body := api.Project{
 		Name:        &projectName,
 		Description: &projectDescription,
 	}

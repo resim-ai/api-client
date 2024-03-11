@@ -35,12 +35,14 @@ var (
 )
 
 const (
-	logNameKey     = "name"
-	logBatchIDKey  = "batch-id"
-	logJobIDKey    = "job-id"
-	logFileSizeKey = "file-size"
-	logChecksumKey = "checksum"
-	logGithubKey   = "github"
+	logNameKey          = "name"
+	logBatchIDKey       = "batch-id"
+	logJobIDKey         = "job-id"
+	logFileSizeKey      = "file-size"
+	logChecksumKey      = "checksum"
+	logExecutionStepKey = "execution-step"
+	logTypeKey          = "type"
+	logGithubKey        = "github"
 )
 
 func init() {
@@ -53,6 +55,10 @@ func init() {
 	createLogCmd.Flags().Int64(logFileSizeKey, -1, "The size of the file in bytes")
 	createLogCmd.MarkFlagRequired(logFileSizeKey)
 	createLogCmd.Flags().String(logChecksumKey, "", "A checksum for the file, to enable integrity checking when downloading")
+	createLogCmd.Flags().String(logExecutionStepKey, "EXPERIENCE", "The execution step to register the log: EXPERIENCE, METRICS. BATCH_METRICS is not currently supported.")
+	createLogCmd.MarkFlagRequired(logExecutionStepKey)
+	createLogCmd.Flags().String(logTypeKey, "", "The type of the log: ARCHIVE_LOG, CONTAINER_LOG, EXECUTION_LOG, MCAP_LOG, METRICS_OUTPUT_LOG, MP4_LOG, OTHER_LOG")
+	createLogCmd.MarkFlagRequired(logTypeKey)
 	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")
 	logsCmd.AddCommand(createLogCmd)
 
@@ -99,10 +105,22 @@ func createLog(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	body := api.CreateJobLogJSONRequestBody{
-		FileName: &logName,
-		FileSize: &logFileSize,
-		Checksum: &logChecksum,
+	logType := api.LogType(viper.GetString(logTypeKey))
+	if logType != api.MP4LOG && logType != api.ARCHIVELOG && logType != api.CONTAINERLOG && logType != api.EXECUTIONLOG && logType != api.MCAPLOG && logType != api.METRICSOUTPUTLOG && logType != api.OTHERLOG {
+		log.Fatal("invalid log type")
+	}
+
+	logExecutionStep := api.ExecutionStep(viper.GetString(logExecutionStepKey))
+	if logExecutionStep != api.EXPERIENCE && logExecutionStep != api.METRICS {
+		log.Fatal("invalid execution step")
+	}
+
+	body := api.JobLog{
+		FileName:      &logName,
+		FileSize:      &logFileSize,
+		Checksum:      &logChecksum,
+		LogType:       &logType,
+		ExecutionStep: &logExecutionStep,
 	}
 
 	// Verify that the batch and job exist:

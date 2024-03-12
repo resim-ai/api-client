@@ -50,6 +50,13 @@ var (
 		Long:  `Awaits batch completion and returns an exit code corresponding to the batch status. 1 = internal error, 0 = SUCCEEDED, 2=ERROR, 5=CANCELLED, 6=timed out)`,
 		Run:   waitBatch,
 	}
+
+	logsBatchCmd = &cobra.Command{
+		Use:   "logs",
+		Short: "logs - Lists the logs associated with a batch",
+		Long:  ``,
+		Run:   listBatchLogs,
+	}
 )
 
 const (
@@ -101,6 +108,12 @@ func init() {
 	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish, expressed in Golang duration string.")
 	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
 	batchCmd.AddCommand(waitBatchCmd)
+
+	logsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to list logs for.")
+	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish).")
+	logsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	logsBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
+	batchCmd.AddCommand(logsBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
 }
@@ -399,6 +412,48 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 	bytes, err := json.MarshalIndent(jobs, "", "  ")
 	if err != nil {
 		log.Fatal("unable to serialize jobs: ", err)
+	}
+	fmt.Println(string(bytes))
+}
+
+func listBatchLogs(ccmd *cobra.Command, args []string) {
+	var batchID uuid.UUID
+	var err error
+	if viper.IsSet(batchIDKey) {
+		batchID, err = uuid.Parse(viper.GetString(batchIDKey))
+		if err != nil {
+			log.Fatal("unable to parse batch ID: ", err)
+		}
+	} else {
+		batch := actualGetBatch("", viper.GetString(batchNameKey))
+		batchID = *batch.BatchID
+	}
+	logs := []api.BatchLog{}
+	var pageToken *string = nil
+	for {
+		response, err := Client.ListBatchLogsForBatchWithResponse(context.Background(), batchID, &api.ListBatchLogsForBatchParams{
+			PageSize:  Ptr(100),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("unable to list logs:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to list logs", response.HTTPResponse, response.Body)
+		if response.JSON200.Logs == nil {
+			log.Fatal("unable to list logs")
+		}
+		responseLogs := *response.JSON200.Logs
+		logs = append(logs, responseLogs...)
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+	bytes, err := json.MarshalIndent(logs, "", "  ")
+	if err != nil {
+		log.Fatal("unable to serialize logs: ", err)
 	}
 	fmt.Println(string(bytes))
 }

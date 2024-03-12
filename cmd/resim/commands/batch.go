@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -49,6 +48,13 @@ var (
 		Short: "wait - Wait for batch completion",
 		Long:  `Awaits batch completion and returns an exit code corresponding to the batch status. 1 = internal error, 0 = SUCCEEDED, 2=ERROR, 5=CANCELLED, 6=timed out)`,
 		Run:   waitBatch,
+	}
+
+	logsBatchCmd = &cobra.Command{
+		Use:   "logs",
+		Short: "logs - Lists the logs associated with a batch",
+		Long:  ``,
+		Run:   listBatchLogs,
 	}
 )
 
@@ -101,6 +107,12 @@ func init() {
 	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish, expressed in Golang duration string.")
 	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
 	batchCmd.AddCommand(waitBatchCmd)
+
+	logsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to list logs for.")
+	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish).")
+	logsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	logsBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
+	batchCmd.AddCommand(logsBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
 }
@@ -319,11 +331,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	bytes, err := json.MarshalIndent(batch, "", "  ")
-	if err != nil {
-		log.Fatal("unable to serialize batch: ", err)
-	}
-	fmt.Println(string(bytes))
+	OutputJson(batch)
 }
 
 func waitBatch(ccmd *cobra.Command, args []string) {
@@ -396,9 +404,43 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
-	bytes, err := json.MarshalIndent(jobs, "", "  ")
-	if err != nil {
-		log.Fatal("unable to serialize jobs: ", err)
+	OutputJson(jobs)
+}
+
+func listBatchLogs(ccmd *cobra.Command, args []string) {
+	var batchID uuid.UUID
+	var err error
+	if viper.IsSet(batchIDKey) {
+		batchID, err = uuid.Parse(viper.GetString(batchIDKey))
+		if err != nil {
+			log.Fatal("unable to parse batch ID: ", err)
+		}
+	} else {
+		batch := actualGetBatch("", viper.GetString(batchNameKey))
+		batchID = *batch.BatchID
 	}
-	fmt.Println(string(bytes))
+	logs := []api.BatchLog{}
+	var pageToken *string = nil
+	for {
+		response, err := Client.ListBatchLogsForBatchWithResponse(context.Background(), batchID, &api.ListBatchLogsForBatchParams{
+			PageSize:  Ptr(100),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("unable to list logs:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to list logs", response.HTTPResponse, response.Body)
+		if response.JSON200.Logs == nil {
+			log.Fatal("unable to list logs")
+		}
+		responseLogs := *response.JSON200.Logs
+		logs = append(logs, responseLogs...)
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+	OutputJson(logs)
 }

@@ -758,6 +758,33 @@ func (s *EndToEndTestSuite) getBatchJobsByID(batchID string) []CommandBuilder {
 	return []CommandBuilder{batchCommand, getCommand}
 }
 
+func (s *EndToEndTestSuite) listBatchLogs(batchID, batchName string) []CommandBuilder {
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	batchIdFlag := Flag{
+		Name:  "--batch-id",
+		Value: batchID,
+	}
+	batchNameFlag := Flag{
+		Name:  "--batch-name",
+		Value: batchName,
+	}
+	var allFlags []Flag
+	// For ease of interface downstream, only set the flags if they were passed in to this method
+	if batchID != "" {
+		allFlags = append(allFlags, batchIdFlag)
+	}
+	if batchName != "" {
+		allFlags = append(allFlags, batchNameFlag)
+	}
+	listLogsCommand := CommandBuilder{
+		Command: "logs",
+		Flags:   allFlags,
+	}
+	return []CommandBuilder{batchCommand, listLogsCommand}
+}
+
 func (s *EndToEndTestSuite) createLog(batchID uuid.UUID, jobID uuid.UUID, name string, fileSize string, checksum string, logType string, executionStep string, github bool) []CommandBuilder {
 	logCommand := CommandBuilder{
 		Command: "logs",
@@ -1341,6 +1368,18 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.NoError(err)
 	s.Equal(1, len(tagExperiences))
 
+	// Fail to list batch logs without a batch specifier
+	output = s.runCommand(s.listBatchLogs("", ""), ExpectError)
+	s.Contains(output.StdErr, SelectOneRequired)
+
+	// Fail to list batch logs with a bad UUID
+	output = s.runCommand(s.listBatchLogs("not-a-uuid", ""), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchID)
+
+	// Fail to list batch logs with a made up batch name
+	output = s.runCommand(s.listBatchLogs("", "not-a-valid-batch-name"), ExpectError)
+	s.Contains(output.StdErr, InvalidBatchName)
+
 	// Fail to create a batch without any experience ids, tags, or names
 	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap), ExpectError)
 	s.Contains(output.StdErr, SelectOneRequired)
@@ -1445,6 +1484,18 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Equal(batchID, *batch.BatchID)
 	// Validate that it succeeded:
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+
+	// List the logs for the succeeded batch
+	output = s.runCommand(s.listBatchLogs("", batchNameString), ExpectNoError)
+	// Marshal into a struct:
+	var batchLogs []api.BatchLog
+	err = json.Unmarshal([]byte(output.StdOut), &batchLogs)
+	s.NoError(err)
+	// Validate that one or more logs are returned
+	s.Greater(len(batchLogs), 0)
+	for _, batchLog := range batchLogs {
+		uuid.MustParse(batchLog.LogID.String())
+	}
 
 	// Pass blank name / id to batches get:
 	output = s.runCommand(s.getBatchByName("", ExitStatusFalse), ExpectError)

@@ -152,6 +152,7 @@ const (
 	BranchTagMutuallyExclusive string = "mutually exclusive parameters"
 	InvalidBatchName           string = "unable to find batch"
 	InvalidBatchID             string = "unable to parse batch ID"
+	SelectOneRequired          string = "at least one of the flags in the group"
 	RequireBatchName           string = "must specify either the batch ID or the batch name"
 	// Log Messages
 	CreatedLog            string = "Created log"
@@ -1340,6 +1341,10 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.NoError(err)
 	s.Equal(1, len(tagExperiences))
 
+	// Fail to create a batch without any experience ids, tags, or names
+	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap), ExpectError)
+	s.Contains(output.StdErr, SelectOneRequired)
+
 	// Create a batch with (only) experience names using the --experiences flag
 	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceName2}, []string{}, "", GithubTrue, emptyParameterMap), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
@@ -1385,7 +1390,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Equal(3, len(batchNameParts))
 	// Try a batch without any experiences:
 	output = s.runCommand(s.createBatch(buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap), ExpectError)
-	s.Contains(output.StdErr, FailedToCreateBatch)
+	s.Contains(output.StdErr, SelectOneRequired)
 	// Try a batch without a build id:
 	output = s.runCommand(s.createBatch("", []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildID)

@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -332,11 +331,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	bytes, err := json.MarshalIndent(batch, "", "  ")
-	if err != nil {
-		log.Fatal("unable to serialize batch: ", err)
-	}
-	fmt.Println(string(bytes))
+	OutputJson(batch)
 }
 
 func waitBatch(ccmd *cobra.Command, args []string) {
@@ -409,11 +404,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
-	bytes, err := json.MarshalIndent(jobs, "", "  ")
-	if err != nil {
-		log.Fatal("unable to serialize jobs: ", err)
-	}
-	fmt.Println(string(bytes))
+	OutputJson(jobs)
 }
 
 func listBatchLogs(ccmd *cobra.Command, args []string) {
@@ -451,9 +442,5 @@ func listBatchLogs(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
-	bytes, err := json.MarshalIndent(logs, "", "  ")
-	if err != nil {
-		log.Fatal("unable to serialize logs: ", err)
-	}
-	fmt.Println(string(bytes))
+	OutputJson(logs)
 }

@@ -61,7 +61,7 @@ func init() {
 }
 
 func listBranches(ccmd *cobra.Command, args []string) {
-	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+	projectID := getProjectID(Client, viper.GetString(branchProjectKey))
 
 	var pageToken *string = nil
 

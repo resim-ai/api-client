@@ -41,19 +41,26 @@ var (
 )
 
 const (
+	experienceTagProjectKey     = "project"
 	experienceTagNameKey        = "name"
 	experienceTagDescriptionKey = "description"
 	experienceTagExperiencesKey = "experiences"
 )
 
 func init() {
+	createExperienceTagCmd.Flags().String(experienceTagProjectKey, "", "The name or ID of the project to associate with the experience tag")
+	createExperienceTagCmd.MarkFlagRequired(experienceTagProjectKey)
 	createExperienceTagCmd.Flags().String(experienceTagNameKey, "", "The name of the experience tag")
 	createExperienceTagCmd.MarkFlagRequired(experienceTagNameKey)
 	createExperienceTagCmd.Flags().String(experienceTagDescriptionKey, "", "The description of the experience tag")
 	createExperienceTagCmd.MarkFlagRequired(experienceTagDescriptionKey)
 	createExperienceTagCmd.Flags().String(experienceTagExperiencesKey, "", "Which experiences to add to this tag on tag creation")
 	experienceTagCmd.AddCommand(createExperienceTagCmd)
+	listExperienceTagsCmd.Flags().String(experienceTagProjectKey, "", "The name or ID of the project to lists the experience tags within")
+	listExperienceTagsCmd.MarkFlagRequired(experienceTagProjectKey)
 	experienceTagCmd.AddCommand(listExperienceTagsCmd)
+	listExperiencesWithTagCmd.Flags().String(experienceTagProjectKey, "", "The name or ID of the project the experience tag is in")
+	listExperiencesWithTagCmd.MarkFlagRequired(experienceTagProjectKey)
 	listExperiencesWithTagCmd.Flags().String(experienceTagNameKey, "", "The name of the experience tag")
 	listExperiencesWithTagCmd.MarkFlagRequired(experienceTagNameKey)
 	experienceTagCmd.AddCommand(listExperiencesWithTagCmd)
@@ -61,6 +68,7 @@ func init() {
 }
 
 func createExperienceTag(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceTagProjectKey))
 	experienceTagName := viper.GetString(experienceTagNameKey)
 	if experienceTagName == "" {
 		log.Fatal("empty experience tag name")
@@ -78,7 +86,7 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 		Description: &experienceTagDescription,
 	}
 
-	response, err := Client.CreateExperienceTagWithResponse(context.Background(), body)
+	response, err := Client.CreateExperienceTagWithResponse(context.Background(), projectID, body)
 	if err != nil {
 		log.Fatal("failed to create experience tag: ", err)
 	}
@@ -96,11 +104,12 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 }
 
 func listExperienceTags(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceTagProjectKey))
 	var pageToken *string = nil
 	var experienceTags []api.ExperienceTag
 
 	for {
-		response, err := Client.ListExperienceTagsWithResponse(context.Background(),
+		response, err := Client.ListExperienceTagsWithResponse(context.Background(), projectID,
 			&api.ListExperienceTagsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
@@ -124,12 +133,13 @@ func listExperienceTags(ccmd *cobra.Command, args []string) {
 }
 
 func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceTagProjectKey))
 	experienceTagName := viper.GetString(experienceTagNameKey)
 	if experienceTagName == "" {
 		log.Fatal("empty experience tag name")
 	}
 
-	experienceTagID := getExperienceTagIDForName(Client, experienceTagName)
+	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
 
 	var pageToken *string = nil
 	var experiences []api.Experience
@@ -137,6 +147,7 @@ func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
 	for {
 		response, err := Client.ListExperiencesWithExperienceTagWithResponse(
 			context.Background(),
+			projectID,
 			experienceTagID,
 			&api.ListExperiencesWithExperienceTagParams{
 				PageSize:  Ptr(100),
@@ -161,14 +172,14 @@ func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func getExperienceTagIDForName(client api.ClientWithResponsesInterface, experienceTagName string) uuid.UUID {
+func getExperienceTagIDForName(client api.ClientWithResponsesInterface, projectID uuid.UUID, experienceTagName string) uuid.UUID {
 	// Page through experience tags until we find the one we want:
 	var experienceTagID uuid.UUID = uuid.Nil
 	var pageToken *string = nil
 pageLoop:
 	for {
 		listResponse, err := client.ListExperienceTagsWithResponse(
-			context.Background(), &api.ListExperienceTagsParams{
+			context.Background(), projectID, &api.ListExperienceTagsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),

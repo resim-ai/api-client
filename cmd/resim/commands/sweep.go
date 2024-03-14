@@ -44,6 +44,7 @@ var (
 )
 
 const (
+	sweepProjectKey          = "project"
 	sweepBuildIDKey          = "build-id"
 	sweepExperiencesKey      = "experiences"
 	sweepExperienceTagsKey   = "experience-tags"
@@ -59,6 +60,8 @@ const (
 
 func init() {
 	createSweepCmd.Flags().Bool(sweepGithubKey, false, "Whether to output format in github action friendly format")
+	createSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to associate with the sweep")
+	createSweepCmd.MarkFlagRequired(sweepProjectKey)
 	createSweepCmd.Flags().String(sweepBuildIDKey, "", "The ID of the build.")
 	createSweepCmd.MarkFlagRequired(sweepBuildIDKey)
 	createSweepCmd.Flags().String(sweepMetricsBuildKey, "", "The ID of the metrics build to use in this sweep.")
@@ -69,19 +72,23 @@ func init() {
 	createSweepCmd.Flags().StringSlice(sweepParameterValuesKey, []string{}, "A comma separated list of parameter values to sweep.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
 	sweepCmd.AddCommand(createSweepCmd)
-
+	getSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to get the sweep from")
+	getSweepCmd.MarkFlagRequired(sweepProjectKey)
 	getSweepCmd.Flags().String(sweepIDKey, "", "The ID of the sweep to retrieve.")
 	getSweepCmd.Flags().String(sweepNameKey, "", "The name of the sweep to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getSweepCmd.MarkFlagsMutuallyExclusive(sweepIDKey, sweepNameKey)
 	getSweepCmd.Flags().Bool(sweepExitStatusKey, false, "If set, exit code corresponds to sweep status (1 = error, 0 = SUCCEEDED, 2=FAILED, 3=SUBMITTED, 4=RUNNING)")
 	sweepCmd.AddCommand(getSweepCmd)
 
+	listSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to list the sweeps within")
+	listSweepCmd.MarkFlagRequired(sweepProjectKey)
 	sweepCmd.AddCommand(listSweepCmd)
 
 	rootCmd.AddCommand(sweepCmd)
 }
 
 func createSweep(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(sweepProjectKey))
 	sweepGithub := viper.GetBool(sweepGithubKey)
 	if !sweepGithub {
 		fmt.Println("Creating a sweep...")
@@ -197,7 +204,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 	}
 
 	// Make the request
-	response, err := Client.CreateParameterSweepWithResponse(context.Background(), body)
+	response, err := Client.CreateParameterSweepWithResponse(context.Background(), projectID, body)
 	if err != nil {
 		log.Fatal("failed to create sweep:", err)
 	}
@@ -232,13 +239,14 @@ func createSweep(ccmd *cobra.Command, args []string) {
 }
 
 func getSweep(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(sweepProjectKey))
 	var sweep *api.ParameterSweep
 	if viper.IsSet(sweepIDKey) {
 		sweepID, err := uuid.Parse(viper.GetString(sweepIDKey))
 		if err != nil {
 			log.Fatal("unable to parse sweep ID: ", err)
 		}
-		response, err := Client.GetParameterSweepWithResponse(context.Background(), sweepID)
+		response, err := Client.GetParameterSweepWithResponse(context.Background(), projectID, sweepID)
 		if err != nil {
 			log.Fatal("unable to retrieve sweep:", err)
 		}
@@ -249,7 +257,7 @@ func getSweep(ccmd *cobra.Command, args []string) {
 		var pageToken *string = nil
 	pageLoop:
 		for {
-			response, err := Client.ListParameterSweepsWithResponse(context.Background(), &api.ListParameterSweepsParams{
+			response, err := Client.ListParameterSweepsWithResponse(context.Background(), projectID, &api.ListParameterSweepsParams{
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),
 			})
@@ -305,12 +313,13 @@ func getSweep(ccmd *cobra.Command, args []string) {
 }
 
 func listSweeps(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(sweepProjectKey))
 	var pageToken *string = nil
 	var allSweeps []api.ParameterSweep
 
 	for {
 		response, err := Client.ListParameterSweepsWithResponse(
-			context.Background(), &api.ListParameterSweepsParams{
+			context.Background(), projectID, &api.ListParameterSweepsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),

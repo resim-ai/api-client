@@ -78,8 +78,8 @@ const (
 
 func init() {
 	createBatchCmd.Flags().Bool(batchGithubKey, false, "Whether to output format in github action friendly format")
-	createBranchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to associate with the batch")
-	createBranchCmd.MarkFlagRequired(batchProjectKey)
+	createBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to associate with the batch")
+	createBatchCmd.MarkFlagRequired(batchProjectKey)
 	createBatchCmd.Flags().String(batchBuildIDKey, "", "The ID of the build.")
 	createBatchCmd.MarkFlagRequired(batchBuildIDKey)
 	createBatchCmd.Flags().String(batchMetricsBuildKey, "", "The ID of the metrics build to use in this batch.")

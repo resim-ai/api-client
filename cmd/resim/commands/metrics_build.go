@@ -35,6 +35,7 @@ var (
 )
 
 const (
+	metricsBuildProjectKey  = "project"
 	metricsBuildNameKey     = "name"
 	metricsBuildImageURIKey = "image"
 	metricsBuildVersionKey  = "version"
@@ -42,6 +43,8 @@ const (
 )
 
 func init() {
+	createMetricsBuildCmd.Flags().String(metricsBuildProjectKey, "", "The name or ID of the project to associate with the metrics build")
+	createMetricsBuildCmd.MarkFlagRequired(metricsBuildProjectKey)
 	createMetricsBuildCmd.Flags().String(metricsBuildNameKey, "", "The name of the metrics build")
 	createMetricsBuildCmd.MarkFlagRequired(metricsBuildNameKey)
 	createMetricsBuildCmd.Flags().String(metricsBuildImageURIKey, "", "The URI of the docker image, including the tag")
@@ -51,17 +54,20 @@ func init() {
 	createMetricsBuildCmd.Flags().Bool(metricsBuildGithubKey, false, "Whether to output format in github action friendly format")
 
 	metricsBuildCmd.AddCommand(createMetricsBuildCmd)
+	listMetricsBuildsCmd.Flags().String(metricsBuildProjectKey, "", "The name or ID of the project to list the metrics builds within")
+	listMetricsBuildsCmd.MarkFlagRequired(metricsBuildProjectKey)
 	metricsBuildCmd.AddCommand(listMetricsBuildsCmd)
 	rootCmd.AddCommand(metricsBuildCmd)
 }
 
 func listMetricsBuilds(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(metricsBuildProjectKey))
 	var pageToken *string = nil
 	var allMetricsBuilds []api.MetricsBuild
 
 	for {
 		response, err := Client.ListMetricsBuildsWithResponse(
-			context.Background(), &api.ListMetricsBuildsParams{
+			context.Background(), projectID, &api.ListMetricsBuildsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),
@@ -85,6 +91,7 @@ func listMetricsBuilds(ccmd *cobra.Command, args []string) {
 }
 
 func createMetricsBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(metricsBuildProjectKey))
 	metricsBuildGithub := viper.GetBool(metricsBuildGithubKey)
 	if !metricsBuildGithub {
 		fmt.Println("Creating a metrics build...")
@@ -117,7 +124,7 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 		Version:  &metricsBuildVersion,
 	}
 
-	response, err := Client.CreateMetricsBuildWithResponse(context.Background(), body)
+	response, err := Client.CreateMetricsBuildWithResponse(context.Background(), projectID, body)
 	if err != nil {
 		log.Fatal("unable to create metrics build:", err)
 	}

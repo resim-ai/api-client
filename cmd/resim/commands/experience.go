@@ -47,6 +47,7 @@ var (
 )
 
 const (
+	experienceProjectKey       = "project"
 	experienceNameKey          = "name"
 	experienceIDKey            = "id"
 	experienceDescriptionKey   = "description"
@@ -57,6 +58,8 @@ const (
 )
 
 func init() {
+	createExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to associate with the experience")
+	createExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	createExperienceCmd.Flags().String(experienceNameKey, "", "The name of the experience")
 	createExperienceCmd.MarkFlagRequired(experienceNameKey)
 	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
@@ -66,12 +69,18 @@ func init() {
 	createExperienceCmd.Flags().String(experienceLaunchProfileKey, "", "The UUID of the launch profile for this experience")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
+	listExperiencesCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
+	listExperiencesCmd.MarkFlagRequired(experienceProjectKey)
 	experienceCmd.AddCommand(listExperiencesCmd)
+	tagExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
+	tagExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	tagExperienceCmd.Flags().String(experienceTagKey, "", "The name of the tag to add")
 	tagExperienceCmd.MarkFlagRequired(experienceTagKey)
 	tagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to tag")
 	tagExperienceCmd.MarkFlagRequired(experienceNameKey)
 	experienceCmd.AddCommand(tagExperienceCmd)
+	untagExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
+	untagExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	untagExperienceCmd.Flags().String(experienceTagKey, "", "The name of the tag to remove")
 	untagExperienceCmd.MarkFlagRequired(experienceTagKey)
 	untagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to untag")
@@ -81,6 +90,7 @@ func init() {
 }
 
 func createExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	experienceGithub := viper.GetBool(experienceGithubKey)
 	if !experienceGithub {
 		fmt.Println("Creating an experience...")
@@ -120,7 +130,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		body.LaunchProfileID = &experienceLaunchProfile
 	}
 
-	response, err := Client.CreateExperienceWithResponse(context.Background(), body)
+	response, err := Client.CreateExperienceWithResponse(context.Background(), projectID, body)
 	if err != nil {
 		log.Fatal("failed to create experience: ", err)
 	}
@@ -164,13 +174,14 @@ func createExperience(ccmd *cobra.Command, args []string) {
 }
 
 func listExperiences(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	var pageToken *string = nil
 
 	var allExperiences []api.Experience
 
 	for {
 		response, err := Client.ListExperiencesWithResponse(
-			context.Background(), &api.ListExperiencesParams{
+			context.Background(), projectID, &api.ListExperiencesParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),
@@ -194,6 +205,7 @@ func listExperiences(ccmd *cobra.Command, args []string) {
 }
 
 func tagExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	experienceTagName := viper.GetString(experienceTagKey)
 	if experienceTagName == "" {
 		log.Fatal("empty experience tag name")
@@ -204,10 +216,10 @@ func tagExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse experience ID: ", err)
 	}
 
-	experienceTagID := getExperienceTagIDForName(Client, experienceTagName)
+	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
 
 	response, err := Client.AddExperienceTagToExperienceWithResponse(
-		context.Background(),
+		context.Background(), projectID,
 		experienceTagID,
 		experienceID,
 	)
@@ -221,6 +233,7 @@ func tagExperience(ccmd *cobra.Command, args []string) {
 }
 
 func untagExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	experienceTagName := viper.GetString(experienceTagKey)
 	if experienceTagName == "" {
 		log.Fatal("empty experience tag name")
@@ -231,9 +244,9 @@ func untagExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse experience ID: ", err)
 	}
 
-	experienceTagID := getExperienceTagIDForName(Client, experienceTagName)
+	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
 	response, err := Client.RemoveExperienceTagFromExperienceWithResponse(
-		context.Background(),
+		context.Background(), projectID,
 		experienceTagID,
 		experienceID,
 	)

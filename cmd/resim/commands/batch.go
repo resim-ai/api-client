@@ -59,6 +59,7 @@ var (
 )
 
 const (
+	batchProjectKey            = "project"
 	batchBuildIDKey            = "build-id"
 	batchExperienceIDsKey      = "experience-ids"
 	batchExperiencesKey        = "experiences"
@@ -77,6 +78,8 @@ const (
 
 func init() {
 	createBatchCmd.Flags().Bool(batchGithubKey, false, "Whether to output format in github action friendly format")
+	createBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to associate with the batch")
+	createBatchCmd.MarkFlagRequired(batchProjectKey)
 	createBatchCmd.Flags().String(batchBuildIDKey, "", "The ID of the build.")
 	createBatchCmd.MarkFlagRequired(batchBuildIDKey)
 	createBatchCmd.Flags().String(batchMetricsBuildKey, "", "The ID of the metrics build to use in this batch.")
@@ -90,17 +93,23 @@ func init() {
 	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
 	batchCmd.AddCommand(createBatchCmd)
 
+	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	getBatchCmd.MarkFlagRequired(batchProjectKey)
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = internal error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	batchCmd.AddCommand(getBatchCmd)
 
+	jobsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	jobsBatchCmd.MarkFlagRequired(batchProjectKey)
 	jobsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve jobs for.")
 	jobsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	jobsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(jobsBatchCmd)
 
+	waitBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	waitBatchCmd.MarkFlagRequired(batchProjectKey)
 	waitBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to await completion.")
 	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to await completion (e.g. rejoicing-aquamarine-starfish).")
 	waitBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
@@ -108,6 +117,8 @@ func init() {
 	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
 	batchCmd.AddCommand(waitBatchCmd)
 
+	logsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	logsBatchCmd.MarkFlagRequired(batchProjectKey)
 	logsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to list logs for.")
 	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish).")
 	logsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
@@ -118,6 +129,7 @@ func init() {
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	batchGithub := viper.GetBool(batchGithubKey)
 	if !batchGithub {
 		fmt.Println("Creating a batch...")
@@ -222,7 +234,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Make the request
-	response, err := Client.CreateBatchWithResponse(context.Background(), body)
+	response, err := Client.CreateBatchWithResponse(context.Background(), projectID, body)
 	if err != nil {
 		log.Fatal("failed to create batch:", err)
 	}
@@ -259,14 +271,14 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 }
 
-func actualGetBatch(batchIDRaw, batchName string) *api.Batch {
+func actualGetBatch(projectID uuid.UUID, batchIDRaw string, batchName string) *api.Batch {
 	var batch *api.Batch
 	if batchIDRaw != "" {
 		batchID, err := uuid.Parse(batchIDRaw)
 		if err != nil {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
-		response, err := Client.GetBatchWithResponse(context.Background(), batchID)
+		response, err := Client.GetBatchWithResponse(context.Background(), projectID, batchID)
 		if err != nil {
 			log.Fatal("unable to retrieve batch:", err)
 		}
@@ -276,7 +288,7 @@ func actualGetBatch(batchIDRaw, batchName string) *api.Batch {
 	} else if batchName != "" {
 		var pageToken *string = nil
 		for {
-			response, err := Client.ListBatchesWithResponse(context.Background(), &api.ListBatchesParams{
+			response, err := Client.ListBatchesWithResponse(context.Background(), projectID, &api.ListBatchesParams{
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),
 			})
@@ -309,7 +321,8 @@ func actualGetBatch(batchIDRaw, batchName string) *api.Batch {
 }
 
 func getBatch(ccmd *cobra.Command, args []string) {
-	batch := actualGetBatch(viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
 
 	if viper.GetBool(batchExitStatusKey) {
 		if batch.Status == nil {
@@ -335,12 +348,13 @@ func getBatch(ccmd *cobra.Command, args []string) {
 }
 
 func waitBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	var batch *api.Batch
 	timeout, _ := time.ParseDuration(viper.GetString(batchWaitTimeoutKey))
 	pollWait, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
 	startTime := time.Now()
 	for {
-		batch = actualGetBatch(viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+		batch = actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
 		if batch.Status == nil {
 			log.Fatal("no status returned")
 		}
@@ -366,6 +380,7 @@ func waitBatch(ccmd *cobra.Command, args []string) {
 }
 
 func jobsBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	var batchID uuid.UUID
 	var err error
 	if viper.IsSet(batchIDKey) {
@@ -374,7 +389,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
 	} else if viper.IsSet(batchNameKey) {
-		batch := actualGetBatch("", viper.GetString(batchNameKey))
+		batch := actualGetBatch(projectID, "", viper.GetString(batchNameKey))
 		batchID = *batch.BatchID
 	} else {
 		log.Fatal("must specify either the batch ID or the batch name")
@@ -384,7 +399,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 	jobs := []api.Job{}
 	var pageToken *string = nil
 	for {
-		response, err := Client.ListJobsWithResponse(context.Background(), batchID, &api.ListJobsParams{
+		response, err := Client.ListJobsWithResponse(context.Background(), projectID, batchID, &api.ListJobsParams{
 			PageSize:  Ptr(100),
 			PageToken: pageToken,
 		})
@@ -408,6 +423,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 }
 
 func listBatchLogs(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	var batchID uuid.UUID
 	var err error
 	if viper.IsSet(batchIDKey) {
@@ -416,13 +432,13 @@ func listBatchLogs(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to parse batch ID: ", err)
 		}
 	} else {
-		batch := actualGetBatch("", viper.GetString(batchNameKey))
+		batch := actualGetBatch(projectID, "", viper.GetString(batchNameKey))
 		batchID = *batch.BatchID
 	}
 	logs := []api.BatchLog{}
 	var pageToken *string = nil
 	for {
-		response, err := Client.ListBatchLogsForBatchWithResponse(context.Background(), batchID, &api.ListBatchLogsForBatchParams{
+		response, err := Client.ListBatchLogsForBatchWithResponse(context.Background(), projectID, batchID, &api.ListBatchLogsForBatchParams{
 			PageSize:  Ptr(100),
 			PageToken: pageToken,
 		})

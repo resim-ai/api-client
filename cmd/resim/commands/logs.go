@@ -35,6 +35,7 @@ var (
 )
 
 const (
+	logProjectKey       = "project"
 	logNameKey          = "name"
 	logBatchIDKey       = "batch-id"
 	logJobIDKey         = "job-id"
@@ -46,6 +47,8 @@ const (
 )
 
 func init() {
+	createLogCmd.Flags().String(logProjectKey, "", "The name or ID of the project to associate the log with")
+	createLogCmd.MarkFlagRequired(logProjectKey)
 	createLogCmd.Flags().String(logNameKey, "", "The simple name of the log file to register (not a directory)")
 	createLogCmd.MarkFlagRequired(logNameKey)
 	createLogCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch this log file is associated with")
@@ -62,6 +65,8 @@ func init() {
 	createLogCmd.Flags().Bool(logGithubKey, false, "Whether to output format in github action friendly format")
 	logsCmd.AddCommand(createLogCmd)
 
+	listLogsCmd.Flags().String(logProjectKey, "", "The name or ID of the project to list logs with")
+	listLogsCmd.MarkFlagRequired(logProjectKey)
 	listLogsCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch the logs are associated with")
 	listLogsCmd.MarkFlagRequired(logBatchIDKey)
 	listLogsCmd.Flags().String(logJobIDKey, "", "The UUID of the job in the batch to list logs for")
@@ -72,6 +77,7 @@ func init() {
 }
 
 func createLog(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(logProjectKey))
 	logGithub := viper.GetBool(logGithubKey)
 	if !logGithub {
 		fmt.Println("Creating a log entry...")
@@ -124,14 +130,14 @@ func createLog(ccmd *cobra.Command, args []string) {
 	}
 
 	// Verify that the batch and job exist:
-	batchResponse, err := Client.GetBatchWithResponse(context.Background(), logBatchID)
+	batchResponse, err := Client.GetBatchWithResponse(context.Background(), projectID, logBatchID)
 	if err != nil {
 		log.Fatal("unable to get batch: ", err)
 	}
 	ValidateResponse(http.StatusOK, fmt.Sprintf("unable to find batch with ID %v", logBatchID),
 		batchResponse.HTTPResponse, batchResponse.Body)
 
-	jobResponse, err := Client.GetJobWithResponse(context.Background(), logBatchID, logJobID)
+	jobResponse, err := Client.GetJobWithResponse(context.Background(), projectID, logBatchID, logJobID)
 	if err != nil {
 		log.Fatal("unable to get job: ", err)
 	}
@@ -139,7 +145,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 		jobResponse.HTTPResponse, jobResponse.Body)
 
 	// Create the log entry
-	logResponse, err := Client.CreateJobLogWithResponse(context.Background(), logBatchID, logJobID, body)
+	logResponse, err := Client.CreateJobLogWithResponse(context.Background(), projectID, logBatchID, logJobID, body)
 	if err != nil {
 		log.Fatal("unable to create log: ", err)
 	}
@@ -167,6 +173,7 @@ func createLog(ccmd *cobra.Command, args []string) {
 }
 
 func listLogs(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(logProjectKey))
 	batchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
 	if err != nil || batchID == uuid.Nil {
 		log.Fatal("unable to parse batch ID: ", err)
@@ -180,7 +187,7 @@ func listLogs(ccmd *cobra.Command, args []string) {
 	logs := []api.JobLog{}
 	var pageToken *string = nil
 	for {
-		response, err := Client.ListJobLogsForJobWithResponse(context.Background(), batchID, jobID, &api.ListJobLogsForJobParams{
+		response, err := Client.ListJobLogsForJobWithResponse(context.Background(), projectID, batchID, jobID, &api.ListJobLogsForJobParams{
 			PageToken: pageToken,
 			PageSize:  Ptr(100),
 		})

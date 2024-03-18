@@ -8,6 +8,8 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.2.0 - March 19 2024
+
 #### Changed
 
 - All ReSim Resources: experiences, experience tags, parameter sweeps, metrics builds will now live under the projects umbrella. This means that creating any resources via the CLI requires a project flag. The easiest way to achieve this is to select your expected projected using the `select project foo` feature.

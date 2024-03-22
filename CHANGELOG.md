@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.2.1 - March 22 2024
+
+#### Added
+
+- GovCloud mode - configure the CLI to work with our GovCloud environment by running `resim govcloud enable` or setting `RESIM_GOVCLOUD=true` in your environment.
+
 ### v0.2.0 - March 19 2024
 
 #### Changed

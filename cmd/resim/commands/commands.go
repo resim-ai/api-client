@@ -32,7 +32,7 @@ var (
 
 func rootCommand(cmd *cobra.Command, args []string) {
 	viper.SetConfigName("resim")
-	viper.SetConfigType("json")
+	viper.SetConfigType("yaml")
 	viper.AddConfigPath(os.ExpandEnv(ConfigPath))
 	if err := viper.ReadInConfig(); err != nil {
 		switch err.(type) {
@@ -73,7 +73,7 @@ func RegisterViperFlags(cmd *cobra.Command, args []string) {
 	configDir, _ := GetConfigDir()
 	viper.BindPFlags(cmd.Flags())
 	viper.SetConfigName("resim")
-	viper.SetConfigType("json")
+	viper.SetConfigType("yaml")
 	viper.AddConfigPath(configDir)
 	if err := viper.ReadInConfig(); err != nil {
 		switch err.(type) {

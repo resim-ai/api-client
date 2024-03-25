@@ -29,7 +29,7 @@ func writeStubConfig(params map[string]interface{}) string {
 	os.Setenv("HOME", tempDir)
 	v := viper.New()
 	v.MergeConfigMap(params)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.json")
+	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
 	return tempDir
 }
 

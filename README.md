@@ -35,6 +35,12 @@ If you would like to use the CLI in a non-interactive setting (e.g. CI), it can 
 Client credentials can be specified on the commandline with the `--client-id` and `--client-secret` flags, or in the environment as
 `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET`.
 
+If you would like to store your client ID and secret in a config file, the CLI will load them from `~/.resim/resim.yaml`.  The file
+is formatted as follows:
+
+    client-id: <client ID>
+    client-secret: <client secret>
+
 ## Usage
 
 To get a list of available commands, just type
@@ -59,7 +65,7 @@ Other shells are supported, just replace `bash` above with e.g. [`zsh`, `fish`, 
 
 ### GovCloud
 
-If you use our GovCloud environment, you can configure the CLI to work with it by running `resim govcloud enable` (which will store the setting in the configuration file at `~/.resim/resim.json`) or by setting `RESIM_GOVCLOUD=true` in your environment.
+If you use our GovCloud environment, you can configure the CLI to work with it by running `resim govcloud enable` (which will store the setting in the configuration file at `~/.resim/resim.yaml`) or by setting `RESIM_GOVCLOUD=true` in your environment.
 
 ## Contributing
 

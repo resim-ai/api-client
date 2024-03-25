@@ -39,14 +39,14 @@ func init() {
 func enableGovcloud(ccmd *cobra.Command, args []string) {
 	v := readConfigFile()
 	v.Set("govcloud", true)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.json")
+	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
 	fmt.Println("GovCloud mode enabled")
 }
 
 func disableGovcloud(ccmd *cobra.Command, args []string) {
 	v := readConfigFile()
 	v.Set("govcloud", false)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.json")
+	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
 	fmt.Println("GovCloud mode disabled")
 }
 
@@ -55,7 +55,7 @@ func readConfigFile() *viper.Viper {
 	// Therefore we can safely save it again without adding any additional flags.
 	v := viper.New()
 	v.SetConfigName("resim")
-	v.SetConfigType("json")
+	v.SetConfigType("yaml")
 	v.AddConfigPath(os.ExpandEnv(ConfigPath))
 	if err := v.ReadInConfig(); err != nil {
 		switch err.(type) {

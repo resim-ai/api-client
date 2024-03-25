@@ -29,7 +29,7 @@ func writeStubConfig(params map[string]interface{}) string {
 	os.Setenv("HOME", tempDir)
 	v := viper.New()
 	v.MergeConfigMap(params)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.json")
+	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
 	return tempDir
 }
 
@@ -69,3 +69,9 @@ func TestRequiredFlagProvided(t *testing.T) {
 	assert.Equal(testCmd.Flag("requiredFlag").Annotations[cobra.BashCompOneRequiredFlag], []string{"false"})
 	assert.Equal(testCmd.Flag("notRequiredFlag").Annotations[cobra.BashCompOneRequiredFlag], []string(nil))
 }
+
+// func TestGovCloudModeFromEnv(t *testing.T) {
+// 	assert := assert.New(t)
+// 	os.Setenv("RESIM_GOVCLOUD", "true")
+// 	assert.Equal()
+// }

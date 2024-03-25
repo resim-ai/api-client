@@ -63,6 +63,10 @@ Then place the generated file in the appropriate location on your system to enab
 
 Other shells are supported, just replace `bash` above with e.g. [`zsh`, `fish`, `powershell`].
 
+### GovCloud
+
+If you use our GovCloud environment, you can configure the CLI to work with it by running `resim govcloud enable` (which will store the setting in the configuration file at `~/.resim/resim.yaml`) or by setting `RESIM_GOVCLOUD=true` in your environment.
+
 ## Contributing
 
 We track issues and feature requests using [Github Issues](https://github.com/resim-ai/api-client/issues).  Feel free to grab an issue and submit a pull request!

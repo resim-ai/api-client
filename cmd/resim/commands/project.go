@@ -158,7 +158,7 @@ func selectProject(ccmd *cobra.Command, args []string) {
 		}
 	}
 	v.Set("project", project.ProjectID)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.json")
+	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
 	fmt.Println("Default project set:", *(project.Name))
 }
 

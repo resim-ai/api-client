@@ -26,6 +26,10 @@ const (
 	clientSecretKey          = "client-secret"
 	devInteractiveClientKey  = "dev-interactive-client"
 	prodInteractiveClientKey = "prod-interactive-client"
+	prodGovcloudURL          = "https://api-gov.resim.ai/v1/"
+	prodAPIURL               = "https://api.resim.ai/v1/"
+	prodAuthURL              = "https://resim.us.auth0.com/"
+	devAuthURL               = "https://resim-dev.us.auth0.com/"
 )
 
 const CredentialCacheFilename = "cache.json"
@@ -38,9 +42,9 @@ type CredentialCache struct {
 
 func init() {
 	rootCmd.PersistentFlags().String(urlKey, "", "The URL of the API.")
-	viper.SetDefault(urlKey, "https://api.resim.ai/v1/")
+	viper.SetDefault(urlKey, prodAPIURL)
 	rootCmd.PersistentFlags().String(authURLKey, "", "The URL of the authentication endpoint.")
-	viper.SetDefault(authURLKey, "https://resim.us.auth0.com/")
+	viper.SetDefault(authURLKey, prodAuthURL)
 	rootCmd.PersistentFlags().String(clientIDKey, "", "Authentication credentials client ID")
 	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
 	rootCmd.PersistentFlags().String(devInteractiveClientKey, "", "Client ID for dev interactive login")
@@ -70,9 +74,9 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 	if viper.GetString(clientIDKey) == "" {
 		var clientID string
 		switch viper.GetString(authURLKey) {
-		case "https://resim-dev.us.auth0.com/":
+		case devAuthURL:
 			clientID = viper.GetString(devInteractiveClientKey)
-		case "https://resim.us.auth0.com/":
+		case prodAuthURL:
 			clientID = viper.GetString(prodInteractiveClientKey)
 		default:
 			log.Fatal("couldn't find CLI client ID for auth-url")
@@ -136,6 +140,18 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 			cache.TokenSource = oauth2.ReuseTokenSource(&token, tokenSource)
 		} else {
 			cache.TokenSource = tokenSource
+		}
+	}
+
+	// This is true if the user has run `resim govcloud enable` or if RESIM_GOVCLOUD=true
+	if viper.GetBool("govcloud") {
+		switch viper.GetString(authURLKey) {
+		case devAuthURL:
+			if viper.GetString(urlKey) == prodAPIURL {
+				log.Fatal("GovCloud dev mode enabled, set --url to the deployment you wish to use")
+			}
+		case prodAuthURL:
+			viper.Set(urlKey, prodGovcloudURL)
 		}
 	}
 

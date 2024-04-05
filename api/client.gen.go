@@ -106,23 +106,27 @@ const (
 
 // Batch defines model for batch.
 type Batch struct {
-	BatchID                      *BatchID            `json:"batchID,omitempty"`
-	BatchMetricsStatus           *MetricStatus       `json:"batchMetricsStatus,omitempty"`
-	BuildID                      *BuildID            `json:"buildID,omitempty"`
-	CreationTimestamp            *Timestamp          `json:"creationTimestamp,omitempty"`
-	FriendlyName                 *FriendlyName       `json:"friendlyName,omitempty"`
-	InstantiatedExperienceIDs    *[]ExperienceID     `json:"instantiatedExperienceIDs,omitempty"`
-	InstantiatedExperienceTagIDs *[]ExperienceTagID  `json:"instantiatedExperienceTagIDs,omitempty"`
-	JobsMetricsStatus            *MetricStatus       `json:"jobsMetricsStatus,omitempty"`
-	LastUpdatedTimestamp         *Timestamp          `json:"lastUpdatedTimestamp,omitempty"`
-	MetricsBuildID               *MetricsBuildID     `json:"metricsBuildID,omitempty"`
-	OrgID                        *OrgID              `json:"orgID,omitempty"`
-	OverallMetricsStatus         *MetricStatus       `json:"overallMetricsStatus,omitempty"`
-	Parameters                   *BatchParameters    `json:"parameters,omitempty"`
-	ProjectID                    *ProjectID          `json:"projectID,omitempty"`
-	Status                       *BatchStatus        `json:"status,omitempty"`
-	StatusHistory                *BatchStatusHistory `json:"statusHistory,omitempty"`
-	UserID                       *UserID             `json:"userID,omitempty"`
+	BatchID                      *BatchID                `json:"batchID,omitempty"`
+	BatchMetricsStatus           *MetricStatus           `json:"batchMetricsStatus,omitempty"`
+	BuildID                      *BuildID                `json:"buildID,omitempty"`
+	CreationTimestamp            *Timestamp              `json:"creationTimestamp,omitempty"`
+	FriendlyName                 *FriendlyName           `json:"friendlyName,omitempty"`
+	InstantiatedExperienceIDs    *[]ExperienceID         `json:"instantiatedExperienceIDs,omitempty"`
+	InstantiatedExperienceTagIDs *[]ExperienceTagID      `json:"instantiatedExperienceTagIDs,omitempty"`
+	JobMetricsStatusCounts       *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
+	JobStatusCounts              *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
+	JobsMetricsStatus            *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
+	LastUpdatedTimestamp         *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
+	MetricsBuildID               *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	OrgID                        *OrgID                  `json:"orgID,omitempty"`
+	OverallMetricsStatus         *MetricStatus           `json:"overallMetricsStatus,omitempty"`
+	Parameters                   *BatchParameters        `json:"parameters,omitempty"`
+	ProjectID                    *ProjectID              `json:"projectID,omitempty"`
+	Status                       *BatchStatus            `json:"status,omitempty"`
+	StatusHistory                *BatchStatusHistory     `json:"statusHistory,omitempty"`
+	SystemID                     *SystemID               `json:"systemID,omitempty"`
+	TotalJobs                    *BatchTotalJobs         `json:"totalJobs,omitempty"`
+	UserID                       *UserID                 `json:"userID,omitempty"`
 }
 
 // BatchID defines model for batchID.
@@ -137,6 +141,17 @@ type BatchInput struct {
 	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
 	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
 	Parameters         *BatchParameters     `json:"parameters,omitempty"`
+}
+
+// BatchJobStatusCounts defines model for batchJobStatusCounts.
+type BatchJobStatusCounts struct {
+	Cancelled      int `json:"cancelled"`
+	Error          int `json:"error"`
+	MetricsQueued  int `json:"metricsQueued"`
+	MetricsRunning int `json:"metricsRunning"`
+	Running        int `json:"running"`
+	Submitted      int `json:"submitted"`
+	Succeeded      int `json:"succeeded"`
 }
 
 // BatchLog defines model for batchLog.
@@ -210,6 +225,9 @@ type BatchStatusHistoryType struct {
 	UpdatedAt *Timestamp   `json:"updatedAt,omitempty"`
 }
 
+// BatchTotalJobs defines model for batchTotalJobs.
+type BatchTotalJobs = int
+
 // Branch defines model for branch.
 type Branch struct {
 	BranchID          *BranchID   `json:"branchID,omitempty"`
@@ -236,6 +254,7 @@ type Build struct {
 	ImageUri          *BuildImageUri    `json:"imageUri,omitempty"`
 	OrgID             *OrgID            `json:"orgID,omitempty"`
 	ProjectID         *ProjectID        `json:"projectID,omitempty"`
+	SystemID          *SystemID         `json:"systemID,omitempty"`
 	UserID            *UserID           `json:"userID,omitempty"`
 	Version           *BuildVersion     `json:"version,omitempty"`
 }
@@ -260,15 +279,14 @@ type ExecutionStep string
 
 // Experience defines model for experience.
 type Experience struct {
-	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty"`
-	Description       *string          `json:"description,omitempty"`
-	ExperienceID      *ExperienceID    `json:"experienceID,omitempty"`
-	LaunchProfileID   *LaunchProfileID `json:"launchProfileID,omitempty"`
-	Location          *string          `json:"location,omitempty"`
-	Name              *ExperienceName  `json:"name,omitempty"`
-	OrgID             *OrgID           `json:"orgID,omitempty"`
-	ProjectID         *ProjectID       `json:"projectID,omitempty"`
-	UserID            *UserID          `json:"userID,omitempty"`
+	CreationTimestamp *Timestamp      `json:"creationTimestamp,omitempty"`
+	Description       *string         `json:"description,omitempty"`
+	ExperienceID      *ExperienceID   `json:"experienceID,omitempty"`
+	Location          *string         `json:"location,omitempty"`
+	Name              *ExperienceName `json:"name,omitempty"`
+	OrgID             *OrgID          `json:"orgID,omitempty"`
+	ProjectID         *ProjectID      `json:"projectID,omitempty"`
+	UserID            *UserID         `json:"userID,omitempty"`
 }
 
 // ExperienceID defines model for experienceID.
@@ -392,6 +410,16 @@ type JobMetricsData struct {
 	UserID            *UserID              `json:"userID,omitempty"`
 }
 
+// JobMetricsStatusCounts defines model for jobMetricsStatusCounts.
+type JobMetricsStatusCounts struct {
+	FailBlock        int `json:"failBlock"`
+	FailWarn         int `json:"failWarn"`
+	NoStatusReported int `json:"noStatusReported"`
+	NotApplicable    int `json:"notApplicable"`
+	Passed           int `json:"passed"`
+	Raw              int `json:"raw"`
+}
+
 // JobStatus defines model for jobStatus.
 type JobStatus string
 
@@ -402,28 +430,6 @@ type JobStatusHistory = []JobStatusHistoryType
 type JobStatusHistoryType struct {
 	Status    *JobStatus `json:"status,omitempty"`
 	UpdatedAt *Timestamp `json:"updatedAt,omitempty"`
-}
-
-// LaunchProfile defines model for launchProfile.
-type LaunchProfile struct {
-	Gpus            *int             `json:"gpus,omitempty"`
-	LaunchProfileID *LaunchProfileID `json:"launchProfileID,omitempty"`
-	MemoryMib       *int             `json:"memory_mib,omitempty"`
-	Name            *string          `json:"name,omitempty"`
-	OrgID           *OrgID           `json:"orgID,omitempty"`
-	ProjectID       *ProjectID       `json:"projectID,omitempty"`
-	SharedMemoryMb  *int             `json:"shared_memory_mb,omitempty"`
-	UserID          *UserID          `json:"userID,omitempty"`
-	Vcpus           *int             `json:"vcpus,omitempty"`
-}
-
-// LaunchProfileID defines model for launchProfileID.
-type LaunchProfileID = openapi_types.UUID
-
-// LaunchProfileInput defines model for launchProfileInput.
-type LaunchProfileInput struct {
-	LaunchProfile *LaunchProfile `json:"launchProfile,omitempty"`
-	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
 }
 
 // LineNumber defines model for lineNumber.
@@ -507,12 +513,6 @@ type ListJobsOutput struct {
 	NextPageToken *string `json:"nextPageToken,omitempty"`
 }
 
-// ListLaunchProfilesOutput defines model for listLaunchProfilesOutput.
-type ListLaunchProfilesOutput struct {
-	LaunchProfiles *[]LaunchProfile `json:"launchProfiles,omitempty"`
-	NextPageToken  *string          `json:"nextPageToken,omitempty"`
-}
-
 // ListMetricsBuildOutput defines model for listMetricsBuildOutput.
 type ListMetricsBuildOutput struct {
 	MetricsBuilds *[]MetricsBuild `json:"metricsBuilds,omitempty"`
@@ -535,6 +535,12 @@ type ListParameterSweepsOutput struct {
 type ListProjectsOutput struct {
 	NextPageToken *string    `json:"nextPageToken,omitempty"`
 	Projects      *[]Project `json:"projects,omitempty"`
+}
+
+// ListSystemsOutput defines model for listSystemsOutput.
+type ListSystemsOutput struct {
+	NextPageToken *string   `json:"nextPageToken,omitempty"`
+	Systems       *[]System `json:"systems,omitempty"`
 }
 
 // ListViewObjectsOutput defines model for listViewObjectsOutput.
@@ -744,6 +750,34 @@ type SandboxInput struct {
 type SweepParameter struct {
 	Name   *string   `json:"name,omitempty"`
 	Values *[]string `json:"values,omitempty"`
+}
+
+// System defines model for system.
+type System struct {
+	BuildGpus                  *int       `json:"build_gpus,omitempty"`
+	BuildMemoryMib             *int       `json:"build_memory_mib,omitempty"`
+	BuildSharedMemoryMb        *int       `json:"build_shared_memory_mb,omitempty"`
+	BuildVcpus                 *int       `json:"build_vcpus,omitempty"`
+	CreationTimestamp          *Timestamp `json:"creationTimestamp,omitempty"`
+	Description                *string    `json:"description,omitempty"`
+	MetricsBuildGpus           *int       `json:"metrics_build_gpus,omitempty"`
+	MetricsBuildMemoryMib      *int       `json:"metrics_build_memory_mib,omitempty"`
+	MetricsBuildSharedMemoryMb *int       `json:"metrics_build_shared_memory_mb,omitempty"`
+	MetricsBuildVcpus          *int       `json:"metrics_build_vcpus,omitempty"`
+	Name                       *string    `json:"name,omitempty"`
+	OrgID                      *OrgID     `json:"orgID,omitempty"`
+	ProjectID                  *ProjectID `json:"projectID,omitempty"`
+	SystemID                   *SystemID  `json:"systemID,omitempty"`
+	UserID                     *UserID    `json:"userID,omitempty"`
+}
+
+// SystemID defines model for systemID.
+type SystemID = openapi_types.UUID
+
+// SystemInput defines model for systemInput.
+type SystemInput struct {
+	System     *System     `json:"system,omitempty"`
+	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
 }
 
 // Timestamp defines model for timestamp.
@@ -959,8 +993,8 @@ type ListExperienceTagsForExperienceParams struct {
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
-// ListLaunchProfilesParams defines parameters for ListLaunchProfiles.
-type ListLaunchProfilesParams struct {
+// GetSystemsForExperienceParams defines parameters for GetSystemsForExperience.
+type GetSystemsForExperienceParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -972,11 +1006,42 @@ type ListMetricsBuildsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
+// GetSystemsForMetricsBuildParams defines parameters for GetSystemsForMetricsBuild.
+type GetSystemsForMetricsBuildParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
 // ListParameterSweepsParams defines parameters for ListParameterSweeps.
 type ListParameterSweepsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListSystemsParams defines parameters for ListSystems.
+type ListSystemsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListBuildsForSystemParams defines parameters for ListBuildsForSystem.
+type ListBuildsForSystemParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListExperiencesForSystemParams defines parameters for ListExperiencesForSystem.
+type ListExperiencesForSystemParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListMetricsBuildsForSystemParams defines parameters for ListMetricsBuildsForSystem.
+type ListMetricsBuildsForSystemParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
 // ListViewSessionsParams defines parameters for ListViewSessions.
@@ -1043,17 +1108,20 @@ type CreateExperienceJSONRequestBody = Experience
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
 type UpdateExperienceJSONRequestBody = ExperienceInput
 
-// CreateLaunchProfileJSONRequestBody defines body for CreateLaunchProfile for application/json ContentType.
-type CreateLaunchProfileJSONRequestBody = LaunchProfile
-
-// UpdateLaunchProfileJSONRequestBody defines body for UpdateLaunchProfile for application/json ContentType.
-type UpdateLaunchProfileJSONRequestBody = LaunchProfileInput
-
 // CreateMetricsBuildJSONRequestBody defines body for CreateMetricsBuild for application/json ContentType.
 type CreateMetricsBuildJSONRequestBody = MetricsBuild
 
 // CreateParameterSweepJSONRequestBody defines body for CreateParameterSweep for application/json ContentType.
 type CreateParameterSweepJSONRequestBody = ParameterSweepInput
+
+// CreateSystemJSONRequestBody defines body for CreateSystem for application/json ContentType.
+type CreateSystemJSONRequestBody = System
+
+// UpdateSystemJSONRequestBody defines body for UpdateSystem for application/json ContentType.
+type UpdateSystemJSONRequestBody = SystemInput
+
+// CreateBuildForSystemJSONRequestBody defines body for CreateBuildForSystem for application/json ContentType.
+type CreateBuildForSystemJSONRequestBody = Build
 
 // DestroySandboxJSONRequestBody defines body for DestroySandbox for application/json ContentType.
 type DestroySandboxJSONRequestBody = SandboxInput
@@ -1364,24 +1432,8 @@ type ClientInterface interface {
 	// ListExperienceTagsForExperience request
 	ListExperienceTagsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceTagsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListLaunchProfiles request
-	ListLaunchProfiles(ctx context.Context, projectID ProjectID, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateLaunchProfileWithBody request with any body
-	CreateLaunchProfileWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	CreateLaunchProfile(ctx context.Context, projectID ProjectID, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteLaunchProfile request
-	DeleteLaunchProfile(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// GetLaunchProfile request
-	GetLaunchProfile(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// UpdateLaunchProfileWithBody request with any body
-	UpdateLaunchProfileWithBody(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	UpdateLaunchProfile(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetSystemsForExperience request
+	GetSystemsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMetricsBuilds request
 	ListMetricsBuilds(ctx context.Context, projectID ProjectID, params *ListMetricsBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1394,6 +1446,9 @@ type ClientInterface interface {
 	// GetMetricsBuild request
 	GetMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetSystemsForMetricsBuild request
+	GetSystemsForMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListParameterSweeps request
 	ListParameterSweeps(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1404,6 +1459,54 @@ type ClientInterface interface {
 
 	// GetParameterSweep request
 	GetParameterSweep(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CancelParameterSweep request
+	CancelParameterSweep(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSystems request
+	ListSystems(ctx context.Context, projectID ProjectID, params *ListSystemsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateSystemWithBody request with any body
+	CreateSystemWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateSystem(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetSystem request
+	GetSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateSystemWithBody request with any body
+	UpdateSystemWithBody(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateSystem(ctx context.Context, projectID ProjectID, systemID SystemID, body UpdateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBuildsForSystem request
+	ListBuildsForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListBuildsForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBuildForSystemWithBody request with any body
+	CreateBuildForSystemWithBody(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBuildForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, body CreateBuildForSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBuildForSystem request
+	GetBuildForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListExperiencesForSystem request
+	ListExperiencesForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListExperiencesForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveSystemFromExperience request
+	RemoveSystemFromExperience(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddSystemToExperience request
+	AddSystemToExperience(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListMetricsBuildsForSystem request
+	ListMetricsBuildsForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveSystemFromMetricsBuild request
+	RemoveSystemFromMetricsBuild(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddSystemToMetricsBuild request
+	AddSystemToMetricsBuild(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DestroySandboxWithBody request with any body
 	DestroySandboxWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2417,80 +2520,8 @@ func (c *Client) ListExperienceTagsForExperience(ctx context.Context, projectID 
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListLaunchProfiles(ctx context.Context, projectID ProjectID, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListLaunchProfilesRequest(c.Server, projectID, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateLaunchProfileWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLaunchProfileRequestWithBody(c.Server, projectID, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) CreateLaunchProfile(ctx context.Context, projectID ProjectID, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateLaunchProfileRequest(c.Server, projectID, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) DeleteLaunchProfile(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteLaunchProfileRequest(c.Server, projectID, launchProfileID)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) GetLaunchProfile(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetLaunchProfileRequest(c.Server, projectID, launchProfileID)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateLaunchProfileWithBody(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateLaunchProfileRequestWithBody(c.Server, projectID, launchProfileID, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) UpdateLaunchProfile(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUpdateLaunchProfileRequest(c.Server, projectID, launchProfileID, body)
+func (c *Client) GetSystemsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSystemsForExperienceRequest(c.Server, projectID, experienceID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2549,6 +2580,18 @@ func (c *Client) GetMetricsBuild(ctx context.Context, projectID ProjectID, metri
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetSystemsForMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSystemsForMetricsBuildRequest(c.Server, projectID, metricsBuildID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListParameterSweeps(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListParameterSweepsRequest(c.Server, projectID, params)
 	if err != nil {
@@ -2587,6 +2630,210 @@ func (c *Client) CreateParameterSweep(ctx context.Context, projectID ProjectID, 
 
 func (c *Client) GetParameterSweep(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetParameterSweepRequest(c.Server, projectID, sweepID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CancelParameterSweep(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCancelParameterSweepRequest(c.Server, projectID, sweepID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListSystems(ctx context.Context, projectID ProjectID, params *ListSystemsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSystemsRequest(c.Server, projectID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateSystemWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateSystemRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateSystem(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateSystemRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSystemRequest(c.Server, projectID, systemID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateSystemWithBody(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSystemRequestWithBody(c.Server, projectID, systemID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateSystem(ctx context.Context, projectID ProjectID, systemID SystemID, body UpdateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateSystemRequest(c.Server, projectID, systemID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBuildsForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListBuildsForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBuildsForSystemRequest(c.Server, projectID, systemID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBuildForSystemWithBody(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBuildForSystemRequestWithBody(c.Server, projectID, systemID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBuildForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, body CreateBuildForSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBuildForSystemRequest(c.Server, projectID, systemID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBuildForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBuildForSystemRequest(c.Server, projectID, systemID, buildID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListExperiencesForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListExperiencesForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListExperiencesForSystemRequest(c.Server, projectID, systemID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RemoveSystemFromExperience(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveSystemFromExperienceRequest(c.Server, projectID, systemID, experienceID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddSystemToExperience(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddSystemToExperienceRequest(c.Server, projectID, systemID, experienceID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListMetricsBuildsForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListMetricsBuildsForSystemRequest(c.Server, projectID, systemID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RemoveSystemFromMetricsBuild(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveSystemFromMetricsBuildRequest(c.Server, projectID, systemID, metricsBuildID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddSystemToMetricsBuild(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddSystemToMetricsBuildRequest(c.Server, projectID, systemID, metricsBuildID)
 	if err != nil {
 		return nil, err
 	}
@@ -6672,8 +6919,8 @@ func NewListExperienceTagsForExperienceRequest(server string, projectID ProjectI
 	return req, nil
 }
 
-// NewListLaunchProfilesRequest generates requests for ListLaunchProfiles
-func NewListLaunchProfilesRequest(server string, projectID ProjectID, params *ListLaunchProfilesParams) (*http.Request, error) {
+// NewGetSystemsForExperienceRequest generates requests for GetSystemsForExperience
+func NewGetSystemsForExperienceRequest(server string, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -6683,12 +6930,19 @@ func NewListLaunchProfilesRequest(server string, projectID ProjectID, params *Li
 		return nil, err
 	}
 
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "experienceID", runtime.ParamLocationPath, experienceID)
+	if err != nil {
+		return nil, err
+	}
+
 	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/projects/%s/launchProfiles", pathParam0)
+	operationPath := fmt.Sprintf("/projects/%s/experiences/%s/systems", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -6740,189 +6994,6 @@ func NewListLaunchProfilesRequest(server string, projectID ProjectID, params *Li
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewCreateLaunchProfileRequest calls the generic CreateLaunchProfile builder with application/json body
-func NewCreateLaunchProfileRequest(server string, projectID ProjectID, body CreateLaunchProfileJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateLaunchProfileRequestWithBody(server, projectID, "application/json", bodyReader)
-}
-
-// NewCreateLaunchProfileRequestWithBody generates requests for CreateLaunchProfile with any type of body
-func NewCreateLaunchProfileRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s/launchProfiles", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteLaunchProfileRequest generates requests for DeleteLaunchProfile
-func NewDeleteLaunchProfileRequest(server string, projectID ProjectID, launchProfileID LaunchProfileID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "launchProfileID", runtime.ParamLocationPath, launchProfileID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s/launchProfiles/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetLaunchProfileRequest generates requests for GetLaunchProfile
-func NewGetLaunchProfileRequest(server string, projectID ProjectID, launchProfileID LaunchProfileID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "launchProfileID", runtime.ParamLocationPath, launchProfileID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s/launchProfiles/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewUpdateLaunchProfileRequest calls the generic UpdateLaunchProfile builder with application/json body
-func NewUpdateLaunchProfileRequest(server string, projectID ProjectID, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewUpdateLaunchProfileRequestWithBody(server, projectID, launchProfileID, "application/json", bodyReader)
-}
-
-// NewUpdateLaunchProfileRequestWithBody generates requests for UpdateLaunchProfile with any type of body
-func NewUpdateLaunchProfileRequestWithBody(server string, projectID ProjectID, launchProfileID LaunchProfileID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "launchProfileID", runtime.ParamLocationPath, launchProfileID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s/launchProfiles/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("PATCH", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -7103,6 +7174,85 @@ func NewGetMetricsBuildRequest(server string, projectID ProjectID, metricsBuildI
 	return req, nil
 }
 
+// NewGetSystemsForMetricsBuildRequest generates requests for GetSystemsForMetricsBuild
+func NewGetSystemsForMetricsBuildRequest(server string, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "metricsBuildID", runtime.ParamLocationPath, metricsBuildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/metricsBuilds/%s/systems", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListParameterSweepsRequest generates requests for ListParameterSweeps
 func NewListParameterSweepsRequest(server string, projectID ProjectID, params *ListParameterSweepsParams) (*http.Request, error) {
 	var err error
@@ -7272,6 +7422,808 @@ func NewGetParameterSweepRequest(server string, projectID ProjectID, sweepID Par
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCancelParameterSweepRequest generates requests for CancelParameterSweep
+func NewCancelParameterSweepRequest(server string, projectID ProjectID, sweepID ParameterSweepID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "sweepID", runtime.ParamLocationPath, sweepID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/sweeps/%s/:cancel", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListSystemsRequest generates requests for ListSystems
+func NewListSystemsRequest(server string, projectID ProjectID, params *ListSystemsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateSystemRequest calls the generic CreateSystem builder with application/json body
+func NewCreateSystemRequest(server string, projectID ProjectID, body CreateSystemJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateSystemRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateSystemRequestWithBody generates requests for CreateSystem with any type of body
+func NewCreateSystemRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetSystemRequest generates requests for GetSystem
+func NewGetSystemRequest(server string, projectID ProjectID, systemID SystemID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateSystemRequest calls the generic UpdateSystem builder with application/json body
+func NewUpdateSystemRequest(server string, projectID ProjectID, systemID SystemID, body UpdateSystemJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateSystemRequestWithBody(server, projectID, systemID, "application/json", bodyReader)
+}
+
+// NewUpdateSystemRequestWithBody generates requests for UpdateSystem with any type of body
+func NewUpdateSystemRequestWithBody(server string, projectID ProjectID, systemID SystemID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBuildsForSystemRequest generates requests for ListBuildsForSystem
+func NewListBuildsForSystemRequest(server string, projectID ProjectID, systemID SystemID, params *ListBuildsForSystemParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/builds", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateBuildForSystemRequest calls the generic CreateBuildForSystem builder with application/json body
+func NewCreateBuildForSystemRequest(server string, projectID ProjectID, systemID SystemID, body CreateBuildForSystemJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBuildForSystemRequestWithBody(server, projectID, systemID, "application/json", bodyReader)
+}
+
+// NewCreateBuildForSystemRequestWithBody generates requests for CreateBuildForSystem with any type of body
+func NewCreateBuildForSystemRequestWithBody(server string, projectID ProjectID, systemID SystemID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/builds", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetBuildForSystemRequest generates requests for GetBuildForSystem
+func NewGetBuildForSystemRequest(server string, projectID ProjectID, systemID SystemID, buildID BuildID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "buildID", runtime.ParamLocationPath, buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/builds/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListExperiencesForSystemRequest generates requests for ListExperiencesForSystem
+func NewListExperiencesForSystemRequest(server string, projectID ProjectID, systemID SystemID, params *ListExperiencesForSystemParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/experiences", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRemoveSystemFromExperienceRequest generates requests for RemoveSystemFromExperience
+func NewRemoveSystemFromExperienceRequest(server string, projectID ProjectID, systemID SystemID, experienceID ExperienceID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "experienceID", runtime.ParamLocationPath, experienceID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/experiences/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddSystemToExperienceRequest generates requests for AddSystemToExperience
+func NewAddSystemToExperienceRequest(server string, projectID ProjectID, systemID SystemID, experienceID ExperienceID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "experienceID", runtime.ParamLocationPath, experienceID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/experiences/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListMetricsBuildsForSystemRequest generates requests for ListMetricsBuildsForSystem
+func NewListMetricsBuildsForSystemRequest(server string, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/metricsBuilds", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRemoveSystemFromMetricsBuildRequest generates requests for RemoveSystemFromMetricsBuild
+func NewRemoveSystemFromMetricsBuildRequest(server string, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricsBuildID", runtime.ParamLocationPath, metricsBuildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/metricsBuilds/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddSystemToMetricsBuildRequest generates requests for AddSystemToMetricsBuild
+func NewAddSystemToMetricsBuildRequest(server string, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricsBuildID", runtime.ParamLocationPath, metricsBuildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s/metricsBuilds/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -7854,24 +8806,8 @@ type ClientWithResponsesInterface interface {
 	// ListExperienceTagsForExperienceWithResponse request
 	ListExperienceTagsForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceTagsForExperienceParams, reqEditors ...RequestEditorFn) (*ListExperienceTagsForExperienceResponse, error)
 
-	// ListLaunchProfilesWithResponse request
-	ListLaunchProfilesWithResponse(ctx context.Context, projectID ProjectID, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*ListLaunchProfilesResponse, error)
-
-	// CreateLaunchProfileWithBodyWithResponse request with any body
-	CreateLaunchProfileWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error)
-
-	CreateLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error)
-
-	// DeleteLaunchProfileWithResponse request
-	DeleteLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*DeleteLaunchProfileResponse, error)
-
-	// GetLaunchProfileWithResponse request
-	GetLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*GetLaunchProfileResponse, error)
-
-	// UpdateLaunchProfileWithBodyWithResponse request with any body
-	UpdateLaunchProfileWithBodyWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error)
-
-	UpdateLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error)
+	// GetSystemsForExperienceWithResponse request
+	GetSystemsForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*GetSystemsForExperienceResponse, error)
 
 	// ListMetricsBuildsWithResponse request
 	ListMetricsBuildsWithResponse(ctx context.Context, projectID ProjectID, params *ListMetricsBuildsParams, reqEditors ...RequestEditorFn) (*ListMetricsBuildsResponse, error)
@@ -7884,6 +8820,9 @@ type ClientWithResponsesInterface interface {
 	// GetMetricsBuildWithResponse request
 	GetMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*GetMetricsBuildResponse, error)
 
+	// GetSystemsForMetricsBuildWithResponse request
+	GetSystemsForMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*GetSystemsForMetricsBuildResponse, error)
+
 	// ListParameterSweepsWithResponse request
 	ListParameterSweepsWithResponse(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*ListParameterSweepsResponse, error)
 
@@ -7894,6 +8833,54 @@ type ClientWithResponsesInterface interface {
 
 	// GetParameterSweepWithResponse request
 	GetParameterSweepWithResponse(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*GetParameterSweepResponse, error)
+
+	// CancelParameterSweepWithResponse request
+	CancelParameterSweepWithResponse(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*CancelParameterSweepResponse, error)
+
+	// ListSystemsWithResponse request
+	ListSystemsWithResponse(ctx context.Context, projectID ProjectID, params *ListSystemsParams, reqEditors ...RequestEditorFn) (*ListSystemsResponse, error)
+
+	// CreateSystemWithBodyWithResponse request with any body
+	CreateSystemWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSystemResponse, error)
+
+	CreateSystemWithResponse(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSystemResponse, error)
+
+	// GetSystemWithResponse request
+	GetSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*GetSystemResponse, error)
+
+	// UpdateSystemWithBodyWithResponse request with any body
+	UpdateSystemWithBodyWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSystemResponse, error)
+
+	UpdateSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, body UpdateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSystemResponse, error)
+
+	// ListBuildsForSystemWithResponse request
+	ListBuildsForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListBuildsForSystemParams, reqEditors ...RequestEditorFn) (*ListBuildsForSystemResponse, error)
+
+	// CreateBuildForSystemWithBodyWithResponse request with any body
+	CreateBuildForSystemWithBodyWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBuildForSystemResponse, error)
+
+	CreateBuildForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, body CreateBuildForSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBuildForSystemResponse, error)
+
+	// GetBuildForSystemWithResponse request
+	GetBuildForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, buildID BuildID, reqEditors ...RequestEditorFn) (*GetBuildForSystemResponse, error)
+
+	// ListExperiencesForSystemWithResponse request
+	ListExperiencesForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListExperiencesForSystemParams, reqEditors ...RequestEditorFn) (*ListExperiencesForSystemResponse, error)
+
+	// RemoveSystemFromExperienceWithResponse request
+	RemoveSystemFromExperienceWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*RemoveSystemFromExperienceResponse, error)
+
+	// AddSystemToExperienceWithResponse request
+	AddSystemToExperienceWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*AddSystemToExperienceResponse, error)
+
+	// ListMetricsBuildsForSystemWithResponse request
+	ListMetricsBuildsForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*ListMetricsBuildsForSystemResponse, error)
+
+	// RemoveSystemFromMetricsBuildWithResponse request
+	RemoveSystemFromMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*RemoveSystemFromMetricsBuildResponse, error)
+
+	// AddSystemToMetricsBuildWithResponse request
+	AddSystemToMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*AddSystemToMetricsBuildResponse, error)
 
 	// DestroySandboxWithBodyWithResponse request with any body
 	DestroySandboxWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*DestroySandboxResponse, error)
@@ -9298,14 +10285,14 @@ func (r ListExperienceTagsForExperienceResponse) StatusCode() int {
 	return 0
 }
 
-type ListLaunchProfilesResponse struct {
+type GetSystemsForExperienceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListLaunchProfilesOutput
+	JSON200      *ListSystemsOutput
 }
 
 // Status returns HTTPResponse.Status
-func (r ListLaunchProfilesResponse) Status() string {
+func (r GetSystemsForExperienceResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -9313,94 +10300,7 @@ func (r ListLaunchProfilesResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ListLaunchProfilesResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type CreateLaunchProfileResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *LaunchProfile
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateLaunchProfileResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateLaunchProfileResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type DeleteLaunchProfileResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteLaunchProfileResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteLaunchProfileResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type GetLaunchProfileResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *LaunchProfile
-}
-
-// Status returns HTTPResponse.Status
-func (r GetLaunchProfileResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetLaunchProfileResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type UpdateLaunchProfileResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *LaunchProfile
-}
-
-// Status returns HTTPResponse.Status
-func (r UpdateLaunchProfileResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UpdateLaunchProfileResponse) StatusCode() int {
+func (r GetSystemsForExperienceResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -9473,6 +10373,28 @@ func (r GetMetricsBuildResponse) StatusCode() int {
 	return 0
 }
 
+type GetSystemsForMetricsBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListSystemsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSystemsForMetricsBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSystemsForMetricsBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListParameterSweepsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -9533,6 +10455,309 @@ func (r GetParameterSweepResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetParameterSweepResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CancelParameterSweepResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r CancelParameterSweepResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CancelParameterSweepResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListSystemsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListSystemsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSystemsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSystemsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *System
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *System
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *System
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBuildsForSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBuildsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBuildsForSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBuildsForSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBuildForSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Build
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBuildForSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBuildForSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBuildForSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Build
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBuildForSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBuildForSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListExperiencesForSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListExperiencesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListExperiencesForSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListExperiencesForSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RemoveSystemFromExperienceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveSystemFromExperienceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveSystemFromExperienceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddSystemToExperienceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r AddSystemToExperienceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddSystemToExperienceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListMetricsBuildsForSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListMetricsBuildOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListMetricsBuildsForSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListMetricsBuildsForSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RemoveSystemFromMetricsBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveSystemFromMetricsBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveSystemFromMetricsBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddSystemToMetricsBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r AddSystemToMetricsBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddSystemToMetricsBuildResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -10410,65 +11635,13 @@ func (c *ClientWithResponses) ListExperienceTagsForExperienceWithResponse(ctx co
 	return ParseListExperienceTagsForExperienceResponse(rsp)
 }
 
-// ListLaunchProfilesWithResponse request returning *ListLaunchProfilesResponse
-func (c *ClientWithResponses) ListLaunchProfilesWithResponse(ctx context.Context, projectID ProjectID, params *ListLaunchProfilesParams, reqEditors ...RequestEditorFn) (*ListLaunchProfilesResponse, error) {
-	rsp, err := c.ListLaunchProfiles(ctx, projectID, params, reqEditors...)
+// GetSystemsForExperienceWithResponse request returning *GetSystemsForExperienceResponse
+func (c *ClientWithResponses) GetSystemsForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*GetSystemsForExperienceResponse, error) {
+	rsp, err := c.GetSystemsForExperience(ctx, projectID, experienceID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseListLaunchProfilesResponse(rsp)
-}
-
-// CreateLaunchProfileWithBodyWithResponse request with arbitrary body returning *CreateLaunchProfileResponse
-func (c *ClientWithResponses) CreateLaunchProfileWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error) {
-	rsp, err := c.CreateLaunchProfileWithBody(ctx, projectID, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateLaunchProfileResponse(rsp)
-}
-
-func (c *ClientWithResponses) CreateLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, body CreateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLaunchProfileResponse, error) {
-	rsp, err := c.CreateLaunchProfile(ctx, projectID, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateLaunchProfileResponse(rsp)
-}
-
-// DeleteLaunchProfileWithResponse request returning *DeleteLaunchProfileResponse
-func (c *ClientWithResponses) DeleteLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*DeleteLaunchProfileResponse, error) {
-	rsp, err := c.DeleteLaunchProfile(ctx, projectID, launchProfileID, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteLaunchProfileResponse(rsp)
-}
-
-// GetLaunchProfileWithResponse request returning *GetLaunchProfileResponse
-func (c *ClientWithResponses) GetLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, reqEditors ...RequestEditorFn) (*GetLaunchProfileResponse, error) {
-	rsp, err := c.GetLaunchProfile(ctx, projectID, launchProfileID, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseGetLaunchProfileResponse(rsp)
-}
-
-// UpdateLaunchProfileWithBodyWithResponse request with arbitrary body returning *UpdateLaunchProfileResponse
-func (c *ClientWithResponses) UpdateLaunchProfileWithBodyWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error) {
-	rsp, err := c.UpdateLaunchProfileWithBody(ctx, projectID, launchProfileID, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateLaunchProfileResponse(rsp)
-}
-
-func (c *ClientWithResponses) UpdateLaunchProfileWithResponse(ctx context.Context, projectID ProjectID, launchProfileID LaunchProfileID, body UpdateLaunchProfileJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateLaunchProfileResponse, error) {
-	rsp, err := c.UpdateLaunchProfile(ctx, projectID, launchProfileID, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUpdateLaunchProfileResponse(rsp)
+	return ParseGetSystemsForExperienceResponse(rsp)
 }
 
 // ListMetricsBuildsWithResponse request returning *ListMetricsBuildsResponse
@@ -10506,6 +11679,15 @@ func (c *ClientWithResponses) GetMetricsBuildWithResponse(ctx context.Context, p
 	return ParseGetMetricsBuildResponse(rsp)
 }
 
+// GetSystemsForMetricsBuildWithResponse request returning *GetSystemsForMetricsBuildResponse
+func (c *ClientWithResponses) GetSystemsForMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*GetSystemsForMetricsBuildResponse, error) {
+	rsp, err := c.GetSystemsForMetricsBuild(ctx, projectID, metricsBuildID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSystemsForMetricsBuildResponse(rsp)
+}
+
 // ListParameterSweepsWithResponse request returning *ListParameterSweepsResponse
 func (c *ClientWithResponses) ListParameterSweepsWithResponse(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*ListParameterSweepsResponse, error) {
 	rsp, err := c.ListParameterSweeps(ctx, projectID, params, reqEditors...)
@@ -10539,6 +11721,156 @@ func (c *ClientWithResponses) GetParameterSweepWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseGetParameterSweepResponse(rsp)
+}
+
+// CancelParameterSweepWithResponse request returning *CancelParameterSweepResponse
+func (c *ClientWithResponses) CancelParameterSweepWithResponse(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*CancelParameterSweepResponse, error) {
+	rsp, err := c.CancelParameterSweep(ctx, projectID, sweepID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCancelParameterSweepResponse(rsp)
+}
+
+// ListSystemsWithResponse request returning *ListSystemsResponse
+func (c *ClientWithResponses) ListSystemsWithResponse(ctx context.Context, projectID ProjectID, params *ListSystemsParams, reqEditors ...RequestEditorFn) (*ListSystemsResponse, error) {
+	rsp, err := c.ListSystems(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSystemsResponse(rsp)
+}
+
+// CreateSystemWithBodyWithResponse request with arbitrary body returning *CreateSystemResponse
+func (c *ClientWithResponses) CreateSystemWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSystemResponse, error) {
+	rsp, err := c.CreateSystemWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateSystemResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateSystemWithResponse(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSystemResponse, error) {
+	rsp, err := c.CreateSystem(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateSystemResponse(rsp)
+}
+
+// GetSystemWithResponse request returning *GetSystemResponse
+func (c *ClientWithResponses) GetSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*GetSystemResponse, error) {
+	rsp, err := c.GetSystem(ctx, projectID, systemID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSystemResponse(rsp)
+}
+
+// UpdateSystemWithBodyWithResponse request with arbitrary body returning *UpdateSystemResponse
+func (c *ClientWithResponses) UpdateSystemWithBodyWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateSystemResponse, error) {
+	rsp, err := c.UpdateSystemWithBody(ctx, projectID, systemID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSystemResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, body UpdateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateSystemResponse, error) {
+	rsp, err := c.UpdateSystem(ctx, projectID, systemID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateSystemResponse(rsp)
+}
+
+// ListBuildsForSystemWithResponse request returning *ListBuildsForSystemResponse
+func (c *ClientWithResponses) ListBuildsForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListBuildsForSystemParams, reqEditors ...RequestEditorFn) (*ListBuildsForSystemResponse, error) {
+	rsp, err := c.ListBuildsForSystem(ctx, projectID, systemID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBuildsForSystemResponse(rsp)
+}
+
+// CreateBuildForSystemWithBodyWithResponse request with arbitrary body returning *CreateBuildForSystemResponse
+func (c *ClientWithResponses) CreateBuildForSystemWithBodyWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBuildForSystemResponse, error) {
+	rsp, err := c.CreateBuildForSystemWithBody(ctx, projectID, systemID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBuildForSystemResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBuildForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, body CreateBuildForSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBuildForSystemResponse, error) {
+	rsp, err := c.CreateBuildForSystem(ctx, projectID, systemID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBuildForSystemResponse(rsp)
+}
+
+// GetBuildForSystemWithResponse request returning *GetBuildForSystemResponse
+func (c *ClientWithResponses) GetBuildForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, buildID BuildID, reqEditors ...RequestEditorFn) (*GetBuildForSystemResponse, error) {
+	rsp, err := c.GetBuildForSystem(ctx, projectID, systemID, buildID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBuildForSystemResponse(rsp)
+}
+
+// ListExperiencesForSystemWithResponse request returning *ListExperiencesForSystemResponse
+func (c *ClientWithResponses) ListExperiencesForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListExperiencesForSystemParams, reqEditors ...RequestEditorFn) (*ListExperiencesForSystemResponse, error) {
+	rsp, err := c.ListExperiencesForSystem(ctx, projectID, systemID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListExperiencesForSystemResponse(rsp)
+}
+
+// RemoveSystemFromExperienceWithResponse request returning *RemoveSystemFromExperienceResponse
+func (c *ClientWithResponses) RemoveSystemFromExperienceWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*RemoveSystemFromExperienceResponse, error) {
+	rsp, err := c.RemoveSystemFromExperience(ctx, projectID, systemID, experienceID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveSystemFromExperienceResponse(rsp)
+}
+
+// AddSystemToExperienceWithResponse request returning *AddSystemToExperienceResponse
+func (c *ClientWithResponses) AddSystemToExperienceWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*AddSystemToExperienceResponse, error) {
+	rsp, err := c.AddSystemToExperience(ctx, projectID, systemID, experienceID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddSystemToExperienceResponse(rsp)
+}
+
+// ListMetricsBuildsForSystemWithResponse request returning *ListMetricsBuildsForSystemResponse
+func (c *ClientWithResponses) ListMetricsBuildsForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*ListMetricsBuildsForSystemResponse, error) {
+	rsp, err := c.ListMetricsBuildsForSystem(ctx, projectID, systemID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListMetricsBuildsForSystemResponse(rsp)
+}
+
+// RemoveSystemFromMetricsBuildWithResponse request returning *RemoveSystemFromMetricsBuildResponse
+func (c *ClientWithResponses) RemoveSystemFromMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*RemoveSystemFromMetricsBuildResponse, error) {
+	rsp, err := c.RemoveSystemFromMetricsBuild(ctx, projectID, systemID, metricsBuildID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveSystemFromMetricsBuildResponse(rsp)
+}
+
+// AddSystemToMetricsBuildWithResponse request returning *AddSystemToMetricsBuildResponse
+func (c *ClientWithResponses) AddSystemToMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*AddSystemToMetricsBuildResponse, error) {
+	rsp, err := c.AddSystemToMetricsBuild(ctx, projectID, systemID, metricsBuildID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddSystemToMetricsBuildResponse(rsp)
 }
 
 // DestroySandboxWithBodyWithResponse request with arbitrary body returning *DestroySandboxResponse
@@ -12156,116 +13488,22 @@ func ParseListExperienceTagsForExperienceResponse(rsp *http.Response) (*ListExpe
 	return response, nil
 }
 
-// ParseListLaunchProfilesResponse parses an HTTP response from a ListLaunchProfilesWithResponse call
-func ParseListLaunchProfilesResponse(rsp *http.Response) (*ListLaunchProfilesResponse, error) {
+// ParseGetSystemsForExperienceResponse parses an HTTP response from a GetSystemsForExperienceWithResponse call
+func ParseGetSystemsForExperienceResponse(rsp *http.Response) (*GetSystemsForExperienceResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListLaunchProfilesResponse{
+	response := &GetSystemsForExperienceResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListLaunchProfilesOutput
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateLaunchProfileResponse parses an HTTP response from a CreateLaunchProfileWithResponse call
-func ParseCreateLaunchProfileResponse(rsp *http.Response) (*CreateLaunchProfileResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateLaunchProfileResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest LaunchProfile
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteLaunchProfileResponse parses an HTTP response from a DeleteLaunchProfileWithResponse call
-func ParseDeleteLaunchProfileResponse(rsp *http.Response) (*DeleteLaunchProfileResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteLaunchProfileResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseGetLaunchProfileResponse parses an HTTP response from a GetLaunchProfileWithResponse call
-func ParseGetLaunchProfileResponse(rsp *http.Response) (*GetLaunchProfileResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetLaunchProfileResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest LaunchProfile
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseUpdateLaunchProfileResponse parses an HTTP response from a UpdateLaunchProfileWithResponse call
-func ParseUpdateLaunchProfileResponse(rsp *http.Response) (*UpdateLaunchProfileResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UpdateLaunchProfileResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest LaunchProfile
+		var dest ListSystemsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -12354,6 +13592,32 @@ func ParseGetMetricsBuildResponse(rsp *http.Response) (*GetMetricsBuildResponse,
 	return response, nil
 }
 
+// ParseGetSystemsForMetricsBuildResponse parses an HTTP response from a GetSystemsForMetricsBuildWithResponse call
+func ParseGetSystemsForMetricsBuildResponse(rsp *http.Response) (*GetSystemsForMetricsBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSystemsForMetricsBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListSystemsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListParameterSweepsResponse parses an HTTP response from a ListParameterSweepsWithResponse call
 func ParseListParameterSweepsResponse(rsp *http.Response) (*ListParameterSweepsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -12427,6 +13691,320 @@ func ParseGetParameterSweepResponse(rsp *http.Response) (*GetParameterSweepRespo
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseCancelParameterSweepResponse parses an HTTP response from a CancelParameterSweepWithResponse call
+func ParseCancelParameterSweepResponse(rsp *http.Response) (*CancelParameterSweepResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CancelParameterSweepResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListSystemsResponse parses an HTTP response from a ListSystemsWithResponse call
+func ParseListSystemsResponse(rsp *http.Response) (*ListSystemsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSystemsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListSystemsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateSystemResponse parses an HTTP response from a CreateSystemWithResponse call
+func ParseCreateSystemResponse(rsp *http.Response) (*CreateSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest System
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetSystemResponse parses an HTTP response from a GetSystemWithResponse call
+func ParseGetSystemResponse(rsp *http.Response) (*GetSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest System
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateSystemResponse parses an HTTP response from a UpdateSystemWithResponse call
+func ParseUpdateSystemResponse(rsp *http.Response) (*UpdateSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest System
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBuildsForSystemResponse parses an HTTP response from a ListBuildsForSystemWithResponse call
+func ParseListBuildsForSystemResponse(rsp *http.Response) (*ListBuildsForSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBuildsForSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBuildsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateBuildForSystemResponse parses an HTTP response from a CreateBuildForSystemWithResponse call
+func ParseCreateBuildForSystemResponse(rsp *http.Response) (*CreateBuildForSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBuildForSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Build
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBuildForSystemResponse parses an HTTP response from a GetBuildForSystemWithResponse call
+func ParseGetBuildForSystemResponse(rsp *http.Response) (*GetBuildForSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBuildForSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Build
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListExperiencesForSystemResponse parses an HTTP response from a ListExperiencesForSystemWithResponse call
+func ParseListExperiencesForSystemResponse(rsp *http.Response) (*ListExperiencesForSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListExperiencesForSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListExperiencesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRemoveSystemFromExperienceResponse parses an HTTP response from a RemoveSystemFromExperienceWithResponse call
+func ParseRemoveSystemFromExperienceResponse(rsp *http.Response) (*RemoveSystemFromExperienceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveSystemFromExperienceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseAddSystemToExperienceResponse parses an HTTP response from a AddSystemToExperienceWithResponse call
+func ParseAddSystemToExperienceResponse(rsp *http.Response) (*AddSystemToExperienceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddSystemToExperienceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListMetricsBuildsForSystemResponse parses an HTTP response from a ListMetricsBuildsForSystemWithResponse call
+func ParseListMetricsBuildsForSystemResponse(rsp *http.Response) (*ListMetricsBuildsForSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListMetricsBuildsForSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListMetricsBuildOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRemoveSystemFromMetricsBuildResponse parses an HTTP response from a RemoveSystemFromMetricsBuildWithResponse call
+func ParseRemoveSystemFromMetricsBuildResponse(rsp *http.Response) (*RemoveSystemFromMetricsBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveSystemFromMetricsBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseAddSystemToMetricsBuildResponse parses an HTTP response from a AddSystemToMetricsBuildWithResponse call
+func ParseAddSystemToMetricsBuildResponse(rsp *http.Response) (*AddSystemToMetricsBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddSystemToMetricsBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

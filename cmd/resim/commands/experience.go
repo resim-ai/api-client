@@ -67,6 +67,7 @@ func init() {
 	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
 	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
 	createExperienceCmd.Flags().String(experienceLaunchProfileKey, "", "The UUID of the launch profile for this experience")
+	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
 	listExperiencesCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
@@ -119,15 +120,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	}
 
 	if viper.IsSet(experienceLaunchProfileKey) {
-		experienceLaunchProfileString := viper.GetString(experienceLaunchProfileKey)
-		if experienceLaunchProfileString == "" {
-			log.Fatal("empty experience launch profile")
-		}
-		experienceLaunchProfile, err := uuid.Parse(experienceLaunchProfileString)
-		if err != nil || experienceLaunchProfile == uuid.Nil {
-			log.Fatal("failed to parse experience launch profile: ", err)
-		}
-		body.LaunchProfileID = &experienceLaunchProfile
+		fmt.Println("Launch profiles are deprecated in favor of systems to define resource requirements, parameter will be ignored.")
 	}
 
 	response, err := Client.CreateExperienceWithResponse(context.Background(), projectID, body)

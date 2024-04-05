@@ -144,6 +144,7 @@ const (
 	EmptyExperienceName        string = "empty experience name"
 	EmptyExperienceDescription string = "empty experience description"
 	EmptyExperienceLocation    string = "empty experience location"
+	DeprecatedLaunchProfile    string = "launch profiles are deprecated"
 	// Batch Messages
 	CreatedBatch               string = "Created batch"
 	GithubCreatedBatch         string = "batch_id="
@@ -1360,6 +1361,19 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	output = s.runCommand(s.createExperience(projectID, experienceName, "description", "", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceLocation)
 	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+
+	// Test creating an experience with the launch profile flag:
+	launchProfileID := uuid.New().String()
+	experienceCommand := s.createExperience(projectID, experienceName, "description", "location", GithubFalse)
+	experienceCommand[1].Flags = append(experienceCommand[1].Flags, Flag{
+		Name:  "--launch-profile",
+		Value: launchProfileID,
+	})
+	output = s.runCommand(experienceCommand, ExpectNoError)
+	s.Contains(output.StdOut, CreatedExperience)
+	s.Contains(output.StdOut, DeprecatedLaunchProfile)
+	s.Empty(output.StdErr)
+
 }
 
 func (s *EndToEndTestSuite) TestExperienceCreateGithub() {

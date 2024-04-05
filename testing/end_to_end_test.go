@@ -130,6 +130,8 @@ const (
 	EmptyBuildImage       string = "empty build image URI"
 	InvalidBuildImage     string = "failed to parse the image URI"
 	EmptyBuildVersion     string = "empty build version"
+	EmptySystem           string = "system not supplied"
+	SystemDoesNotExist    string = "System does not exist"
 	BranchNotExist        string = "Branch does not exist"
 	// Metrics Build Messages
 	CreatedMetricsBuild       string = "Created metrics build"
@@ -377,7 +379,7 @@ func (s *EndToEndTestSuite) listBranches(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{branchCommand, listCommand}
 }
 
-func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, description string, image string, version string, github bool, autoCreateBranch bool) []CommandBuilder {
+func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, systemName string, description string, image string, version string, github bool, autoCreateBranch bool) []CommandBuilder {
 	// Now create the build:
 	buildCommand := CommandBuilder{
 		Command: "builds",
@@ -392,6 +394,10 @@ func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, d
 			{
 				Name:  "--branch",
 				Value: branchName,
+			},
+			{
+				Name:  "--system",
+				Value: systemName,
 			},
 			{
 				Name:  "--description",
@@ -422,7 +428,7 @@ func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, d
 	return []CommandBuilder{buildCommand, createCommand}
 }
 
-func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string) []CommandBuilder {
+func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string, systemName string) []CommandBuilder {
 	buildCommand := CommandBuilder{
 		Command: "build", // Implicitly testing singular noun alias
 	}
@@ -436,6 +442,10 @@ func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string) [
 			{
 				Name:  "--branch",
 				Value: branchName,
+			},
+			{
+				Name:  "--system",
+				Value: systemName,
 			},
 		},
 	}
@@ -1231,41 +1241,67 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	branchID := uuid.MustParse(branchIDString)
 
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	//TODO: actually create the system
+	systemID := uuid.New()
+	systemIDString := systemID.String()
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
 
-	// Check we can list the builds, and our new build is in it:
-	output = s.runCommand(s.listBuilds(projectID, branchName), ExpectNoError)
+	// Check we can list the builds by passing in the branch, and our new build is in it:
+	output = s.runCommand(s.listBuilds(projectID, branchName, ""), ExpectNoError) // with no system filter
+	s.Contains(output.StdOut, systemIDString)
+	s.Contains(output.StdOut, branchIDString)
+	s.Contains(output.StdOut, buildIDString)
+
+	// Check we can list the builds by passing in the system, and our new build is in it:
+	output = s.runCommand(s.listBuilds(projectID, "", systemName), ExpectNoError) // with no branch filter
+	s.Contains(output.StdOut, systemIDString)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
 
 	// Check we can list the builds by passing in the branchID, and our new build is in it:
-	output = s.runCommand(s.listBuilds(projectID, branchID.String()), ExpectNoError)
+	output = s.runCommand(s.listBuilds(projectID, branchID.String(), ""), ExpectNoError)
+	s.Contains(output.StdOut, systemIDString)
+	s.Contains(output.StdOut, branchIDString)
+	s.Contains(output.StdOut, buildIDString)
+
+	// Check we can list the builds by passing in the systemID, and our new build is in it:
+	output = s.runCommand(s.listBuilds(projectID, "", systemID.String()), ExpectNoError)
+	s.Contains(output.StdOut, systemIDString)
+	s.Contains(output.StdOut, branchIDString)
+	s.Contains(output.StdOut, buildIDString)
+
+	// Check we can list the builds with no filters, and our new build is in it:
+	output = s.runCommand(s.listBuilds(projectID, "", ""), ExpectNoError)
+	s.Contains(output.StdOut, systemIDString)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
 
 	// Verify that each of the required flags are required:
-	output = s.runCommand(s.createBuild(projectName, branchName, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildDescription)
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildImage)
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildVersion)
-	output = s.runCommand(s.createBuild("", branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild("", branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
-	output = s.runCommand(s.createBuild(projectName, "", "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, "", systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, BranchNotExist)
+	output = s.runCommand(s.createBuild(projectName, branchName, "", "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	s.Contains(output.StdErr, SystemDoesNotExist)
 	// Validate the image URI is required to be valid and have a tag:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildImage)
 	// Delete the project:
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
 	s.Empty(output.StdErr)
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
-
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateGithub() {
@@ -1286,8 +1322,12 @@ func (s *EndToEndTestSuite) TestBuildCreateGithub() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	uuid.MustParse(branchIDString)
 
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	// TODO: actually create the system
+
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -1319,14 +1359,18 @@ func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	uuid.MustParse(branchIDString)
 
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	// TODO: actually create the system
+
 	// Now create the build: (with auto-create-branch flag). We expect this to succeed without any additional information
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBuild)
 	s.NotContains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", branchName))
 
 	// Now try to create a build with a new branch name:
 	newBranchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
-	output = s.runCommand(s.createBuild(projectName, newBranchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.1", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, newBranchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.1", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBuild)
 	s.Contains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", newBranchName))
 	s.Contains(output.StdOut, CreatedBranch)
@@ -1433,8 +1477,12 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	uuid.MustParse(branchIDString)
 
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	// TODO: actually create the system
+
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -1747,8 +1795,12 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	uuid.MustParse(branchIDString)
 
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	// TODO: actually create the system
+
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -1850,8 +1902,12 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	uuid.MustParse(branchIDString)
 
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	// TODO: actually create the system
+
 	// Now create the build:
-	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]

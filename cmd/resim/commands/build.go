@@ -40,6 +40,7 @@ const (
 	buildImageURIKey         = "image"
 	buildVersionKey          = "version"
 	buildProjectKey          = "project"
+	buildSystemKey           = "system"
 	buildBranchKey           = "branch"
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
@@ -54,6 +55,8 @@ func init() {
 	createBuildCmd.MarkFlagRequired(buildVersionKey)
 	createBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project to create the build in")
 	createBuildCmd.MarkFlagRequired(buildProjectKey)
+	createBuildCmd.Flags().String(buildSystemKey, "", "The name or ID of the system the build is an instance of")
+	createBuildCmd.MarkFlagRequired(buildSystemKey)
 	createBuildCmd.Flags().String(buildBranchKey, "", "The name or ID of the branch to nest the build in, usually the associated git branch")
 	createBuildCmd.MarkFlagRequired(buildBranchKey)
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
@@ -63,7 +66,8 @@ func init() {
 	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
 	listBuildsCmd.MarkFlagRequired(buildProjectKey)
 	listBuildsCmd.Flags().String(buildBranchKey, "", "List builds associated with this branch")
-	listBuildsCmd.MarkFlagRequired(buildBranchKey)
+	listBuildsCmd.Flags().String(buildSystemKey, "", "List builds associated with this system")
+	listBuildsCmd.MarkFlagsMutuallyExclusive(buildBranchKey, buildSystemKey) // We currently only support filtering by one, the other, or none
 	listBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	buildCmd.AddCommand(createBuildCmd)
@@ -71,15 +75,7 @@ func init() {
 	rootCmd.AddCommand(buildCmd)
 }
 
-func listBuilds(ccmd *cobra.Command, args []string) {
-	// Check if the project exists, by listing projects:
-	projectName := viper.GetString(buildProjectKey)
-	projectID := getProjectID(Client, projectName)
-
-	// Check if the branch exists, by listing branches (and fail if branch not found):
-	branchName := viper.GetString(buildBranchKey)
-	branchID := getBranchID(Client, projectID, branchName, true)
-
+func listBuildsByBranch(projectID uuid.UUID, branchID uuid.UUID) []api.Build {
 	var pageToken *string = nil
 
 	var allBuilds []api.Build
@@ -87,6 +83,64 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 	for {
 		response, err := Client.ListBuildsForBranchesWithResponse(
 			context.Background(), projectID, []api.BranchID{branchID}, &api.ListBuildsForBranchesParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
+			})
+		if err != nil {
+			log.Fatal("failed to list builds for branch:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list builds for branch", response.HTTPResponse, response.Body)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.Builds == nil {
+			log.Fatal("no builds")
+		}
+		allBuilds = append(allBuilds, *response.JSON200.Builds...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	return allBuilds
+}
+
+func listBuildsBySystem(projectID uuid.UUID, systemID uuid.UUID) []api.Build {
+	var pageToken *string = nil
+
+	var allBuilds []api.Build
+
+	for {
+		response, err := Client.ListBuildsForSystemWithResponse(
+			context.Background(), projectID, systemID, &api.ListBuildsForSystemParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
+			})
+		if err != nil {
+			log.Fatal("failed to list builds for system:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list builds for system", response.HTTPResponse, response.Body)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.Builds == nil {
+			log.Fatal("no builds")
+		}
+		allBuilds = append(allBuilds, *response.JSON200.Builds...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	return allBuilds
+}
+
+func listAllBuilds(projectID uuid.UUID) []api.Build {
+	var pageToken *string = nil
+
+	var allBuilds []api.Build
+
+	for {
+		response, err := Client.ListBuildsWithResponse(
+			context.Background(), projectID, &api.ListBuildsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),
@@ -104,6 +158,29 @@ func listBuilds(ccmd *cobra.Command, args []string) {
 		if pageToken == nil || *pageToken == "" {
 			break
 		}
+	}
+	return allBuilds
+}
+
+func listBuilds(ccmd *cobra.Command, args []string) {
+	// Check if the project exists, by listing projects:
+	projectName := viper.GetString(buildProjectKey)
+	projectID := getProjectID(Client, projectName)
+	var allBuilds []api.Build
+	if viper.IsSet(buildBranchKey) {
+		// Check if the branch exists, by listing branches (and fail if branch not found):
+		branchName := viper.GetString(buildBranchKey)
+		branchID := getBranchID(Client, projectID, branchName, true)
+
+		allBuilds = listBuildsByBranch(projectID, branchID)
+	} else if viper.IsSet(buildSystemKey) {
+		// Check if the system exists, by listing systems (and fail if system not found):
+		systemName := viper.GetString(buildSystemKey)
+		systemID := getSystemID(Client, projectID, systemName, true)
+
+		allBuilds = listBuildsBySystem(projectID, systemID)
+	} else { // no filtering
+		allBuilds = listAllBuilds(projectID)
 	}
 
 	OutputJson(allBuilds)

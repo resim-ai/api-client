@@ -500,6 +500,66 @@ func (s *EndToEndTestSuite) getSystem(project string, system string) []CommandBu
 	return []CommandBuilder{systemCommand, getCommand}
 }
 
+func (s *EndToEndTestSuite) systemBuilds(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	buildsCommand := CommandBuilder{
+		Command: "builds",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, buildsCommand}
+}
+
+func (s *EndToEndTestSuite) systemExperiences(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	experiencesCommand := CommandBuilder{
+		Command: "experiences",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, experiencesCommand}
+}
+
+func (s *EndToEndTestSuite) systemMetricsBuilds(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	metricsBuildsCommand := CommandBuilder{
+		Command: "metrics-builds",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, metricsBuildsCommand}
+}
+
 func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, systemName string, description string, image string, version string, github bool, autoCreateBranch bool) []CommandBuilder {
 	// Now create the build:
 	buildCommand := CommandBuilder{
@@ -1347,7 +1407,7 @@ func (s *EndToEndTestSuite) TestBranchCreateGithub() {
 	s.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestSuite) TestSystemCreate() {
+func (s *EndToEndTestSuite) TestSystems() {
 	fmt.Println("Testing system creation")
 
 	// First create a project
@@ -1387,6 +1447,7 @@ func (s *EndToEndTestSuite) TestSystemCreate() {
 	s.Equal(metricsBuildMemoryMiB, *system.MetricsBuildMemoryMib)
 	s.Equal(metricsBuildSharedMemoryMB, *system.MetricsBuildSharedMemoryMb)
 	s.Empty(output.StdErr)
+	systemID := system.SystemID
 
 	// Validate that the defaults work:
 	system2Name := fmt.Sprintf("test-system-%s", uuid.New().String())
@@ -1420,6 +1481,25 @@ func (s *EndToEndTestSuite) TestSystemCreate() {
 	// Check we can list the systems, and our new system is in it:
 	output = s.runCommand(s.listSystems(projectID), ExpectNoError)
 	s.Contains(output.StdOut, systemName)
+
+	// Now add a couple of builds to the system (and a branch by the autocreate):
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	build1Version := "0.0.1"
+	output = s.runCommand(s.createBuild(projectIDString, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", build1Version, GithubTrue, AutoCreateBranchTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	build1IDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(build1IDString)
+	build2Version := "0.0.2"
+	output = s.runCommand(s.createBuild(projectIDString, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", build2Version, GithubTrue, AutoCreateBranchTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	build2IDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(build2IDString)
+	// Check we can list the builds, and our new builds are in it:
+	output = s.runCommand(s.systemBuilds(projectIDString, systemID.String()), ExpectNoError)
+	s.Contains(output.StdOut, build1Version)
+	s.Contains(output.StdOut, build2Version)
 
 	// Delete the test project
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
@@ -2539,6 +2619,10 @@ func (s *EndToEndTestSuite) TestAliases() {
 			{
 				Name:  "--branch-name",
 				Value: branchName,
+			},
+			{
+				Name:  "--system",
+				Value: systemName,
 			},
 			{
 				Name:  "--description",

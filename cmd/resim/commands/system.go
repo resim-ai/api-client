@@ -290,7 +290,7 @@ func systemMetricsBuilds(ccmd *cobra.Command, args []string) {
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.MetricsBuilds == nil {
-			log.Fatal("no metrics builds")
+			log.Fatal("no experiences")
 		}
 		allMetricsBuilds = append(allMetricsBuilds, *response.JSON200.MetricsBuilds...)
 		if pageToken == nil || *pageToken == "" {

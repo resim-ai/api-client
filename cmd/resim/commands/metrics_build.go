@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ var (
 		Use:     "metrics-builds",
 		Short:   "metrics-builds contains commands for creating and managing metrics builds",
 		Long:    ``,
-		Aliases: []string{"metricsBuild, metricsBuilds, metricBuild, metricBuilds, metrics-build, metric-build, metric-builds"},
+		Aliases: []string{"metricsBuild", "metricsBuilds", "metricBuild", "metricBuilds", "metrics-build", "metric-build", "metric-builds"},
 	}
 	createMetricsBuildCmd = &cobra.Command{
 		Use:   "create",
@@ -32,10 +33,25 @@ var (
 		Long:  ``,
 		Run:   listMetricsBuilds,
 	}
+
+	addSystemMetricsBuildCmd = &cobra.Command{
+		Use:   "add-system",
+		Short: "add-system - Add a system as compatible with an metrics build",
+		Long:  ``,
+		Run:   addSystemToMetricsBuild,
+	}
+	removeSystemMetricsBuildCmd = &cobra.Command{
+		Use:   "remove-system",
+		Short: "remove-system - Remove a system as compatible with an metrics build",
+		Long:  ``,
+		Run:   removeSystemFromMetricsBuild,
+	}
 )
 
 const (
 	metricsBuildProjectKey  = "project"
+	metricsBuildSystemKey   = "system"
+	metricsBuildKey         = "metrics-build"
 	metricsBuildNameKey     = "name"
 	metricsBuildImageURIKey = "image"
 	metricsBuildVersionKey  = "version"
@@ -57,6 +73,23 @@ func init() {
 	listMetricsBuildsCmd.Flags().String(metricsBuildProjectKey, "", "The name or ID of the project to list the metrics builds within")
 	listMetricsBuildsCmd.MarkFlagRequired(metricsBuildProjectKey)
 	metricsBuildCmd.AddCommand(listMetricsBuildsCmd)
+
+	// Systems-related sub-commands:
+	addSystemMetricsBuildCmd.Flags().String(metricsBuildProjectKey, "", "The name or ID of the associated project")
+	addSystemMetricsBuildCmd.MarkFlagRequired(metricsBuildProjectKey)
+	addSystemMetricsBuildCmd.Flags().String(metricsBuildSystemKey, "", "The name or ID of the system to add")
+	addSystemMetricsBuildCmd.MarkFlagRequired(metricsBuildSystemKey)
+	addSystemMetricsBuildCmd.Flags().String(metricsBuildKey, "", "The name or ID of the metrics build register as compatible with the system")
+	addSystemMetricsBuildCmd.MarkFlagRequired(metricsBuildKey)
+	metricsBuildCmd.AddCommand(addSystemMetricsBuildCmd)
+	removeSystemMetricsBuildCmd.Flags().String(metricsBuildProjectKey, "", "The name or ID of the associated project")
+	removeSystemMetricsBuildCmd.MarkFlagRequired(metricsBuildProjectKey)
+	removeSystemMetricsBuildCmd.Flags().String(metricsBuildSystemKey, "", "The name or ID of the system to remove")
+	removeSystemMetricsBuildCmd.MarkFlagRequired(metricsBuildSystemKey)
+	removeSystemMetricsBuildCmd.Flags().String(metricsBuildKey, "", "The name or ID of the metrics build to deregister as compatible with the system")
+	removeSystemMetricsBuildCmd.MarkFlagRequired(metricsBuildKey)
+	metricsBuildCmd.AddCommand(removeSystemMetricsBuildCmd)
+
 	rootCmd.AddCommand(metricsBuildCmd)
 }
 
@@ -144,4 +177,121 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 		fmt.Println("Created metrics build successfully!")
 		fmt.Printf("Metrics Build ID: %s\n", metricsBuild.MetricsBuildID.String())
 	}
+}
+
+func addSystemToMetricsBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(metricsBuildProjectKey))
+
+	systemName := viper.GetString(metricsBuildSystemKey)
+	if systemName == "" {
+		log.Fatal("empty system name")
+	}
+	systemID := getSystemID(Client, projectID, systemName, true)
+	if viper.GetString(metricsBuildKey) == "" {
+		log.Fatal("empty metrics build name")
+	}
+	metricsBuildID := getMetricsBuildID(Client, projectID, viper.GetString(metricsBuildKey), true)
+
+	response, err := Client.AddSystemToMetricsBuildWithResponse(
+		context.Background(), projectID,
+		systemID,
+		metricsBuildID,
+	)
+	if err != nil {
+		log.Fatal("failed to register metrics build with system", err)
+	}
+	if response.HTTPResponse.StatusCode == 409 {
+		log.Fatal("failed to register metrics build with system, it may already be registered ", systemName)
+	}
+	ValidateResponse(http.StatusCreated, "failed to register metrics build with system", response.HTTPResponse, response.Body)
+}
+
+func removeSystemFromMetricsBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(metricsBuildProjectKey))
+
+	systemName := viper.GetString(metricsBuildSystemKey)
+	if systemName == "" {
+		log.Fatal("empty system name")
+	}
+	systemID := getSystemID(Client, projectID, systemName, true)
+	if viper.GetString(metricsBuildKey) == "" {
+		log.Fatal("empty metrics build name")
+	}
+	metricsBuildID := getMetricsBuildID(Client, projectID, viper.GetString(metricsBuildKey), true)
+
+	response, err := Client.RemoveSystemFromMetricsBuildWithResponse(
+		context.Background(), projectID,
+		systemID,
+		metricsBuildID,
+	)
+	if err != nil {
+		log.Fatal("failed to deregister metrics build with system", err)
+	}
+	if response.HTTPResponse.StatusCode == 409 {
+		log.Fatal("failed to deregister metrics build with system, it may not be registered ", systemName)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to deregister metrics build with system", response.HTTPResponse, response.Body)
+}
+
+// TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
+func checkMetricsBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string) uuid.UUID {
+	// Page through metricsBuilds until we find the one with either a name or an ID
+	// that matches the identifier string.
+	metricsBuildID := uuid.Nil
+	// First try the assumption that identifier is a UUID.
+	err := uuid.Validate(identifier)
+	if err == nil {
+		// The identifier is a uuid - but does it refer to an existing metricsBuild?
+		potentialMetricsBuildID := uuid.MustParse(identifier)
+		response, _ := client.GetMetricsBuildWithResponse(context.Background(), projectID, potentialMetricsBuildID)
+		if response.HTTPResponse.StatusCode == http.StatusOK {
+			// MetricsBuild found with ID
+			return potentialMetricsBuildID
+		}
+	}
+	// If we're here then either the identifier is not a UUID or the UUID was not
+	// found. Users could choose to name metricsBuilds with UUIDs so regardless of how
+	// we got here we now search for identifier as a string name.
+	var pageToken *string = nil
+pageLoop:
+	for {
+		response, err := client.ListMetricsBuildsWithResponse(
+			context.Background(), projectID, &api.ListMetricsBuildsParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list metrics builds:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list metrics builds", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response")
+		}
+		pageToken = response.JSON200.NextPageToken
+		metricsBuilds := *response.JSON200.MetricsBuilds
+		for _, metricsBuild := range metricsBuilds {
+			if metricsBuild.Name == nil {
+				log.Fatal("metrics build has no name")
+			}
+			if metricsBuild.MetricsBuildID == nil {
+				log.Fatal("metrics build ID is empty")
+			}
+			if *metricsBuild.Name == identifier {
+				metricsBuildID = *metricsBuild.MetricsBuildID
+				break pageLoop
+			}
+		}
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	return metricsBuildID
+}
+
+func getMetricsBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool) uuid.UUID {
+	metricsBuildID := checkMetricsBuildID(client, projectID, identifier)
+	if metricsBuildID == uuid.Nil && failWhenNotFound {
+		log.Fatal("failed to find metrics build with name or ID: ", identifier)
+	}
+	return metricsBuildID
 }

@@ -45,17 +45,17 @@ var (
 		Run:   untagExperience,
 	}
 
-	addSystemCmd = &cobra.Command{
+	addSystemExperienceCmd = &cobra.Command{
 		Use:   "add-system",
 		Short: "add-system - Add a system as compatible with an experience",
 		Long:  ``,
-		Run:   addSystem,
+		Run:   addSystemToExperience,
 	}
-	removeSystemCmd = &cobra.Command{
+	removeSystemExperienceCmd = &cobra.Command{
 		Use:   "remove-system",
 		Short: "remove-system - Remove a system as compatible with an experience",
 		Long:  ``,
-		Run:   removeSystem,
+		Run:   removeSystemFromExperience,
 	}
 )
 
@@ -63,6 +63,7 @@ const (
 	experienceProjectKey       = "project"
 	experienceSystemKey        = "system"
 	experienceNameKey          = "name"
+	experienceKey              = "experience"
 	experienceIDKey            = "id"
 	experienceDescriptionKey   = "description"
 	experienceLocationKey      = "location"
@@ -105,20 +106,20 @@ func init() {
 	untagExperienceCmd.MarkFlagRequired(experienceNameKey)
 	experienceCmd.AddCommand(untagExperienceCmd)
 	// Systems-related sub-commands:
-	addSystemCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
-	addSystemCmd.MarkFlagRequired(experienceProjectKey)
-	addSystemCmd.Flags().String(experienceSystemKey, "", "The name of the system to add")
-	addSystemCmd.MarkFlagRequired(experienceSystemKey)
-	addSystemCmd.Flags().String(experienceNameKey, "", "The name of the experience to tag")
-	addSystemCmd.MarkFlagRequired(experienceNameKey)
-	experienceCmd.AddCommand(addSystemCmd)
-	untagExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
-	untagExperienceCmd.MarkFlagRequired(experienceProjectKey)
-	untagExperienceCmd.Flags().String(experienceSystemKey, "", "The name of the system to remove")
-	untagExperienceCmd.MarkFlagRequired(experienceSystemKey)
-	untagExperienceCmd.Flags().String(experienceNameKey, "", "The name of the experience to untag")
-	untagExperienceCmd.MarkFlagRequired(experienceNameKey)
-	experienceCmd.AddCommand(untagExperienceCmd)
+	addSystemExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
+	addSystemExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	addSystemExperienceCmd.Flags().String(experienceSystemKey, "", "The name or ID of the system to add")
+	addSystemExperienceCmd.MarkFlagRequired(experienceSystemKey)
+	addSystemExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience register as compatible with the system")
+	addSystemExperienceCmd.MarkFlagRequired(experienceKey)
+	experienceCmd.AddCommand(addSystemExperienceCmd)
+	removeSystemExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
+	removeSystemExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	removeSystemExperienceCmd.Flags().String(experienceSystemKey, "", "The name or ID  of the system to remove")
+	removeSystemExperienceCmd.MarkFlagRequired(experienceSystemKey)
+	removeSystemExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to deregister as compatible with the system")
+	removeSystemExperienceCmd.MarkFlagRequired(experienceKey)
+	experienceCmd.AddCommand(removeSystemExperienceCmd)
 
 	rootCmd.AddCommand(experienceCmd)
 }
@@ -285,39 +286,120 @@ func untagExperience(ccmd *cobra.Command, args []string) {
 	ValidateResponse(http.StatusNoContent, "failed to untag experience", response.HTTPResponse, response.Body)
 }
 
-func addSystem(ccmd *cobra.Command, args []string) {
+func addSystemToExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	if viper.GetString(experienceSystemKey) == "" {
+
+	systemName := viper.GetString(experienceSystemKey)
+	if systemName == "" {
 		log.Fatal("empty system name")
 	}
-	systemID := getSystemID(Client, projectID, viper.GetString(experienceSystemKey), true)
-	if viper.GetString(experienceNameKey) == "" {
+	systemID := getSystemID(Client, projectID, systemName, true)
+
+	if viper.GetString(experienceKey) == "" {
 		log.Fatal("empty experience name")
 	}
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
 
-	systemID := getExperienceID(Client, projectID, viper.GetString(experienceNameKey), true)
-	experienceTagName := viper.GetString(experienceTagKey)
-	if experienceTagName == "" {
-		log.Fatal("empty experience tag name")
-	}
-
-	experienceID, err := uuid.Parse(viper.GetString(experienceIDKey))
-	if err != nil || experienceID == uuid.Nil {
-		log.Fatal("failed to parse experience ID: ", err)
-	}
-
-	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
-
-	response, err := Client.AddExperienceTagToExperienceWithResponse(
+	response, err := Client.AddSystemToExperienceWithResponse(
 		context.Background(), projectID,
-		experienceTagID,
+		systemID,
 		experienceID,
 	)
 	if err != nil {
-		log.Fatal("failed to tag experience", err)
+		log.Fatal("failed to register experience with system", err)
 	}
 	if response.HTTPResponse.StatusCode == 409 {
-		log.Fatal("failed to tag experience, it may already be tagged ", experienceTagName)
+		log.Fatal("failed to register experience with system, it may already be registered ", systemName)
 	}
-	ValidateResponse(http.StatusCreated, "failed to tag experience", response.HTTPResponse, response.Body)
+	ValidateResponse(http.StatusCreated, "failed to register experience with system", response.HTTPResponse, response.Body)
+}
+
+func removeSystemFromExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+
+	systemName := viper.GetString(experienceSystemKey)
+	if systemName == "" {
+		log.Fatal("empty system name")
+	}
+	systemID := getSystemID(Client, projectID, systemName, true)
+	if viper.GetString(experienceKey) == "" {
+		log.Fatal("empty experience name")
+	}
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+
+	response, err := Client.RemoveSystemFromExperienceWithResponse(
+		context.Background(), projectID,
+		systemID,
+		experienceID,
+	)
+	if err != nil {
+		log.Fatal("failed to deregister experience with system", err)
+	}
+	if response.HTTPResponse.StatusCode == 409 {
+		log.Fatal("failed to deregister experience with system, it may not be registered ", systemName)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to deregister experience with system", response.HTTPResponse, response.Body)
+}
+
+// TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
+func checkExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string) uuid.UUID {
+	// Page through experiences until we find the one with either a name or an ID
+	// that matches the identifier string.
+	experienceID := uuid.Nil
+	// First try the assumption that identifier is a UUID.
+	err := uuid.Validate(identifier)
+	if err == nil {
+		// The identifier is a uuid - but does it refer to an existing experience?
+		potentialExperienceID := uuid.MustParse(identifier)
+		response, _ := client.GetExperienceWithResponse(context.Background(), projectID, potentialExperienceID)
+		if response.HTTPResponse.StatusCode == http.StatusOK {
+			// Experience found with ID
+			return potentialExperienceID
+		}
+	}
+	// If we're here then either the identifier is not a UUID or the UUID was not
+	// found. Users could choose to name experiences with UUIDs so regardless of how
+	// we got here we now search for identifier as a string name.
+	var pageToken *string = nil
+pageLoop:
+	for {
+		response, err := client.ListExperiencesWithResponse(
+			context.Background(), projectID, &api.ListExperiencesParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list experiences:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response")
+		}
+		pageToken = response.JSON200.NextPageToken
+		experiences := *response.JSON200.Experiences
+		for _, experience := range experiences {
+			if experience.Name == nil {
+				log.Fatal("experience has no name")
+			}
+			if experience.ExperienceID == nil {
+				log.Fatal("experience ID is empty")
+			}
+			if *experience.Name == identifier {
+				experienceID = *experience.ExperienceID
+				break pageLoop
+			}
+		}
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	return experienceID
+}
+
+func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool) uuid.UUID {
+	experienceID := checkExperienceID(client, projectID, identifier)
+	if experienceID == uuid.Nil && failWhenNotFound {
+		log.Fatal("failed to find experience with name or ID: ", identifier)
+	}
+	return experienceID
 }

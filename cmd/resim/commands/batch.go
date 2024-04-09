@@ -36,6 +36,13 @@ var (
 		Run:   getBatch,
 	}
 
+	cancelBatchCmd = &cobra.Command{
+		Use:   "cancel",
+		Short: "cancel - Cancel a batch",
+		Long:  ``,
+		Run:   cancelBatch,
+	}
+
 	jobsBatchCmd = &cobra.Command{
 		Use:   "jobs",
 		Short: "jobs - Lists the jobs in a batch",
@@ -100,6 +107,13 @@ func init() {
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = internal error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	batchCmd.AddCommand(getBatchCmd)
+
+	cancelBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	cancelBatchCmd.MarkFlagRequired(batchProjectKey)
+	cancelBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to cancel.")
+	cancelBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to cancel (e.g. rejoicing-aquamarine-starfish).")
+	cancelBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	batchCmd.AddCommand(cancelBatchCmd)
 
 	jobsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	jobsBatchCmd.MarkFlagRequired(batchProjectKey)
@@ -459,4 +473,16 @@ func listBatchLogs(ccmd *cobra.Command, args []string) {
 		}
 	}
 	OutputJson(logs)
+}
+
+func cancelBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+
+	response, err := Client.CancelBatchWithResponse(context.Background(), projectID, *batch.BatchID)
+	if err != nil {
+		log.Fatal("failed to cancel batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to cancel batch", response.HTTPResponse, response.Body)
+	fmt.Println("Batch cancelled successfully!")
 }

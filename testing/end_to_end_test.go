@@ -27,6 +27,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/cmd/resim/commands"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )
@@ -123,6 +125,11 @@ const (
 	EmptyBranchName     string = "empty branch name"
 	EmptyProjectID      string = "empty project ID"
 	InvalidBranchType   string = "invalid branch type"
+	// System Message
+	CreatedSystem          string = "Created system"
+	GithubCreatedSystem    string = "system_id="
+	EmptySystemName        string = "empty system name"
+	EmptySystemDescription string = "empty system description"
 	// Build Messages
 	CreatedBuild          string = "Created build"
 	GithubCreatedBuild    string = "build_id="
@@ -377,6 +384,120 @@ func (s *EndToEndTestSuite) listBranches(projectID uuid.UUID) []CommandBuilder {
 		},
 	}
 	return []CommandBuilder{branchCommand, listCommand}
+}
+
+func (s *EndToEndTestSuite) createSystem(projectName string, systemName string, systemDescription string, buildVCPUs *int, buildGPUs *int, buildMemoryMiB *int, buildSharedMemoryMB *int, metricsBuildVCPUs *int, metricsBuildGPUs *int, metricsBuildMemoryMiB *int, metricsBuildSharedMemoryMB *int, github bool) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "systems",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectName,
+			},
+			{
+				Name:  "--name",
+				Value: systemName,
+			},
+			{
+				Name:  "--description",
+				Value: systemDescription,
+			},
+		},
+	}
+	if buildVCPUs != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--build-vcpus",
+			Value: fmt.Sprintf("%d", *buildVCPUs),
+		})
+	}
+	if buildGPUs != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--build-gpus",
+			Value: fmt.Sprintf("%d", *buildGPUs),
+		})
+	}
+	if buildMemoryMiB != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--build-memory-mib",
+			Value: fmt.Sprintf("%d", *buildMemoryMiB),
+		})
+	}
+	if buildSharedMemoryMB != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--build-shared-memory-mb",
+			Value: fmt.Sprintf("%d", *buildSharedMemoryMB),
+		})
+	}
+	if metricsBuildVCPUs != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--metrics-build-vcpus",
+			Value: fmt.Sprintf("%d", *metricsBuildVCPUs),
+		})
+	}
+	if metricsBuildGPUs != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--metrics-build-gpus",
+			Value: fmt.Sprintf("%d", *metricsBuildGPUs),
+		})
+	}
+	if metricsBuildMemoryMiB != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--metrics-build-memory-mib",
+			Value: fmt.Sprintf("%d", *metricsBuildMemoryMiB),
+		})
+	}
+	if metricsBuildSharedMemoryMB != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--metrics-build-shared-memory-mb",
+			Value: fmt.Sprintf("%d", *metricsBuildSharedMemoryMB),
+		})
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{systemCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) listSystems(projectID uuid.UUID) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, listCommand}
+}
+
+func (s *EndToEndTestSuite) getSystem(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, getCommand}
 }
 
 func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, systemName string, description string, image string, version string, github bool, autoCreateBranch bool) []CommandBuilder {
@@ -1215,6 +1336,128 @@ func (s *EndToEndTestSuite) TestBranchCreateGithub() {
 	// We expect to be able to parse the branch ID as a UUID
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	uuid.MustParse(branchIDString)
+
+	// Delete the test project
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestSystemCreate() {
+	fmt.Println("Testing system creation")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	const systemDescription = "test system description"
+	const buildVCPUs = 1
+	const buildGPUs = 0
+	const buildMemoryMiB = 1000
+	const buildSharedMemoryMB = 64
+	const metricsBuildVCPUs = 2
+	const metricsBuildGPUs = 10
+	const metricsBuildMemoryMiB = 900
+	const metricsBuildSharedMemoryMB = 1024
+	output = s.runCommand(s.createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedSystem)
+	// Get the system:
+	output = s.runCommand(s.getSystem(projectIDString, systemName), ExpectNoError)
+	var system api.System
+	err := json.Unmarshal([]byte(output.StdOut), &system)
+	s.NoError(err)
+	s.Equal(systemName, *system.Name)
+	s.Equal(systemDescription, *system.Description)
+	s.Equal(buildVCPUs, *system.BuildVcpus)
+	s.Equal(buildGPUs, *system.BuildGpus)
+	s.Equal(buildMemoryMiB, *system.BuildMemoryMib)
+	s.Equal(buildSharedMemoryMB, *system.BuildSharedMemoryMb)
+	s.Equal(metricsBuildVCPUs, *system.MetricsBuildVcpus)
+	s.Equal(metricsBuildGPUs, *system.MetricsBuildGpus)
+	s.Equal(metricsBuildMemoryMiB, *system.MetricsBuildMemoryMib)
+	s.Equal(metricsBuildSharedMemoryMB, *system.MetricsBuildSharedMemoryMb)
+	s.Empty(output.StdErr)
+
+	// Validate that the defaults work:
+	output = s.runCommand(s.createSystem(projectIDString, systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedSystem)
+	// Get the system:
+	output = s.runCommand(s.getSystem(projectIDString, systemName), ExpectNoError)
+	var system2 api.System
+	err = json.Unmarshal([]byte(output.StdOut), &system2)
+	s.NoError(err)
+	s.Equal(systemName, *system2.Name)
+	s.Equal(systemDescription, *system2.Description)
+	s.Equal(commands.DefaultCPUs, *system2.BuildVcpus)
+	s.Equal(commands.DefaultGPUs, *system2.BuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, *system2.BuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, *system2.BuildSharedMemoryMb)
+	s.Equal(commands.DefaultCPUs, *system2.MetricsBuildVcpus)
+	s.Equal(commands.DefaultGPUs, *system2.MetricsBuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, *system2.MetricsBuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, *system2.MetricsBuildSharedMemoryMb)
+	s.Empty(output.StdErr)
+
+	// Validate that missing name, project, or description returns errors:
+	output = s.runCommand(s.createSystem(projectIDString, "", systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	s.Contains(output.StdErr, EmptySystemName)
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "", nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	s.Contains(output.StdErr, EmptySystemDescription)
+	output = s.runCommand(s.createSystem(uuid.Nil.String(), systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	s.Contains(output.StdErr, FailedToFindProject)
+
+	// Check we can list the systems, and our new system is in it:
+	output = s.runCommand(s.listSystems(projectID), ExpectNoError)
+	s.Contains(output.StdOut, systemName)
+
+	// Delete the test project
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestSystemCreateGithub() {
+	fmt.Println("Testing system creation, with github flag")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	const systemDescription = "test system description"
+	output = s.runCommand(s.createSystem(projectIDString, systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// Get the system:
+	output = s.runCommand(s.getSystem(projectIDString, systemName), ExpectNoError)
+	var system2 api.System
+	err := json.Unmarshal([]byte(output.StdOut), &system2)
+	s.NoError(err)
+	s.Equal(systemName, *system2.Name)
+	s.Equal(systemDescription, *system2.Description)
+	s.Equal(commands.DefaultCPUs, *system2.BuildVcpus)
+	s.Equal(commands.DefaultGPUs, *system2.BuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, *system2.BuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, *system2.BuildSharedMemoryMb)
+	s.Equal(commands.DefaultCPUs, *system2.MetricsBuildVcpus)
+	s.Equal(commands.DefaultGPUs, *system2.MetricsBuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, *system2.MetricsBuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, *system2.MetricsBuildSharedMemoryMb)
+	s.Empty(output.StdErr)
+
+	// Check we can list the systems, and our new system is in it:
+	output = s.runCommand(s.listSystems(projectID), ExpectNoError)
+	s.Contains(output.StdOut, systemName)
 
 	// Delete the test project
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)

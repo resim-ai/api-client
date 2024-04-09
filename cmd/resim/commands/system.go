@@ -312,6 +312,7 @@ func systemBuilds(ccmd *cobra.Command, args []string) {
 			context.Background(), projectID, systemID, &api.ListBuildsForSystemParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
 			log.Fatal("failed to list builds for system:", err)

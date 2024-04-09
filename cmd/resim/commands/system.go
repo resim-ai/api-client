@@ -46,13 +46,13 @@ const (
 	systemNameKey                       = "name"
 	systemDescriptionKey                = "description"
 	systemBuildVCPUsKey                 = "build-vcpus"
-	systemMetricsBuildVCPUsKey          = "metricsbuild-vcpus"
+	systemMetricsBuildVCPUsKey          = "metrics-build-vcpus"
 	systemBuildGPUsKey                  = "build-gpus"
 	systemMetricsBuildGPUsKey           = "metrics-build-gpus"
 	systemBuildMemoryMiBKey             = "build-memory-mib"
 	systemMetricsBuildMemoryMibKey      = "metrics-build-memory-mib"
 	systemBuildSharedMemoryMBKey        = "build-shared-memory-mb"
-	systemMetricsBuildSharedMemoryMbKey = "metrics-shared-build-memory-mb"
+	systemMetricsBuildSharedMemoryMbKey = "metrics-build-shared-memory-mb"
 	systemProjectKey                    = "project"
 	systemKey                           = "system"
 	systemGithubKey                     = "github"
@@ -171,6 +171,7 @@ func createSystem(cmd *cobra.Command, args []string) {
 		BuildVcpus:                 Ptr(viper.GetInt(systemBuildVCPUsKey)),
 		BuildMemoryMib:             Ptr(viper.GetInt(systemBuildMemoryMiBKey)),
 		BuildSharedMemoryMb:        Ptr(viper.GetInt(systemBuildSharedMemoryMBKey)),
+		MetricsBuildVcpus:          Ptr(viper.GetInt(systemMetricsBuildVCPUsKey)),
 		MetricsBuildGpus:           Ptr(viper.GetInt(systemMetricsBuildGPUsKey)),
 		MetricsBuildMemoryMib:      Ptr(viper.GetInt(systemMetricsBuildMemoryMibKey)),
 		MetricsBuildSharedMemoryMb: Ptr(viper.GetInt(systemMetricsBuildSharedMemoryMbKey)),

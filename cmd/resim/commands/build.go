@@ -218,8 +218,8 @@ func createBuild(ccmd *cobra.Command, args []string) {
 
 	// Check if the branch exists, by listing branches, returning uuid.Nil if branch not found:
 	branchName := viper.GetString(buildBranchKey)
-	branchID := getBranchID(Client, projectID, branchName, false)
-
+	branchID := getBranchID(Client, projectID, branchName, false) // we don't fail on error for branches, because we can autocreate
+	systemID := getSystemID(Client, projectID, viper.GetString(buildSystemKey), true)
 	if branchID == uuid.Nil {
 		if viper.GetBool(buildAutoCreateBranchKey) {
 			if !buildGithub {
@@ -250,6 +250,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		Description: &buildDescription,
 		ImageUri:    &buildImageURI,
 		Version:     &buildVersion,
+		SystemID:    &systemID,
 	}
 
 	response, err := Client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)

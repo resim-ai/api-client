@@ -138,7 +138,7 @@ const (
 	InvalidBuildImage     string = "failed to parse the image URI"
 	EmptyBuildVersion     string = "empty build version"
 	EmptySystem           string = "system not supplied"
-	SystemDoesNotExist    string = "System does not exist"
+	SystemDoesNotExist    string = "failed to find system"
 	BranchNotExist        string = "Branch does not exist"
 	// Metrics Build Messages
 	CreatedMetricsBuild       string = "Created metrics build"
@@ -549,7 +549,7 @@ func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, s
 	return []CommandBuilder{buildCommand, createCommand}
 }
 
-func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string, systemName string) []CommandBuilder {
+func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName *string, systemName *string) []CommandBuilder {
 	buildCommand := CommandBuilder{
 		Command: "build", // Implicitly testing singular noun alias
 	}
@@ -560,15 +560,19 @@ func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName string, s
 				Name:  "--project",
 				Value: projectID.String(),
 			},
-			{
-				Name:  "--branch",
-				Value: branchName,
-			},
-			{
-				Name:  "--system",
-				Value: systemName,
-			},
 		},
+	}
+	if branchName != nil {
+		listCommand.Flags = append(listCommand.Flags, Flag{
+			Name:  "--branch",
+			Value: *branchName,
+		})
+	}
+	if systemName != nil {
+		listCommand.Flags = append(listCommand.Flags, Flag{
+			Name:  "--system",
+			Value: *systemName,
+		})
 	}
 	return []CommandBuilder{buildCommand, listCommand}
 }
@@ -1385,14 +1389,15 @@ func (s *EndToEndTestSuite) TestSystemCreate() {
 	s.Empty(output.StdErr)
 
 	// Validate that the defaults work:
-	output = s.runCommand(s.createSystem(projectIDString, systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	system2Name := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(s.createSystem(projectIDString, system2Name, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedSystem)
 	// Get the system:
-	output = s.runCommand(s.getSystem(projectIDString, systemName), ExpectNoError)
+	output = s.runCommand(s.getSystem(projectIDString, system2Name), ExpectNoError)
 	var system2 api.System
 	err = json.Unmarshal([]byte(output.StdOut), &system2)
 	s.NoError(err)
-	s.Equal(systemName, *system2.Name)
+	s.Equal(system2Name, *system2.Name)
 	s.Equal(systemDescription, *system2.Description)
 	s.Equal(commands.DefaultCPUs, *system2.BuildVcpus)
 	s.Equal(commands.DefaultGPUs, *system2.BuildGpus)
@@ -1405,11 +1410,11 @@ func (s *EndToEndTestSuite) TestSystemCreate() {
 	s.Empty(output.StdErr)
 
 	// Validate that missing name, project, or description returns errors:
-	output = s.runCommand(s.createSystem(projectIDString, "", systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	output = s.runCommand(s.createSystem(projectIDString, "", systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptySystemName)
-	output = s.runCommand(s.createSystem(projectIDString, systemName, "", nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "", nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptySystemDescription)
-	output = s.runCommand(s.createSystem(uuid.Nil.String(), systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	output = s.runCommand(s.createSystem(uuid.Nil.String(), systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 
 	// Check we can list the systems, and our new system is in it:
@@ -1486,40 +1491,42 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	//TODO: actually create the system
-	systemID := uuid.New()
-	systemIDString := systemID.String()
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the project ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	systemID := uuid.MustParse(systemIDString)
 	// Now create the build:
 	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
 
 	// Check we can list the builds by passing in the branch, and our new build is in it:
-	output = s.runCommand(s.listBuilds(projectID, branchName, ""), ExpectNoError) // with no system filter
+	output = s.runCommand(s.listBuilds(projectID, Ptr(branchName), nil), ExpectNoError) // with no system filter
 	s.Contains(output.StdOut, systemIDString)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
 
 	// Check we can list the builds by passing in the system, and our new build is in it:
-	output = s.runCommand(s.listBuilds(projectID, "", systemName), ExpectNoError) // with no branch filter
+	output = s.runCommand(s.listBuilds(projectID, nil, Ptr(systemName)), ExpectNoError) // with no branch filter
 	s.Contains(output.StdOut, systemIDString)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
 
 	// Check we can list the builds by passing in the branchID, and our new build is in it:
-	output = s.runCommand(s.listBuilds(projectID, branchID.String(), ""), ExpectNoError)
+	output = s.runCommand(s.listBuilds(projectID, Ptr(branchID.String()), nil), ExpectNoError)
 	s.Contains(output.StdOut, systemIDString)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
 
 	// Check we can list the builds by passing in the systemID, and our new build is in it:
-	output = s.runCommand(s.listBuilds(projectID, "", systemID.String()), ExpectNoError)
+	output = s.runCommand(s.listBuilds(projectID, nil, Ptr(systemID.String())), ExpectNoError)
 	s.Contains(output.StdOut, systemIDString)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
 
 	// Check we can list the builds with no filters, and our new build is in it:
-	output = s.runCommand(s.listBuilds(projectID, "", ""), ExpectNoError)
+	output = s.runCommand(s.listBuilds(projectID, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, systemIDString)
 	s.Contains(output.StdOut, branchIDString)
 	s.Contains(output.StdOut, buildIDString)
@@ -1567,7 +1574,11 @@ func (s *EndToEndTestSuite) TestBuildCreateGithub() {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	// TODO: actually create the system
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the project ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
 
 	// Now create the build:
 	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
@@ -1604,7 +1615,11 @@ func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	// TODO: actually create the system
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
 
 	// Now create the build: (with auto-create-branch flag). We expect this to succeed without any additional information
 	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchTrue), ExpectNoError)
@@ -1656,10 +1671,8 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 		Name:  "--launch-profile",
 		Value: launchProfileID,
 	})
-	output = s.runCommand(experienceCommand, ExpectNoError)
-	s.Contains(output.StdOut, CreatedExperience)
-	s.Contains(output.StdOut, DeprecatedLaunchProfile)
-	s.Empty(output.StdErr)
+	output = s.runCommand(experienceCommand, ExpectError)
+	s.Contains(output.StdErr, DeprecatedLaunchProfile)
 
 }
 
@@ -1722,7 +1735,11 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	// TODO: actually create the system
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
 
 	// Now create the build:
 	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
@@ -2040,7 +2057,11 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	// TODO: actually create the system
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
 
 	// Now create the build:
 	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
@@ -2147,7 +2168,11 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	// TODO: actually create the system
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
 
 	// Now create the build:
 	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
@@ -2422,6 +2447,13 @@ func (s *EndToEndTestSuite) TestAliases() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	branchID := uuid.MustParse(branchIDString)
 
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(s.createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
 	// We list branches by project-id and project-name to test the aliasing:
 	branchCommand := CommandBuilder{
 		Command: "branch",
@@ -2478,6 +2510,10 @@ func (s *EndToEndTestSuite) TestAliases() {
 			{
 				Name:  "--branch-name",
 				Value: branchName,
+			},
+			{
+				Name:  "--system",
+				Value: systemName,
 			},
 			{
 				Name:  "--description",

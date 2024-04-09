@@ -126,10 +126,12 @@ const (
 	EmptyProjectID      string = "empty project ID"
 	InvalidBranchType   string = "invalid branch type"
 	// System Message
-	CreatedSystem          string = "Created system"
-	GithubCreatedSystem    string = "system_id="
-	EmptySystemName        string = "empty system name"
-	EmptySystemDescription string = "empty system description"
+	CreatedSystem             string = "Created system"
+	GithubCreatedSystem       string = "system_id="
+	EmptySystemName           string = "empty system name"
+	EmptySystemDescription    string = "empty system description"
+	SystemAlreadyRegistered   string = "it may already be registered"
+	SystemAlreadyDeregistered string = "it may not be registered"
 	// Build Messages
 	CreatedBuild          string = "Created build"
 	GithubCreatedBuild    string = "build_id="
@@ -498,6 +500,162 @@ func (s *EndToEndTestSuite) getSystem(project string, system string) []CommandBu
 		},
 	}
 	return []CommandBuilder{systemCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) systemBuilds(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	buildsCommand := CommandBuilder{
+		Command: "builds",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, buildsCommand}
+}
+
+func (s *EndToEndTestSuite) addSystemToExperience(project string, system string, experience string) []CommandBuilder {
+	addExperienceCommand := CommandBuilder{
+		Command: "experience",
+	}
+	addCommand := CommandBuilder{
+		Command: "add-system",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+			{
+				Name:  "--experience",
+				Value: experience,
+			},
+		},
+	}
+	return []CommandBuilder{addExperienceCommand, addCommand}
+}
+
+func (s *EndToEndTestSuite) removeSystemFromExperience(project string, system string, experience string) []CommandBuilder {
+	removeExperienceCommand := CommandBuilder{
+		Command: "experience",
+	}
+	removeCommand := CommandBuilder{
+		Command: "remove-system",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+			{
+				Name:  "--experience",
+				Value: experience,
+			},
+		},
+	}
+	return []CommandBuilder{removeExperienceCommand, removeCommand}
+}
+
+func (s *EndToEndTestSuite) systemExperiences(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	experiencesCommand := CommandBuilder{
+		Command: "experiences",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, experiencesCommand}
+}
+
+func (s *EndToEndTestSuite) addSystemToMetricsBuild(project string, system string, metricsBuild string) []CommandBuilder {
+	addMetricsBuildCommand := CommandBuilder{
+		Command: "metrics-build",
+	}
+	addCommand := CommandBuilder{
+		Command: "add-system",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+			{
+				Name:  "--metrics-build",
+				Value: metricsBuild,
+			},
+		},
+	}
+	return []CommandBuilder{addMetricsBuildCommand, addCommand}
+}
+
+func (s *EndToEndTestSuite) removeSystemFromMetricsBuild(project string, system string, metricsBuild string) []CommandBuilder {
+	removeMetricsBuildCommand := CommandBuilder{
+		Command: "metrics-build",
+	}
+	removeCommand := CommandBuilder{
+		Command: "remove-system",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+			{
+				Name:  "--metrics-build",
+				Value: metricsBuild,
+			},
+		},
+	}
+	return []CommandBuilder{removeMetricsBuildCommand, removeCommand}
+}
+
+func (s *EndToEndTestSuite) systemMetricsBuilds(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system", // Implicitly testing singular noun alias
+	}
+	metricsBuildsCommand := CommandBuilder{
+		Command: "metrics-builds",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, metricsBuildsCommand}
 }
 
 func (s *EndToEndTestSuite) createBuild(projectName string, branchName string, systemName string, description string, image string, version string, github bool, autoCreateBranch bool) []CommandBuilder {
@@ -1347,7 +1505,7 @@ func (s *EndToEndTestSuite) TestBranchCreateGithub() {
 	s.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestSuite) TestSystemCreate() {
+func (s *EndToEndTestSuite) TestSystems() {
 	fmt.Println("Testing system creation")
 
 	// First create a project
@@ -1387,6 +1545,7 @@ func (s *EndToEndTestSuite) TestSystemCreate() {
 	s.Equal(metricsBuildMemoryMiB, *system.MetricsBuildMemoryMib)
 	s.Equal(metricsBuildSharedMemoryMB, *system.MetricsBuildSharedMemoryMb)
 	s.Empty(output.StdErr)
+	systemID := system.SystemID
 
 	// Validate that the defaults work:
 	system2Name := fmt.Sprintf("test-system-%s", uuid.New().String())
@@ -1420,6 +1579,149 @@ func (s *EndToEndTestSuite) TestSystemCreate() {
 	// Check we can list the systems, and our new system is in it:
 	output = s.runCommand(s.listSystems(projectID), ExpectNoError)
 	s.Contains(output.StdOut, systemName)
+
+	// Now add a couple of builds to the system (and a branch by the autocreate):
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	build1Version := "0.0.1"
+	output = s.runCommand(s.createBuild(projectIDString, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", build1Version, GithubTrue, AutoCreateBranchTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	build1IDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(build1IDString)
+	build2Version := "0.0.2"
+	output = s.runCommand(s.createBuild(projectIDString, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", build2Version, GithubTrue, AutoCreateBranchTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	build2IDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(build2IDString)
+	// Check we can list the builds, and our new builds are in it:
+	output = s.runCommand(s.systemBuilds(projectIDString, systemID.String()), ExpectNoError)
+	s.Contains(output.StdOut, build1Version)
+	s.Contains(output.StdOut, build2Version)
+
+	// Create and tag a couple of experiences:
+	experience1Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output = s.runCommand(s.createExperience(projectID, experience1Name, "description", "location", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	// We expect to be able to parse the experience ID as a UUID
+	experience1IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experience1IDString)
+	experience2Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output = s.runCommand(s.createExperience(projectID, experience2Name, "description", "location", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	// We expect to be able to parse the experience ID as a UUID
+	experience2IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experience2IDString)
+	// Check we can list the experiences for the systems, and our new experiences are not in it:
+	output = s.runCommand(s.systemExperiences(projectIDString, systemName), ExpectNoError)
+	s.NotContains(output.StdOut, experience1Name)
+	s.NotContains(output.StdOut, experience2Name)
+	s.NotContains(output.StdOut, experience1IDString)
+	s.NotContains(output.StdOut, experience2IDString)
+
+	// Add the experiences to the system:
+	output = s.runCommand(s.addSystemToExperience(projectIDString, systemName, experience1IDString), ExpectNoError)
+	// Check duplicates should error:
+	output = s.runCommand(s.addSystemToExperience(projectIDString, systemName, experience1IDString), ExpectError)
+	s.Contains(output.StdErr, SystemAlreadyRegistered)
+	output = s.runCommand(s.addSystemToExperience(projectName, systemName, experience2IDString), ExpectNoError)
+	// Check we can list the experiences for the systems, and our new experiences are in it:
+	output = s.runCommand(s.systemExperiences(projectIDString, systemName), ExpectNoError)
+	s.Contains(output.StdOut, experience1Name)
+	s.Contains(output.StdOut, experience2Name)
+	s.Contains(output.StdOut, experience1IDString)
+	s.Contains(output.StdOut, experience2IDString)
+
+	// Remove one experience:
+	output = s.runCommand(s.removeSystemFromExperience(projectIDString, systemName, experience1IDString), ExpectNoError)
+	// Check duplicates should error:
+	output = s.runCommand(s.removeSystemFromExperience(projectIDString, systemName, experience1IDString), ExpectError)
+	// Check we can list the experiences for the systems, and only one experience is in it:
+	output = s.runCommand(s.systemExperiences(projectIDString, systemName), ExpectNoError)
+	s.NotContains(output.StdOut, experience1Name)
+	s.Contains(output.StdOut, experience2Name)
+	// Remove the second experience:
+	output = s.runCommand(s.removeSystemFromExperience(projectIDString, systemName, experience2IDString), ExpectNoError)
+	// Check we can list the experiences for the systems, and no experiences are in it:
+	output = s.runCommand(s.systemExperiences(projectIDString, systemName), ExpectNoError)
+	s.NotContains(output.StdOut, experience1Name)
+	s.NotContains(output.StdOut, experience2Name)
+
+	// Edge cases:
+	output = s.runCommand(s.addSystemToExperience("", systemName, experience1IDString), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+	output = s.runCommand(s.addSystemToExperience(projectIDString, "", experience1IDString), ExpectError)
+	s.Contains(output.StdErr, EmptySystemName)
+	output = s.runCommand(s.addSystemToExperience(projectIDString, systemName, ""), ExpectError)
+	s.Contains(output.StdErr, EmptyExperienceName)
+	output = s.runCommand(s.removeSystemFromExperience("", systemName, experience1IDString), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+	output = s.runCommand(s.removeSystemFromExperience(projectIDString, "", experience1IDString), ExpectError)
+	s.Contains(output.StdErr, EmptySystemName)
+	output = s.runCommand(s.removeSystemFromExperience(projectIDString, systemName, ""), ExpectError)
+	s.Contains(output.StdErr, EmptyExperienceName)
+
+	// Create and tag a couple of metrics builds:
+	metricsBuild1Name := fmt.Sprintf("test-metrics-build-%s", uuid.New().String())
+	output = s.runCommand(s.createMetricsBuild(projectID, metricsBuild1Name, "public.ecr.aws/docker/library/hello-world:latest", "0.0.1", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the metrics build ID as a UUID
+	metricsBuild1IDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	uuid.MustParse(metricsBuild1IDString)
+	metricsBuild2Name := fmt.Sprintf("test-metrics-build-%s", uuid.New().String())
+	output = s.runCommand(s.createMetricsBuild(projectID, metricsBuild2Name, "public.ecr.aws/docker/library/hello-world:latest", "0.0.2", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the metrics build ID as a UUID
+	metricsBuild2IDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	uuid.MustParse(metricsBuild2IDString)
+	// Check we can list the metrics builds for the systems, and our new metrics builds are not in it:
+	output = s.runCommand(s.systemMetricsBuilds(projectIDString, systemName), ExpectNoError)
+	s.NotContains(output.StdOut, metricsBuild1Name)
+	s.NotContains(output.StdOut, metricsBuild2Name)
+	s.NotContains(output.StdOut, metricsBuild1IDString)
+	s.NotContains(output.StdOut, metricsBuild2IDString)
+
+	// Add the metrics builds to the system:
+	output = s.runCommand(s.addSystemToMetricsBuild(projectIDString, systemName, metricsBuild1IDString), ExpectNoError)
+	// Check duplicates should error:
+	output = s.runCommand(s.addSystemToMetricsBuild(projectIDString, systemName, metricsBuild1IDString), ExpectError)
+	s.Contains(output.StdErr, SystemAlreadyRegistered)
+	output = s.runCommand(s.addSystemToMetricsBuild(projectName, systemName, metricsBuild2IDString), ExpectNoError)
+	// Check we can list the metrics builds for the systems, and our new metrics builds are in it:
+	output = s.runCommand(s.systemMetricsBuilds(projectIDString, systemName), ExpectNoError)
+	s.Contains(output.StdOut, metricsBuild1Name)
+	s.Contains(output.StdOut, metricsBuild2Name)
+	s.Contains(output.StdOut, metricsBuild1IDString)
+	s.Contains(output.StdOut, metricsBuild2IDString)
+
+	// Remove one metrics build:
+	output = s.runCommand(s.removeSystemFromMetricsBuild(projectIDString, systemName, metricsBuild1IDString), ExpectNoError)
+	// Check duplicates should error:
+	output = s.runCommand(s.removeSystemFromMetricsBuild(projectIDString, systemName, metricsBuild1IDString), ExpectError)
+	// Check we can list the metrics builds for the systems, and only one metrics build is in it:
+	output = s.runCommand(s.systemMetricsBuilds(projectIDString, systemName), ExpectNoError)
+	s.NotContains(output.StdOut, metricsBuild1Name)
+	s.Contains(output.StdOut, metricsBuild2Name)
+	// Remove the second metrics build:
+	output = s.runCommand(s.removeSystemFromMetricsBuild(projectIDString, systemName, metricsBuild2IDString), ExpectNoError)
+	// Check we can list the metrics builds for the systems, and no metrics builds are in it:
+	output = s.runCommand(s.systemMetricsBuilds(projectIDString, systemName), ExpectNoError)
+	s.NotContains(output.StdOut, metricsBuild1Name)
+	s.NotContains(output.StdOut, metricsBuild2Name)
+
+	// Edge cases:
+	output = s.runCommand(s.addSystemToMetricsBuild("", systemName, metricsBuild1IDString), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+	output = s.runCommand(s.addSystemToMetricsBuild(projectIDString, "", metricsBuild1IDString), ExpectError)
+	s.Contains(output.StdErr, EmptySystemName)
+	output = s.runCommand(s.addSystemToMetricsBuild(projectIDString, systemName, ""), ExpectError)
+	s.Contains(output.StdErr, EmptyMetricsBuildName)
+	output = s.runCommand(s.removeSystemFromMetricsBuild("", systemName, metricsBuild1IDString), ExpectError)
+	s.Contains(output.StdErr, FailedToFindProject)
+	output = s.runCommand(s.removeSystemFromMetricsBuild(projectIDString, "", metricsBuild1IDString), ExpectError)
+	s.Contains(output.StdErr, EmptySystemName)
+	output = s.runCommand(s.removeSystemFromMetricsBuild(projectIDString, systemName, ""), ExpectError)
+	s.Contains(output.StdErr, EmptyMetricsBuildName)
 
 	// Delete the test project
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
@@ -2539,6 +2841,10 @@ func (s *EndToEndTestSuite) TestAliases() {
 			{
 				Name:  "--branch-name",
 				Value: branchName,
+			},
+			{
+				Name:  "--system",
+				Value: systemName,
 			},
 			{
 				Name:  "--description",

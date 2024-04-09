@@ -40,6 +40,24 @@ var (
 		Long:  ``,
 		Run:   listSystems,
 	}
+	systemsBuildsCmd = &cobra.Command{
+		Use:   "builds",
+		Short: "builds - Lists builds of a system",
+		Long:  ``,
+		Run:   systemBuilds,
+	}
+	systemsExperiencesCmd = &cobra.Command{
+		Use:   "experiences",
+		Short: "experiences - Lists experiences compatible with a system",
+		Long:  ``,
+		Run:   systemExperiences,
+	}
+	systemsMetricsBuildsCmd = &cobra.Command{
+		Use:   "metrics-builds",
+		Short: "metrics-builds - Lists metrics builds compatible with a system",
+		Long:  ``,
+		Run:   systemMetricsBuilds,
+	}
 )
 
 const (
@@ -85,15 +103,38 @@ func init() {
 	getSystemCmd.MarkFlagRequired(systemProjectKey)
 	getSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to get details for")
 	getSystemCmd.MarkFlagRequired(systemKey)
+	getSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	listSystemsCmd.Flags().String(systemProjectKey, "", "List systems associated with this project")
 	listSystemsCmd.MarkFlagRequired(systemProjectKey)
 
 	listSystemsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
+	systemsBuildsCmd.Flags().String(systemProjectKey, "", "The project the system is associated with")
+	systemsBuildsCmd.MarkFlagRequired(systemProjectKey)
+	systemsBuildsCmd.Flags().String(systemKey, "", "The system whose builds to list")
+	systemsBuildsCmd.MarkFlagRequired(systemKey)
+	systemsBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
+	systemsExperiencesCmd.Flags().String(systemProjectKey, "", "The project the system is associated with")
+	systemsExperiencesCmd.MarkFlagRequired(systemProjectKey)
+	systemsExperiencesCmd.Flags().String(systemKey, "", "The system whose compatible experiences to list")
+	systemsExperiencesCmd.MarkFlagRequired(systemKey)
+	systemsExperiencesCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
+	systemsMetricsBuildsCmd.Flags().String(systemProjectKey, "", "The project the system is associated with")
+	systemsMetricsBuildsCmd.MarkFlagRequired(systemProjectKey)
+	systemsMetricsBuildsCmd.Flags().String(systemKey, "", "The system whose compatible metrics builds to list")
+	systemsMetricsBuildsCmd.MarkFlagRequired(systemKey)
+	systemsMetricsBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
 	systemCmd.AddCommand(createSystemCmd)
 	systemCmd.AddCommand(getSystemCmd)
 	systemCmd.AddCommand(listSystemsCmd)
+	systemCmd.AddCommand(systemsBuildsCmd)
+	systemCmd.AddCommand(systemsExperiencesCmd)
+	systemCmd.AddCommand(systemsMetricsBuildsCmd)
+
 	rootCmd.AddCommand(systemCmd)
 }
 
@@ -137,7 +178,7 @@ func listSystems(cmd *cobra.Command, args []string) {
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Systems == nil {
-			log.Fatal("no systemes")
+			log.Fatal("no systems")
 		}
 		allSystems = append(allSystems, *response.JSON200.Systems...)
 		if pageToken == nil || *pageToken == "" {
@@ -197,6 +238,97 @@ func createSystem(cmd *cobra.Command, args []string) {
 		fmt.Println("Created system successfully!")
 		fmt.Printf("System ID: %s\n", system.SystemID.String())
 	}
+}
+
+func systemExperiences(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
+	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
+	var pageToken *string = nil
+
+	var allExperiences []api.Experience
+
+	for {
+		response, err := Client.ListExperiencesForSystemWithResponse(
+			context.Background(), projectID, systemID, &api.ListExperiencesForSystemParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list experiences for system:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list experiences for system", response.HTTPResponse, response.Body)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.Experiences == nil {
+			log.Fatal("no experiences")
+		}
+		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	OutputJson(allExperiences)
+}
+
+func systemMetricsBuilds(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
+	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
+	var pageToken *string = nil
+
+	var allMetricsBuilds []api.MetricsBuild
+
+	for {
+		response, err := Client.ListMetricsBuildsForSystemWithResponse(
+			context.Background(), projectID, systemID, &api.ListMetricsBuildsForSystemParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list metrics builds for system:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list metrics builds for system", response.HTTPResponse, response.Body)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.MetricsBuilds == nil {
+			log.Fatal("no experiences")
+		}
+		allMetricsBuilds = append(allMetricsBuilds, *response.JSON200.MetricsBuilds...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	OutputJson(allMetricsBuilds)
+}
+
+func systemBuilds(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
+	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
+	var pageToken *string = nil
+
+	var allBuilds []api.Build
+
+	for {
+		response, err := Client.ListBuildsForSystemWithResponse(
+			context.Background(), projectID, systemID, &api.ListBuildsForSystemParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
+			})
+		if err != nil {
+			log.Fatal("failed to list builds for system:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list builds for system", response.HTTPResponse, response.Body)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || response.JSON200.Builds == nil {
+			log.Fatal("no builds")
+		}
+		allBuilds = append(allBuilds, *response.JSON200.Builds...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	OutputJson(allBuilds)
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this

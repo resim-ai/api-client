@@ -44,10 +44,24 @@ var (
 		Long:  ``,
 		Run:   untagExperience,
 	}
+
+	addSystemCmd = &cobra.Command{
+		Use:   "add-system",
+		Short: "add-system - Add a system as compatible with an experience",
+		Long:  ``,
+		Run:   addSystem,
+	}
+	removeSystemCmd = &cobra.Command{
+		Use:   "remove-system",
+		Short: "remove-system - Remove a system as compatible with an experience",
+		Long:  ``,
+		Run:   removeSystem,
+	}
 )
 
 const (
 	experienceProjectKey       = "project"
+	experienceSystemKey        = "system"
 	experienceNameKey          = "name"
 	experienceIDKey            = "id"
 	experienceDescriptionKey   = "description"
@@ -70,9 +84,11 @@ func init() {
 	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	experienceCmd.AddCommand(createExperienceCmd)
+
 	listExperiencesCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
 	listExperiencesCmd.MarkFlagRequired(experienceProjectKey)
 	experienceCmd.AddCommand(listExperiencesCmd)
+	// Experience tag sub-commands:
 	tagExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
 	tagExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	tagExperienceCmd.Flags().String(experienceTagKey, "", "The name of the tag to add")
@@ -80,6 +96,7 @@ func init() {
 	tagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to tag")
 	tagExperienceCmd.MarkFlagRequired(experienceNameKey)
 	experienceCmd.AddCommand(tagExperienceCmd)
+
 	untagExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
 	untagExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	untagExperienceCmd.Flags().String(experienceTagKey, "", "The name of the tag to remove")
@@ -87,6 +104,22 @@ func init() {
 	untagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to untag")
 	untagExperienceCmd.MarkFlagRequired(experienceNameKey)
 	experienceCmd.AddCommand(untagExperienceCmd)
+	// Systems-related sub-commands:
+	addSystemCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
+	addSystemCmd.MarkFlagRequired(experienceProjectKey)
+	addSystemCmd.Flags().String(experienceSystemKey, "", "The name of the system to add")
+	addSystemCmd.MarkFlagRequired(experienceSystemKey)
+	addSystemCmd.Flags().String(experienceNameKey, "", "The name of the experience to tag")
+	addSystemCmd.MarkFlagRequired(experienceNameKey)
+	experienceCmd.AddCommand(addSystemCmd)
+	untagExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
+	untagExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	untagExperienceCmd.Flags().String(experienceSystemKey, "", "The name of the system to remove")
+	untagExperienceCmd.MarkFlagRequired(experienceSystemKey)
+	untagExperienceCmd.Flags().String(experienceNameKey, "", "The name of the experience to untag")
+	untagExperienceCmd.MarkFlagRequired(experienceNameKey)
+	experienceCmd.AddCommand(untagExperienceCmd)
+
 	rootCmd.AddCommand(experienceCmd)
 }
 
@@ -250,4 +283,41 @@ func untagExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to untag experience, it may not be tagged ", experienceTagName)
 	}
 	ValidateResponse(http.StatusNoContent, "failed to untag experience", response.HTTPResponse, response.Body)
+}
+
+func addSystem(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	if viper.GetString(experienceSystemKey) == "" {
+		log.Fatal("empty system name")
+	}
+	systemID := getSystemID(Client, projectID, viper.GetString(experienceSystemKey), true)
+	if viper.GetString(experienceNameKey) == "" {
+		log.Fatal("empty experience name")
+	}
+
+	systemID := getExperienceID(Client, projectID, viper.GetString(experienceNameKey), true)
+	experienceTagName := viper.GetString(experienceTagKey)
+	if experienceTagName == "" {
+		log.Fatal("empty experience tag name")
+	}
+
+	experienceID, err := uuid.Parse(viper.GetString(experienceIDKey))
+	if err != nil || experienceID == uuid.Nil {
+		log.Fatal("failed to parse experience ID: ", err)
+	}
+
+	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
+
+	response, err := Client.AddExperienceTagToExperienceWithResponse(
+		context.Background(), projectID,
+		experienceTagID,
+		experienceID,
+	)
+	if err != nil {
+		log.Fatal("failed to tag experience", err)
+	}
+	if response.HTTPResponse.StatusCode == 409 {
+		log.Fatal("failed to tag experience, it may already be tagged ", experienceTagName)
+	}
+	ValidateResponse(http.StatusCreated, "failed to tag experience", response.HTTPResponse, response.Body)
 }

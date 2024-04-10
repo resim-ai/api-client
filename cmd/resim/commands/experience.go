@@ -62,6 +62,7 @@ var (
 const (
 	experienceProjectKey       = "project"
 	experienceSystemKey        = "system"
+	experienceSystemsKey       = "systems"
 	experienceNameKey          = "name"
 	experienceKey              = "experience"
 	experienceIDKey            = "id"
@@ -84,6 +85,7 @@ func init() {
 	createExperienceCmd.Flags().String(experienceLaunchProfileKey, "", "The UUID of the launch profile for this experience")
 	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
+	createExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
 	experienceCmd.AddCommand(createExperienceCmd)
 
 	listExperiencesCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
@@ -168,6 +170,20 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	experience := response.JSON201
 	if experience.ExperienceID == nil {
 		log.Fatal("no experience ID")
+	}
+
+	// For each system, add that system to the experience:
+	systems := viper.GetStringSlice(experienceSystemsKey)
+	for _, systemName := range systems {
+		systemID := getSystemID(Client, projectID, systemName, true)
+		_, err := Client.AddSystemToExperienceWithResponse(
+			context.Background(), projectID,
+			systemID,
+			*experience.ExperienceID,
+		)
+		if err != nil {
+			log.Fatal("failed to register experience with system", err)
+		}
 	}
 
 	validationResponse, err := Client.ValidateExperienceLocationWithResponse(context.Background(), api.ExperienceLocation{

@@ -51,6 +51,7 @@ var (
 const (
 	metricsBuildProjectKey  = "project"
 	metricsBuildSystemKey   = "system"
+	metricsBuildSystemsKey  = "systems"
 	metricsBuildKey         = "metrics-build"
 	metricsBuildNameKey     = "name"
 	metricsBuildImageURIKey = "image"
@@ -67,6 +68,7 @@ func init() {
 	createMetricsBuildCmd.MarkFlagRequired(metricsBuildImageURIKey)
 	createMetricsBuildCmd.Flags().String(metricsBuildVersionKey, "", "The version of the metrics build image, usually a commit ID or tag")
 	createMetricsBuildCmd.MarkFlagRequired(metricsBuildVersionKey)
+	createMetricsBuildCmd.Flags().StringSlice(metricsBuildSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the metrics build")
 	createMetricsBuildCmd.Flags().Bool(metricsBuildGithubKey, false, "Whether to output format in github action friendly format")
 
 	metricsBuildCmd.AddCommand(createMetricsBuildCmd)
@@ -168,6 +170,20 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 	metricsBuild := *response.JSON201
 	if metricsBuild.MetricsBuildID == nil {
 		log.Fatal("no metrics build ID")
+	}
+
+	// For each system, add that system to the metrics build:
+	systems := viper.GetStringSlice(metricsBuildSystemsKey)
+	for _, systemName := range systems {
+		systemID := getSystemID(Client, projectID, systemName, true)
+		_, err := Client.AddSystemToMetricsBuildWithResponse(
+			context.Background(), projectID,
+			systemID,
+			*metricsBuild.MetricsBuildID,
+		)
+		if err != nil {
+			log.Fatal("failed to register metrics build with system", err)
+		}
 	}
 
 	// Report the results back to the user

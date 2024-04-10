@@ -8,6 +8,9 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Added
+
+- Cancellation - we introduce a cancel command which cancels a batch. Cancellation impacts any queued tests and lets actively running tests finish.
 ### v0.2.1 - March 26 2024
 
 #### Added

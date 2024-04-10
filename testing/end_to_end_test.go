@@ -154,6 +154,7 @@ const (
 	InvalidBatchID             string = "unable to parse batch ID"
 	SelectOneRequired          string = "at least one of the flags in the group"
 	RequireBatchName           string = "must specify either the batch ID or the batch name"
+	CancelledBatch             string = "Batch cancelled"
 	// Log Messages
 	CreatedLog            string = "Created log"
 	GithubCreatedLog      string = "log_location="
@@ -789,6 +790,47 @@ func (s *EndToEndTestSuite) getBatchJobsByName(projectID uuid.UUID, batchName st
 		},
 	}
 	return []CommandBuilder{batchCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) cancelBatchByID(projectID uuid.UUID, batchID string) []CommandBuilder {
+	// We build a get batch command with the id flag
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	cancelCommand := CommandBuilder{
+		Command: "cancel",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--batch-id",
+				Value: batchID,
+			},
+		},
+	}
+	return []CommandBuilder{batchCommand, cancelCommand}
+}
+
+func (s *EndToEndTestSuite) cancelBatchByName(projectID uuid.UUID, batchName string) []CommandBuilder {
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	cancelCommand := CommandBuilder{
+		Command: "cancel",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--batch-name",
+				Value: batchName,
+			},
+		},
+	}
+	return []CommandBuilder{batchCommand, cancelCommand}
 }
 
 func (s *EndToEndTestSuite) getBatchJobsByID(projectID uuid.UUID, batchID string) []CommandBuilder {
@@ -1703,6 +1745,82 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Empty(output.StdErr)
 }
 
+func (s *EndToEndTestSuite) TestCancelBatch() {
+	// create a project:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// This test does not use parameters, so we create an empty parameter map:
+	emptyParameterMap := map[string]string{}
+	// create an experiences:
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output = s.runCommand(s.createExperience(projectID, experienceName, "description", experienceLocation, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(uuid.MustParse(projectIDString), branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+	output = s.runCommand(s.createBuild(projectName, branchName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+
+	// Create a batch with (only) experience names using the --experiences flag
+	output = s.runCommand(s.createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName}, []string{}, "", GithubTrue, emptyParameterMap), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH)
+
+	// poll until we can check that the batch has started running:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(s.getBatchByID(projectID, batchIDStringGH, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 4, running;
+		running := exitCode == 4
+		if !running {
+			fmt.Println("Waiting for batch running, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch running, with exitCode:", exitCode)
+		}
+		return running
+	}, 5*time.Minute, 10*time.Second)
+
+	// Cancel the batch:
+	output = s.runCommand(s.cancelBatchByID(projectID, batchIDStringGH), ExpectNoError)
+	s.Contains(output.StdOut, CancelledBatch)
+	s.Empty(output.StdErr)
+	// We do not poll until the batch is cancelled right now, as we are not checking the status
+	// and these jobs can finish before cancellation.
+	// TODO(iain): Add a check for the batch status here
+}
 func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())

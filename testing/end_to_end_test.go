@@ -593,7 +593,7 @@ func (s *EndToEndTestSuite) systemExperiences(project string, system string) []C
 	return []CommandBuilder{systemCommand, experiencesCommand}
 }
 
-func (s *EndToEndTestSuite) addSystemToMetricsBuild(project string, system string, metricsBuild string) []CommandBuilder {
+func (s *EndToEndTestSuite) addSystemToMetricsBuild(project string, system string, metricsBuildID string) []CommandBuilder {
 	addMetricsBuildCommand := CommandBuilder{
 		Command: "metrics-build",
 	}
@@ -609,15 +609,15 @@ func (s *EndToEndTestSuite) addSystemToMetricsBuild(project string, system strin
 				Value: system,
 			},
 			{
-				Name:  "--metrics-build",
-				Value: metricsBuild,
+				Name:  "--metrics-build-id",
+				Value: metricsBuildID,
 			},
 		},
 	}
 	return []CommandBuilder{addMetricsBuildCommand, addCommand}
 }
 
-func (s *EndToEndTestSuite) removeSystemFromMetricsBuild(project string, system string, metricsBuild string) []CommandBuilder {
+func (s *EndToEndTestSuite) removeSystemFromMetricsBuild(project string, system string, metricsBuildID string) []CommandBuilder {
 	removeMetricsBuildCommand := CommandBuilder{
 		Command: "metrics-build",
 	}
@@ -633,8 +633,8 @@ func (s *EndToEndTestSuite) removeSystemFromMetricsBuild(project string, system 
 				Value: system,
 			},
 			{
-				Name:  "--metrics-build",
-				Value: metricsBuild,
+				Name:  "--metrics-build-id",
+				Value: metricsBuildID,
 			},
 		},
 	}

@@ -2054,6 +2054,10 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	output = s.runCommand(experienceCommand, ExpectError)
 	s.Contains(output.StdErr, DeprecatedLaunchProfile)
 
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 
 func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
@@ -2073,6 +2077,11 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)
 	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 
 }
 
@@ -2488,6 +2497,11 @@ func (s *EndToEndTestSuite) TestCancelBatch() {
 	// We do not poll until the batch is cancelled right now, as we are not checking the status
 	// and these jobs can finish before cancellation.
 	// TODO(iain): Add a check for the batch status here
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// create a project:
@@ -2805,6 +2819,11 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// Check we can list the sweeps, and our new sweep is in it:
 	output = s.runCommand(s.listSweeps(projectID), ExpectNoError)
 	s.Contains(output.StdOut, sweepNameString)
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 
 // Test the metrics builds:
@@ -2852,6 +2871,10 @@ func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
 	output = s.runCommand(s.createMetricsBuild(projectID, "name", "public.ecr.aws/docker/library/hello-world", "1.1.1", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidMetricsBuildImage)
 
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 
 func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
@@ -2871,6 +2894,11 @@ func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
 	// Check we can list the metrics builds, and our new metrics build is in it:
 	output = s.runCommand(s.listMetricsBuilds(projectID), ExpectNoError)
 	s.Contains(output.StdOut, metricsBuildIDString)
+
+	// Delete the project:
+	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, DeletedProject)
+	s.Empty(output.StdErr)
 }
 
 func (s *EndToEndTestSuite) TestAliases() {

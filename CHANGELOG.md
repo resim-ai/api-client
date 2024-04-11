@@ -8,7 +8,39 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.3.0 - April 10 2024
+
 #### Added
+
+- The ReSim CLI now has full support for creating and managing **systems** :rocket:
+  - A System, described in detail at [ReSim Docs](https://docs.resim.ai), provides a way to 
+  categorize builds based on what subsystem or testing style they may be e.g. perception 
+  log replay, localization closed loop, full-stack. Eeach build belongs to a given 
+  system and systems define the resource requirements needed to run that particular 
+  build. 
+
+  In addition, users are encouraged to explicitly label *experiences* and *metrics builds* 
+  as compatible with a given system, which enables the ReSim platform to validate test 
+  batches before they run. For maximum flexibility in experiences and metrics builds, we
+  enable them to be registered against many systems.
+
+  - A system can be created within the CLI as follows:
+  ```shell
+    resim systems create --project "autonomy-stack" --name "perception" \
+    --description "The perception subsystem of our autonomy stack" \
+    --build-vcpus 4 --build-memory-mib 16384 --build-gpus 0
+  ```
+  - Build creation now **requires** a `--system "my-system"` flag.
+  - One can list the builds for that system: `resim systems builds --project "autonomy-stack" --system "my-system"`
+  - One can similarly list the experiences or metrics builds compatible with that system:
+  ```shell
+    resim systems experiences --project "autonomy-stack" --system "my-system"
+    resim systems metrics-builds --project "autonomy-stack" --system "my-system"
+  ```
+  - When creating a new experience or metrics build, one can pass a `--systems "my-first-system", "my-second-system"` 
+  flag to express compatibility. For ad-hoc additions, removes, we offer `resim experiences add-system`
+  and `resim experiences remove-system`.
+  - In future releases, `resim batches create` will validate compatibility of the test batch you intend to create.
 
 - Cancellation - we introduce a cancel command which cancels a batch. Cancellation impacts any queued tests and lets actively running tests finish.
 ### v0.2.1 - March 26 2024

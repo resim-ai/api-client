@@ -52,6 +52,8 @@ const (
 	ExpectError   bool   = true
 )
 
+var EmptySlice []string = []string{}
+
 type CliConfig struct {
 	AuthKeyProviderDomain string
 	ApiEndpoint           string
@@ -736,7 +738,7 @@ func (s *EndToEndTestSuite) listBuilds(projectID uuid.UUID, branchName *string, 
 	return []CommandBuilder{buildCommand, listCommand}
 }
 
-func (s *EndToEndTestSuite) createMetricsBuild(projectID uuid.UUID, name string, image string, version string, github bool) []CommandBuilder {
+func (s *EndToEndTestSuite) createMetricsBuild(projectID uuid.UUID, name string, image string, version string, systems []string, github bool) []CommandBuilder {
 	// Now create the metrics build:
 	metricsBuildCommand := CommandBuilder{
 		Command: "metrics-builds",
@@ -761,6 +763,12 @@ func (s *EndToEndTestSuite) createMetricsBuild(projectID uuid.UUID, name string,
 				Value: version,
 			},
 		},
+	}
+	for _, system := range systems {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--systems",
+			Value: system,
+		})
 	}
 	if github {
 		createCommand.Flags = append(createCommand.Flags, Flag{
@@ -787,7 +795,7 @@ func (s *EndToEndTestSuite) listMetricsBuilds(projectID uuid.UUID) []CommandBuil
 	return []CommandBuilder{metricsBuildsCommand, listCommand}
 }
 
-func (s *EndToEndTestSuite) createExperience(projectID uuid.UUID, name string, description string, location string, github bool) []CommandBuilder {
+func (s *EndToEndTestSuite) createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, github bool) []CommandBuilder {
 	// We build a create experience command with the name, description, location flags
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
@@ -812,6 +820,12 @@ func (s *EndToEndTestSuite) createExperience(projectID uuid.UUID, name string, d
 				Value: location,
 			},
 		},
+	}
+	for _, system := range systems {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--systems",
+			Value: system,
+		})
 	}
 	if github {
 		createCommand.Flags = append(createCommand.Flags, Flag{
@@ -1643,13 +1657,13 @@ func (s *EndToEndTestSuite) TestSystems() {
 
 	// Create and tag a couple of experiences:
 	experience1Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(s.createExperience(projectID, experience1Name, "description", "location", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experience1Name, "description", "location", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience1IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experience1IDString)
 	experience2Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(s.createExperience(projectID, experience2Name, "description", "location", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experience2Name, "description", "location", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience2IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -1705,13 +1719,13 @@ func (s *EndToEndTestSuite) TestSystems() {
 
 	// Create and tag a couple of metrics builds:
 	metricsBuild1Name := fmt.Sprintf("test-metrics-build-%s", uuid.New().String())
-	output = s.runCommand(s.createMetricsBuild(projectID, metricsBuild1Name, "public.ecr.aws/docker/library/hello-world:latest", "0.0.1", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild(projectID, metricsBuild1Name, "public.ecr.aws/docker/library/hello-world:latest", "0.0.1", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the metrics build ID as a UUID
 	metricsBuild1IDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
 	uuid.MustParse(metricsBuild1IDString)
 	metricsBuild2Name := fmt.Sprintf("test-metrics-build-%s", uuid.New().String())
-	output = s.runCommand(s.createMetricsBuild(projectID, metricsBuild2Name, "public.ecr.aws/docker/library/hello-world:latest", "0.0.2", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild(projectID, metricsBuild2Name, "public.ecr.aws/docker/library/hello-world:latest", "0.0.2", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the metrics build ID as a UUID
 	metricsBuild2IDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
@@ -1995,22 +2009,44 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
 	projectID := uuid.MustParse(projectIDString)
 
+	// Create two systems to add as part of the experience creation:
+	systemName1 := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(s.createSystem(projectIDString, systemName1, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString1 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString1)
+	systemName2 := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(s.createSystem(projectIDString, systemName2, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString2 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString2)
+
+	systemNames := []string{systemName1, systemName2}
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(s.createExperience(projectID, experienceName, "description", "location", GithubFalse), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName, "description", "location", systemNames, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedExperience)
 	s.Empty(output.StdErr)
+
+	// Validate that the experience is available for each system:
+	for _, systemName := range systemNames {
+		output = s.runCommand(s.systemExperiences(projectIDString, systemName), ExpectNoError)
+		s.Contains(output.StdOut, experienceName)
+	}
+
 	// Validate we cannot create experiences without values for the required flags:
-	output = s.runCommand(s.createExperience(projectID, "", "description", "location", GithubFalse), ExpectError)
+	output = s.runCommand(s.createExperience(projectID, "", "description", "location", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceName)
-	output = s.runCommand(s.createExperience(projectID, experienceName, "", "location", GithubFalse), ExpectError)
+	output = s.runCommand(s.createExperience(projectID, experienceName, "", "location", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceDescription)
-	output = s.runCommand(s.createExperience(projectID, experienceName, "description", "", GithubFalse), ExpectError)
+	output = s.runCommand(s.createExperience(projectID, experienceName, "description", "", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceLocation)
 	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
 
 	// Test creating an experience with the launch profile flag:
 	launchProfileID := uuid.New().String()
-	experienceCommand := s.createExperience(projectID, experienceName, "description", "location", GithubFalse)
+	experienceCommand := s.createExperience(projectID, experienceName, "description", "location", EmptySlice, GithubFalse)
 	experienceCommand[1].Flags = append(experienceCommand[1].Flags, Flag{
 		Name:  "--launch-profile",
 		Value: launchProfileID,
@@ -2031,7 +2067,7 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	projectID := uuid.MustParse(projectIDString)
 
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(s.createExperience(projectID, experienceName, "description", "location", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName, "description", "location", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -2053,7 +2089,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// First create two experiences:
 	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(s.createExperience(projectID, experienceName1, "description", experienceLocation, GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2061,7 +2097,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(s.createExperience(projectID, experienceName2, "description", experienceLocation, GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2094,7 +2130,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 
 	// Create a metrics build:
-	output = s.runCommand(s.createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the build ID as a UUID
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
@@ -2382,7 +2418,7 @@ func (s *EndToEndTestSuite) TestCancelBatch() {
 	// create an experiences:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(s.createExperience(projectID, experienceName, "description", experienceLocation, GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2468,7 +2504,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// First create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(s.createExperience(projectID, experienceName, "description", experienceLocation, GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2500,7 +2536,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 
 	// Create a metrics build:
-	output = s.runCommand(s.createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the build ID as a UUID
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
@@ -2570,7 +2606,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// create two experiences:
 	experienceName1 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(s.createExperience(projectID, experienceName1, "description", experienceLocation, GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2578,7 +2614,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
-	output = s.runCommand(s.createExperience(projectID, experienceName2, "description", experienceLocation, GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2611,7 +2647,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
 
 	// Create a metrics build:
-	output = s.runCommand(s.createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
 	// We expect to be able to parse the build ID as a UUID
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
@@ -2782,17 +2818,38 @@ func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
 	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
 	projectID := uuid.MustParse(projectIDString)
 
-	output = s.runCommand(s.createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse), ExpectNoError)
+	// Create two systems to add as part of the experience creation:
+	systemName1 := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(s.createSystem(projectIDString, systemName1, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString1 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString1)
+	systemName2 := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(s.createSystem(projectIDString, systemName2, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString2 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString2)
+
+	systemNames := []string{systemName1, systemName2}
+	metricsBuildName := fmt.Sprintf("metrics-build-%s", uuid.New().String())
+	output = s.runCommand(s.createMetricsBuild(projectID, metricsBuildName, "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", systemNames, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedMetricsBuild)
 	s.Empty(output.StdErr)
+	// Validate that the metrics build is available for each system:
+	for _, systemName := range systemNames {
+		output = s.runCommand(s.systemMetricsBuilds(projectIDString, systemName), ExpectNoError)
+		s.Contains(output.StdOut, metricsBuildName)
+	}
 	// Verify that each of the required flags are required:
-	output = s.runCommand(s.createMetricsBuild(projectID, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse), ExpectError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildName)
-	output = s.runCommand(s.createMetricsBuild(projectID, "name", "", "1.0.0", GithubFalse), ExpectError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "name", "", "1.0.0", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildImage)
-	output = s.runCommand(s.createMetricsBuild(projectID, "name", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse), ExpectError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "name", "public.ecr.aws/docker/library/hello-world:latest", "", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildVersion)
-	output = s.runCommand(s.createMetricsBuild(projectID, "name", "public.ecr.aws/docker/library/hello-world", "1.1.1", GithubFalse), ExpectError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "name", "public.ecr.aws/docker/library/hello-world", "1.1.1", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidMetricsBuildImage)
 
 }
@@ -2807,7 +2864,7 @@ func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
 	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
 	projectID := uuid.MustParse(projectIDString)
 
-	output = s.runCommand(s.createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue), ExpectNoError)
+	output = s.runCommand(s.createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubTrue), ExpectNoError)
 	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
 	uuid.MustParse(metricsBuildIDString)
 

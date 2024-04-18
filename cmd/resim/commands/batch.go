@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/manifoldco/promptui"
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
@@ -143,6 +145,9 @@ func init() {
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {
+	metricsBuildCompatible := true
+	incompatibleExperienceNames := []string{}
+
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	batchGithub := viper.GetBool(batchGithubKey)
 	if !batchGithub {
@@ -154,6 +159,14 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	if err != nil || buildID == uuid.Nil {
 		log.Fatal("failed to parse build ID: ", err)
 	}
+
+	// Obtain the system:
+	build := actualGetBuild(projectID, buildID)
+	if build.SystemID == nil {
+		log.Fatal("empty system ID")
+	}
+	system := actualGetSystem(projectID, *build.SystemID)
+	systemID := *system.SystemID
 
 	var allExperienceIDs []uuid.UUID
 	var allExperienceNames []string
@@ -177,6 +190,8 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to parse metrics-build ID: ", err)
 		}
+		fmt.Println("Checking the compatiblity")
+		metricsBuildCompatible = checkSystemMetricsBuildCompatibility(projectID, systemID, metricsBuildID)
 	}
 
 	if viper.IsSet(batchExperienceTagIDsKey) && viper.IsSet(batchExperienceTagNamesKey) {
@@ -221,6 +236,35 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	compatibleExperiences := getCompatibleExperiences(projectID, systemID)
+	// Validate the experience ID list
+	for _, experienceID := range allExperienceIDs {
+		found := false
+		for _, compatibleExperience := range compatibleExperiences {
+			if *compatibleExperience.ExperienceID == experienceID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missingExperience := actualGetExperience(projectID, experienceID)
+			incompatibleExperienceNames = append(incompatibleExperienceNames, *missingExperience.Name)
+		}
+	}
+	// Validate the experience name list:
+	for _, experienceName := range allExperienceNames {
+		found := false
+		for _, compatibleExperience := range compatibleExperiences {
+			if *compatibleExperience.Name == experienceName {
+				found = true
+				break
+			}
+		}
+		if !found {
+			incompatibleExperienceNames = append(incompatibleExperienceNames, experienceName)
+		}
+	}
+
 	// Build the request body
 	body := api.BatchInput{
 		BuildID:    &buildID,
@@ -247,6 +291,29 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		body.MetricsBuildID = &metricsBuildID
 	}
 
+	if !batchGithub {
+		// If the metrics build is incompatible or there are incompatible experiences, prompt the user:
+		if !metricsBuildCompatible {
+			wordPromptContent := promptContent{
+				"Please choose either Y/n.",
+				"The metrics build you have chosen is not registered as compatible with the build. Are you sure you want to continue? [Y/n]",
+			}
+			word := promptGetInput(wordPromptContent)
+			if word == "n" {
+				log.Fatal("Batch not created, due to incompatible metrics build")
+			}
+		}
+		if len(incompatibleExperienceNames) > 0 {
+			wordPromptContent := promptContent{
+				"Please choose either Y/n.",
+				fmt.Sprintf("The following experience(s) are not compatible with the system:\n %v. Are you sure you want to continue? [Y/n]", incompatibleExperienceNames),
+			}
+			word := promptGetInput(wordPromptContent)
+			if word == "n" {
+				log.Fatal("Batch not created, due to incompatible experiences")
+			}
+		}
+	}
 	// Make the request
 	response, err := Client.CreateBatchWithResponse(context.Background(), projectID, body)
 	if err != nil {
@@ -485,4 +552,99 @@ func cancelBatch(ccmd *cobra.Command, args []string) {
 	}
 	ValidateResponse(http.StatusOK, "failed to cancel batch", response.HTTPResponse, response.Body)
 	fmt.Println("Batch cancelled successfully!")
+}
+
+// Helpers
+func checkSystemMetricsBuildCompatibility(projectID uuid.UUID, systemID uuid.UUID, metricsBuildID uuid.UUID) bool {
+	found := false
+	var pageToken *string = nil
+pageLoop:
+	for {
+		// Check if the metrics build is compatible with the system
+		response, err := Client.GetSystemsForMetricsBuildWithResponse(context.Background(), projectID, metricsBuildID, &api.GetSystemsForMetricsBuildParams{
+			PageSize:  Ptr(100),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("failed to list systems for metrics build:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list systems for metrics build", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response when listing systems for metrics build")
+		}
+		pageToken = response.JSON200.NextPageToken
+		systems := *response.JSON200.Systems
+		for _, s := range systems {
+			if *s.SystemID == systemID {
+				found = true
+				break pageLoop
+			}
+		}
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	return found
+}
+
+func getCompatibleExperiences(projectID uuid.UUID, systemID uuid.UUID) []api.Experience {
+	var pageToken *string = nil
+	var compatibleExperiences []api.Experience
+	for {
+		// Page through the applicable experiecnes
+		response, err := Client.ListExperiencesForSystemWithResponse(context.Background(), projectID, systemID, &api.ListExperiencesForSystemParams{
+			PageSize:  Ptr(100),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("failed to list experiences for system:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list experiences for system", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response when listing experiences for system")
+		}
+		pageToken = response.JSON200.NextPageToken
+		compatibleExperiences = append(compatibleExperiences, *response.JSON200.Experiences...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	return compatibleExperiences
+}
+
+type promptContent struct {
+	errorMsg string
+	label    string
+}
+
+func promptGetInput(pc promptContent) string {
+	validate := func(input string) error {
+		if input != "Y" && input != "n" {
+			return errors.New(pc.errorMsg)
+		}
+		return nil
+	}
+
+	templates := &promptui.PromptTemplates{
+		Prompt:  "{{ . }} ",
+		Valid:   "{{ . | green }} ",
+		Invalid: "{{ . | red }} ",
+		Success: "{{ . | bold }} ",
+	}
+
+	prompt := promptui.Prompt{
+		Label:     pc.label,
+		Templates: templates,
+		Validate:  validate,
+	}
+
+	result, err := prompt.Run()
+	if err != nil {
+		fmt.Printf("Prompt failed %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Input: %s\n", result)
+
+	return result
 }

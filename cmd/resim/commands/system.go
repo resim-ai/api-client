@@ -139,23 +139,27 @@ func init() {
 }
 
 func getSystem(ccmd *cobra.Command, args []string) {
-	var system *api.System
+	var system api.System
 	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
 	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
+	system = actualGetSystem(projectID, systemID)
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", " ")
+	enc.Encode(system)
+}
+
+func actualGetSystem(projectID uuid.UUID, systemID uuid.UUID) api.System {
 	response, err := Client.GetSystemWithResponse(context.Background(), projectID, systemID)
 	if err != nil {
 		log.Fatal("unable to retrieve system:", err)
 	}
 	if response.HTTPResponse.StatusCode == http.StatusNotFound {
-		log.Fatal("failed to find system with requested id: ", projectID.String())
+		log.Fatal("failed to find system with requested id: ", systemID.String())
 	} else {
 		ValidateResponse(http.StatusOK, "unable to retrieve system", response.HTTPResponse, response.Body)
 	}
-	system = response.JSON200
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
-	enc.Encode(system)
+	return *response.JSON200
 }
 
 func listSystems(cmd *cobra.Command, args []string) {

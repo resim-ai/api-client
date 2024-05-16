@@ -108,6 +108,7 @@ const (
 type Batch struct {
 	BatchID                      *BatchID                `json:"batchID,omitempty"`
 	BatchMetricsStatus           *MetricStatus           `json:"batchMetricsStatus,omitempty"`
+	BranchID                     *BranchID               `json:"branchID,omitempty"`
 	BuildID                      *BuildID                `json:"buildID,omitempty"`
 	CreationTimestamp            *Timestamp              `json:"creationTimestamp,omitempty"`
 	FriendlyName                 *FriendlyName           `json:"friendlyName,omitempty"`
@@ -125,6 +126,8 @@ type Batch struct {
 	Status                       *BatchStatus            `json:"status,omitempty"`
 	StatusHistory                *BatchStatusHistory     `json:"statusHistory,omitempty"`
 	SystemID                     *SystemID               `json:"systemID,omitempty"`
+	TestSuiteID                  *TestSuiteID            `json:"testSuiteID,omitempty"`
+	TestSuiteRevision            *TestSuiteRevision      `json:"testSuiteRevision,omitempty"`
 	TotalJobs                    *BatchTotalJobs         `json:"totalJobs,omitempty"`
 	UserID                       *UserID                 `json:"userID,omitempty"`
 }
@@ -210,6 +213,17 @@ type BatchMetricsDataToBatchMetric struct {
 	BatchMetricsDataIDs *[]MetricsDataID `json:"batchMetricsDataIDs,omitempty"`
 }
 
+// BatchObjectDescription defines model for batchObjectDescription.
+type BatchObjectDescription struct {
+	BuildBranchName     *string   `json:"buildBranchName,omitempty"`
+	BuildVersion        *string   `json:"buildVersion,omitempty"`
+	ExperienceNames     *[]string `json:"experienceNames,omitempty"`
+	ExperienceTagNames  *[]string `json:"experienceTagNames,omitempty"`
+	MetricsBuildName    *string   `json:"metricsBuildName,omitempty"`
+	MetricsBuildVersion *string   `json:"metricsBuildVersion,omitempty"`
+	ProjectName         *string   `json:"projectName,omitempty"`
+}
+
 // BatchParameters defines model for batchParameters.
 type BatchParameters map[string]string
 
@@ -230,17 +244,24 @@ type BatchTotalJobs = int
 
 // Branch defines model for branch.
 type Branch struct {
-	BranchID          *BranchID   `json:"branchID,omitempty"`
-	BranchType        *BranchType `json:"branchType,omitempty"`
-	CreationTimestamp *Timestamp  `json:"creationTimestamp,omitempty"`
-	Name              *string     `json:"name,omitempty"`
-	OrgID             *OrgID      `json:"orgID,omitempty"`
-	ProjectID         *ProjectID  `json:"projectID,omitempty"`
-	UserID            *UserID     `json:"userID,omitempty"`
+	BranchID          BranchID   `json:"branchID"`
+	BranchType        BranchType `json:"branchType"`
+	CreationTimestamp Timestamp  `json:"creationTimestamp"`
+	Name              string     `json:"name"`
+	OrgID             OrgID      `json:"orgID"`
+	ProjectID         ProjectID  `json:"projectID"`
+	UserID            UserID     `json:"userID"`
 }
 
 // BranchID defines model for branchID.
 type BranchID = openapi_types.UUID
+
+// BranchObjectDescription defines model for branchObjectDescription.
+type BranchObjectDescription struct {
+	Name        *string     `json:"name,omitempty"`
+	ProjectName *string     `json:"projectName,omitempty"`
+	Type        *BranchType `json:"type,omitempty"`
+}
 
 // BranchType defines model for branchType.
 type BranchType string
@@ -268,35 +289,102 @@ type BuildID = openapi_types.UUID
 // BuildImageUri defines model for buildImageUri.
 type BuildImageUri = string
 
+// BuildObjectDescription defines model for buildObjectDescription.
+type BuildObjectDescription struct {
+	BranchName  *string `json:"branchName,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Image       *string `json:"image,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
+	SystemName  *string `json:"systemName,omitempty"`
+	Version     *string `json:"version,omitempty"`
+}
+
 // BuildVersion defines model for buildVersion.
 type BuildVersion = string
 
 // Checksum defines model for checksum.
 type Checksum = string
 
+// CreateBranchInput defines model for createBranchInput.
+type CreateBranchInput struct {
+	BranchType BranchType `json:"branchType"`
+	Name       string     `json:"name"`
+}
+
+// CreateBuildInput defines model for createBuildInput.
+type CreateBuildInput struct {
+	Description *BuildDescription `json:"description,omitempty"`
+	ImageUri    BuildImageUri     `json:"imageUri"`
+	SystemID    SystemID          `json:"systemID"`
+	Version     BuildVersion      `json:"version"`
+}
+
+// CreateExperienceInput defines model for createExperienceInput.
+type CreateExperienceInput struct {
+	Description string         `json:"description"`
+	Location    string         `json:"location"`
+	Name        ExperienceName `json:"name"`
+}
+
+// CreateExperienceTagInput defines model for createExperienceTagInput.
+type CreateExperienceTagInput struct {
+	Description string            `json:"description"`
+	Name        ExperienceTagName `json:"name"`
+}
+
+// CreateMetricsBuildInput defines model for createMetricsBuildInput.
+type CreateMetricsBuildInput struct {
+	ImageUri MetricsBuildImageUri `json:"imageUri"`
+	Name     MetricsBuildName     `json:"name"`
+	Version  MetricsBuildVersion  `json:"version"`
+}
+
+// CreateProjectInput defines model for createProjectInput.
+type CreateProjectInput struct {
+	Description string `json:"description"`
+	Name        string `json:"name"`
+}
+
+// CreateSystemInput defines model for createSystemInput.
+type CreateSystemInput struct {
+	BuildGpus                  int    `json:"build_gpus"`
+	BuildMemoryMib             int    `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int    `json:"build_shared_memory_mb"`
+	BuildVcpus                 int    `json:"build_vcpus"`
+	Description                string `json:"description"`
+	MetricsBuildGpus           int    `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int    `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int    `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int    `json:"metrics_build_vcpus"`
+	Name                       string `json:"name"`
+}
+
+// CreateTestSuiteInput defines model for createTestSuiteInput.
+type CreateTestSuiteInput struct {
+	Description    TestSuiteDescription `json:"description"`
+	Experiences    []ExperienceID       `json:"experiences"`
+	MetricsBuildID *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Name           TestSuiteName        `json:"name"`
+	SystemID       SystemID             `json:"systemID"`
+}
+
 // ExecutionStep defines model for executionStep.
 type ExecutionStep string
 
 // Experience defines model for experience.
 type Experience struct {
-	CreationTimestamp *Timestamp      `json:"creationTimestamp,omitempty"`
-	Description       *string         `json:"description,omitempty"`
-	ExperienceID      *ExperienceID   `json:"experienceID,omitempty"`
-	Location          *string         `json:"location,omitempty"`
-	Name              *ExperienceName `json:"name,omitempty"`
-	OrgID             *OrgID          `json:"orgID,omitempty"`
-	ProjectID         *ProjectID      `json:"projectID,omitempty"`
-	UserID            *UserID         `json:"userID,omitempty"`
+	CreationTimestamp Timestamp      `json:"creationTimestamp"`
+	Description       string         `json:"description"`
+	ExperienceID      ExperienceID   `json:"experienceID"`
+	Location          string         `json:"location"`
+	Name              ExperienceName `json:"name"`
+	OrgID             OrgID          `json:"orgID"`
+	ProjectID         ProjectID      `json:"projectID"`
+	UserID            UserID         `json:"userID"`
 }
 
 // ExperienceID defines model for experienceID.
 type ExperienceID = openapi_types.UUID
-
-// ExperienceInput defines model for experienceInput.
-type ExperienceInput struct {
-	Experience *Experience `json:"experience,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
-}
 
 // ExperienceLocation defines model for experienceLocation.
 type ExperienceLocation struct {
@@ -312,28 +400,38 @@ type ExperienceLocationContents struct {
 // ExperienceName defines model for experienceName.
 type ExperienceName = string
 
+// ExperienceObjectDescription defines model for experienceObjectDescription.
+type ExperienceObjectDescription struct {
+	Description *string   `json:"description,omitempty"`
+	Location    *string   `json:"location,omitempty"`
+	Name        *string   `json:"name,omitempty"`
+	ProjectName *string   `json:"projectName,omitempty"`
+	Tags        *[]string `json:"tags,omitempty"`
+}
+
 // ExperienceTag defines model for experienceTag.
 type ExperienceTag struct {
-	CreationTimestamp *Timestamp         `json:"creationTimestamp,omitempty"`
-	Description       *string            `json:"description,omitempty"`
-	ExperienceTagID   *ExperienceTagID   `json:"experienceTagID,omitempty"`
-	Name              *ExperienceTagName `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	CreationTimestamp Timestamp         `json:"creationTimestamp"`
+	Description       string            `json:"description"`
+	ExperienceTagID   ExperienceTagID   `json:"experienceTagID"`
+	Name              ExperienceTagName `json:"name"`
+	OrgID             OrgID             `json:"orgID"`
+	ProjectID         ProjectID         `json:"projectID"`
+	UserID            UserID            `json:"userID"`
 }
 
 // ExperienceTagID defines model for experienceTagID.
 type ExperienceTagID = openapi_types.UUID
 
-// ExperienceTagInput defines model for experienceTagInput.
-type ExperienceTagInput struct {
-	ExperienceTag *ExperienceTag `json:"experienceTag,omitempty"`
-	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
-}
-
 // ExperienceTagName defines model for experienceTagName.
 type ExperienceTagName = string
+
+// ExperienceTagObjectDescription defines model for experienceTagObjectDescription.
+type ExperienceTagObjectDescription struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
+}
 
 // FileName defines model for fileName.
 type FileName = string
@@ -347,6 +445,7 @@ type FriendlyName = string
 // Job defines model for job.
 type Job struct {
 	BatchID              *BatchID          `json:"batchID,omitempty"`
+	BranchID             *BranchID         `json:"branchID,omitempty"`
 	BuildID              *BuildID          `json:"buildID,omitempty"`
 	CreationTimestamp    *Timestamp        `json:"creationTimestamp,omitempty"`
 	ExperienceID         *ExperienceID     `json:"experienceID,omitempty"`
@@ -360,6 +459,7 @@ type Job struct {
 	Parameters           *BatchParameters  `json:"parameters,omitempty"`
 	ProjectID            *ProjectID        `json:"projectID,omitempty"`
 	StatusHistory        *JobStatusHistory `json:"statusHistory,omitempty"`
+	SystemID             *SystemID         `json:"systemID,omitempty"`
 	UserID               *UserID           `json:"userID,omitempty"`
 }
 
@@ -434,6 +534,12 @@ type JobStatusHistoryType struct {
 
 // LineNumber defines model for lineNumber.
 type LineNumber = int32
+
+// ListAllJobsOutput defines model for listAllJobsOutput.
+type ListAllJobsOutput struct {
+	Jobs          *[]Job  `json:"jobs,omitempty"`
+	NextPageToken *string `json:"nextPageToken,omitempty"`
+}
 
 // ListBatchLogsOutput defines model for listBatchLogsOutput.
 type ListBatchLogsOutput struct {
@@ -543,6 +649,12 @@ type ListSystemsOutput struct {
 	Systems       *[]System `json:"systems,omitempty"`
 }
 
+// ListTestSuiteOutput defines model for listTestSuiteOutput.
+type ListTestSuiteOutput struct {
+	NextPageToken *string      `json:"nextPageToken,omitempty"`
+	TestSuites    *[]TestSuite `json:"testSuites,omitempty"`
+}
+
 // ListViewObjectsOutput defines model for listViewObjectsOutput.
 type ListViewObjectsOutput struct {
 	NextPageToken *string       `json:"nextPageToken,omitempty"`
@@ -620,14 +732,14 @@ type MetricValue = float64
 
 // MetricsBuild defines model for metricsBuild.
 type MetricsBuild struct {
-	CreationTimestamp *Timestamp            `json:"creationTimestamp,omitempty"`
-	ImageUri          *MetricsBuildImageUri `json:"imageUri,omitempty"`
-	MetricsBuildID    *MetricsBuildID       `json:"metricsBuildID,omitempty"`
-	Name              *MetricsBuildName     `json:"name,omitempty"`
-	OrgID             *OrgID                `json:"orgID,omitempty"`
-	ProjectID         *ProjectID            `json:"projectID,omitempty"`
-	UserID            *UserID               `json:"userID,omitempty"`
-	Version           *MetricsBuildVersion  `json:"version,omitempty"`
+	CreationTimestamp Timestamp            `json:"creationTimestamp"`
+	ImageUri          MetricsBuildImageUri `json:"imageUri"`
+	MetricsBuildID    MetricsBuildID       `json:"metricsBuildID"`
+	Name              MetricsBuildName     `json:"name"`
+	OrgID             OrgID                `json:"orgID"`
+	ProjectID         ProjectID            `json:"projectID"`
+	UserID            UserID               `json:"userID"`
+	Version           MetricsBuildVersion  `json:"version"`
 }
 
 // MetricsBuildID defines model for metricsBuildID.
@@ -638,6 +750,14 @@ type MetricsBuildImageUri = string
 
 // MetricsBuildName defines model for metricsBuildName.
 type MetricsBuildName = string
+
+// MetricsBuildObjectDescription defines model for metricsBuildObjectDescription.
+type MetricsBuildObjectDescription struct {
+	Image       *string `json:"image,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
+	Version     *string `json:"version,omitempty"`
+}
 
 // MetricsBuildVersion defines model for metricsBuildVersion.
 type MetricsBuildVersion = string
@@ -723,27 +843,64 @@ type ParameterSweepStatusHistoryType struct {
 
 // Project defines model for project.
 type Project struct {
-	CreationTimestamp *Timestamp `json:"creationTimestamp,omitempty"`
-	Description       *string    `json:"description,omitempty"`
-	Name              *string    `json:"name,omitempty"`
-	OrgID             *OrgID     `json:"orgID,omitempty"`
-	ProjectID         *ProjectID `json:"projectID,omitempty"`
-	UserID            *UserID    `json:"userID,omitempty"`
+	CreationTimestamp Timestamp `json:"creationTimestamp"`
+	Description       string    `json:"description"`
+	Name              string    `json:"name"`
+	OrgID             OrgID     `json:"orgID"`
+	ProjectID         ProjectID `json:"projectID"`
+	UserID            UserID    `json:"userID"`
 }
 
 // ProjectID defines model for projectID.
 type ProjectID = openapi_types.UUID
 
-// ProjectUpdateInput defines model for projectUpdateInput.
-type ProjectUpdateInput struct {
-	Project    *Project    `json:"project,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
+// ProjectObjectDescription defines model for projectObjectDescription.
+type ProjectObjectDescription struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
+// ReviseTestSuiteInput defines model for reviseTestSuiteInput.
+type ReviseTestSuiteInput struct {
+	Adhoc              *bool                 `json:"adhoc,omitempty"`
+	Description        *TestSuiteDescription `json:"description,omitempty"`
+	Experiences        *[]ExperienceID       `json:"experiences,omitempty"`
+	MetricsBuildID     *MetricsBuildID       `json:"metricsBuildID,omitempty"`
+	Name               *TestSuiteName        `json:"name,omitempty"`
+	SystemID           *SystemID             `json:"systemID,omitempty"`
+	UpdateMetricsBuild bool                  `json:"updateMetricsBuild"`
 }
 
 // SandboxInput defines model for sandboxInput.
 type SandboxInput struct {
-	OrgID  *string `json:"orgID,omitempty"`
-	UserID *string `json:"userID,omitempty"`
+	OrgID                *string               `json:"orgID,omitempty"`
+	SandboxSpecification *SandboxSpecification `json:"sandboxSpecification,omitempty"`
+	UserID               *string               `json:"userID,omitempty"`
+}
+
+// SandboxSpecification defines model for sandboxSpecification.
+type SandboxSpecification struct {
+	Batches        *[]BatchObjectDescription         `json:"batches,omitempty"`
+	Branches       *[]BranchObjectDescription        `json:"branches,omitempty"`
+	Builds         *[]BuildObjectDescription         `json:"builds,omitempty"`
+	ExperienceTags *[]ExperienceTagObjectDescription `json:"experienceTags,omitempty"`
+	Experiences    *[]ExperienceObjectDescription    `json:"experiences,omitempty"`
+	MetricsBuilds  *[]MetricsBuildObjectDescription  `json:"metricsBuilds,omitempty"`
+	Projects       *[]ProjectObjectDescription       `json:"projects,omitempty"`
+	Sweeps         *[]SweepObjectDescription         `json:"sweeps,omitempty"`
+	Systems        *[]SystemObjectDescription        `json:"systems,omitempty"`
+}
+
+// SweepObjectDescription defines model for sweepObjectDescription.
+type SweepObjectDescription struct {
+	BuildBranchName     *string           `json:"buildBranchName,omitempty"`
+	BuildVersion        *string           `json:"buildVersion,omitempty"`
+	ExperienceNames     *[]string         `json:"experienceNames,omitempty"`
+	ExperienceTagNames  *[]string         `json:"experienceTagNames,omitempty"`
+	MetricsBuildName    *string           `json:"metricsBuildName,omitempty"`
+	MetricsBuildVersion *string           `json:"metricsBuildVersion,omitempty"`
+	Parameters          *[]SweepParameter `json:"parameters,omitempty"`
+	ProjectName         *string           `json:"projectName,omitempty"`
 }
 
 // SweepParameter defines model for sweepParameter.
@@ -754,37 +911,128 @@ type SweepParameter struct {
 
 // System defines model for system.
 type System struct {
-	BuildGpus                  *int       `json:"build_gpus,omitempty"`
-	BuildMemoryMib             *int       `json:"build_memory_mib,omitempty"`
-	BuildSharedMemoryMb        *int       `json:"build_shared_memory_mb,omitempty"`
-	BuildVcpus                 *int       `json:"build_vcpus,omitempty"`
-	CreationTimestamp          *Timestamp `json:"creationTimestamp,omitempty"`
-	Description                *string    `json:"description,omitempty"`
-	MetricsBuildGpus           *int       `json:"metrics_build_gpus,omitempty"`
-	MetricsBuildMemoryMib      *int       `json:"metrics_build_memory_mib,omitempty"`
-	MetricsBuildSharedMemoryMb *int       `json:"metrics_build_shared_memory_mb,omitempty"`
-	MetricsBuildVcpus          *int       `json:"metrics_build_vcpus,omitempty"`
-	Name                       *string    `json:"name,omitempty"`
-	OrgID                      *OrgID     `json:"orgID,omitempty"`
-	ProjectID                  *ProjectID `json:"projectID,omitempty"`
-	SystemID                   *SystemID  `json:"systemID,omitempty"`
-	UserID                     *UserID    `json:"userID,omitempty"`
+	BuildGpus                  int       `json:"build_gpus"`
+	BuildMemoryMib             int       `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int       `json:"build_shared_memory_mb"`
+	BuildVcpus                 int       `json:"build_vcpus"`
+	CreationTimestamp          Timestamp `json:"creationTimestamp"`
+	Description                string    `json:"description"`
+	MetricsBuildGpus           int       `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int       `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int       `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int       `json:"metrics_build_vcpus"`
+	Name                       string    `json:"name"`
+	OrgID                      OrgID     `json:"orgID"`
+	ProjectID                  ProjectID `json:"projectID"`
+	SystemID                   SystemID  `json:"systemID"`
+	UserID                     UserID    `json:"userID"`
 }
 
 // SystemID defines model for systemID.
 type SystemID = openapi_types.UUID
 
-// SystemInput defines model for systemInput.
-type SystemInput struct {
-	System     *System     `json:"system,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
+// SystemObjectDescription defines model for systemObjectDescription.
+type SystemObjectDescription struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
 }
+
+// TestSuite defines model for testSuite.
+type TestSuite struct {
+	CreationTimestamp Timestamp            `json:"creationTimestamp"`
+	Description       TestSuiteDescription `json:"description"`
+	Experiences       []ExperienceID       `json:"experiences"`
+	MetricsBuildID    *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Name              TestSuiteName        `json:"name"`
+	OrgID             OrgID                `json:"orgID"`
+	ProjectID         ProjectID            `json:"projectID"`
+	SystemID          SystemID             `json:"systemID"`
+	TestSuiteID       TestSuiteID          `json:"testSuiteID"`
+	TestSuiteRevision TestSuiteRevision    `json:"testSuiteRevision"`
+	UserID            UserID               `json:"userID"`
+}
+
+// TestSuiteBatchInput defines model for testSuiteBatchInput.
+type TestSuiteBatchInput struct {
+	BuildID    BuildID          `json:"buildID"`
+	Parameters *BatchParameters `json:"parameters,omitempty"`
+}
+
+// TestSuiteDescription defines model for testSuiteDescription.
+type TestSuiteDescription = string
+
+// TestSuiteID defines model for testSuiteID.
+type TestSuiteID = openapi_types.UUID
+
+// TestSuiteName defines model for testSuiteName.
+type TestSuiteName = string
+
+// TestSuiteRevision defines model for testSuiteRevision.
+type TestSuiteRevision = int32
 
 // Timestamp defines model for timestamp.
 type Timestamp = time.Time
 
+// UpdateExperienceFields defines model for updateExperienceFields.
+type UpdateExperienceFields struct {
+	Description *string         `json:"description,omitempty"`
+	Location    *string         `json:"location,omitempty"`
+	Name        *ExperienceName `json:"name,omitempty"`
+}
+
+// UpdateExperienceInput defines model for updateExperienceInput.
+type UpdateExperienceInput struct {
+	Experience *UpdateExperienceFields `json:"experience,omitempty"`
+	UpdateMask *UpdateMask             `json:"updateMask,omitempty"`
+}
+
+// UpdateExperienceTagFields defines model for updateExperienceTagFields.
+type UpdateExperienceTagFields struct {
+	Description *string            `json:"description,omitempty"`
+	Name        *ExperienceTagName `json:"name,omitempty"`
+}
+
+// UpdateExperienceTagInput defines model for updateExperienceTagInput.
+type UpdateExperienceTagInput struct {
+	ExperienceTag *UpdateExperienceTagFields `json:"experienceTag,omitempty"`
+	UpdateMask    *UpdateMask                `json:"updateMask,omitempty"`
+}
+
 // UpdateMask defines model for updateMask.
 type UpdateMask = []string
+
+// UpdateProjectFields defines model for updateProjectFields.
+type UpdateProjectFields struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
+// UpdateProjectInput defines model for updateProjectInput.
+type UpdateProjectInput struct {
+	Project    *UpdateProjectFields `json:"project,omitempty"`
+	UpdateMask *UpdateMask          `json:"updateMask,omitempty"`
+}
+
+// UpdateSystemFields defines model for updateSystemFields.
+type UpdateSystemFields struct {
+	BuildGpus                  *int    `json:"build_gpus,omitempty"`
+	BuildMemoryMib             *int    `json:"build_memory_mib,omitempty"`
+	BuildSharedMemoryMb        *int    `json:"build_shared_memory_mb,omitempty"`
+	BuildVcpus                 *int    `json:"build_vcpus,omitempty"`
+	Description                *string `json:"description,omitempty"`
+	MetricsBuildGpus           *int    `json:"metrics_build_gpus,omitempty"`
+	MetricsBuildMemoryMib      *int    `json:"metrics_build_memory_mib,omitempty"`
+	MetricsBuildSharedMemoryMb *int    `json:"metrics_build_shared_memory_mb,omitempty"`
+	MetricsBuildVcpus          *int    `json:"metrics_build_vcpus,omitempty"`
+	Name                       *string `json:"name,omitempty"`
+}
+
+// UpdateSystemInput defines model for updateSystemInput.
+type UpdateSystemInput struct {
+	System     *UpdateSystemFields `json:"system,omitempty"`
+	UpdateMask *UpdateMask         `json:"updateMask,omitempty"`
+}
 
 // UserID defines model for userID.
 type UserID = string
@@ -853,8 +1101,19 @@ type ListBatchesParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
+// ListAllJobsParams defines parameters for ListAllJobs.
+type ListAllJobsParams struct {
+	// Search Filter based on attributes metrics_build_name and metrics_build_version
+	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
 // ListJobsParams defines parameters for ListJobs.
 type ListJobsParams struct {
+	// Status Filter jobs by status
+	Status    *JobStatus `form:"status,omitempty" json:"status,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -941,6 +1200,8 @@ type ListBatchMetricsDataForBatchMetricsDataIDsParams struct {
 
 // ListBranchesForProjectParams defines parameters for ListBranchesForProject.
 type ListBranchesForProjectParams struct {
+	// Name Filter branches by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -969,6 +1230,8 @@ type ListBuildsParams struct {
 
 // ListExperienceTagsParams defines parameters for ListExperienceTags.
 type ListExperienceTagsParams struct {
+	// Name Filter experience tags by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -982,6 +1245,8 @@ type ListExperiencesWithExperienceTagParams struct {
 
 // ListExperiencesParams defines parameters for ListExperiences.
 type ListExperiencesParams struct {
+	// Name Filter experiences by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1010,6 +1275,27 @@ type ListMetricsBuildsParams struct {
 type GetSystemsForMetricsBuildParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListTestSuitesParams defines parameters for ListTestSuites.
+type ListTestSuitesParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListBatchesForTestSuiteParams defines parameters for ListBatchesForTestSuite.
+type ListBatchesForTestSuiteParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListBatchesForTestSuiteRevisionParams defines parameters for ListBatchesForTestSuiteRevision.
+type ListBatchesForTestSuiteRevisionParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // ListParameterSweepsParams defines parameters for ListParameterSweeps.
@@ -1052,10 +1338,10 @@ type ListViewSessionsParams struct {
 }
 
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
-type CreateProjectJSONRequestBody = Project
+type CreateProjectJSONRequestBody = CreateProjectInput
 
 // UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
-type UpdateProjectJSONRequestBody = ProjectUpdateInput
+type UpdateProjectJSONRequestBody = UpdateProjectInput
 
 // CreateBatchJSONRequestBody defines body for CreateBatch for application/json ContentType.
 type CreateBatchJSONRequestBody = BatchInput
@@ -1091,34 +1377,46 @@ type CreateBatchMetricsDataJSONRequestBody = BatchMetricsData
 type UpdateBatchMetricsStatusJSONRequestBody = MetricStatus
 
 // CreateBranchForProjectJSONRequestBody defines body for CreateBranchForProject for application/json ContentType.
-type CreateBranchForProjectJSONRequestBody = Branch
+type CreateBranchForProjectJSONRequestBody = CreateBranchInput
 
 // CreateBuildForBranchJSONRequestBody defines body for CreateBuildForBranch for application/json ContentType.
-type CreateBuildForBranchJSONRequestBody = Build
+type CreateBuildForBranchJSONRequestBody = CreateBuildInput
 
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
-type CreateExperienceTagJSONRequestBody = ExperienceTag
+type CreateExperienceTagJSONRequestBody = CreateExperienceTagInput
 
 // UpdateExperienceTagJSONRequestBody defines body for UpdateExperienceTag for application/json ContentType.
-type UpdateExperienceTagJSONRequestBody = ExperienceTagInput
+type UpdateExperienceTagJSONRequestBody = UpdateExperienceTagInput
 
 // CreateExperienceJSONRequestBody defines body for CreateExperience for application/json ContentType.
-type CreateExperienceJSONRequestBody = Experience
+type CreateExperienceJSONRequestBody = CreateExperienceInput
 
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
-type UpdateExperienceJSONRequestBody = ExperienceInput
+type UpdateExperienceJSONRequestBody = UpdateExperienceInput
 
 // CreateMetricsBuildJSONRequestBody defines body for CreateMetricsBuild for application/json ContentType.
-type CreateMetricsBuildJSONRequestBody = MetricsBuild
+type CreateMetricsBuildJSONRequestBody = CreateMetricsBuildInput
+
+// CreateTestSuiteJSONRequestBody defines body for CreateTestSuite for application/json ContentType.
+type CreateTestSuiteJSONRequestBody = CreateTestSuiteInput
+
+// ReviseTestSuiteJSONRequestBody defines body for ReviseTestSuite for application/json ContentType.
+type ReviseTestSuiteJSONRequestBody = ReviseTestSuiteInput
+
+// CreateBatchForTestSuiteJSONRequestBody defines body for CreateBatchForTestSuite for application/json ContentType.
+type CreateBatchForTestSuiteJSONRequestBody = TestSuiteBatchInput
+
+// CreateBatchForTestSuiteRevisionJSONRequestBody defines body for CreateBatchForTestSuiteRevision for application/json ContentType.
+type CreateBatchForTestSuiteRevisionJSONRequestBody = TestSuiteBatchInput
 
 // CreateParameterSweepJSONRequestBody defines body for CreateParameterSweep for application/json ContentType.
 type CreateParameterSweepJSONRequestBody = ParameterSweepInput
 
 // CreateSystemJSONRequestBody defines body for CreateSystem for application/json ContentType.
-type CreateSystemJSONRequestBody = System
+type CreateSystemJSONRequestBody = CreateSystemInput
 
 // UpdateSystemJSONRequestBody defines body for UpdateSystem for application/json ContentType.
-type UpdateSystemJSONRequestBody = SystemInput
+type UpdateSystemJSONRequestBody = UpdateSystemInput
 
 // CreateBuildForSystemJSONRequestBody defines body for CreateBuildForSystem for application/json ContentType.
 type CreateBuildForSystemJSONRequestBody = Build
@@ -1234,6 +1532,9 @@ type ClientInterface interface {
 	CreateBatchWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateBatch(ctx context.Context, projectID ProjectID, body CreateBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAllJobs request
+	ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetBatch request
 	GetBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1449,6 +1750,44 @@ type ClientInterface interface {
 	// GetSystemsForMetricsBuild request
 	GetSystemsForMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListTestSuites request
+	ListTestSuites(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateTestSuiteWithBody request with any body
+	CreateTestSuiteWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateTestSuite(ctx context.Context, projectID ProjectID, body CreateTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTestSuite request
+	GetTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReviseTestSuiteWithBody request with any body
+	ReviseTestSuiteWithBody(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ReviseTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body ReviseTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchesForTestSuite request
+	ListBatchesForTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, params *ListBatchesForTestSuiteParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBatchForTestSuiteWithBody request with any body
+	CreateBatchForTestSuiteWithBody(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBatchForTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body CreateBatchForTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListTestSuiteRevisions request
+	ListTestSuiteRevisions(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTestSuiteRevision request
+	GetTestSuiteRevision(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchesForTestSuiteRevision request
+	ListBatchesForTestSuiteRevision(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, params *ListBatchesForTestSuiteRevisionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBatchForTestSuiteRevisionWithBody request with any body
+	CreateBatchForTestSuiteRevisionWithBody(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBatchForTestSuiteRevision(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, body CreateBatchForTestSuiteRevisionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListParameterSweeps request
 	ListParameterSweeps(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1658,6 +1997,18 @@ func (c *Client) CreateBatchWithBody(ctx context.Context, projectID ProjectID, c
 
 func (c *Client) CreateBatch(ctx context.Context, projectID ProjectID, body CreateBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateBatchRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAllJobsRequest(c.Server, projectID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -2592,6 +2943,174 @@ func (c *Client) GetSystemsForMetricsBuild(ctx context.Context, projectID Projec
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListTestSuites(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTestSuitesRequest(c.Server, projectID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateTestSuiteWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateTestSuiteRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateTestSuite(ctx context.Context, projectID ProjectID, body CreateTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateTestSuiteRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTestSuiteRequest(c.Server, projectID, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReviseTestSuiteWithBody(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReviseTestSuiteRequestWithBody(c.Server, projectID, testSuiteID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReviseTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body ReviseTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReviseTestSuiteRequest(c.Server, projectID, testSuiteID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchesForTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, params *ListBatchesForTestSuiteParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchesForTestSuiteRequest(c.Server, projectID, testSuiteID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchForTestSuiteWithBody(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchForTestSuiteRequestWithBody(c.Server, projectID, testSuiteID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchForTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body CreateBatchForTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchForTestSuiteRequest(c.Server, projectID, testSuiteID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListTestSuiteRevisions(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTestSuiteRevisionsRequest(c.Server, projectID, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTestSuiteRevision(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTestSuiteRevisionRequest(c.Server, projectID, testSuiteID, revision)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchesForTestSuiteRevision(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, params *ListBatchesForTestSuiteRevisionParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchesForTestSuiteRevisionRequest(c.Server, projectID, testSuiteID, revision, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchForTestSuiteRevisionWithBody(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchForTestSuiteRevisionRequestWithBody(c.Server, projectID, testSuiteID, revision, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBatchForTestSuiteRevision(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, body CreateBatchForTestSuiteRevisionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBatchForTestSuiteRevisionRequest(c.Server, projectID, testSuiteID, revision, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListParameterSweeps(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListParameterSweepsRequest(c.Server, projectID, params)
 	if err != nil {
@@ -3362,6 +3881,110 @@ func NewCreateBatchRequestWithBody(server string, projectID ProjectID, contentTy
 	return req, nil
 }
 
+// NewListAllJobsRequest generates requests for ListAllJobs
+func NewListAllJobsRequest(server string, projectID ProjectID, params *ListAllJobsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/-/jobs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetBatchRequest generates requests for GetBatch
 func NewGetBatchRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
 	var err error
@@ -3479,6 +4102,22 @@ func NewListJobsRequest(server string, projectID ProjectID, batchID BatchID, par
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "status", runtime.ParamLocationQuery, *params.Status); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.PageSize != nil {
 
@@ -5459,6 +6098,22 @@ func NewListBranchesForProjectRequest(server string, projectID ProjectID, params
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -6152,6 +6807,22 @@ func NewListExperienceTagsRequest(server string, projectID ProjectID, params *Li
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -6597,6 +7268,22 @@ func NewListExperiencesRequest(server string, projectID ProjectID, params *ListE
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.PageSize != nil {
 
@@ -7249,6 +7936,637 @@ func NewGetSystemsForMetricsBuildRequest(server string, projectID ProjectID, met
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewListTestSuitesRequest generates requests for ListTestSuites
+func NewListTestSuitesRequest(server string, projectID ProjectID, params *ListTestSuitesParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateTestSuiteRequest calls the generic CreateTestSuite builder with application/json body
+func NewCreateTestSuiteRequest(server string, projectID ProjectID, body CreateTestSuiteJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateTestSuiteRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateTestSuiteRequestWithBody generates requests for CreateTestSuite with any type of body
+func NewCreateTestSuiteRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetTestSuiteRequest generates requests for GetTestSuite
+func NewGetTestSuiteRequest(server string, projectID ProjectID, testSuiteID TestSuiteID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewReviseTestSuiteRequest calls the generic ReviseTestSuite builder with application/json body
+func NewReviseTestSuiteRequest(server string, projectID ProjectID, testSuiteID TestSuiteID, body ReviseTestSuiteJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReviseTestSuiteRequestWithBody(server, projectID, testSuiteID, "application/json", bodyReader)
+}
+
+// NewReviseTestSuiteRequestWithBody generates requests for ReviseTestSuite with any type of body
+func NewReviseTestSuiteRequestWithBody(server string, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListBatchesForTestSuiteRequest generates requests for ListBatchesForTestSuite
+func NewListBatchesForTestSuiteRequest(server string, projectID ProjectID, testSuiteID TestSuiteID, params *ListBatchesForTestSuiteParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s/batches", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateBatchForTestSuiteRequest calls the generic CreateBatchForTestSuite builder with application/json body
+func NewCreateBatchForTestSuiteRequest(server string, projectID ProjectID, testSuiteID TestSuiteID, body CreateBatchForTestSuiteJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBatchForTestSuiteRequestWithBody(server, projectID, testSuiteID, "application/json", bodyReader)
+}
+
+// NewCreateBatchForTestSuiteRequestWithBody generates requests for CreateBatchForTestSuite with any type of body
+func NewCreateBatchForTestSuiteRequestWithBody(server string, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s/batches", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListTestSuiteRevisionsRequest generates requests for ListTestSuiteRevisions
+func NewListTestSuiteRevisionsRequest(server string, projectID ProjectID, testSuiteID TestSuiteID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s/revisions", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetTestSuiteRevisionRequest generates requests for GetTestSuiteRevision
+func NewGetTestSuiteRevisionRequest(server string, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "revision", runtime.ParamLocationPath, revision)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s/revisions/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBatchesForTestSuiteRevisionRequest generates requests for ListBatchesForTestSuiteRevision
+func NewListBatchesForTestSuiteRevisionRequest(server string, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, params *ListBatchesForTestSuiteRevisionParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "revision", runtime.ParamLocationPath, revision)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s/revisions/%s/batches", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateBatchForTestSuiteRevisionRequest calls the generic CreateBatchForTestSuiteRevision builder with application/json body
+func NewCreateBatchForTestSuiteRevisionRequest(server string, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, body CreateBatchForTestSuiteRevisionJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBatchForTestSuiteRevisionRequestWithBody(server, projectID, testSuiteID, revision, "application/json", bodyReader)
+}
+
+// NewCreateBatchForTestSuiteRevisionRequestWithBody generates requests for CreateBatchForTestSuiteRevision with any type of body
+func NewCreateBatchForTestSuiteRevisionRequestWithBody(server string, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "revision", runtime.ParamLocationPath, revision)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s/revisions/%s/batches", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -8609,6 +9927,9 @@ type ClientWithResponsesInterface interface {
 
 	CreateBatchWithResponse(ctx context.Context, projectID ProjectID, body CreateBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchResponse, error)
 
+	// ListAllJobsWithResponse request
+	ListAllJobsWithResponse(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*ListAllJobsResponse, error)
+
 	// GetBatchWithResponse request
 	GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error)
 
@@ -8822,6 +10143,44 @@ type ClientWithResponsesInterface interface {
 
 	// GetSystemsForMetricsBuildWithResponse request
 	GetSystemsForMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*GetSystemsForMetricsBuildResponse, error)
+
+	// ListTestSuitesWithResponse request
+	ListTestSuitesWithResponse(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*ListTestSuitesResponse, error)
+
+	// CreateTestSuiteWithBodyWithResponse request with any body
+	CreateTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateTestSuiteResponse, error)
+
+	CreateTestSuiteWithResponse(ctx context.Context, projectID ProjectID, body CreateTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateTestSuiteResponse, error)
+
+	// GetTestSuiteWithResponse request
+	GetTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*GetTestSuiteResponse, error)
+
+	// ReviseTestSuiteWithBodyWithResponse request with any body
+	ReviseTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReviseTestSuiteResponse, error)
+
+	ReviseTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body ReviseTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*ReviseTestSuiteResponse, error)
+
+	// ListBatchesForTestSuiteWithResponse request
+	ListBatchesForTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, params *ListBatchesForTestSuiteParams, reqEditors ...RequestEditorFn) (*ListBatchesForTestSuiteResponse, error)
+
+	// CreateBatchForTestSuiteWithBodyWithResponse request with any body
+	CreateBatchForTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteResponse, error)
+
+	CreateBatchForTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body CreateBatchForTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteResponse, error)
+
+	// ListTestSuiteRevisionsWithResponse request
+	ListTestSuiteRevisionsWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*ListTestSuiteRevisionsResponse, error)
+
+	// GetTestSuiteRevisionWithResponse request
+	GetTestSuiteRevisionWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, reqEditors ...RequestEditorFn) (*GetTestSuiteRevisionResponse, error)
+
+	// ListBatchesForTestSuiteRevisionWithResponse request
+	ListBatchesForTestSuiteRevisionWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, params *ListBatchesForTestSuiteRevisionParams, reqEditors ...RequestEditorFn) (*ListBatchesForTestSuiteRevisionResponse, error)
+
+	// CreateBatchForTestSuiteRevisionWithBodyWithResponse request with any body
+	CreateBatchForTestSuiteRevisionWithBodyWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteRevisionResponse, error)
+
+	CreateBatchForTestSuiteRevisionWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, body CreateBatchForTestSuiteRevisionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteRevisionResponse, error)
 
 	// ListParameterSweepsWithResponse request
 	ListParameterSweepsWithResponse(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*ListParameterSweepsResponse, error)
@@ -9078,6 +10437,28 @@ func (r CreateBatchResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAllJobsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAllJobsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAllJobsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAllJobsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -10395,6 +11776,228 @@ func (r GetSystemsForMetricsBuildResponse) StatusCode() int {
 	return 0
 }
 
+type ListTestSuitesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListTestSuiteOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTestSuitesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTestSuitesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateTestSuiteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *TestSuite
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateTestSuiteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTestSuiteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TestSuite
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTestSuiteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ReviseTestSuiteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TestSuite
+}
+
+// Status returns HTTPResponse.Status
+func (r ReviseTestSuiteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReviseTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchesForTestSuiteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBatchesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchesForTestSuiteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchesForTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBatchForTestSuiteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Batch
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBatchForTestSuiteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBatchForTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListTestSuiteRevisionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *struct {
+		TestSuites *[]TestSuite `json:"testSuites,omitempty"`
+	}
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTestSuiteRevisionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTestSuiteRevisionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTestSuiteRevisionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TestSuite
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTestSuiteRevisionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTestSuiteRevisionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchesForTestSuiteRevisionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBatchesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchesForTestSuiteRevisionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchesForTestSuiteRevisionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBatchForTestSuiteRevisionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Batch
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBatchForTestSuiteRevisionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBatchForTestSuiteRevisionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListParameterSweepsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -11010,6 +12613,15 @@ func (c *ClientWithResponses) CreateBatchWithResponse(ctx context.Context, proje
 		return nil, err
 	}
 	return ParseCreateBatchResponse(rsp)
+}
+
+// ListAllJobsWithResponse request returning *ListAllJobsResponse
+func (c *ClientWithResponses) ListAllJobsWithResponse(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*ListAllJobsResponse, error) {
+	rsp, err := c.ListAllJobs(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAllJobsResponse(rsp)
 }
 
 // GetBatchWithResponse request returning *GetBatchResponse
@@ -11688,6 +13300,128 @@ func (c *ClientWithResponses) GetSystemsForMetricsBuildWithResponse(ctx context.
 	return ParseGetSystemsForMetricsBuildResponse(rsp)
 }
 
+// ListTestSuitesWithResponse request returning *ListTestSuitesResponse
+func (c *ClientWithResponses) ListTestSuitesWithResponse(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*ListTestSuitesResponse, error) {
+	rsp, err := c.ListTestSuites(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTestSuitesResponse(rsp)
+}
+
+// CreateTestSuiteWithBodyWithResponse request with arbitrary body returning *CreateTestSuiteResponse
+func (c *ClientWithResponses) CreateTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateTestSuiteResponse, error) {
+	rsp, err := c.CreateTestSuiteWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateTestSuiteResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateTestSuiteWithResponse(ctx context.Context, projectID ProjectID, body CreateTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateTestSuiteResponse, error) {
+	rsp, err := c.CreateTestSuite(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateTestSuiteResponse(rsp)
+}
+
+// GetTestSuiteWithResponse request returning *GetTestSuiteResponse
+func (c *ClientWithResponses) GetTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*GetTestSuiteResponse, error) {
+	rsp, err := c.GetTestSuite(ctx, projectID, testSuiteID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTestSuiteResponse(rsp)
+}
+
+// ReviseTestSuiteWithBodyWithResponse request with arbitrary body returning *ReviseTestSuiteResponse
+func (c *ClientWithResponses) ReviseTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReviseTestSuiteResponse, error) {
+	rsp, err := c.ReviseTestSuiteWithBody(ctx, projectID, testSuiteID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReviseTestSuiteResponse(rsp)
+}
+
+func (c *ClientWithResponses) ReviseTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body ReviseTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*ReviseTestSuiteResponse, error) {
+	rsp, err := c.ReviseTestSuite(ctx, projectID, testSuiteID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReviseTestSuiteResponse(rsp)
+}
+
+// ListBatchesForTestSuiteWithResponse request returning *ListBatchesForTestSuiteResponse
+func (c *ClientWithResponses) ListBatchesForTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, params *ListBatchesForTestSuiteParams, reqEditors ...RequestEditorFn) (*ListBatchesForTestSuiteResponse, error) {
+	rsp, err := c.ListBatchesForTestSuite(ctx, projectID, testSuiteID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchesForTestSuiteResponse(rsp)
+}
+
+// CreateBatchForTestSuiteWithBodyWithResponse request with arbitrary body returning *CreateBatchForTestSuiteResponse
+func (c *ClientWithResponses) CreateBatchForTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteResponse, error) {
+	rsp, err := c.CreateBatchForTestSuiteWithBody(ctx, projectID, testSuiteID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchForTestSuiteResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBatchForTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body CreateBatchForTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteResponse, error) {
+	rsp, err := c.CreateBatchForTestSuite(ctx, projectID, testSuiteID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchForTestSuiteResponse(rsp)
+}
+
+// ListTestSuiteRevisionsWithResponse request returning *ListTestSuiteRevisionsResponse
+func (c *ClientWithResponses) ListTestSuiteRevisionsWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*ListTestSuiteRevisionsResponse, error) {
+	rsp, err := c.ListTestSuiteRevisions(ctx, projectID, testSuiteID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTestSuiteRevisionsResponse(rsp)
+}
+
+// GetTestSuiteRevisionWithResponse request returning *GetTestSuiteRevisionResponse
+func (c *ClientWithResponses) GetTestSuiteRevisionWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, reqEditors ...RequestEditorFn) (*GetTestSuiteRevisionResponse, error) {
+	rsp, err := c.GetTestSuiteRevision(ctx, projectID, testSuiteID, revision, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTestSuiteRevisionResponse(rsp)
+}
+
+// ListBatchesForTestSuiteRevisionWithResponse request returning *ListBatchesForTestSuiteRevisionResponse
+func (c *ClientWithResponses) ListBatchesForTestSuiteRevisionWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, params *ListBatchesForTestSuiteRevisionParams, reqEditors ...RequestEditorFn) (*ListBatchesForTestSuiteRevisionResponse, error) {
+	rsp, err := c.ListBatchesForTestSuiteRevision(ctx, projectID, testSuiteID, revision, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchesForTestSuiteRevisionResponse(rsp)
+}
+
+// CreateBatchForTestSuiteRevisionWithBodyWithResponse request with arbitrary body returning *CreateBatchForTestSuiteRevisionResponse
+func (c *ClientWithResponses) CreateBatchForTestSuiteRevisionWithBodyWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteRevisionResponse, error) {
+	rsp, err := c.CreateBatchForTestSuiteRevisionWithBody(ctx, projectID, testSuiteID, revision, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchForTestSuiteRevisionResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBatchForTestSuiteRevisionWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, revision TestSuiteRevision, body CreateBatchForTestSuiteRevisionJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchForTestSuiteRevisionResponse, error) {
+	rsp, err := c.CreateBatchForTestSuiteRevision(ctx, projectID, testSuiteID, revision, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBatchForTestSuiteRevisionResponse(rsp)
+}
+
 // ListParameterSweepsWithResponse request returning *ListParameterSweepsResponse
 func (c *ClientWithResponses) ListParameterSweepsWithResponse(ctx context.Context, projectID ProjectID, params *ListParameterSweepsParams, reqEditors ...RequestEditorFn) (*ListParameterSweepsResponse, error) {
 	rsp, err := c.ListParameterSweeps(ctx, projectID, params, reqEditors...)
@@ -12142,6 +13876,32 @@ func ParseCreateBatchResponse(rsp *http.Response) (*CreateBatchResponse, error) 
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListAllJobsResponse parses an HTTP response from a ListAllJobsWithResponse call
+func ParseListAllJobsResponse(rsp *http.Response) (*ListAllJobsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAllJobsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAllJobsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	}
 
@@ -13612,6 +15372,268 @@ func ParseGetSystemsForMetricsBuildResponse(rsp *http.Response) (*GetSystemsForM
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListTestSuitesResponse parses an HTTP response from a ListTestSuitesWithResponse call
+func ParseListTestSuitesResponse(rsp *http.Response) (*ListTestSuitesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTestSuitesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListTestSuiteOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateTestSuiteResponse parses an HTTP response from a CreateTestSuiteWithResponse call
+func ParseCreateTestSuiteResponse(rsp *http.Response) (*CreateTestSuiteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateTestSuiteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest TestSuite
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTestSuiteResponse parses an HTTP response from a GetTestSuiteWithResponse call
+func ParseGetTestSuiteResponse(rsp *http.Response) (*GetTestSuiteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTestSuiteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TestSuite
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseReviseTestSuiteResponse parses an HTTP response from a ReviseTestSuiteWithResponse call
+func ParseReviseTestSuiteResponse(rsp *http.Response) (*ReviseTestSuiteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReviseTestSuiteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TestSuite
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchesForTestSuiteResponse parses an HTTP response from a ListBatchesForTestSuiteWithResponse call
+func ParseListBatchesForTestSuiteResponse(rsp *http.Response) (*ListBatchesForTestSuiteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchesForTestSuiteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBatchesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateBatchForTestSuiteResponse parses an HTTP response from a CreateBatchForTestSuiteWithResponse call
+func ParseCreateBatchForTestSuiteResponse(rsp *http.Response) (*CreateBatchForTestSuiteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBatchForTestSuiteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Batch
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListTestSuiteRevisionsResponse parses an HTTP response from a ListTestSuiteRevisionsWithResponse call
+func ParseListTestSuiteRevisionsResponse(rsp *http.Response) (*ListTestSuiteRevisionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTestSuiteRevisionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest struct {
+			TestSuites *[]TestSuite `json:"testSuites,omitempty"`
+		}
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetTestSuiteRevisionResponse parses an HTTP response from a GetTestSuiteRevisionWithResponse call
+func ParseGetTestSuiteRevisionResponse(rsp *http.Response) (*GetTestSuiteRevisionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTestSuiteRevisionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TestSuite
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchesForTestSuiteRevisionResponse parses an HTTP response from a ListBatchesForTestSuiteRevisionWithResponse call
+func ParseListBatchesForTestSuiteRevisionResponse(rsp *http.Response) (*ListBatchesForTestSuiteRevisionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchesForTestSuiteRevisionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBatchesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateBatchForTestSuiteRevisionResponse parses an HTTP response from a CreateBatchForTestSuiteRevisionWithResponse call
+func ParseCreateBatchForTestSuiteRevisionResponse(rsp *http.Response) (*CreateBatchForTestSuiteRevisionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBatchForTestSuiteRevisionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Batch
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
 
 	}
 

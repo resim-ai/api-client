@@ -149,10 +149,10 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience location")
 	}
 
-	body := api.Experience{
-		Name:        &experienceName,
-		Description: &experienceDescription,
-		Location:    &experienceLocation,
+	body := api.CreateExperienceInput{
+		Name:        experienceName,
+		Description: experienceDescription,
+		Location:    experienceLocation,
 	}
 
 	if viper.IsSet(experienceLaunchProfileKey) {
@@ -168,7 +168,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	experience := response.JSON201
-	if experience.ExperienceID == nil {
+	if experience.ExperienceID == uuid.Nil {
 		log.Fatal("no experience ID")
 	}
 
@@ -179,7 +179,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		_, err := Client.AddSystemToExperienceWithResponse(
 			context.Background(), projectID,
 			systemID,
-			*experience.ExperienceID,
+			experience.ExperienceID,
 		)
 		if err != nil {
 			log.Fatal("failed to register experience with system", err)
@@ -187,7 +187,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	}
 
 	validationResponse, err := Client.ValidateExperienceLocationWithResponse(context.Background(), api.ExperienceLocation{
-		Location: experience.Location,
+		Location: Ptr(experience.Location),
 	})
 	if err != nil {
 		log.Fatal("could not validate experience after creation", err)
@@ -394,14 +394,14 @@ pageLoop:
 		pageToken = response.JSON200.NextPageToken
 		experiences := *response.JSON200.Experiences
 		for _, experience := range experiences {
-			if experience.Name == nil {
+			if experience.Name == "" {
 				log.Fatal("experience has no name")
 			}
-			if experience.ExperienceID == nil {
+			if experience.ExperienceID == uuid.Nil {
 				log.Fatal("experience ID is empty")
 			}
-			if *experience.Name == identifier {
-				experienceID = *experience.ExperienceID
+			if experience.Name == identifier {
+				experienceID = experience.ExperienceID
 				break pageLoop
 			}
 		}

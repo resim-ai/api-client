@@ -419,3 +419,16 @@ func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUI
 	}
 	return experienceID
 }
+
+func actualGetExperience(projectID uuid.UUID, experienceID uuid.UUID) api.Experience {
+	response, err := Client.GetExperienceWithResponse(context.Background(), projectID, experienceID)
+	if err != nil {
+		log.Fatal("unable to retrieve experience:", err)
+	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatal("failed to find experience with requested id: ", experienceID.String())
+	} else {
+		ValidateResponse(http.StatusOK, "unable to retrieve experience", response.HTTPResponse, response.Body)
+	}
+	return *response.JSON200
+}

@@ -274,3 +274,14 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		fmt.Printf("Build ID: %s\n", build.BuildID.String())
 	}
 }
+
+func actualGetBuild(projectID uuid.UUID, buildID uuid.UUID) *api.Build {
+	var build *api.Build
+	response, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+	if err != nil {
+		log.Fatal("unable to retrieve build:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to retrieve build", response.HTTPResponse, response.Body)
+	build = response.JSON200
+	return build
+}

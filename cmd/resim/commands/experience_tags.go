@@ -81,9 +81,9 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 
 	// add experiences if they are set
 
-	body := api.ExperienceTag{
-		Name:        &experienceTagName,
-		Description: &experienceTagDescription,
+	body := api.CreateExperienceTagInput{
+		Name:        experienceTagName,
+		Description: experienceTagDescription,
 	}
 
 	response, err := Client.CreateExperienceTagWithResponse(context.Background(), projectID, body)
@@ -95,12 +95,12 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	experienceTag := response.JSON201
-	if experienceTag.ExperienceTagID == nil {
+	if experienceTag.ExperienceTagID == uuid.Nil {
 		log.Fatal("no experience tag ID")
 	}
 
 	fmt.Println("Created experience tag")
-	fmt.Printf("Experience Tag: %s\n", *experienceTag.Name)
+	fmt.Printf("Experience Tag: %s\n", experienceTag.Name)
 }
 
 func listExperienceTags(ccmd *cobra.Command, args []string) {
@@ -195,14 +195,14 @@ pageLoop:
 		pageToken = listResponse.JSON200.NextPageToken
 		experienceTags := *listResponse.JSON200.ExperienceTags
 		for _, experienceTag := range experienceTags {
-			if experienceTag.Name == nil {
+			if experienceTag.Name == "" {
 				log.Fatal("experience tag has no name")
 			}
-			if experienceTag.ExperienceTagID == nil {
+			if experienceTag.ExperienceTagID == uuid.Nil {
 				log.Fatal("experience tag ID is empty")
 			}
-			if *experienceTag.Name == experienceTagName {
-				experienceTagID = *experienceTag.ExperienceTagID
+			if experienceTag.Name == experienceTagName {
+				experienceTagID = experienceTag.ExperienceTagID
 				break pageLoop
 			}
 		}

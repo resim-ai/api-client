@@ -153,10 +153,10 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
 	}
 
-	body := api.MetricsBuild{
-		Name:     &metricsBuildName,
-		ImageUri: &metricsBuildImageURI,
-		Version:  &metricsBuildVersion,
+	body := api.CreateMetricsBuildInput{
+		Name:     metricsBuildName,
+		ImageUri: metricsBuildImageURI,
+		Version:  metricsBuildVersion,
 	}
 
 	response, err := Client.CreateMetricsBuildWithResponse(context.Background(), projectID, body)
@@ -168,7 +168,7 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	metricsBuild := *response.JSON201
-	if metricsBuild.MetricsBuildID == nil {
+	if metricsBuild.MetricsBuildID == uuid.Nil {
 		log.Fatal("no metrics build ID")
 	}
 
@@ -179,7 +179,7 @@ func createMetricsBuild(ccmd *cobra.Command, args []string) {
 		_, err := Client.AddSystemToMetricsBuildWithResponse(
 			context.Background(), projectID,
 			systemID,
-			*metricsBuild.MetricsBuildID,
+			metricsBuild.MetricsBuildID,
 		)
 		if err != nil {
 			log.Fatal("failed to register metrics build with system", err)

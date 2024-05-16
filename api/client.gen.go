@@ -108,6 +108,7 @@ const (
 type Batch struct {
 	BatchID                      *BatchID                `json:"batchID,omitempty"`
 	BatchMetricsStatus           *MetricStatus           `json:"batchMetricsStatus,omitempty"`
+	BranchID                     *BranchID               `json:"branchID,omitempty"`
 	BuildID                      *BuildID                `json:"buildID,omitempty"`
 	CreationTimestamp            *Timestamp              `json:"creationTimestamp,omitempty"`
 	FriendlyName                 *FriendlyName           `json:"friendlyName,omitempty"`
@@ -210,6 +211,17 @@ type BatchMetricsDataToBatchMetric struct {
 	BatchMetricsDataIDs *[]MetricsDataID `json:"batchMetricsDataIDs,omitempty"`
 }
 
+// BatchObjectDescription defines model for batchObjectDescription.
+type BatchObjectDescription struct {
+	BuildBranchName     *string   `json:"buildBranchName,omitempty"`
+	BuildVersion        *string   `json:"buildVersion,omitempty"`
+	ExperienceNames     *[]string `json:"experienceNames,omitempty"`
+	ExperienceTagNames  *[]string `json:"experienceTagNames,omitempty"`
+	MetricsBuildName    *string   `json:"metricsBuildName,omitempty"`
+	MetricsBuildVersion *string   `json:"metricsBuildVersion,omitempty"`
+	ProjectName         *string   `json:"projectName,omitempty"`
+}
+
 // BatchParameters defines model for batchParameters.
 type BatchParameters map[string]string
 
@@ -230,17 +242,24 @@ type BatchTotalJobs = int
 
 // Branch defines model for branch.
 type Branch struct {
-	BranchID          *BranchID   `json:"branchID,omitempty"`
-	BranchType        *BranchType `json:"branchType,omitempty"`
-	CreationTimestamp *Timestamp  `json:"creationTimestamp,omitempty"`
-	Name              *string     `json:"name,omitempty"`
-	OrgID             *OrgID      `json:"orgID,omitempty"`
-	ProjectID         *ProjectID  `json:"projectID,omitempty"`
-	UserID            *UserID     `json:"userID,omitempty"`
+	BranchID          BranchID   `json:"branchID"`
+	BranchType        BranchType `json:"branchType"`
+	CreationTimestamp Timestamp  `json:"creationTimestamp"`
+	Name              string     `json:"name"`
+	OrgID             OrgID      `json:"orgID"`
+	ProjectID         ProjectID  `json:"projectID"`
+	UserID            UserID     `json:"userID"`
 }
 
 // BranchID defines model for branchID.
 type BranchID = openapi_types.UUID
+
+// BranchObjectDescription defines model for branchObjectDescription.
+type BranchObjectDescription struct {
+	Name        *string     `json:"name,omitempty"`
+	ProjectName *string     `json:"projectName,omitempty"`
+	Type        *BranchType `json:"type,omitempty"`
+}
 
 // BranchType defines model for branchType.
 type BranchType string
@@ -268,35 +287,93 @@ type BuildID = openapi_types.UUID
 // BuildImageUri defines model for buildImageUri.
 type BuildImageUri = string
 
+// BuildObjectDescription defines model for buildObjectDescription.
+type BuildObjectDescription struct {
+	BranchName  *string `json:"branchName,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Image       *string `json:"image,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
+	SystemName  *string `json:"systemName,omitempty"`
+	Version     *string `json:"version,omitempty"`
+}
+
 // BuildVersion defines model for buildVersion.
 type BuildVersion = string
 
 // Checksum defines model for checksum.
 type Checksum = string
 
+// CreateBranchInput defines model for createBranchInput.
+type CreateBranchInput struct {
+	BranchType BranchType `json:"branchType"`
+	Name       string     `json:"name"`
+}
+
+// CreateBuildInput defines model for createBuildInput.
+type CreateBuildInput struct {
+	Description *BuildDescription `json:"description,omitempty"`
+	ImageUri    BuildImageUri     `json:"imageUri"`
+	SystemID    SystemID          `json:"systemID"`
+	Version     BuildVersion      `json:"version"`
+}
+
+// CreateExperienceInput defines model for createExperienceInput.
+type CreateExperienceInput struct {
+	Description string         `json:"description"`
+	Location    string         `json:"location"`
+	Name        ExperienceName `json:"name"`
+}
+
+// CreateExperienceTagInput defines model for createExperienceTagInput.
+type CreateExperienceTagInput struct {
+	Description string            `json:"description"`
+	Name        ExperienceTagName `json:"name"`
+}
+
+// CreateMetricsBuildInput defines model for createMetricsBuildInput.
+type CreateMetricsBuildInput struct {
+	ImageUri MetricsBuildImageUri `json:"imageUri"`
+	Name     MetricsBuildName     `json:"name"`
+	Version  MetricsBuildVersion  `json:"version"`
+}
+
+// CreateProjectInput defines model for createProjectInput.
+type CreateProjectInput struct {
+	Description string `json:"description"`
+	Name        string `json:"name"`
+}
+
+// CreateSystemInput defines model for createSystemInput.
+type CreateSystemInput struct {
+	BuildGpus                  int    `json:"build_gpus"`
+	BuildMemoryMib             int    `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int    `json:"build_shared_memory_mb"`
+	BuildVcpus                 int    `json:"build_vcpus"`
+	Description                string `json:"description"`
+	MetricsBuildGpus           int    `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int    `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int    `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int    `json:"metrics_build_vcpus"`
+	Name                       string `json:"name"`
+}
+
 // ExecutionStep defines model for executionStep.
 type ExecutionStep string
 
 // Experience defines model for experience.
 type Experience struct {
-	CreationTimestamp *Timestamp      `json:"creationTimestamp,omitempty"`
-	Description       *string         `json:"description,omitempty"`
-	ExperienceID      *ExperienceID   `json:"experienceID,omitempty"`
-	Location          *string         `json:"location,omitempty"`
-	Name              *ExperienceName `json:"name,omitempty"`
-	OrgID             *OrgID          `json:"orgID,omitempty"`
-	ProjectID         *ProjectID      `json:"projectID,omitempty"`
-	UserID            *UserID         `json:"userID,omitempty"`
+	CreationTimestamp Timestamp      `json:"creationTimestamp"`
+	Description       string         `json:"description"`
+	ExperienceID      ExperienceID   `json:"experienceID"`
+	Location          string         `json:"location"`
+	Name              ExperienceName `json:"name"`
+	OrgID             OrgID          `json:"orgID"`
+	ProjectID         ProjectID      `json:"projectID"`
+	UserID            UserID         `json:"userID"`
 }
 
 // ExperienceID defines model for experienceID.
 type ExperienceID = openapi_types.UUID
-
-// ExperienceInput defines model for experienceInput.
-type ExperienceInput struct {
-	Experience *Experience `json:"experience,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
-}
 
 // ExperienceLocation defines model for experienceLocation.
 type ExperienceLocation struct {
@@ -312,28 +389,38 @@ type ExperienceLocationContents struct {
 // ExperienceName defines model for experienceName.
 type ExperienceName = string
 
+// ExperienceObjectDescription defines model for experienceObjectDescription.
+type ExperienceObjectDescription struct {
+	Description *string   `json:"description,omitempty"`
+	Location    *string   `json:"location,omitempty"`
+	Name        *string   `json:"name,omitempty"`
+	ProjectName *string   `json:"projectName,omitempty"`
+	Tags        *[]string `json:"tags,omitempty"`
+}
+
 // ExperienceTag defines model for experienceTag.
 type ExperienceTag struct {
-	CreationTimestamp *Timestamp         `json:"creationTimestamp,omitempty"`
-	Description       *string            `json:"description,omitempty"`
-	ExperienceTagID   *ExperienceTagID   `json:"experienceTagID,omitempty"`
-	Name              *ExperienceTagName `json:"name,omitempty"`
-	OrgID             *OrgID             `json:"orgID,omitempty"`
-	ProjectID         *ProjectID         `json:"projectID,omitempty"`
-	UserID            *UserID            `json:"userID,omitempty"`
+	CreationTimestamp Timestamp         `json:"creationTimestamp"`
+	Description       string            `json:"description"`
+	ExperienceTagID   ExperienceTagID   `json:"experienceTagID"`
+	Name              ExperienceTagName `json:"name"`
+	OrgID             OrgID             `json:"orgID"`
+	ProjectID         ProjectID         `json:"projectID"`
+	UserID            UserID            `json:"userID"`
 }
 
 // ExperienceTagID defines model for experienceTagID.
 type ExperienceTagID = openapi_types.UUID
 
-// ExperienceTagInput defines model for experienceTagInput.
-type ExperienceTagInput struct {
-	ExperienceTag *ExperienceTag `json:"experienceTag,omitempty"`
-	UpdateMask    *UpdateMask    `json:"updateMask,omitempty"`
-}
-
 // ExperienceTagName defines model for experienceTagName.
 type ExperienceTagName = string
+
+// ExperienceTagObjectDescription defines model for experienceTagObjectDescription.
+type ExperienceTagObjectDescription struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
+}
 
 // FileName defines model for fileName.
 type FileName = string
@@ -347,6 +434,7 @@ type FriendlyName = string
 // Job defines model for job.
 type Job struct {
 	BatchID              *BatchID          `json:"batchID,omitempty"`
+	BranchID             *BranchID         `json:"branchID,omitempty"`
 	BuildID              *BuildID          `json:"buildID,omitempty"`
 	CreationTimestamp    *Timestamp        `json:"creationTimestamp,omitempty"`
 	ExperienceID         *ExperienceID     `json:"experienceID,omitempty"`
@@ -360,6 +448,7 @@ type Job struct {
 	Parameters           *BatchParameters  `json:"parameters,omitempty"`
 	ProjectID            *ProjectID        `json:"projectID,omitempty"`
 	StatusHistory        *JobStatusHistory `json:"statusHistory,omitempty"`
+	SystemID             *SystemID         `json:"systemID,omitempty"`
 	UserID               *UserID           `json:"userID,omitempty"`
 }
 
@@ -434,6 +523,12 @@ type JobStatusHistoryType struct {
 
 // LineNumber defines model for lineNumber.
 type LineNumber = int32
+
+// ListAllJobsOutput defines model for listAllJobsOutput.
+type ListAllJobsOutput struct {
+	Jobs          *[]Job  `json:"jobs,omitempty"`
+	NextPageToken *string `json:"nextPageToken,omitempty"`
+}
 
 // ListBatchLogsOutput defines model for listBatchLogsOutput.
 type ListBatchLogsOutput struct {
@@ -620,14 +715,14 @@ type MetricValue = float64
 
 // MetricsBuild defines model for metricsBuild.
 type MetricsBuild struct {
-	CreationTimestamp *Timestamp            `json:"creationTimestamp,omitempty"`
-	ImageUri          *MetricsBuildImageUri `json:"imageUri,omitempty"`
-	MetricsBuildID    *MetricsBuildID       `json:"metricsBuildID,omitempty"`
-	Name              *MetricsBuildName     `json:"name,omitempty"`
-	OrgID             *OrgID                `json:"orgID,omitempty"`
-	ProjectID         *ProjectID            `json:"projectID,omitempty"`
-	UserID            *UserID               `json:"userID,omitempty"`
-	Version           *MetricsBuildVersion  `json:"version,omitempty"`
+	CreationTimestamp Timestamp            `json:"creationTimestamp"`
+	ImageUri          MetricsBuildImageUri `json:"imageUri"`
+	MetricsBuildID    MetricsBuildID       `json:"metricsBuildID"`
+	Name              MetricsBuildName     `json:"name"`
+	OrgID             OrgID                `json:"orgID"`
+	ProjectID         ProjectID            `json:"projectID"`
+	UserID            UserID               `json:"userID"`
+	Version           MetricsBuildVersion  `json:"version"`
 }
 
 // MetricsBuildID defines model for metricsBuildID.
@@ -638,6 +733,14 @@ type MetricsBuildImageUri = string
 
 // MetricsBuildName defines model for metricsBuildName.
 type MetricsBuildName = string
+
+// MetricsBuildObjectDescription defines model for metricsBuildObjectDescription.
+type MetricsBuildObjectDescription struct {
+	Image       *string `json:"image,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
+	Version     *string `json:"version,omitempty"`
+}
 
 // MetricsBuildVersion defines model for metricsBuildVersion.
 type MetricsBuildVersion = string
@@ -723,27 +826,53 @@ type ParameterSweepStatusHistoryType struct {
 
 // Project defines model for project.
 type Project struct {
-	CreationTimestamp *Timestamp `json:"creationTimestamp,omitempty"`
-	Description       *string    `json:"description,omitempty"`
-	Name              *string    `json:"name,omitempty"`
-	OrgID             *OrgID     `json:"orgID,omitempty"`
-	ProjectID         *ProjectID `json:"projectID,omitempty"`
-	UserID            *UserID    `json:"userID,omitempty"`
+	CreationTimestamp Timestamp `json:"creationTimestamp"`
+	Description       string    `json:"description"`
+	Name              string    `json:"name"`
+	OrgID             OrgID     `json:"orgID"`
+	ProjectID         ProjectID `json:"projectID"`
+	UserID            UserID    `json:"userID"`
 }
 
 // ProjectID defines model for projectID.
 type ProjectID = openapi_types.UUID
 
-// ProjectUpdateInput defines model for projectUpdateInput.
-type ProjectUpdateInput struct {
-	Project    *Project    `json:"project,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
+// ProjectObjectDescription defines model for projectObjectDescription.
+type ProjectObjectDescription struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
 }
 
 // SandboxInput defines model for sandboxInput.
 type SandboxInput struct {
-	OrgID  *string `json:"orgID,omitempty"`
-	UserID *string `json:"userID,omitempty"`
+	OrgID                *string               `json:"orgID,omitempty"`
+	SandboxSpecification *SandboxSpecification `json:"sandboxSpecification,omitempty"`
+	UserID               *string               `json:"userID,omitempty"`
+}
+
+// SandboxSpecification defines model for sandboxSpecification.
+type SandboxSpecification struct {
+	Batches        *[]BatchObjectDescription         `json:"batches,omitempty"`
+	Branches       *[]BranchObjectDescription        `json:"branches,omitempty"`
+	Builds         *[]BuildObjectDescription         `json:"builds,omitempty"`
+	ExperienceTags *[]ExperienceTagObjectDescription `json:"experienceTags,omitempty"`
+	Experiences    *[]ExperienceObjectDescription    `json:"experiences,omitempty"`
+	MetricsBuilds  *[]MetricsBuildObjectDescription  `json:"metricsBuilds,omitempty"`
+	Projects       *[]ProjectObjectDescription       `json:"projects,omitempty"`
+	Sweeps         *[]SweepObjectDescription         `json:"sweeps,omitempty"`
+	Systems        *[]SystemObjectDescription        `json:"systems,omitempty"`
+}
+
+// SweepObjectDescription defines model for sweepObjectDescription.
+type SweepObjectDescription struct {
+	BuildBranchName     *string           `json:"buildBranchName,omitempty"`
+	BuildVersion        *string           `json:"buildVersion,omitempty"`
+	ExperienceNames     *[]string         `json:"experienceNames,omitempty"`
+	ExperienceTagNames  *[]string         `json:"experienceTagNames,omitempty"`
+	MetricsBuildName    *string           `json:"metricsBuildName,omitempty"`
+	MetricsBuildVersion *string           `json:"metricsBuildVersion,omitempty"`
+	Parameters          *[]SweepParameter `json:"parameters,omitempty"`
+	ProjectName         *string           `json:"projectName,omitempty"`
 }
 
 // SweepParameter defines model for sweepParameter.
@@ -754,37 +883,95 @@ type SweepParameter struct {
 
 // System defines model for system.
 type System struct {
-	BuildGpus                  *int       `json:"build_gpus,omitempty"`
-	BuildMemoryMib             *int       `json:"build_memory_mib,omitempty"`
-	BuildSharedMemoryMb        *int       `json:"build_shared_memory_mb,omitempty"`
-	BuildVcpus                 *int       `json:"build_vcpus,omitempty"`
-	CreationTimestamp          *Timestamp `json:"creationTimestamp,omitempty"`
-	Description                *string    `json:"description,omitempty"`
-	MetricsBuildGpus           *int       `json:"metrics_build_gpus,omitempty"`
-	MetricsBuildMemoryMib      *int       `json:"metrics_build_memory_mib,omitempty"`
-	MetricsBuildSharedMemoryMb *int       `json:"metrics_build_shared_memory_mb,omitempty"`
-	MetricsBuildVcpus          *int       `json:"metrics_build_vcpus,omitempty"`
-	Name                       *string    `json:"name,omitempty"`
-	OrgID                      *OrgID     `json:"orgID,omitempty"`
-	ProjectID                  *ProjectID `json:"projectID,omitempty"`
-	SystemID                   *SystemID  `json:"systemID,omitempty"`
-	UserID                     *UserID    `json:"userID,omitempty"`
+	BuildGpus                  int       `json:"build_gpus"`
+	BuildMemoryMib             int       `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int       `json:"build_shared_memory_mb"`
+	BuildVcpus                 int       `json:"build_vcpus"`
+	CreationTimestamp          Timestamp `json:"creationTimestamp"`
+	Description                string    `json:"description"`
+	MetricsBuildGpus           int       `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int       `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int       `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int       `json:"metrics_build_vcpus"`
+	Name                       string    `json:"name"`
+	OrgID                      OrgID     `json:"orgID"`
+	ProjectID                  ProjectID `json:"projectID"`
+	SystemID                   SystemID  `json:"systemID"`
+	UserID                     UserID    `json:"userID"`
 }
 
 // SystemID defines model for systemID.
 type SystemID = openapi_types.UUID
 
-// SystemInput defines model for systemInput.
-type SystemInput struct {
-	System     *System     `json:"system,omitempty"`
-	UpdateMask *UpdateMask `json:"updateMask,omitempty"`
+// SystemObjectDescription defines model for systemObjectDescription.
+type SystemObjectDescription struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+	ProjectName *string `json:"projectName,omitempty"`
 }
 
 // Timestamp defines model for timestamp.
 type Timestamp = time.Time
 
+// UpdateExperienceFields defines model for updateExperienceFields.
+type UpdateExperienceFields struct {
+	Description *string         `json:"description,omitempty"`
+	Location    *string         `json:"location,omitempty"`
+	Name        *ExperienceName `json:"name,omitempty"`
+}
+
+// UpdateExperienceInput defines model for updateExperienceInput.
+type UpdateExperienceInput struct {
+	Experience *UpdateExperienceFields `json:"experience,omitempty"`
+	UpdateMask *UpdateMask             `json:"updateMask,omitempty"`
+}
+
+// UpdateExperienceTagFields defines model for updateExperienceTagFields.
+type UpdateExperienceTagFields struct {
+	Description *string            `json:"description,omitempty"`
+	Name        *ExperienceTagName `json:"name,omitempty"`
+}
+
+// UpdateExperienceTagInput defines model for updateExperienceTagInput.
+type UpdateExperienceTagInput struct {
+	ExperienceTag *UpdateExperienceTagFields `json:"experienceTag,omitempty"`
+	UpdateMask    *UpdateMask                `json:"updateMask,omitempty"`
+}
+
 // UpdateMask defines model for updateMask.
 type UpdateMask = []string
+
+// UpdateProjectFields defines model for updateProjectFields.
+type UpdateProjectFields struct {
+	Description *string `json:"description,omitempty"`
+	Name        *string `json:"name,omitempty"`
+}
+
+// UpdateProjectInput defines model for updateProjectInput.
+type UpdateProjectInput struct {
+	Project    *UpdateProjectFields `json:"project,omitempty"`
+	UpdateMask *UpdateMask          `json:"updateMask,omitempty"`
+}
+
+// UpdateSystemFields defines model for updateSystemFields.
+type UpdateSystemFields struct {
+	BuildGpus                  *int    `json:"build_gpus,omitempty"`
+	BuildMemoryMib             *int    `json:"build_memory_mib,omitempty"`
+	BuildSharedMemoryMb        *int    `json:"build_shared_memory_mb,omitempty"`
+	BuildVcpus                 *int    `json:"build_vcpus,omitempty"`
+	Description                *string `json:"description,omitempty"`
+	MetricsBuildGpus           *int    `json:"metrics_build_gpus,omitempty"`
+	MetricsBuildMemoryMib      *int    `json:"metrics_build_memory_mib,omitempty"`
+	MetricsBuildSharedMemoryMb *int    `json:"metrics_build_shared_memory_mb,omitempty"`
+	MetricsBuildVcpus          *int    `json:"metrics_build_vcpus,omitempty"`
+	Name                       *string `json:"name,omitempty"`
+}
+
+// UpdateSystemInput defines model for updateSystemInput.
+type UpdateSystemInput struct {
+	System     *UpdateSystemFields `json:"system,omitempty"`
+	UpdateMask *UpdateMask         `json:"updateMask,omitempty"`
+}
 
 // UserID defines model for userID.
 type UserID = string
@@ -853,8 +1040,19 @@ type ListBatchesParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
+// ListAllJobsParams defines parameters for ListAllJobs.
+type ListAllJobsParams struct {
+	// Search Filter based on attributes metrics_build_name and metrics_build_version
+	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
 // ListJobsParams defines parameters for ListJobs.
 type ListJobsParams struct {
+	// Status Filter jobs by status
+	Status    *JobStatus `form:"status,omitempty" json:"status,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -941,6 +1139,8 @@ type ListBatchMetricsDataForBatchMetricsDataIDsParams struct {
 
 // ListBranchesForProjectParams defines parameters for ListBranchesForProject.
 type ListBranchesForProjectParams struct {
+	// Name Filter branches by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -969,6 +1169,8 @@ type ListBuildsParams struct {
 
 // ListExperienceTagsParams defines parameters for ListExperienceTags.
 type ListExperienceTagsParams struct {
+	// Name Filter experience tags by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -982,6 +1184,8 @@ type ListExperiencesWithExperienceTagParams struct {
 
 // ListExperiencesParams defines parameters for ListExperiences.
 type ListExperiencesParams struct {
+	// Name Filter experiences by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1052,10 +1256,10 @@ type ListViewSessionsParams struct {
 }
 
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
-type CreateProjectJSONRequestBody = Project
+type CreateProjectJSONRequestBody = CreateProjectInput
 
 // UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
-type UpdateProjectJSONRequestBody = ProjectUpdateInput
+type UpdateProjectJSONRequestBody = UpdateProjectInput
 
 // CreateBatchJSONRequestBody defines body for CreateBatch for application/json ContentType.
 type CreateBatchJSONRequestBody = BatchInput
@@ -1091,34 +1295,34 @@ type CreateBatchMetricsDataJSONRequestBody = BatchMetricsData
 type UpdateBatchMetricsStatusJSONRequestBody = MetricStatus
 
 // CreateBranchForProjectJSONRequestBody defines body for CreateBranchForProject for application/json ContentType.
-type CreateBranchForProjectJSONRequestBody = Branch
+type CreateBranchForProjectJSONRequestBody = CreateBranchInput
 
 // CreateBuildForBranchJSONRequestBody defines body for CreateBuildForBranch for application/json ContentType.
-type CreateBuildForBranchJSONRequestBody = Build
+type CreateBuildForBranchJSONRequestBody = CreateBuildInput
 
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
-type CreateExperienceTagJSONRequestBody = ExperienceTag
+type CreateExperienceTagJSONRequestBody = CreateExperienceTagInput
 
 // UpdateExperienceTagJSONRequestBody defines body for UpdateExperienceTag for application/json ContentType.
-type UpdateExperienceTagJSONRequestBody = ExperienceTagInput
+type UpdateExperienceTagJSONRequestBody = UpdateExperienceTagInput
 
 // CreateExperienceJSONRequestBody defines body for CreateExperience for application/json ContentType.
-type CreateExperienceJSONRequestBody = Experience
+type CreateExperienceJSONRequestBody = CreateExperienceInput
 
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
-type UpdateExperienceJSONRequestBody = ExperienceInput
+type UpdateExperienceJSONRequestBody = UpdateExperienceInput
 
 // CreateMetricsBuildJSONRequestBody defines body for CreateMetricsBuild for application/json ContentType.
-type CreateMetricsBuildJSONRequestBody = MetricsBuild
+type CreateMetricsBuildJSONRequestBody = CreateMetricsBuildInput
 
 // CreateParameterSweepJSONRequestBody defines body for CreateParameterSweep for application/json ContentType.
 type CreateParameterSweepJSONRequestBody = ParameterSweepInput
 
 // CreateSystemJSONRequestBody defines body for CreateSystem for application/json ContentType.
-type CreateSystemJSONRequestBody = System
+type CreateSystemJSONRequestBody = CreateSystemInput
 
 // UpdateSystemJSONRequestBody defines body for UpdateSystem for application/json ContentType.
-type UpdateSystemJSONRequestBody = SystemInput
+type UpdateSystemJSONRequestBody = UpdateSystemInput
 
 // CreateBuildForSystemJSONRequestBody defines body for CreateBuildForSystem for application/json ContentType.
 type CreateBuildForSystemJSONRequestBody = Build
@@ -1234,6 +1438,9 @@ type ClientInterface interface {
 	CreateBatchWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateBatch(ctx context.Context, projectID ProjectID, body CreateBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAllJobs request
+	ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetBatch request
 	GetBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -1658,6 +1865,18 @@ func (c *Client) CreateBatchWithBody(ctx context.Context, projectID ProjectID, c
 
 func (c *Client) CreateBatch(ctx context.Context, projectID ProjectID, body CreateBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateBatchRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAllJobsRequest(c.Server, projectID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3362,6 +3581,110 @@ func NewCreateBatchRequestWithBody(server string, projectID ProjectID, contentTy
 	return req, nil
 }
 
+// NewListAllJobsRequest generates requests for ListAllJobs
+func NewListAllJobsRequest(server string, projectID ProjectID, params *ListAllJobsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/-/jobs", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetBatchRequest generates requests for GetBatch
 func NewGetBatchRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
 	var err error
@@ -3479,6 +3802,22 @@ func NewListJobsRequest(server string, projectID ProjectID, batchID BatchID, par
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "status", runtime.ParamLocationQuery, *params.Status); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.PageSize != nil {
 
@@ -5459,6 +5798,22 @@ func NewListBranchesForProjectRequest(server string, projectID ProjectID, params
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -6152,6 +6507,22 @@ func NewListExperienceTagsRequest(server string, projectID ProjectID, params *Li
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -6597,6 +6968,22 @@ func NewListExperiencesRequest(server string, projectID ProjectID, params *ListE
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.PageSize != nil {
 
@@ -8609,6 +8996,9 @@ type ClientWithResponsesInterface interface {
 
 	CreateBatchWithResponse(ctx context.Context, projectID ProjectID, body CreateBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBatchResponse, error)
 
+	// ListAllJobsWithResponse request
+	ListAllJobsWithResponse(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*ListAllJobsResponse, error)
+
 	// GetBatchWithResponse request
 	GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error)
 
@@ -9078,6 +9468,28 @@ func (r CreateBatchResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAllJobsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAllJobsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAllJobsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAllJobsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -11012,6 +11424,15 @@ func (c *ClientWithResponses) CreateBatchWithResponse(ctx context.Context, proje
 	return ParseCreateBatchResponse(rsp)
 }
 
+// ListAllJobsWithResponse request returning *ListAllJobsResponse
+func (c *ClientWithResponses) ListAllJobsWithResponse(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*ListAllJobsResponse, error) {
+	rsp, err := c.ListAllJobs(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAllJobsResponse(rsp)
+}
+
 // GetBatchWithResponse request returning *GetBatchResponse
 func (c *ClientWithResponses) GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error) {
 	rsp, err := c.GetBatch(ctx, projectID, batchID, reqEditors...)
@@ -12142,6 +12563,32 @@ func ParseCreateBatchResponse(rsp *http.Response) (*CreateBatchResponse, error) 
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListAllJobsResponse parses an HTTP response from a ListAllJobsWithResponse call
+func ParseListAllJobsResponse(rsp *http.Response) (*ListAllJobsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAllJobsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAllJobsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	}
 

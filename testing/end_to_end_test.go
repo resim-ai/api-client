@@ -1445,15 +1445,15 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	var project api.Project
 	err := json.Unmarshal([]byte(output.StdOut), &project)
 	s.NoError(err)
-	s.Equal(projectName, *project.Name)
+	s.Equal(projectName, project.Name)
 	s.Empty(output.StdErr)
 
 	// Attempt to get project by id:
-	output = s.runCommand(s.getProject((*project.ProjectID).String()), ExpectNoError)
+	output = s.runCommand(s.getProject((project.ProjectID).String()), ExpectNoError)
 	var project2 api.Project
 	err = json.Unmarshal([]byte(output.StdOut), &project2)
 	s.NoError(err)
-	s.Equal(projectName, *project.Name)
+	s.Equal(projectName, project.Name)
 	s.Empty(output.StdErr)
 	// Attempt to get a project with empty name and id:
 	output = s.runCommand(s.getProject(""), ExpectError)
@@ -1494,8 +1494,8 @@ func (s *EndToEndTestSuite) TestProjectCreateGithub() {
 	var project api.Project
 	err := json.Unmarshal([]byte(output.StdOut), &project)
 	s.NoError(err)
-	s.Equal(projectName, *project.Name)
-	s.Equal(projectID, *project.ProjectID)
+	s.Equal(projectName, project.Name)
+	s.Equal(projectID, project.ProjectID)
 	s.Empty(output.StdErr)
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
@@ -1590,16 +1590,16 @@ func (s *EndToEndTestSuite) TestSystems() {
 	var system api.System
 	err := json.Unmarshal([]byte(output.StdOut), &system)
 	s.NoError(err)
-	s.Equal(systemName, *system.Name)
-	s.Equal(systemDescription, *system.Description)
-	s.Equal(buildVCPUs, *system.BuildVcpus)
-	s.Equal(buildGPUs, *system.BuildGpus)
-	s.Equal(buildMemoryMiB, *system.BuildMemoryMib)
-	s.Equal(buildSharedMemoryMB, *system.BuildSharedMemoryMb)
-	s.Equal(metricsBuildVCPUs, *system.MetricsBuildVcpus)
-	s.Equal(metricsBuildGPUs, *system.MetricsBuildGpus)
-	s.Equal(metricsBuildMemoryMiB, *system.MetricsBuildMemoryMib)
-	s.Equal(metricsBuildSharedMemoryMB, *system.MetricsBuildSharedMemoryMb)
+	s.Equal(systemName, system.Name)
+	s.Equal(systemDescription, system.Description)
+	s.Equal(buildVCPUs, system.BuildVcpus)
+	s.Equal(buildGPUs, system.BuildGpus)
+	s.Equal(buildMemoryMiB, system.BuildMemoryMib)
+	s.Equal(buildSharedMemoryMB, system.BuildSharedMemoryMb)
+	s.Equal(metricsBuildVCPUs, system.MetricsBuildVcpus)
+	s.Equal(metricsBuildGPUs, system.MetricsBuildGpus)
+	s.Equal(metricsBuildMemoryMiB, system.MetricsBuildMemoryMib)
+	s.Equal(metricsBuildSharedMemoryMB, system.MetricsBuildSharedMemoryMb)
 	s.Empty(output.StdErr)
 	systemID := system.SystemID
 
@@ -1612,16 +1612,16 @@ func (s *EndToEndTestSuite) TestSystems() {
 	var system2 api.System
 	err = json.Unmarshal([]byte(output.StdOut), &system2)
 	s.NoError(err)
-	s.Equal(system2Name, *system2.Name)
-	s.Equal(systemDescription, *system2.Description)
-	s.Equal(commands.DefaultCPUs, *system2.BuildVcpus)
-	s.Equal(commands.DefaultGPUs, *system2.BuildGpus)
-	s.Equal(commands.DefaultMemoryMiB, *system2.BuildMemoryMib)
-	s.Equal(commands.DefaultSharedMemoryMB, *system2.BuildSharedMemoryMb)
-	s.Equal(commands.DefaultCPUs, *system2.MetricsBuildVcpus)
-	s.Equal(commands.DefaultGPUs, *system2.MetricsBuildGpus)
-	s.Equal(commands.DefaultMemoryMiB, *system2.MetricsBuildMemoryMib)
-	s.Equal(commands.DefaultSharedMemoryMB, *system2.MetricsBuildSharedMemoryMb)
+	s.Equal(system2Name, system2.Name)
+	s.Equal(systemDescription, system2.Description)
+	s.Equal(commands.DefaultCPUs, system2.BuildVcpus)
+	s.Equal(commands.DefaultGPUs, system2.BuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, system2.BuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, system2.BuildSharedMemoryMb)
+	s.Equal(commands.DefaultCPUs, system2.MetricsBuildVcpus)
+	s.Equal(commands.DefaultGPUs, system2.MetricsBuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, system2.MetricsBuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, system2.MetricsBuildSharedMemoryMb)
 	s.Empty(output.StdErr)
 
 	// Validate that missing name, project, or description returns errors:
@@ -1806,16 +1806,16 @@ func (s *EndToEndTestSuite) TestSystemCreateGithub() {
 	var system2 api.System
 	err := json.Unmarshal([]byte(output.StdOut), &system2)
 	s.NoError(err)
-	s.Equal(systemName, *system2.Name)
-	s.Equal(systemDescription, *system2.Description)
-	s.Equal(commands.DefaultCPUs, *system2.BuildVcpus)
-	s.Equal(commands.DefaultGPUs, *system2.BuildGpus)
-	s.Equal(commands.DefaultMemoryMiB, *system2.BuildMemoryMib)
-	s.Equal(commands.DefaultSharedMemoryMB, *system2.BuildSharedMemoryMb)
-	s.Equal(commands.DefaultCPUs, *system2.MetricsBuildVcpus)
-	s.Equal(commands.DefaultGPUs, *system2.MetricsBuildGpus)
-	s.Equal(commands.DefaultMemoryMiB, *system2.MetricsBuildMemoryMib)
-	s.Equal(commands.DefaultSharedMemoryMB, *system2.MetricsBuildSharedMemoryMb)
+	s.Equal(systemName, system2.Name)
+	s.Equal(systemDescription, system2.Description)
+	s.Equal(commands.DefaultCPUs, system2.BuildVcpus)
+	s.Equal(commands.DefaultGPUs, system2.BuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, system2.BuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, system2.BuildSharedMemoryMb)
+	s.Equal(commands.DefaultCPUs, system2.MetricsBuildVcpus)
+	s.Equal(commands.DefaultGPUs, system2.MetricsBuildGpus)
+	s.Equal(commands.DefaultMemoryMiB, system2.MetricsBuildMemoryMib)
+	s.Equal(commands.DefaultSharedMemoryMB, system2.MetricsBuildSharedMemoryMb)
 	s.Empty(output.StdErr)
 
 	// Check we can list the systems, and our new system is in it:
@@ -2851,16 +2851,16 @@ func (s *EndToEndTestSuite) TestAliases() {
 	var project api.Project
 	err := json.Unmarshal([]byte(output.StdOut), &project)
 	s.NoError(err)
-	s.Equal(projectName, *project.Name)
-	s.Equal(projectID, *project.ProjectID)
+	s.Equal(projectName, project.Name)
+	s.Equal(projectID, project.ProjectID)
 	// Try with the ID:
 	output = s.runCommand([]CommandBuilder{projectCommand, getByIDCommand}, ExpectNoError)
 	s.Empty(output.StdErr)
 	// Marshal into a struct:
 	err = json.Unmarshal([]byte(output.StdOut), &project)
 	s.NoError(err)
-	s.Equal(projectName, *project.Name)
-	s.Equal(projectID, *project.ProjectID)
+	s.Equal(projectName, project.Name)
+	s.Equal(projectID, project.ProjectID)
 
 	// Now create a branch:
 	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
@@ -2907,18 +2907,18 @@ func (s *EndToEndTestSuite) TestAliases() {
 	err = json.Unmarshal([]byte(output.StdOut), &branches)
 	s.NoError(err)
 	s.Equal(1, len(branches))
-	s.Equal(branchName, *branches[0].Name)
-	s.Equal(branchID, *branches[0].BranchID)
-	s.Equal(projectID, *branches[0].ProjectID)
+	s.Equal(branchName, branches[0].Name)
+	s.Equal(branchID, branches[0].BranchID)
+	s.Equal(projectID, branches[0].ProjectID)
 	// Now try by ID:
 	output = s.runCommand([]CommandBuilder{branchCommand, listBranchesByIDCommand}, ExpectNoError)
 	s.Empty(output.StdErr)
 	err = json.Unmarshal([]byte(output.StdOut), &branches)
 	s.NoError(err)
 	s.Equal(1, len(branches))
-	s.Equal(branchName, *branches[0].Name)
-	s.Equal(branchID, *branches[0].BranchID)
-	s.Equal(projectID, *branches[0].ProjectID)
+	s.Equal(branchName, branches[0].Name)
+	s.Equal(branchID, branches[0].BranchID)
+	s.Equal(projectID, branches[0].ProjectID)
 
 	// Now create a build:
 	buildCommand := CommandBuilder{

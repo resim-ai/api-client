@@ -109,9 +109,9 @@ func createBranch(ccmd *cobra.Command, args []string) {
 		log.Fatal("invalid branch type")
 	}
 
-	body := api.Branch{
-		Name:       &branchName,
-		BranchType: &branchType,
+	body := api.CreateBranchInput{
+		Name:       branchName,
+		BranchType: branchType,
 	}
 
 	response, err := Client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
@@ -123,7 +123,7 @@ func createBranch(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty branch returned")
 	}
 	branch := *response.JSON201
-	if branch.BranchID == nil {
+	if branch.BranchID == uuid.Nil {
 		log.Fatal("no branch ID")
 	}
 
@@ -182,14 +182,14 @@ pageLoop:
 		pageToken = response.JSON200.NextPageToken
 		branches := *response.JSON200.Branches
 		for _, branch := range branches {
-			if branch.Name == nil {
+			if branch.Name == "" {
 				log.Fatal("branch has no name")
 			}
-			if branch.BranchID == nil {
+			if branch.BranchID == uuid.Nil {
 				log.Fatal("branch ID is empty")
 			}
-			if *branch.Name == identifier {
-				branchID = *branch.BranchID
+			if branch.Name == identifier {
+				branchID = branch.BranchID
 				break pageLoop
 			}
 		}

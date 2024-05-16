@@ -122,12 +122,12 @@ func listProjects(ccmd *cobra.Command, args []string) {
 	defaultProjectUuid, _ := uuid.Parse(viper.GetString(projectKey))
 	for _, project := range allProjects {
 		var isActive string = ""
-		if *project.ProjectID == defaultProjectUuid {
+		if project.ProjectID == defaultProjectUuid {
 			isActive = "*"
 		} else {
 			isActive = " "
 		}
-		fmt.Println(isActive, *project.Name)
+		fmt.Println(isActive, project.Name)
 	}
 }
 
@@ -159,7 +159,7 @@ func selectProject(ccmd *cobra.Command, args []string) {
 	}
 	v.Set("project", project.ProjectID)
 	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
-	fmt.Println("Default project set:", *(project.Name))
+	fmt.Println("Default project set:", project.Name)
 }
 
 func createProject(ccmd *cobra.Command, args []string) {
@@ -179,9 +179,9 @@ func createProject(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty project description")
 	}
 
-	body := api.Project{
-		Name:        &projectName,
-		Description: &projectDescription,
+	body := api.CreateProjectInput{
+		Name:        projectName,
+		Description: projectDescription,
 	}
 	// Because we allow users to pass both names and IDs to locate projects, we
 	// need to protect the edge case that a user specifes the ID of one project as
@@ -199,7 +199,7 @@ func createProject(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	project := *response.JSON201
-	if project.ProjectID == nil {
+	if project.ProjectID == uuid.Nil {
 		log.Fatal("empty project ID")
 	}
 
@@ -292,14 +292,14 @@ pageLoop:
 		pageToken = response.JSON200.NextPageToken
 		projects := *response.JSON200.Projects
 		for _, project := range projects {
-			if project.Name == nil {
+			if project.Name == "" {
 				log.Fatal("project has no name")
 			}
-			if project.ProjectID == nil {
+			if project.ProjectID == uuid.Nil {
 				log.Fatal("project ID is empty")
 			}
-			if *project.Name == identifier {
-				projectID = *project.ProjectID
+			if project.Name == identifier {
+				projectID = project.ProjectID
 				break pageLoop
 			}
 		}

@@ -226,9 +226,9 @@ func createBuild(ccmd *cobra.Command, args []string) {
 				fmt.Printf("Branch with name %v doesn't currently exist. Creating... \n", branchName)
 			}
 			// Create the branch
-			body := api.Branch{
-				Name:       &branchName,
-				BranchType: Ptr(api.CHANGEREQUEST),
+			body := api.CreateBranchInput{
+				Name:       branchName,
+				BranchType: api.CHANGEREQUEST,
 			}
 
 			response, err := Client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
@@ -237,7 +237,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			}
 			ValidateResponse(http.StatusCreated, fmt.Sprintf("failed to create a new branch with name %v", branchName),
 				response.HTTPResponse, response.Body)
-			branchID = *response.JSON201.BranchID
+			branchID = response.JSON201.BranchID
 			if !buildGithub {
 				fmt.Printf("Created branch with ID %v\n", branchID)
 			}
@@ -246,11 +246,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	body := api.Build{
+	body := api.CreateBuildInput{
 		Description: &buildDescription,
-		ImageUri:    &buildImageURI,
-		Version:     &buildVersion,
-		SystemID:    &systemID,
+		ImageUri:    buildImageURI,
+		Version:     buildVersion,
+		SystemID:    systemID,
 	}
 
 	response, err := Client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)

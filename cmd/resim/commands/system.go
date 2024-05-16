@@ -205,17 +205,17 @@ func createSystem(cmd *cobra.Command, args []string) {
 		log.Fatal("empty system description")
 	}
 
-	body := api.System{
-		Name:                       &systemName,
-		Description:                &systemDescription,
-		BuildGpus:                  Ptr(viper.GetInt(systemBuildGPUsKey)),
-		BuildVcpus:                 Ptr(viper.GetInt(systemBuildVCPUsKey)),
-		BuildMemoryMib:             Ptr(viper.GetInt(systemBuildMemoryMiBKey)),
-		BuildSharedMemoryMb:        Ptr(viper.GetInt(systemBuildSharedMemoryMBKey)),
-		MetricsBuildVcpus:          Ptr(viper.GetInt(systemMetricsBuildVCPUsKey)),
-		MetricsBuildGpus:           Ptr(viper.GetInt(systemMetricsBuildGPUsKey)),
-		MetricsBuildMemoryMib:      Ptr(viper.GetInt(systemMetricsBuildMemoryMibKey)),
-		MetricsBuildSharedMemoryMb: Ptr(viper.GetInt(systemMetricsBuildSharedMemoryMbKey)),
+	body := api.CreateSystemInput{
+		Name:                       systemName,
+		Description:                systemDescription,
+		BuildGpus:                  viper.GetInt(systemBuildGPUsKey),
+		BuildVcpus:                 viper.GetInt(systemBuildVCPUsKey),
+		BuildMemoryMib:             viper.GetInt(systemBuildMemoryMiBKey),
+		BuildSharedMemoryMb:        viper.GetInt(systemBuildSharedMemoryMBKey),
+		MetricsBuildVcpus:          viper.GetInt(systemMetricsBuildVCPUsKey),
+		MetricsBuildGpus:           viper.GetInt(systemMetricsBuildGPUsKey),
+		MetricsBuildMemoryMib:      viper.GetInt(systemMetricsBuildMemoryMibKey),
+		MetricsBuildSharedMemoryMb: viper.GetInt(systemMetricsBuildSharedMemoryMbKey),
 	}
 
 	response, err := Client.CreateSystemWithResponse(context.Background(), projectID, body)
@@ -227,7 +227,7 @@ func createSystem(cmd *cobra.Command, args []string) {
 		log.Fatal("empty system returned")
 	}
 	system := *response.JSON201
-	if system.SystemID == nil {
+	if system.SystemID == uuid.Nil {
 		log.Fatal("no system ID")
 	}
 
@@ -368,14 +368,14 @@ pageLoop:
 		pageToken = response.JSON200.NextPageToken
 		systems := *response.JSON200.Systems
 		for _, system := range systems {
-			if system.Name == nil {
+			if system.Name == "" {
 				log.Fatal("system has no name")
 			}
-			if system.SystemID == nil {
+			if system.SystemID == uuid.Nil {
 				log.Fatal("system ID is empty")
 			}
-			if *system.Name == identifier {
-				systemID = *system.SystemID
+			if system.Name == identifier {
+				systemID = system.SystemID
 				break pageLoop
 			}
 		}

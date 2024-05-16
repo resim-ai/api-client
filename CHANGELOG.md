@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Added
+
+- The ReSim CLI now validates that the batch being created is **compatible** when not in github mode. 
+That is, it checks that experiences and metrics are registered as compatible with the system that the build
+you are using belongs to. This can be overridden via interactive prompt.
+
 ### v0.3.0 - April 10 2024
 
 #### Added

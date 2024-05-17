@@ -311,11 +311,19 @@ type CreateBranchInput struct {
 	Name       string     `json:"name"`
 }
 
-// CreateBuildInput defines model for createBuildInput.
-type CreateBuildInput struct {
+// CreateBuildForBranchInput defines model for createBuildForBranchInput.
+type CreateBuildForBranchInput struct {
 	Description *BuildDescription `json:"description,omitempty"`
 	ImageUri    BuildImageUri     `json:"imageUri"`
 	SystemID    SystemID          `json:"systemID"`
+	Version     BuildVersion      `json:"version"`
+}
+
+// CreateBuildForSystemInput defines model for createBuildForSystemInput.
+type CreateBuildForSystemInput struct {
+	BranchID    BranchID          `json:"branchID"`
+	Description *BuildDescription `json:"description,omitempty"`
+	ImageUri    BuildImageUri     `json:"imageUri"`
 	Version     BuildVersion      `json:"version"`
 }
 
@@ -1380,7 +1388,7 @@ type UpdateBatchMetricsStatusJSONRequestBody = MetricStatus
 type CreateBranchForProjectJSONRequestBody = CreateBranchInput
 
 // CreateBuildForBranchJSONRequestBody defines body for CreateBuildForBranch for application/json ContentType.
-type CreateBuildForBranchJSONRequestBody = CreateBuildInput
+type CreateBuildForBranchJSONRequestBody = CreateBuildForBranchInput
 
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
 type CreateExperienceTagJSONRequestBody = CreateExperienceTagInput
@@ -1419,7 +1427,7 @@ type CreateSystemJSONRequestBody = CreateSystemInput
 type UpdateSystemJSONRequestBody = UpdateSystemInput
 
 // CreateBuildForSystemJSONRequestBody defines body for CreateBuildForSystem for application/json ContentType.
-type CreateBuildForSystemJSONRequestBody = Build
+type CreateBuildForSystemJSONRequestBody = CreateBuildForSystemInput
 
 // DestroySandboxJSONRequestBody defines body for DestroySandbox for application/json ContentType.
 type DestroySandboxJSONRequestBody = SandboxInput

@@ -19,7 +19,7 @@ var (
 		Use:     "test-suites",
 		Short:   "test suites contains commands for creating and managing test suites",
 		Long:    ``,
-		Aliases: []string{"test-suite,suite,suites"},
+		Aliases: []string{"test-suite", "suite", "suites"},
 	}
 
 	createTestSuiteCmd = &cobra.Command{
@@ -38,7 +38,7 @@ var (
 
 	getTestSuiteCmd = &cobra.Command{
 		Use:   "get",
-		Short: "get - Retrieves a test suite (or a specific test suite revision)",
+		Short: "get - Retrieves a test suite's latest revision, all revisions, or a specific test suite revision",
 		Long:  ``,
 		Run:   getTestSuite,
 	}
@@ -75,8 +75,9 @@ const (
 	testSuiteParameterKey    = "parameter"
 	testSuiteKey             = "test-suite"
 	testSuiteRevisionKey     = "revision"
+	testSuiteAllRevisionKey  = "all-revisions"
 	testSuiteGithubKey       = "github"
-	testSuiteMetricsBuildKey = "metrics-build-id"
+	testSuiteMetricsBuildKey = "metrics-build"
 )
 
 func init() {
@@ -97,7 +98,7 @@ func init() {
 	// Metrics build
 	createTestSuiteCmd.Flags().String(testSuiteMetricsBuildKey, "", "The ID of the metrics build to use in this test suite.")
 	// Experiences
-	createTestSuiteCmd.Flags().StringSlice(testSuiteExperiencesKey, []string{}, "List of experience names or list of experience IDs to form this test suite.")
+	createTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "List of experience names or list of experience IDs to form this test suite.")
 	createTestSuiteCmd.MarkFlagRequired(testSuiteExperiencesKey)
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
 
@@ -110,6 +111,7 @@ func init() {
 	getTestSuiteCmd.MarkFlagRequired(testSuiteKey)
 	// Revision [Optional]
 	getTestSuiteCmd.Flags().Int32(testSuiteRevisionKey, -1, "The specific revision of a test suite to retrieve.")
+	getTestSuiteCmd.Flags().Bool(testSuiteAllRevisionKey, false, "Supply this flag to list all revisions of the test suite.")
 	testSuiteCmd.AddCommand(getTestSuiteCmd)
 
 	// Revise Test Suite
@@ -129,7 +131,7 @@ func init() {
 	// Metrics build
 	reviseTestSuiteCmd.Flags().String(testSuiteMetricsBuildKey, "", "A new ID of the metrics build to use in this test suite revision. To unset an existing metrics build, pass a nil uuid (00000000-0000-0000-0000-000000000000).")
 	// Experiences
-	reviseTestSuiteCmd.Flags().StringSlice(testSuiteExperiencesKey, []string{}, "A list of updated experience names or list of experience IDs to have in the test suite revision.")
+	reviseTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "A list of updated experience names or list of experience IDs to have in the test suite revision.")
 	// We need something to revise!
 	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey)
 	testSuiteCmd.AddCommand(reviseTestSuiteCmd)
@@ -196,6 +198,9 @@ func createTestSuite(ccmd *cobra.Command, args []string) {
 	var allExperienceIDs []uuid.UUID
 	var allExperienceNames []string
 
+	if len(viper.GetString(testSuiteExperiencesKey)) == 0 {
+		log.Fatal("empty list of experiences")
+	}
 	// Parse --experiences into either IDs or names
 	if viper.IsSet(testSuiteExperiencesKey) {
 		experienceIDs, experienceNames := parseUUIDsAndNames(viper.GetString(testSuiteExperiencesKey))
@@ -260,7 +265,7 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(testSuiteProjectKey))
 	testSuiteGithub := viper.GetBool(testSuiteGithubKey)
 	if !testSuiteGithub {
-		fmt.Println("Creating a test suite...")
+		fmt.Println("Revising a test suite...")
 	}
 
 	// Get the existing test suite name:
@@ -319,7 +324,7 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to revise test suite:", err)
 	}
-	ValidateResponse(http.StatusCreated, "failed to revise test suite", response.HTTPResponse, response.Body)
+	ValidateResponse(http.StatusOK, "failed to revise test suite", response.HTTPResponse, response.Body)
 
 	if response.JSON200 == nil {
 		log.Fatal("empty response")
@@ -437,7 +442,20 @@ func getTestSuite(ccmd *cobra.Command, args []string) {
 		revision = Ptr(viper.GetInt32(testSuiteRevisionKey))
 	}
 	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
-	OutputJson(testSuite)
+
+	if viper.GetBool(testSuiteAllRevisionKey) {
+		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID)
+		if err != nil {
+			log.Fatal("unable to list test suite revisions:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to list test suite revisions", response.HTTPResponse, response.Body)
+		if response.JSON200.TestSuites == nil {
+			log.Fatal("unable to list test suite revisions")
+		}
+		OutputJson(response.JSON200.TestSuites)
+	} else {
+		OutputJson(testSuite)
+	}
 }
 
 func runTestSuite(ccmd *cobra.Command, args []string) {

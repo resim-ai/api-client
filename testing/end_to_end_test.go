@@ -3426,9 +3426,6 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	// Then get a specific revision etc
 	zerothRevision := int32(0)
 	output = s.runCommand(s.getTestSuite(projectID, firstTestSuiteName, Ptr(zerothRevision), false), ExpectNoError)
-	fmt.Println("Getting test suite")
-	fmt.Println(output.StdOut)
-	fmt.Println(output.StdErr)
 	// Parse the output into a test suite:
 	var testSuite api.TestSuite
 	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
@@ -3457,13 +3454,13 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.Len(testSuiteBatches, 1)
 	// Then get the test suite batch
 	batch := testSuiteBatches[0]
-	s.Equal(buildIDString, batch.BuildID)
+	s.Equal(buildIDString, batch.BuildID.String())
 
 	// Create a new run using github:
 	output = s.runCommand(s.runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue), ExpectNoError)
-	s.Contains(output.StdOut, CreatedBatch)
+	s.Contains(output.StdOut, GithubCreatedBatch)
 	// Parse the output to get a batch id:
-	batchIDString := output.StdOut[len(CreatedBatch) : len(output.StdOut)-1]
+	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	uuid.MustParse(batchIDString)
 	// Then list the test suite batches
 	output = s.runCommand(s.getTestSuiteBatches(projectID, firstTestSuiteName, nil), ExpectNoError)

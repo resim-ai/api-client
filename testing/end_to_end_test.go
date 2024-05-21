@@ -3470,7 +3470,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.Len(testSuiteBatches, 2)
 	found := false
 	for _, batch := range testSuiteBatches {
-		s.Equal(buildIDString, batch.BuildID)
+		s.Equal(buildIDString, batch.BuildID.String())
 		if batch.BatchID.String() == batchIDString {
 			found = true
 		}

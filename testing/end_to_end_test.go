@@ -3349,6 +3349,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	// Now create a few experiences:
 	NUM_EXPERIENCES := 4
 	experienceNames := make([]string, NUM_EXPERIENCES)
+	experienceIDs := make([]uuid.UUID, NUM_EXPERIENCES)
 	for i := 0; i < NUM_EXPERIENCES; i++ {
 		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
@@ -3357,8 +3358,9 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 		s.Empty(output.StdErr)
 		// We expect to be able to parse the experience ID as a UUID
 		experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
-		uuid.MustParse(experienceIDString)
+		experienceID := uuid.MustParse(experienceIDString)
 		experienceNames[i] = experienceName
+		experienceIDs[i] = experienceID
 	}
 
 	// Finally, a metrics build:
@@ -3424,13 +3426,16 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	// Then get a specific revision etc
 	zerothRevision := int32(0)
 	output = s.runCommand(s.getTestSuite(projectID, firstTestSuiteName, Ptr(zerothRevision), false), ExpectNoError)
+	fmt.Println("Getting test suite")
+	fmt.Println(output.StdOut)
+	fmt.Println(output.StdErr)
 	// Parse the output into a test suite:
 	var testSuite api.TestSuite
 	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
 	s.NoError(err)
 	s.Equal(firstTestSuiteName, testSuite.Name)
 	s.Equal(zerothRevision, testSuite.TestSuiteRevision)
-	s.ElementsMatch(experienceNames, testSuite.Experiences)
+	s.ElementsMatch(experienceIDs, testSuite.Experiences)
 	secondRevision := int32(2)
 	output = s.runCommand(s.getTestSuite(projectID, firstTestSuiteName, Ptr(secondRevision), false), ExpectNoError)
 	// Parse the output into a test suite:
@@ -3438,7 +3443,8 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.NoError(err)
 	s.Equal(firstTestSuiteName, testSuite.Name)
 	s.Equal(secondRevision, testSuite.TestSuiteRevision)
-	s.ElementsMatch(experienceNames, testSuite.Experiences)
+	s.Len(testSuite.Experiences, 1)
+	s.ElementsMatch(experienceIDs[0], testSuite.Experiences[0])
 	// Then run.
 	output = s.runCommand(s.runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedTestSuiteBatch)

@@ -394,6 +394,7 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 		testSuite = response.JSON200
 	} else { // it's a name, rather than an ID (and we disallow test suite names that are simply UUIDs)
 		var pageToken *string = nil
+	pageLoop:
 		for {
 			response, err := Client.ListTestSuitesWithResponse(context.Background(), projectID, &api.ListTestSuitesParams{
 				PageToken: pageToken,
@@ -411,7 +412,7 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 			for _, suite := range testSuites {
 				if suite.Name == testSuiteKeyRaw {
 					testSuite = &suite
-					return testSuite
+					break pageLoop
 				}
 			}
 
@@ -423,8 +424,7 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 		}
 	}
 
-	// if revision is not nil, we then get the specific revision
-	if revision != nil && *revision != testSuite.TestSuiteRevision {
+	if testSuite != nil && revision != nil && *revision != testSuite.TestSuiteRevision {
 		response, err := Client.GetTestSuiteRevisionWithResponse(context.Background(), projectID, testSuite.TestSuiteID, *revision)
 		if err != nil {
 			log.Fatal("unable to retrieve test suite revision:", err)

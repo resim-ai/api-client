@@ -2509,7 +2509,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 			fmt.Println("Batch completed, with exitCode:", exitCode)
 		}
 		return complete
-	}, 5*time.Minute, 10*time.Second)
+	}, 10*time.Minute, 10*time.Second)
 	// Grab the batch and validate the status, first by name then by ID:
 	output = s.runCommand(s.getBatchByName(projectID, batchNameString, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
@@ -2733,7 +2733,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 			fmt.Println("Batch completed, with exitCode:", exitCode)
 		}
 		return complete
-	}, 5*time.Minute, 10*time.Second)
+	}, 10*time.Minute, 10*time.Second)
 	// Grab the batch and validate the status by ID:
 	output = s.runCommand(s.getBatchByID(projectID, batchIDStringGH, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:

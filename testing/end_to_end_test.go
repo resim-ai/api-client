@@ -2547,6 +2547,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.NoError(err)
 	s.Equal(batchNameString, *batch.FriendlyName)
 	s.Equal(batchID, *batch.BatchID)
+	s.Equal(AssociatedAccount, batch.AssociatedAccount)
 	// Validate that it succeeded:
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
 
@@ -3504,5 +3505,6 @@ func TestEndToEndTestSuite(t *testing.T) {
 	if maybeCIAccount != "" {
 		AssociatedAccount = maybeCIAccount
 	}
+	fmt.Printf("Running the end to end test with %s account", AssociatedAccount)
 	suite.Run(t, new(EndToEndTestSuite))
 }

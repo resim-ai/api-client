@@ -56,7 +56,7 @@ const (
 	sweepParameterValuesKey  = "parameter-values"
 	sweepExitStatusKey       = "exit-status"
 	sweepGithubKey           = "github"
-	sweepAccountKey          = "sweep"
+	sweepAccountKey          = "account"
 )
 
 func init() {

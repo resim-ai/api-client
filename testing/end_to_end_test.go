@@ -179,7 +179,6 @@ const (
 	EmptyLogType          string = "invalid log type"
 	EmptyLogExecutionStep string = "invalid execution step"
 	InvalidJobID          string = "unable to parse job ID"
-
 	// Sweep Messages
 	CreatedSweep                  string = "Created sweep"
 	GithubCreatedSweep            string = "sweep_id="
@@ -188,6 +187,16 @@ const (
 	InvalidSweepName              string = "unable to find sweep"
 	InvalidSweepID                string = "unable to parse sweep ID"
 	InvalidGridSearchFile         string = "failed to parse grid search config file"
+	// Test Suite Messages
+	CreatedTestSuite           string = "Created test suite"
+	GithubCreatedTestSuite     string = "test_suite_id_revision="
+	EmptyTestSuiteName         string = "empty test suite name"
+	EmptyTestSuiteDescription  string = "empty test suite description"
+	EmptyTestSuiteSystemName   string = "empty system name"
+	EmptyTestSuiteMetricsBuild string = "failed to parse metrics-build"
+	EmptyTestSuiteExperiences  string = "empty list of experiences"
+	RevisedTestSuite           string = "Revised test suite"
+	CreatedTestSuiteBatch      string = "Created batch for test suite"
 )
 
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
@@ -1407,6 +1416,231 @@ func (s *EndToEndTestSuite) listSweeps(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{sweepCommand, listCommand}
 }
 
+func (s *EndToEndTestSuite) createTestSuite(projectID uuid.UUID, name string, description string, systemID string, experiences []string, metricsBuildID string, github bool) []CommandBuilder {
+	suitesCommand := CommandBuilder{
+		Command: "suites",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--name",
+				Value: name,
+			},
+			{
+				Name:  "--description",
+				Value: description,
+			},
+			{
+				Name:  "--system",
+				Value: systemID,
+			},
+		},
+	}
+	// Pass an experience flag even if empty
+	experiencesString := strings.Join(experiences, ",")
+	createCommand.Flags = append(createCommand.Flags, Flag{
+		Name:  "--experiences",
+		Value: experiencesString,
+	})
+
+	if len(metricsBuildID) > 0 {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--metrics-build",
+			Value: metricsBuildID,
+		})
+	}
+	if github {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{suitesCommand, createCommand}
+}
+
+func (s *EndToEndTestSuite) reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, github bool) []CommandBuilder {
+	suitesCommand := CommandBuilder{
+		Command: "suites",
+	}
+	reviseCommand := CommandBuilder{
+		Command: "revise",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--test-suite",
+				Value: testSuite,
+			},
+		},
+	}
+	if systemID != nil {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--system",
+			Value: *systemID,
+		})
+	}
+	if name != nil {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--name",
+			Value: *name,
+		})
+	}
+	if description != nil {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--description",
+			Value: *description,
+		})
+	}
+	if experiences != nil && len(*experiences) > 0 {
+		experiencesString := strings.Join(*experiences, ",")
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--experiences",
+			Value: experiencesString,
+		})
+	}
+	if metricsBuildID != nil {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--metrics-build-id",
+			Value: *metricsBuildID,
+		})
+	}
+	if github {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{suitesCommand, reviseCommand}
+}
+
+func (s *EndToEndTestSuite) getTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, allRevisions bool) []CommandBuilder {
+	suitesCommand := CommandBuilder{
+		Command: "suites",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--test-suite",
+				Value: testSuiteName,
+			},
+		},
+	}
+	if revision != nil {
+		getCommand.Flags = append(getCommand.Flags, Flag{
+			Name:  "--revision",
+			Value: fmt.Sprintf("%d", *revision),
+		})
+	}
+	if allRevisions {
+		getCommand.Flags = append(getCommand.Flags, Flag{
+			Name:  "--all-revisions",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{suitesCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) listTestSuites(projectID uuid.UUID) []CommandBuilder {
+	suitesCommand := CommandBuilder{
+		Command: "suites",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+		},
+	}
+	return []CommandBuilder{suitesCommand, listCommand}
+
+}
+
+func (s *EndToEndTestSuite) getTestSuiteBatches(projectID uuid.UUID, testSuiteName string, revision *int32) []CommandBuilder {
+	// We build a get batch command with the name flag
+	testSuitesCommand := CommandBuilder{
+		Command: "suites",
+	}
+	batchesCommand := CommandBuilder{
+		Command: "batches",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--test-suite",
+				Value: testSuiteName,
+			},
+		},
+	}
+	if revision != nil {
+		batchesCommand.Flags = append(batchesCommand.Flags, Flag{
+			Name:  "--revision",
+			Value: fmt.Sprintf("%d", *revision),
+		})
+	}
+	return []CommandBuilder{testSuitesCommand, batchesCommand}
+}
+
+func (s *EndToEndTestSuite) runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool) []CommandBuilder {
+	// We build a get batch command with the name flag
+	testSuiteCommand := CommandBuilder{
+		Command: "suites",
+	}
+	runCommand := CommandBuilder{
+		Command: "run",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--test-suite",
+				Value: testSuiteName,
+			},
+			{
+				Name:  "--build-id",
+				Value: buildID,
+			},
+		},
+	}
+	if revision != nil {
+		runCommand.Flags = append(runCommand.Flags, Flag{
+			Name:  "--revision",
+			Value: fmt.Sprintf("%d", *revision),
+		})
+	}
+	if len(parameters) > 0 {
+		for key, value := range parameters {
+			runCommand.Flags = append(runCommand.Flags, Flag{
+				Name:  "--parameter",
+				Value: fmt.Sprintf("%s:%s", key, value),
+			})
+		}
+	}
+	if github {
+		runCommand.Flags = append(runCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{testSuiteCommand, runCommand}
+}
+
 // As a first test, we expect the help command to run successfully
 func (s *EndToEndTestSuite) TestHelp() {
 	fmt.Println("Testing help command")
@@ -2275,7 +2509,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 			fmt.Println("Batch completed, with exitCode:", exitCode)
 		}
 		return complete
-	}, 5*time.Minute, 10*time.Second)
+	}, 10*time.Minute, 10*time.Second)
 	// Grab the batch and validate the status, first by name then by ID:
 	output = s.runCommand(s.getBatchByName(projectID, batchNameString, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
@@ -2499,7 +2733,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 			fmt.Println("Batch completed, with exitCode:", exitCode)
 		}
 		return complete
-	}, 5*time.Minute, 10*time.Second)
+	}, 10*time.Minute, 10*time.Second)
 	// Grab the batch and validate the status by ID:
 	output = s.runCommand(s.getBatchByID(projectID, batchIDStringGH, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
@@ -3073,6 +3307,176 @@ func (s *EndToEndTestSuite) TestAliases() {
 	s.Empty(output.StdErr)
 }
 
+func (s *EndToEndTestSuite) TestTestSuites() {
+	fmt.Println("Testing test suites")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(s.createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Now create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	const systemDescription = "test system description"
+	const buildVCPUs = 1
+	const buildGPUs = 0
+	const buildMemoryMiB = 1000
+	const buildSharedMemoryMB = 64
+	const metricsBuildVCPUs = 2
+	const metricsBuildGPUs = 0
+	const metricsBuildMemoryMiB = 900
+	const metricsBuildSharedMemoryMB = 1024
+	output = s.runCommand(s.createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(s.createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Now create the build:
+	output = s.runCommand(s.createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+
+	// Now create a few experiences:
+	NUM_EXPERIENCES := 4
+	experienceNames := make([]string, NUM_EXPERIENCES)
+	experienceIDs := make([]uuid.UUID, NUM_EXPERIENCES)
+	for i := 0; i < NUM_EXPERIENCES; i++ {
+		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+		output = s.runCommand(s.createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, GithubTrue), ExpectNoError)
+		s.Contains(output.StdOut, GithubCreatedExperience)
+		s.Empty(output.StdErr)
+		// We expect to be able to parse the experience ID as a UUID
+		experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+		experienceID := uuid.MustParse(experienceIDString)
+		experienceNames[i] = experienceName
+		experienceIDs[i] = experienceID
+	}
+
+	// Finally, a metrics build:
+	output = s.runCommand(s.createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	uuid.MustParse(metricsBuildIDString)
+
+	// Now, create a test suite with all our experiences, the system, and a metrics build:
+	firstTestSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+	testSuiteDescription := "test suite description"
+	output = s.runCommand(s.createTestSuite(projectID, firstTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedTestSuite)
+	// Try with the github flag:
+	secondTestSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+	output = s.runCommand(s.createTestSuite(projectID, secondTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedTestSuite)
+	// Parse the output
+	testSuiteIDRevisionString := output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
+	// Split into the UUID and revision:
+	testSuiteIDRevision := strings.Split(testSuiteIDRevisionString, "/")
+	s.Len(testSuiteIDRevision, 2)
+	uuid.MustParse(testSuiteIDRevision[0])
+	revision := testSuiteIDRevision[1]
+	s.Equal("0", revision)
+
+	// Failure possibilities:
+	// Try to create a test suite with an empty system:
+	output = s.runCommand(s.createTestSuite(projectID, "test-suite", "description", "", experienceNames, metricsBuildIDString, GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyTestSuiteSystemName)
+	output = s.runCommand(s.createTestSuite(projectID, "", "description", systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyTestSuiteName)
+	output = s.runCommand(s.createTestSuite(projectID, "test-suite", "", systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyTestSuiteDescription)
+	output = s.runCommand(s.createTestSuite(projectID, "test-suite", "description", systemName, []string{}, metricsBuildIDString, GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyTestSuiteExperiences)
+	output = s.runCommand(s.createTestSuite(projectID, "test-suite", "description", systemName, experienceNames, "not-a-uuid", GithubFalse), ExpectError)
+	s.Contains(output.StdErr, EmptyTestSuiteMetricsBuild)
+
+	// Revise the test suite:
+	// Now, create a test suite with all our experiences, the system, and a metrics build:
+	output = s.runCommand(s.reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, RevisedTestSuite)
+	// Revise w/ github flag
+	output = s.runCommand(s.reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedTestSuite)
+	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
+	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
+	s.Len(testSuiteIDRevision, 2)
+	uuid.MustParse(testSuiteIDRevision[0])
+	revision = testSuiteIDRevision[1]
+	s.Equal("2", revision)
+
+	// Now list the test suites
+	output = s.runCommand(s.listTestSuites(projectID), ExpectNoError)
+	// Parse the output into a list of test suites:
+	var testSuites []api.TestSuite
+	err := json.Unmarshal([]byte(output.StdOut), &testSuites)
+	s.NoError(err)
+	s.Len(testSuites, 2)
+	s.Equal(firstTestSuiteName, testSuites[0].Name)
+	s.Contains(secondTestSuiteName, testSuites[1].Name)
+	// Then get a specific revision etc
+	zerothRevision := int32(0)
+	output = s.runCommand(s.getTestSuite(projectID, firstTestSuiteName, Ptr(zerothRevision), false), ExpectNoError)
+	// Parse the output into a test suite:
+	var testSuite api.TestSuite
+	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
+	s.NoError(err)
+	s.Equal(firstTestSuiteName, testSuite.Name)
+	s.Equal(zerothRevision, testSuite.TestSuiteRevision)
+	s.ElementsMatch(experienceIDs, testSuite.Experiences)
+	secondRevision := int32(2)
+	output = s.runCommand(s.getTestSuite(projectID, firstTestSuiteName, Ptr(secondRevision), false), ExpectNoError)
+	// Parse the output into a test suite:
+	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
+	s.NoError(err)
+	s.Equal(firstTestSuiteName, testSuite.Name)
+	s.Equal(secondRevision, testSuite.TestSuiteRevision)
+	s.Len(testSuite.Experiences, 1)
+	s.ElementsMatch(experienceIDs[0], testSuite.Experiences[0])
+	// Then run.
+	output = s.runCommand(s.runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse), ExpectNoError)
+	s.Contains(output.StdOut, CreatedTestSuiteBatch)
+	// Then list the test suite batches
+	output = s.runCommand(s.getTestSuiteBatches(projectID, firstTestSuiteName, nil), ExpectNoError)
+	// Parse the output into a list of test suite batches:
+	var testSuiteBatches []api.Batch
+	err = json.Unmarshal([]byte(output.StdOut), &testSuiteBatches)
+	s.NoError(err)
+	s.Len(testSuiteBatches, 1)
+	// Then get the test suite batch
+	batch := testSuiteBatches[0]
+	s.Equal(buildIDString, batch.BuildID.String())
+
+	// Create a new run using github:
+	output = s.runCommand(s.runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	// Parse the output to get a batch id:
+	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDString)
+	// Then list the test suite batches
+	output = s.runCommand(s.getTestSuiteBatches(projectID, firstTestSuiteName, nil), ExpectNoError)
+	// Parse the output into a list of test suite batches:
+	err = json.Unmarshal([]byte(output.StdOut), &testSuiteBatches)
+	s.NoError(err)
+	s.Len(testSuiteBatches, 2)
+	found := false
+	for _, batch := range testSuiteBatches {
+		s.Equal(buildIDString, batch.BuildID.String())
+		if batch.BatchID.String() == batchIDString {
+			found = true
+		}
+	}
+	s.True(found)
+}
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()
 	viper.SetDefault(Config, Dev)

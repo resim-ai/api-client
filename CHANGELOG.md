@@ -6,6 +6,34 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 ### Unreleased
 
+#### Added
+
+- The ReSim CLI now has full support for creating and managing **test suites** :rocket:
+  - A Test Suite, described in detail at [ReSim Docs](https://docs.resim.ai), provides a way to 
+  specify a set of experiences and a metrics build that you intend as a repeatedly used test
+  for a particular system, e.g. CI Smoke Tests. Then, for a build of that system, one simply 
+  needs to run the test suite to get the results, rather than specifying the experiences each 
+  time.
+
+  This also has the benefit of decoupling the definition of a regular set of tests from its 
+  running. As such, test suites are inherently versioned: updating the name, experiences, or
+  metrics build creates a new revision. One can `run` a test suite at its latest revision or
+  a specific revision.
+
+  - A test suite can be created within the CLI as follows:
+  ```shell
+    resim suites create --project "autonomy-stack" --name "smoke tests" \
+    --description "The set of smoke tests for my system" \
+    --system "Perception" \
+    --metrics-build "<metrics-build-id>" \
+    --experiences "experience1, experience2, ..."
+  ```
+  - One can list the test suites: `resim suites list --project "autonomy-stack"` and get a single
+  test suite, a specific revision, or all revisions with `resim suites get`
+  - A revision can be created with `resim suites revise`, which takes the same parameters as creation
+  - Finally, a test suite can be run with `resim suites run --suite "smoke tests" --build <build-id>`
+  
+
 Changes in this section will be included in the next release.
 
 ### v0.3.0 - April 10 2024

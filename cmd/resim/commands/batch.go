@@ -149,7 +149,7 @@ func init() {
 	rootCmd.AddCommand(batchCmd)
 }
 
-func grabCIEnvironmentVariableAccount() string {
+func GetCIEnvironmentVariableAccount() string {
 	account := ""
 	// GitHub
 	if viper.IsSet(GITHUB_ACTOR_KEY) {
@@ -242,7 +242,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
-	associatedAccount := grabCIEnvironmentVariableAccount()
+	associatedAccount := GetCIEnvironmentVariableAccount()
 	if viper.IsSet(batchAccountKey) {
 		associatedAccount = viper.GetString(batchAccountKey)
 	}

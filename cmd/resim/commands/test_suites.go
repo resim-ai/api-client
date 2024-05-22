@@ -489,7 +489,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
-	associatedAccount := grabCIEnvironmentVariableAccount()
+	associatedAccount := GetCIEnvironmentVariableAccount()
 	if viper.IsSet(testSuiteAccountKey) {
 		associatedAccount = viper.GetString(testSuiteAccountKey)
 	}

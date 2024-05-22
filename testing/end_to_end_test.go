@@ -3326,7 +3326,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	const buildMemoryMiB = 1000
 	const buildSharedMemoryMB = 64
 	const metricsBuildVCPUs = 2
-	const metricsBuildGPUs = 10
+	const metricsBuildGPUs = 0
 	const metricsBuildMemoryMiB = 900
 	const metricsBuildSharedMemoryMB = 1024
 	output = s.runCommand(s.createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), GithubTrue), ExpectNoError)

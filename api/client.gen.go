@@ -971,7 +971,7 @@ type TestSuite struct {
 }
 
 // TestSuiteBatchInput defines model for testSuiteBatchInput.
-type TestSuiteBatchInput struct 
+type TestSuiteBatchInput struct {
 	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
 	BuildID           BuildID            `json:"buildID"`
 	Parameters        *BatchParameters   `json:"parameters,omitempty"`

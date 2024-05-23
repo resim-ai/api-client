@@ -6,6 +6,10 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 ### Unreleased
 
+Changes in this section will be included in the next release.
+
+### v0.3.1 - May 23 2024
+
 #### Added
 
 - The ReSim CLI now supports extracting a CI/CD username into an associated account field, in
@@ -36,9 +40,6 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
   test suite, a specific revision, or all revisions with `resim suites get`
   - A revision can be created with `resim suites revise`, which takes the same parameters as creation
   - Finally, a test suite can be run with `resim suites run --suite "smoke tests" --build <build-id>`
-  
-
-Changes in this section will be included in the next release.
 
 ### v0.3.0 - April 10 2024
 

@@ -78,6 +78,7 @@ const (
 	testSuiteAllRevisionKey  = "all-revisions"
 	testSuiteGithubKey       = "github"
 	testSuiteMetricsBuildKey = "metrics-build"
+	testSuiteAccountKey      = "account"
 )
 
 func init() {
@@ -156,6 +157,7 @@ func init() {
 	runTestSuiteCmd.MarkFlagRequired(testSuiteBuildIDKey)
 	// Parameters
 	runTestSuiteCmd.Flags().StringSlice(testSuiteParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
+	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")
 	testSuiteCmd.AddCommand(runTestSuiteCmd)
 
 	// Test Suite Batches
@@ -485,10 +487,18 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	// Process the associated account: by default, we try to get from CI/CD environment variables
+	// Otherwise, we use the account flag. The default is "".
+	associatedAccount := GetCIEnvironmentVariableAccount()
+	if viper.IsSet(testSuiteAccountKey) {
+		associatedAccount = viper.GetString(testSuiteAccountKey)
+	}
+
 	// Build the request body
 	body := api.TestSuiteBatchInput{
-		BuildID:    buildID,
-		Parameters: &parameters,
+		BuildID:           buildID,
+		Parameters:        &parameters,
+		AssociatedAccount: &associatedAccount,
 	}
 
 	// Make the request

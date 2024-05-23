@@ -104,8 +104,12 @@ const (
 	SUCCEEDED ParameterSweepStatus = "SUCCEEDED"
 )
 
+// AssociatedAccount defines model for associatedAccount.
+type AssociatedAccount = string
+
 // Batch defines model for batch.
 type Batch struct {
+	AssociatedAccount            AssociatedAccount       `json:"associatedAccount"`
 	BatchID                      *BatchID                `json:"batchID,omitempty"`
 	BatchMetricsStatus           *MetricStatus           `json:"batchMetricsStatus,omitempty"`
 	BranchID                     *BranchID               `json:"branchID,omitempty"`
@@ -137,6 +141,7 @@ type BatchID = openapi_types.UUID
 
 // BatchInput defines model for batchInput.
 type BatchInput struct {
+	AssociatedAccount  *AssociatedAccount   `json:"associatedAccount,omitempty"`
 	BuildID            *BuildID             `json:"buildID,omitempty"`
 	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
 	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
@@ -215,6 +220,7 @@ type BatchMetricsDataToBatchMetric struct {
 
 // BatchObjectDescription defines model for batchObjectDescription.
 type BatchObjectDescription struct {
+	AssociatedAccount   *string   `json:"associatedAccount,omitempty"`
 	BuildBranchName     *string   `json:"buildBranchName,omitempty"`
 	BuildVersion        *string   `json:"buildVersion,omitempty"`
 	ExperienceNames     *[]string `json:"experienceNames,omitempty"`
@@ -810,6 +816,7 @@ type OrgID = string
 
 // ParameterSweep defines model for parameterSweep.
 type ParameterSweep struct {
+	AssociatedAccount    AssociatedAccount            `json:"associatedAccount"`
 	Batches              *[]BatchID                   `json:"batches,omitempty"`
 	CreationTimestamp    *Timestamp                   `json:"creationTimestamp,omitempty"`
 	LastUpdatedTimestamp *Timestamp                   `json:"lastUpdatedTimestamp,omitempty"`
@@ -828,6 +835,7 @@ type ParameterSweepID = openapi_types.UUID
 
 // ParameterSweepInput defines model for parameterSweepInput.
 type ParameterSweepInput struct {
+	AssociatedAccount  *AssociatedAccount   `json:"associatedAccount,omitempty"`
 	BuildID            *BuildID             `json:"buildID,omitempty"`
 	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
 	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
@@ -901,6 +909,7 @@ type SandboxSpecification struct {
 
 // SweepObjectDescription defines model for sweepObjectDescription.
 type SweepObjectDescription struct {
+	AssociatedAccount   *string           `json:"associatedAccount,omitempty"`
 	BuildBranchName     *string           `json:"buildBranchName,omitempty"`
 	BuildVersion        *string           `json:"buildVersion,omitempty"`
 	ExperienceNames     *[]string         `json:"experienceNames,omitempty"`
@@ -963,8 +972,9 @@ type TestSuite struct {
 
 // TestSuiteBatchInput defines model for testSuiteBatchInput.
 type TestSuiteBatchInput struct {
-	BuildID    BuildID          `json:"buildID"`
-	Parameters *BatchParameters `json:"parameters,omitempty"`
+	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
+	BuildID           BuildID            `json:"buildID"`
+	Parameters        *BatchParameters   `json:"parameters,omitempty"`
 }
 
 // TestSuiteDescription defines model for testSuiteDescription.

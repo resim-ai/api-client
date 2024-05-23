@@ -8,6 +8,10 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 #### Added
 
+- The ReSim CLI now supports extracting a CI/CD username into an associated account field, in
+  order to associate users and batches that have been kicked-off via a machine token. This is
+  supported automatically for batches created within GitHub and GitLab right now, but is 
+  available manually with other platforms via the `--account` flag.
 - The ReSim CLI now has full support for creating and managing **test suites** :rocket:
   - A Test Suite, described in detail at [ReSim Docs](https://docs.resim.ai), provides a way to 
   specify a set of experiences and a metrics build that you intend as a repeatedly used test

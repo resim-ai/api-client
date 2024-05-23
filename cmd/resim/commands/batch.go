@@ -66,6 +66,11 @@ var (
 )
 
 const (
+	GITHUB_ACTOR_KEY  = "GITHUB_ACTOR"
+	GITLAB_USER_LOGIN = "GITLAB_USER_LOGIN"
+)
+
+const (
 	batchProjectKey            = "project"
 	batchBuildIDKey            = "build-id"
 	batchExperienceIDsKey      = "experience-ids"
@@ -76,6 +81,7 @@ const (
 	batchParameterKey          = "parameter"
 	batchIDKey                 = "batch-id"
 	batchNameKey               = "batch-name"
+	batchAccountKey            = "account"
 	batchGithubKey             = "github"
 	batchMetricsBuildKey       = "metrics-build-id"
 	batchExitStatusKey         = "exit-status"
@@ -98,6 +104,7 @@ func init() {
 	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
 	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
 	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
+	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
@@ -140,6 +147,18 @@ func init() {
 	batchCmd.AddCommand(logsBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
+}
+
+func GetCIEnvironmentVariableAccount() string {
+	account := ""
+	// GitHub
+	if viper.IsSet(GITHUB_ACTOR_KEY) {
+		account = viper.GetString(GITHUB_ACTOR_KEY)
+		// GitLab
+	} else if viper.IsSet(GITLAB_USER_LOGIN) {
+		account = viper.GetString(GITLAB_USER_LOGIN)
+	}
+	return account
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {
@@ -221,10 +240,18 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	// Process the associated account: by default, we try to get from CI/CD environment variables
+	// Otherwise, we use the account flag. The default is "".
+	associatedAccount := GetCIEnvironmentVariableAccount()
+	if viper.IsSet(batchAccountKey) {
+		associatedAccount = viper.GetString(batchAccountKey)
+	}
+
 	// Build the request body
 	body := api.BatchInput{
-		BuildID:    &buildID,
-		Parameters: &parameters,
+		BuildID:           &buildID,
+		Parameters:        &parameters,
+		AssociatedAccount: &associatedAccount,
 	}
 
 	if allExperienceIDs != nil {

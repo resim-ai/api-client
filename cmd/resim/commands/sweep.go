@@ -56,6 +56,7 @@ const (
 	sweepParameterValuesKey  = "parameter-values"
 	sweepExitStatusKey       = "exit-status"
 	sweepGithubKey           = "github"
+	sweepAccountKey          = "account"
 )
 
 func init() {
@@ -71,6 +72,7 @@ func init() {
 	createSweepCmd.Flags().String(sweepParameterNameKey, "", "The name of a single parameter to sweep.")
 	createSweepCmd.Flags().StringSlice(sweepParameterValuesKey, []string{}, "A comma separated list of parameter values to sweep.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
+	createSweepCmd.Flags().String(sweepAccountKey, "", "Specify a username for a CI/CD platform account to associate with this parameter sweep.")
 	sweepCmd.AddCommand(createSweepCmd)
 	getSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to get the sweep from")
 	getSweepCmd.MarkFlagRequired(sweepProjectKey)
@@ -177,10 +179,18 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
 	}
 
+	// Process the associated account: by default, we try to get from CI/CD environment variables
+	// Otherwise, we use the account flag. The default is "".
+	associatedAccount := GetCIEnvironmentVariableAccount()
+	if viper.IsSet(sweepAccountKey) {
+		associatedAccount = viper.GetString(sweepAccountKey)
+	}
+
 	// Build the request body
 	body := api.ParameterSweepInput{
-		BuildID:    &buildID,
-		Parameters: &sweepParameters,
+		BuildID:           &buildID,
+		Parameters:        &sweepParameters,
+		AssociatedAccount: &associatedAccount,
 	}
 
 	if allExperienceIDs != nil {

@@ -226,7 +226,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 				fmt.Printf("Branch with name %v doesn't currently exist. Creating... \n", branchName)
 			}
 			branchType := api.CHANGEREQUEST
-			if branchName == "main" {
+			if branchName == "main" || branchName == "master" {
 				branchType = api.MAIN
 			}
 			// Create the branch

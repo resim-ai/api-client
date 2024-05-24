@@ -66,11 +66,6 @@ var (
 )
 
 const (
-	GITHUB_ACTOR_KEY  = "GITHUB_ACTOR"
-	GITLAB_USER_LOGIN = "GITLAB_USER_LOGIN"
-)
-
-const (
 	batchProjectKey            = "project"
 	batchBuildIDKey            = "build-id"
 	batchExperienceIDsKey      = "experience-ids"
@@ -151,12 +146,13 @@ func init() {
 
 func GetCIEnvironmentVariableAccount() string {
 	account := ""
-	// GitHub
-	if viper.IsSet(GITHUB_ACTOR_KEY) {
-		account = viper.GetString(GITHUB_ACTOR_KEY)
-		// GitLab
-	} else if viper.IsSet(GITLAB_USER_LOGIN) {
-		account = viper.GetString(GITLAB_USER_LOGIN)
+	// We check for environment variables for common CI systems (and check the two possible options in GitHub just in case)
+	if githubActor := os.Getenv("GITHUB_ACTOR"); githubActor != "" {
+		account = githubActor
+	} else if githubTriggeringActor := os.Getenv("GITHUB_TRIGGERING_ACTOR"); githubTriggeringActor != "" {
+		account = githubTriggeringActor
+	} else if gitlabUser := os.Getenv("GITLAB_USER_LOGIN"); gitlabUser != "" {
+		account = gitlabUser
 	}
 	return account
 }

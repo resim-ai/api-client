@@ -225,10 +225,14 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			if !buildGithub {
 				fmt.Printf("Branch with name %v doesn't currently exist. Creating... \n", branchName)
 			}
+			branchType := api.CHANGEREQUEST
+			if branchName == "main" || branchName == "master" {
+				branchType = api.MAIN
+			}
 			// Create the branch
 			body := api.CreateBranchInput{
 				Name:       branchName,
-				BranchType: api.CHANGEREQUEST,
+				BranchType: branchType,
 			}
 
 			response, err := Client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)

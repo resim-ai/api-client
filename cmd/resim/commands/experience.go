@@ -195,10 +195,12 @@ func createExperience(ccmd *cobra.Command, args []string) {
 
 	var objectsInExperience *[]string
 	var objectsCount *int
+	var isCloud bool
 
 	if validationResponse.JSON200 != nil {
 		objectsInExperience = validationResponse.JSON200.Objects
 		objectsCount = validationResponse.JSON200.ObjectCount
+		isCloud = *validationResponse.JSON200.IsCloud
 	}
 
 	// Report the results back to the user
@@ -207,7 +209,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	} else {
 		fmt.Println("Created experience successfully!")
 		fmt.Printf("Experience ID: %s\n", experience.ExperienceID.String())
-		if objectsCount != nil && *objectsCount > 0 {
+		if isCloud && objectsCount != nil && *objectsCount > 0 {
 			fmt.Printf("ReSim found %v file(s) in experience location:\n", *objectsCount)
 			OutputJson(*objectsInExperience)
 		} else {

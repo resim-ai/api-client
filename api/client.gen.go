@@ -407,6 +407,7 @@ type ExperienceLocation struct {
 
 // ExperienceLocationContents defines model for experienceLocationContents.
 type ExperienceLocationContents struct {
+	IsCloud     *bool     `json:"isCloud,omitempty"`
 	ObjectCount *int      `json:"objectCount,omitempty"`
 	Objects     *[]string `json:"objects,omitempty"`
 }

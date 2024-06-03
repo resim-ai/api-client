@@ -407,6 +407,7 @@ type ExperienceLocation struct {
 
 // ExperienceLocationContents defines model for experienceLocationContents.
 type ExperienceLocationContents struct {
+	IsCloud     *bool     `json:"isCloud,omitempty"`
 	ObjectCount *int      `json:"objectCount,omitempty"`
 	Objects     *[]string `json:"objects,omitempty"`
 }
@@ -668,6 +669,9 @@ type ListTestSuiteOutput struct {
 	NextPageToken *string      `json:"nextPageToken,omitempty"`
 	TestSuites    *[]TestSuite `json:"testSuites,omitempty"`
 }
+
+// ListUsersOutput defines model for listUsersOutput.
+type ListUsersOutput = []string
 
 // ListViewObjectsOutput defines model for listViewObjectsOutput.
 type ListViewObjectsOutput struct {
@@ -1114,6 +1118,8 @@ type ListProjectsParams struct {
 
 // ListBatchesParams defines parameters for ListBatches.
 type ListBatchesParams struct {
+	// Search Filter based on branch_id, build_id, system_id, created_at, status, metrics_status
+	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1219,10 +1225,13 @@ type ListBatchMetricsDataForBatchMetricsDataIDsParams struct {
 // ListBranchesForProjectParams defines parameters for ListBranchesForProject.
 type ListBranchesForProjectParams struct {
 	// Name Filter branches by name
-	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
-	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
+	// BranchType Filter branches by branchType
+	BranchType *BranchType `form:"branchType,omitempty" json:"branchType,omitempty"`
+	PageSize   *PageSize   `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken  *PageToken  `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy    *OrderBy    `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // ListBuildsForBranchesParams defines parameters for ListBuildsForBranches.
@@ -1264,7 +1273,10 @@ type ListExperiencesWithExperienceTagParams struct {
 // ListExperiencesParams defines parameters for ListExperiences.
 type ListExperiencesParams struct {
 	// Name Filter experiences by name
-	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
+	// Text Filter experiences by a text string on name and description
+	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1554,6 +1566,9 @@ type ClientInterface interface {
 	// ListAllJobs request
 	ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListBatchAccounts request
+	ListBatchAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetBatch request
 	GetBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1814,6 +1829,9 @@ type ClientInterface interface {
 
 	CreateParameterSweep(ctx context.Context, projectID ProjectID, body CreateParameterSweepJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListSweepAccounts request
+	ListSweepAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetParameterSweep request
 	GetParameterSweep(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2027,6 +2045,18 @@ func (c *Client) CreateBatch(ctx context.Context, projectID ProjectID, body Crea
 
 func (c *Client) ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAllJobsRequest(c.Server, projectID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchAccountsRequest(c.Server, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -3165,6 +3195,18 @@ func (c *Client) CreateParameterSweep(ctx context.Context, projectID ProjectID, 
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListSweepAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSweepAccountsRequest(c.Server, projectID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetParameterSweep(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetParameterSweepRequest(c.Server, projectID, sweepID)
 	if err != nil {
@@ -3793,6 +3835,22 @@ func NewListBatchesRequest(server string, projectID ProjectID, params *ListBatch
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -3993,6 +4051,40 @@ func NewListAllJobsRequest(server string, projectID ProjectID, params *ListAllJo
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBatchAccountsRequest generates requests for ListBatchAccounts
+func NewListBatchAccountsRequest(server string, projectID ProjectID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/accounts", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -6132,6 +6224,22 @@ func NewListBranchesForProjectRequest(server string, projectID ProjectID, params
 
 		}
 
+		if params.BranchType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "branchType", runtime.ParamLocationQuery, *params.BranchType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -7290,6 +7398,22 @@ func NewListExperiencesRequest(server string, projectID ProjectID, params *ListE
 		if params.Name != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -8724,6 +8848,40 @@ func NewCreateParameterSweepRequestWithBody(server string, projectID ProjectID, 
 	return req, nil
 }
 
+// NewListSweepAccountsRequest generates requests for ListSweepAccounts
+func NewListSweepAccountsRequest(server string, projectID ProjectID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/sweeps/accounts", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetParameterSweepRequest generates requests for GetParameterSweep
 func NewGetParameterSweepRequest(server string, projectID ProjectID, sweepID ParameterSweepID) (*http.Request, error) {
 	var err error
@@ -9948,6 +10106,9 @@ type ClientWithResponsesInterface interface {
 	// ListAllJobsWithResponse request
 	ListAllJobsWithResponse(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*ListAllJobsResponse, error)
 
+	// ListBatchAccountsWithResponse request
+	ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error)
+
 	// GetBatchWithResponse request
 	GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error)
 
@@ -10207,6 +10368,9 @@ type ClientWithResponsesInterface interface {
 	CreateParameterSweepWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateParameterSweepResponse, error)
 
 	CreateParameterSweepWithResponse(ctx context.Context, projectID ProjectID, body CreateParameterSweepJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateParameterSweepResponse, error)
+
+	// ListSweepAccountsWithResponse request
+	ListSweepAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListSweepAccountsResponse, error)
 
 	// GetParameterSweepWithResponse request
 	GetParameterSweepWithResponse(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*GetParameterSweepResponse, error)
@@ -10477,6 +10641,28 @@ func (r ListAllJobsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListAllJobsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchAccountsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListUsersOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchAccountsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchAccountsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -12060,6 +12246,28 @@ func (r CreateParameterSweepResponse) StatusCode() int {
 	return 0
 }
 
+type ListSweepAccountsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListUsersOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSweepAccountsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSweepAccountsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetParameterSweepResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12640,6 +12848,15 @@ func (c *ClientWithResponses) ListAllJobsWithResponse(ctx context.Context, proje
 		return nil, err
 	}
 	return ParseListAllJobsResponse(rsp)
+}
+
+// ListBatchAccountsWithResponse request returning *ListBatchAccountsResponse
+func (c *ClientWithResponses) ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error) {
+	rsp, err := c.ListBatchAccounts(ctx, projectID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchAccountsResponse(rsp)
 }
 
 // GetBatchWithResponse request returning *GetBatchResponse
@@ -13466,6 +13683,15 @@ func (c *ClientWithResponses) CreateParameterSweepWithResponse(ctx context.Conte
 	return ParseCreateParameterSweepResponse(rsp)
 }
 
+// ListSweepAccountsWithResponse request returning *ListSweepAccountsResponse
+func (c *ClientWithResponses) ListSweepAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListSweepAccountsResponse, error) {
+	rsp, err := c.ListSweepAccounts(ctx, projectID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSweepAccountsResponse(rsp)
+}
+
 // GetParameterSweepWithResponse request returning *GetParameterSweepResponse
 func (c *ClientWithResponses) GetParameterSweepWithResponse(ctx context.Context, projectID ProjectID, sweepID ParameterSweepID, reqEditors ...RequestEditorFn) (*GetParameterSweepResponse, error) {
 	rsp, err := c.GetParameterSweep(ctx, projectID, sweepID, reqEditors...)
@@ -13916,6 +14142,32 @@ func ParseListAllJobsResponse(rsp *http.Response) (*ListAllJobsResponse, error) 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListAllJobsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchAccountsResponse parses an HTTP response from a ListBatchAccountsWithResponse call
+func ParseListBatchAccountsResponse(rsp *http.Response) (*ListBatchAccountsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchAccountsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListUsersOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -15704,6 +15956,32 @@ func ParseCreateParameterSweepResponse(rsp *http.Response) (*CreateParameterSwee
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListSweepAccountsResponse parses an HTTP response from a ListSweepAccountsWithResponse call
+func ParseListSweepAccountsResponse(rsp *http.Response) (*ListSweepAccountsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSweepAccountsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListUsersOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	}
 

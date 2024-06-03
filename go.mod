@@ -1,6 +1,6 @@
 module github.com/resim-ai/api-client
 
-go 1.21
+go 1.22.3
 
 retract (
 	v0.1.25

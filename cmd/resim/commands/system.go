@@ -179,7 +179,7 @@ func deleteSystem(ccmd *cobra.Command, args []string) {
 		log.Fatal("unable to delete system:", err)
 	}
 	if response.HTTPResponse.StatusCode == http.StatusNotFound {
-		log.Fatal("failed to find system with requested id: ", projectID.String())
+		log.Fatal("failed to find system with requested id: ", systemID.String())
 	} else {
 		ValidateResponse(http.StatusOK, "unable to delete system", response.HTTPResponse, response.Body)
 	}

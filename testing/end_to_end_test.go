@@ -131,6 +131,7 @@ const (
 	// System Message
 	CreatedSystem             string = "Created system"
 	GithubCreatedSystem       string = "system_id="
+	DeletedSystem             string = "Deleted system"
 	EmptySystemName           string = "empty system name"
 	EmptySystemDescription    string = "empty system description"
 	SystemAlreadyRegistered   string = "it may already be registered"
@@ -513,6 +514,26 @@ func (s *EndToEndTestSuite) getSystem(project string, system string) []CommandBu
 		},
 	}
 	return []CommandBuilder{systemCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) deleteSystem(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system",
+	}
+	deleteCommand := CommandBuilder{
+		Command: "delete",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, deleteCommand}
 }
 
 func (s *EndToEndTestSuite) systemBuilds(project string, system string) []CommandBuilder {
@@ -2032,6 +2053,11 @@ func (s *EndToEndTestSuite) TestSystems() {
 	output = s.runCommand(s.removeSystemFromMetricsBuild(projectIDString, systemName, ""), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildName)
 
+	// Delete the system:
+	output = s.runCommand(s.deleteSystem(projectIDString, systemName), ExpectNoError)
+	s.Contains(output.StdOut, DeletedSystem)
+	s.Empty(output.StdErr)
+
 	// Delete the test project
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)
@@ -2650,10 +2676,10 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 6)
+	s.Len(logs, 7)
 	for _, log := range logs {
 		s.Equal(jobID2, *log.JobID)
-		s.Contains([]string{logName, logName2, "experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log"}, *log.FileName)
+		s.Contains([]string{logName, logName2, "experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto"}, *log.FileName)
 	}
 
 	// Pass blank name / id to logs:
@@ -2946,7 +2972,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Equal(sweepNameString, *sweep.Name)
 	s.Equal(secondSweepID, *sweep.ParameterSweepID)
 	// Validate that it succeeded:
-	s.Equal(api.SUCCEEDED, *sweep.Status)
+	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
 	// Get the sweep by ID:
 	output = s.runCommand(s.getSweepByID(projectID, secondSweepIDString, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
@@ -2955,7 +2981,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Equal(sweepNameString, *sweep.Name)
 	s.Equal(secondSweepID, *sweep.ParameterSweepID)
 	// Validate that it succeeded:
-	s.Equal(api.SUCCEEDED, *sweep.Status)
+	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
 
 	// Validate that the sweep has the correct parameters:
 	passedParameters := []api.SweepParameter{}

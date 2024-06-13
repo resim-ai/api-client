@@ -34,6 +34,12 @@ var (
 		Long:  ``,
 		Run:   getSystem,
 	}
+	deleteSystemCmd = &cobra.Command{
+		Use:   "delete",
+		Short: "delete - Delete a system",
+		Long:  ``,
+		Run:   deleteSystem,
+	}
 	listSystemsCmd = &cobra.Command{
 		Use:   "list",
 		Short: "list - Lists existing systems",
@@ -105,6 +111,12 @@ func init() {
 	getSystemCmd.MarkFlagRequired(systemKey)
 	getSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
+	deleteSystemCmd.Flags().String(systemProjectKey, "", "System associated with this project")
+	deleteSystemCmd.MarkFlagRequired(systemProjectKey)
+	deleteSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to delete")
+	deleteSystemCmd.MarkFlagRequired(systemKey)
+	deleteSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
 	listSystemsCmd.Flags().String(systemProjectKey, "", "List systems associated with this project")
 	listSystemsCmd.MarkFlagRequired(systemProjectKey)
 
@@ -130,6 +142,7 @@ func init() {
 
 	systemCmd.AddCommand(createSystemCmd)
 	systemCmd.AddCommand(getSystemCmd)
+	systemCmd.AddCommand(deleteSystemCmd)
 	systemCmd.AddCommand(listSystemsCmd)
 	systemCmd.AddCommand(systemsBuildsCmd)
 	systemCmd.AddCommand(systemsExperiencesCmd)
@@ -156,6 +169,21 @@ func getSystem(ccmd *cobra.Command, args []string) {
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", " ")
 	enc.Encode(system)
+}
+
+func deleteSystem(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
+	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
+	response, err := Client.DeleteSystemWithResponse(context.Background(), projectID, systemID)
+	if err != nil {
+		log.Fatal("unable to delete system:", err)
+	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatal("failed to find system with requested id: ", systemID.String())
+	} else {
+		ValidateResponse(http.StatusNoContent, "unable to delete system", response.HTTPResponse, response.Body)
+	}
+	fmt.Println("Deleted system successfully!")
 }
 
 func listSystems(cmd *cobra.Command, args []string) {

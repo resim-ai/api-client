@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.3.2 - June 13 2024
+
+#### Added
+
+- The ReSim CLI now supports deleting a system.
+
 ### v0.3.1 - May 23 2024
 
 #### Added

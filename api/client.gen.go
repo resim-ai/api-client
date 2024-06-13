@@ -85,6 +85,12 @@ const (
 	SCALAR    MetricType = "SCALAR"
 )
 
+// Defines values for MetricsDataType.
+const (
+	EXTERNALFILE MetricsDataType = "EXTERNAL_FILE"
+	STANDARD     MetricsDataType = "STANDARD"
+)
+
 // Defines values for ObjectType.
 const (
 	TYPEDCURVESE3    ObjectType = "TYPE_DCURVE_SE3"
@@ -98,10 +104,26 @@ const (
 
 // Defines values for ParameterSweepStatus.
 const (
-	ERROR     ParameterSweepStatus = "ERROR"
-	RUNNING   ParameterSweepStatus = "RUNNING"
-	SUBMITTED ParameterSweepStatus = "SUBMITTED"
-	SUCCEEDED ParameterSweepStatus = "SUCCEEDED"
+	ParameterSweepStatusERROR     ParameterSweepStatus = "ERROR"
+	ParameterSweepStatusRUNNING   ParameterSweepStatus = "RUNNING"
+	ParameterSweepStatusSUBMITTED ParameterSweepStatus = "SUBMITTED"
+	ParameterSweepStatusSUCCEEDED ParameterSweepStatus = "SUCCEEDED"
+)
+
+// Defines values for ReportStatus.
+const (
+	ReportStatusERROR     ReportStatus = "ERROR"
+	ReportStatusRUNNING   ReportStatus = "RUNNING"
+	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
+	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
+)
+
+// Defines values for TriggeredVia.
+const (
+	GITHUB TriggeredVia = "GITHUB"
+	GITLAB TriggeredVia = "GITLAB"
+	LOCAL  TriggeredVia = "LOCAL"
+	WEBAPP TriggeredVia = "WEBAPP"
 )
 
 // AssociatedAccount defines model for associatedAccount.
@@ -149,6 +171,7 @@ type BatchInput struct {
 	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
 	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
 	Parameters         *BatchParameters     `json:"parameters,omitempty"`
+	TriggeredVia       *TriggeredVia        `json:"triggeredVia,omitempty"`
 }
 
 // BatchJobStatusCounts defines model for batchJobStatusCounts.
@@ -200,6 +223,8 @@ type BatchMetricsData struct {
 	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
+	Filename          *string              `json:"filename"`
+	MetricsDataType   *MetricsDataType     `json:"metricsDataType,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
 	Name              *string              `json:"name,omitempty"`
 	OrgID             *OrgID               `json:"orgID,omitempty"`
@@ -518,7 +543,9 @@ type JobMetricsData struct {
 	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
+	Filename          *string              `json:"filename"`
 	JobID             *JobID               `json:"jobID,omitempty"`
+	MetricsDataType   *MetricsDataType     `json:"metricsDataType,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
 	Name              *string              `json:"name,omitempty"`
 	OrgID             *OrgID               `json:"orgID,omitempty"`
@@ -554,6 +581,7 @@ type LineNumber = int32
 type ListAllJobsOutput struct {
 	Jobs          *[]Job  `json:"jobs,omitempty"`
 	NextPageToken *string `json:"nextPageToken,omitempty"`
+	Total         *int    `json:"total,omitempty"`
 }
 
 // ListBatchLogsOutput defines model for listBatchLogsOutput.
@@ -584,6 +612,7 @@ type ListBatchMetricsOutput struct {
 type ListBatchesOutput struct {
 	Batches       *[]Batch `json:"batches,omitempty"`
 	NextPageToken *string  `json:"nextPageToken,omitempty"`
+	Total         *int     `json:"total,omitempty"`
 }
 
 // ListBranchesOutput defines model for listBranchesOutput.
@@ -632,6 +661,7 @@ type ListJobMetricsOutput struct {
 type ListJobsOutput struct {
 	Jobs          *[]Job  `json:"jobs,omitempty"`
 	NextPageToken *string `json:"nextPageToken,omitempty"`
+	Total         *int    `json:"total,omitempty"`
 }
 
 // ListMetricsBuildOutput defines model for listMetricsBuildOutput.
@@ -656,6 +686,13 @@ type ListParameterSweepsOutput struct {
 type ListProjectsOutput struct {
 	NextPageToken *string    `json:"nextPageToken,omitempty"`
 	Projects      *[]Project `json:"projects,omitempty"`
+}
+
+// ListReportsOutput defines model for listReportsOutput.
+type ListReportsOutput struct {
+	NextPageToken *string   `json:"nextPageToken,omitempty"`
+	Reports       *[]Report `json:"reports,omitempty"`
+	Total         *int      `json:"total,omitempty"`
 }
 
 // ListSystemsOutput defines model for listSystemsOutput.
@@ -785,6 +822,8 @@ type MetricsData struct {
 	CreationTimestamp *Timestamp           `json:"creationTimestamp,omitempty"`
 	DataID            *MetricsDataID       `json:"dataID,omitempty"`
 	FileLocation      *MetricsDataLocation `json:"fileLocation,omitempty"`
+	Filename          *string              `json:"filename"`
+	MetricsDataType   *MetricsDataType     `json:"metricsDataType,omitempty"`
 	MetricsDataURL    *MetricsDataURL      `json:"metricsDataURL,omitempty"`
 	Name              *string              `json:"name,omitempty"`
 	OrgID             *OrgID               `json:"orgID,omitempty"`
@@ -803,8 +842,14 @@ type MetricsDataID = openapi_types.UUID
 // MetricsDataLocation defines model for metricsDataLocation.
 type MetricsDataLocation = string
 
+// MetricsDataType defines model for metricsDataType.
+type MetricsDataType string
+
 // MetricsDataURL defines model for metricsDataURL.
 type MetricsDataURL = string
+
+// Name defines model for name.
+type Name = string
 
 // ObjectCount defines model for objectCount.
 type ObjectCount = int32
@@ -847,6 +892,7 @@ type ParameterSweepInput struct {
 	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
 	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
 	Parameters         *[]SweepParameter    `json:"parameters,omitempty"`
+	TriggeredVia       *TriggeredVia        `json:"triggeredVia,omitempty"`
 }
 
 // ParameterSweepStatus defines model for parameterSweepStatus.
@@ -880,6 +926,60 @@ type ProjectObjectDescription struct {
 	Name        *string `json:"name,omitempty"`
 }
 
+// Report defines model for report.
+type Report struct {
+	AssociatedAccount       AssociatedAccount       `json:"associatedAccount"`
+	BranchID                BranchID                `json:"branchID"`
+	CreationTimestamp       Timestamp               `json:"creationTimestamp"`
+	EndTimestamp            Timestamp               `json:"endTimestamp"`
+	LastUpdatedTimestamp    Timestamp               `json:"lastUpdatedTimestamp"`
+	MetricsBuildID          MetricsBuildID          `json:"metricsBuildID"`
+	Name                    Name                    `json:"name"`
+	OrgID                   OrgID                   `json:"orgID"`
+	ProjectID               ProjectID               `json:"projectID"`
+	ReportID                ReportID                `json:"reportID"`
+	RespectRevisionBoundary RespectRevisionBoundary `json:"respectRevisionBoundary"`
+	StartTimestamp          Timestamp               `json:"startTimestamp"`
+	Status                  ReportStatus            `json:"status"`
+	StatusHistory           ReportStatusHistory     `json:"statusHistory"`
+	TestSuiteID             TestSuiteID             `json:"testSuiteID"`
+	TestSuiteRevision       TestSuiteRevision       `json:"testSuiteRevision"`
+	TriggeredVia            *TriggeredVia           `json:"triggeredVia,omitempty"`
+	UserID                  UserID                  `json:"userID"`
+}
+
+// ReportID defines model for reportID.
+type ReportID = openapi_types.UUID
+
+// ReportInput defines model for reportInput.
+type ReportInput struct {
+	AssociatedAccount       *AssociatedAccount       `json:"associatedAccount,omitempty"`
+	BranchID                BranchID                 `json:"branchID"`
+	EndTimestamp            *Timestamp               `json:"endTimestamp,omitempty"`
+	MetricsBuildID          MetricsBuildID           `json:"metricsBuildID"`
+	Name                    *Name                    `json:"name,omitempty"`
+	RespectRevisionBoundary *RespectRevisionBoundary `json:"respectRevisionBoundary,omitempty"`
+	StartTimestamp          Timestamp                `json:"startTimestamp"`
+	TestSuiteID             TestSuiteID              `json:"testSuiteID"`
+	TestSuiteRevision       *TestSuiteRevision       `json:"testSuiteRevision,omitempty"`
+	TriggeredVia            *TriggeredVia            `json:"triggeredVia,omitempty"`
+}
+
+// ReportStatus defines model for reportStatus.
+type ReportStatus string
+
+// ReportStatusHistory defines model for reportStatusHistory.
+type ReportStatusHistory = []ReportStatusHistoryType
+
+// ReportStatusHistoryType defines model for reportStatusHistoryType.
+type ReportStatusHistoryType struct {
+	Status    *ReportStatus `json:"status,omitempty"`
+	UpdatedAt *Timestamp    `json:"updatedAt,omitempty"`
+}
+
+// RespectRevisionBoundary defines model for respectRevisionBoundary.
+type RespectRevisionBoundary = bool
+
 // ReviseTestSuiteInput defines model for reviseTestSuiteInput.
 type ReviseTestSuiteInput struct {
 	Adhoc              *bool                 `json:"adhoc,omitempty"`
@@ -909,6 +1009,8 @@ type SandboxSpecification struct {
 	Projects       *[]ProjectObjectDescription       `json:"projects,omitempty"`
 	Sweeps         *[]SweepObjectDescription         `json:"sweeps,omitempty"`
 	Systems        *[]SystemObjectDescription        `json:"systems,omitempty"`
+	TestSuiteRuns  *[]TestSuiteRunObjectDescription  `json:"testSuiteRuns,omitempty"`
+	TestSuites     *[]TestSuiteObjectDescription     `json:"testSuites,omitempty"`
 }
 
 // SweepObjectDescription defines model for sweepObjectDescription.
@@ -979,6 +1081,7 @@ type TestSuiteBatchInput struct {
 	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
 	BuildID           BuildID            `json:"buildID"`
 	Parameters        *BatchParameters   `json:"parameters,omitempty"`
+	TriggeredVia      *TriggeredVia      `json:"triggeredVia,omitempty"`
 }
 
 // TestSuiteDescription defines model for testSuiteDescription.
@@ -990,11 +1093,34 @@ type TestSuiteID = openapi_types.UUID
 // TestSuiteName defines model for testSuiteName.
 type TestSuiteName = string
 
+// TestSuiteObjectDescription defines model for testSuiteObjectDescription.
+type TestSuiteObjectDescription struct {
+	ExperienceNames      *[]string `json:"experienceNames,omitempty"`
+	MetricsBuildName     *string   `json:"metricsBuildName,omitempty"`
+	MetricsBuildVersion  *string   `json:"metricsBuildVersion,omitempty"`
+	ProjectName          *string   `json:"projectName,omitempty"`
+	SystemName           *string   `json:"systemName,omitempty"`
+	TestSuiteDescription *string   `json:"testSuiteDescription,omitempty"`
+	TestSuiteName        *string   `json:"testSuiteName,omitempty"`
+}
+
 // TestSuiteRevision defines model for testSuiteRevision.
 type TestSuiteRevision = int32
 
+// TestSuiteRunObjectDescription defines model for testSuiteRunObjectDescription.
+type TestSuiteRunObjectDescription struct {
+	AssociatedAccount *string `json:"associatedAccount,omitempty"`
+	BuildBranchName   *string `json:"buildBranchName,omitempty"`
+	BuildVersion      *string `json:"buildVersion,omitempty"`
+	ProjectName       *string `json:"projectName,omitempty"`
+	TestSuiteName     *string `json:"testSuiteName,omitempty"`
+}
+
 // Timestamp defines model for timestamp.
 type Timestamp = time.Time
+
+// TriggeredVia defines model for triggeredVia.
+type TriggeredVia string
 
 // UpdateExperienceFields defines model for updateExperienceFields.
 type UpdateExperienceFields struct {
@@ -1250,6 +1376,8 @@ type ListBatchesForBuildsParams struct {
 
 // ListBuildsParams defines parameters for ListBuilds.
 type ListBuildsParams struct {
+	// Search A search query. Supports searching by branch_id
+	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1276,7 +1404,10 @@ type ListExperiencesParams struct {
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
 
 	// Text Filter experiences by a text string on name and description
-	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
+	Text *string `form:"text,omitempty" json:"text,omitempty"`
+
+	// Search A search query. Supports searching by tag_id
+	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1305,6 +1436,15 @@ type ListMetricsBuildsParams struct {
 type GetSystemsForMetricsBuildParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListReportsParams defines parameters for ListReports.
+type ListReportsParams struct {
+	// Search Filter based on branch_id, test_suite_id, created_at, status, associated_account
+	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // ListTestSuitesParams defines parameters for ListTestSuites.
@@ -1426,6 +1566,9 @@ type UpdateExperienceJSONRequestBody = UpdateExperienceInput
 
 // CreateMetricsBuildJSONRequestBody defines body for CreateMetricsBuild for application/json ContentType.
 type CreateMetricsBuildJSONRequestBody = CreateMetricsBuildInput
+
+// CreateReportJSONRequestBody defines body for CreateReport for application/json ContentType.
+type CreateReportJSONRequestBody = ReportInput
 
 // CreateTestSuiteJSONRequestBody defines body for CreateTestSuite for application/json ContentType.
 type CreateTestSuiteJSONRequestBody = CreateTestSuiteInput
@@ -1783,6 +1926,20 @@ type ClientInterface interface {
 	// GetSystemsForMetricsBuild request
 	GetSystemsForMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListReports request
+	ListReports(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateReportWithBody request with any body
+	CreateReportWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateReport(ctx context.Context, projectID ProjectID, body CreateReportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListReportAccounts request
+	ListReportAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetReport request
+	GetReport(ctx context.Context, projectID ProjectID, reportID ReportID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListTestSuites request
 	ListTestSuites(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -1845,6 +2002,9 @@ type ClientInterface interface {
 	CreateSystemWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateSystem(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteSystem request
+	DeleteSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetSystem request
 	GetSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2991,6 +3151,66 @@ func (c *Client) GetSystemsForMetricsBuild(ctx context.Context, projectID Projec
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListReports(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListReportsRequest(c.Server, projectID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReport(ctx context.Context, projectID ProjectID, body CreateReportJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListReportAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListReportAccountsRequest(c.Server, projectID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetReport(ctx context.Context, projectID ProjectID, reportID ReportID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetReportRequest(c.Server, projectID, reportID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListTestSuites(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListTestSuitesRequest(c.Server, projectID, params)
 	if err != nil {
@@ -3257,6 +3477,18 @@ func (c *Client) CreateSystemWithBody(ctx context.Context, projectID ProjectID, 
 
 func (c *Client) CreateSystem(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateSystemRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteSystemRequest(c.Server, projectID, systemID)
 	if err != nil {
 		return nil, err
 	}
@@ -6804,6 +7036,22 @@ func NewListBuildsRequest(server string, projectID ProjectID, params *ListBuilds
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -7414,6 +7662,22 @@ func NewListExperiencesRequest(server string, projectID ProjectID, params *ListE
 		if params.Text != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -8072,6 +8336,232 @@ func NewGetSystemsForMetricsBuildRequest(server string, projectID ProjectID, met
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListReportsRequest generates requests for ListReports
+func NewListReportsRequest(server string, projectID ProjectID, params *ListReportsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateReportRequest calls the generic CreateReport builder with application/json body
+func NewCreateReportRequest(server string, projectID ProjectID, body CreateReportJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateReportRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateReportRequestWithBody generates requests for CreateReport with any type of body
+func NewCreateReportRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListReportAccountsRequest generates requests for ListReportAccounts
+func NewListReportAccountsRequest(server string, projectID ProjectID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/accounts", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetReportRequest generates requests for GetReport
+func NewGetReportRequest(server string, projectID ProjectID, reportID ReportID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -9079,6 +9569,47 @@ func NewCreateSystemRequestWithBody(server string, projectID ProjectID, contentT
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteSystemRequest generates requests for DeleteSystem
+func NewDeleteSystemRequest(server string, projectID ProjectID, systemID SystemID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -10323,6 +10854,20 @@ type ClientWithResponsesInterface interface {
 	// GetSystemsForMetricsBuildWithResponse request
 	GetSystemsForMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*GetSystemsForMetricsBuildResponse, error)
 
+	// ListReportsWithResponse request
+	ListReportsWithResponse(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*ListReportsResponse, error)
+
+	// CreateReportWithBodyWithResponse request with any body
+	CreateReportWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportResponse, error)
+
+	CreateReportWithResponse(ctx context.Context, projectID ProjectID, body CreateReportJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportResponse, error)
+
+	// ListReportAccountsWithResponse request
+	ListReportAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListReportAccountsResponse, error)
+
+	// GetReportWithResponse request
+	GetReportWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, reqEditors ...RequestEditorFn) (*GetReportResponse, error)
+
 	// ListTestSuitesWithResponse request
 	ListTestSuitesWithResponse(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*ListTestSuitesResponse, error)
 
@@ -10385,6 +10930,9 @@ type ClientWithResponsesInterface interface {
 	CreateSystemWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateSystemResponse, error)
 
 	CreateSystemWithResponse(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSystemResponse, error)
+
+	// DeleteSystemWithResponse request
+	DeleteSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*DeleteSystemResponse, error)
 
 	// GetSystemWithResponse request
 	GetSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*GetSystemResponse, error)
@@ -11980,6 +12528,94 @@ func (r GetSystemsForMetricsBuildResponse) StatusCode() int {
 	return 0
 }
 
+type ListReportsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListReportsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListReportsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListReportsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateReportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Report
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateReportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateReportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListReportAccountsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListUsersOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListReportAccountsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListReportAccountsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetReportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Report
+}
+
+// Status returns HTTPResponse.Status
+func (r GetReportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetReportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListTestSuitesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12349,6 +12985,27 @@ func (r CreateSystemResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateSystemResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type DeleteSystemResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteSystemResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteSystemResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -13535,6 +14192,50 @@ func (c *ClientWithResponses) GetSystemsForMetricsBuildWithResponse(ctx context.
 	return ParseGetSystemsForMetricsBuildResponse(rsp)
 }
 
+// ListReportsWithResponse request returning *ListReportsResponse
+func (c *ClientWithResponses) ListReportsWithResponse(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*ListReportsResponse, error) {
+	rsp, err := c.ListReports(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListReportsResponse(rsp)
+}
+
+// CreateReportWithBodyWithResponse request with arbitrary body returning *CreateReportResponse
+func (c *ClientWithResponses) CreateReportWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportResponse, error) {
+	rsp, err := c.CreateReportWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateReportWithResponse(ctx context.Context, projectID ProjectID, body CreateReportJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportResponse, error) {
+	rsp, err := c.CreateReport(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportResponse(rsp)
+}
+
+// ListReportAccountsWithResponse request returning *ListReportAccountsResponse
+func (c *ClientWithResponses) ListReportAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListReportAccountsResponse, error) {
+	rsp, err := c.ListReportAccounts(ctx, projectID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListReportAccountsResponse(rsp)
+}
+
+// GetReportWithResponse request returning *GetReportResponse
+func (c *ClientWithResponses) GetReportWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, reqEditors ...RequestEditorFn) (*GetReportResponse, error) {
+	rsp, err := c.GetReport(ctx, projectID, reportID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetReportResponse(rsp)
+}
+
 // ListTestSuitesWithResponse request returning *ListTestSuitesResponse
 func (c *ClientWithResponses) ListTestSuitesWithResponse(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*ListTestSuitesResponse, error) {
 	rsp, err := c.ListTestSuites(ctx, projectID, params, reqEditors...)
@@ -13734,6 +14435,15 @@ func (c *ClientWithResponses) CreateSystemWithResponse(ctx context.Context, proj
 		return nil, err
 	}
 	return ParseCreateSystemResponse(rsp)
+}
+
+// DeleteSystemWithResponse request returning *DeleteSystemResponse
+func (c *ClientWithResponses) DeleteSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*DeleteSystemResponse, error) {
+	rsp, err := c.DeleteSystem(ctx, projectID, systemID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteSystemResponse(rsp)
 }
 
 // GetSystemWithResponse request returning *GetSystemResponse
@@ -15648,6 +16358,110 @@ func ParseGetSystemsForMetricsBuildResponse(rsp *http.Response) (*GetSystemsForM
 	return response, nil
 }
 
+// ParseListReportsResponse parses an HTTP response from a ListReportsWithResponse call
+func ParseListReportsResponse(rsp *http.Response) (*ListReportsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListReportsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListReportsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateReportResponse parses an HTTP response from a CreateReportWithResponse call
+func ParseCreateReportResponse(rsp *http.Response) (*CreateReportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateReportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Report
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListReportAccountsResponse parses an HTTP response from a ListReportAccountsWithResponse call
+func ParseListReportAccountsResponse(rsp *http.Response) (*ListReportAccountsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListReportAccountsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListUsersOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetReportResponse parses an HTTP response from a GetReportWithResponse call
+func ParseGetReportResponse(rsp *http.Response) (*GetReportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetReportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Report
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListTestSuitesResponse parses an HTTP response from a ListTestSuitesWithResponse call
 func ParseListTestSuitesResponse(rsp *http.Response) (*ListTestSuitesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -16077,6 +16891,22 @@ func ParseCreateSystemResponse(rsp *http.Response) (*CreateSystemResponse, error
 		}
 		response.JSON201 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseDeleteSystemResponse parses an HTTP response from a DeleteSystemWithResponse call
+func ParseDeleteSystemResponse(rsp *http.Response) (*DeleteSystemResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteSystemResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

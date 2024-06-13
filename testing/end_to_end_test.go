@@ -131,6 +131,7 @@ const (
 	// System Message
 	CreatedSystem             string = "Created system"
 	GithubCreatedSystem       string = "system_id="
+	DeletedSystem             string = "Deleted system"
 	EmptySystemName           string = "empty system name"
 	EmptySystemDescription    string = "empty system description"
 	SystemAlreadyRegistered   string = "it may already be registered"
@@ -513,6 +514,26 @@ func (s *EndToEndTestSuite) getSystem(project string, system string) []CommandBu
 		},
 	}
 	return []CommandBuilder{systemCommand, getCommand}
+}
+
+func (s *EndToEndTestSuite) deleteSystem(project string, system string) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "system",
+	}
+	deleteCommand := CommandBuilder{
+		Command: "delete",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: project,
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+		},
+	}
+	return []CommandBuilder{systemCommand, deleteCommand}
 }
 
 func (s *EndToEndTestSuite) systemBuilds(project string, system string) []CommandBuilder {
@@ -2031,6 +2052,11 @@ func (s *EndToEndTestSuite) TestSystems() {
 	s.Contains(output.StdErr, EmptySystemName)
 	output = s.runCommand(s.removeSystemFromMetricsBuild(projectIDString, systemName, ""), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildName)
+
+	// Delete the system:
+	output = s.runCommand(s.deleteSystem(projectIDString, systemName), ExpectNoError)
+	s.Contains(output.StdOut, DeletedSystem)
+	s.Empty(output.StdErr)
 
 	// Delete the test project
 	output = s.runCommand(s.deleteProject(projectIDString), ExpectNoError)

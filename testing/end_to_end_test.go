@@ -2946,7 +2946,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Equal(sweepNameString, *sweep.Name)
 	s.Equal(secondSweepID, *sweep.ParameterSweepID)
 	// Validate that it succeeded:
-	s.Equal(api.SUCCEEDED, *sweep.Status)
+	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
 	// Get the sweep by ID:
 	output = s.runCommand(s.getSweepByID(projectID, secondSweepIDString, ExitStatusFalse), ExpectNoError)
 	// Marshal into a struct:
@@ -2955,7 +2955,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	s.Equal(sweepNameString, *sweep.Name)
 	s.Equal(secondSweepID, *sweep.ParameterSweepID)
 	// Validate that it succeeded:
-	s.Equal(api.SUCCEEDED, *sweep.Status)
+	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
 
 	// Validate that the sweep has the correct parameters:
 	passedParameters := []api.SweepParameter{}

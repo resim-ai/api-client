@@ -22,12 +22,14 @@ var (
 		Long:    ``,
 		Aliases: []string{"report"},
 	}
+
 	createReportCmd = &cobra.Command{
 		Use:   "create",
 		Short: "create - Creates a new report",
 		Long:  ``,
 		Run:   createReport,
 	}
+
 	getReportCmd = &cobra.Command{
 		Use:   "get",
 		Short: "get - Retrieves a report",
@@ -58,7 +60,7 @@ const (
 	reportLengthKey                   = "length"
 	reportStartTimestampKey           = "start-timestamp"
 	reportEndTimestampKey             = "end-timestamp"
-	reportRespectTestSuiteRevisionKey = "respect-test-suite-revision"
+	reportRespectTestSuiteRevisionKey = "respect-revision-boundary"
 	reportMetricsBuildIDKey           = "metrics-build-id"
 	reportIDKey                       = "report-id"
 	reportNameKey                     = "report-name"
@@ -89,7 +91,7 @@ func init() {
 	createReportCmd.Flags().String(reportMetricsBuildIDKey, "", "The ID of the metrics build to use in this report.")
 	createReportCmd.MarkFlagRequired(reportMetricsBuildIDKey)
 	// Length, Start, End Timestamps
-	createReportCmd.Flags().String(reportLengthKey, "4w", "The length of the report in duration string format (default 4 weeks), from now. Cannot be used in combination with start and end timestamps.")
+	createReportCmd.Flags().Int(reportLengthKey, 28, "The length of the report in days, from now. Cannot be used in combination with start and end timestamps. For a more precise report, use the start and end timestamps")
 	createReportCmd.Flags().String(reportStartTimestampKey, time.Now().UTC().String(), "The start timestamp of the report (in a Golang parsable format using RFC3339). Cannot be used in combination with length.")
 	createReportCmd.MarkFlagsOneRequired(reportLengthKey, reportStartTimestampKey)
 	createReportCmd.Flags().String(reportEndTimestampKey, time.Now().UTC().String(), "The end timestamp of the report (in a Golang parsable format using RFC3339). If not supplied, the current time will be used.")
@@ -159,7 +161,7 @@ func createReport(ccmd *cobra.Command, args []string) {
 			log.Fatal("failed to parse end timestamp as timestamp with REF3339: ", err)
 		}
 	} else {
-		endTimestamp := time.Now().UTC()
+		endTimestamp = time.Now().UTC()
 		if !reportGithub {
 			fmt.Println("End timestamp:", endTimestamp)
 		}
@@ -171,10 +173,9 @@ func createReport(ccmd *cobra.Command, args []string) {
 			log.Fatal("failed to parse start timestamp as timestamp with REF3339: ", err)
 		}
 	} else {
-		length, err := time.ParseDuration(viper.GetString(reportLengthKey))
-		if err != nil {
-			log.Fatal("failed to parse length: ", err)
-		}
+		// Turn the length into a duration
+		numberDays := viper.GetInt(reportLengthKey)
+		length := time.Duration(numberDays) * 24 * time.Hour
 		startTimestamp = endTimestamp.Add(-length)
 		if !reportGithub {
 			fmt.Println("Start timestamp calculated as:", startTimestamp)

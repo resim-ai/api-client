@@ -17,7 +17,7 @@ generates a report (a set of metrics) on the performance of a given branch again
 resim reports create --name "my-report" --test-suite "Nightly Regression" --branch "main" --length "4w" --metrics-build-id <UUID>
 ```
 which will generate a report using the supplied metrics build (which must be capable of generating a report).
-- Other available report commands are similar to batches: `list`, `get`, `wait`, `logs`.
+- Other available report commands are similar to batches: `get`, `wait`, `logs`.
 - For full details of how reports work and how to generate a report, please read the main ReSim [docs](https://docs.resim.ai)
 
 ### v0.3.2 - June 13 2024

@@ -199,6 +199,21 @@ const (
 	EmptyTestSuiteExperiences  string = "empty list of experiences"
 	RevisedTestSuite           string = "Revised test suite"
 	CreatedTestSuiteBatch      string = "Created batch for test suite"
+	// Report Messages
+	CreatedReport                   string = "Created report"
+	TestSuiteNameReport             string = "must specify the test suite name or ID"
+	EndTimestamp                    string = "End timestamp"
+	StartTimestamp                  string = "Start timestamp"
+	FailedStartTimestamp            string = "failed to parse start timestamp"
+	FailedEndTimestamp              string = "failed to parse end timestamp"
+	GithubCreatedReport             string = "report_id="
+	FailedToCreateReport            string = "failed to create report"
+	EndLengthMutuallyExclusive      string = "none of the others can be"
+	InvalidReportName               string = "unable to find report"
+	InvalidReportID                 string = "unable to parse report ID"
+	AtLeastOneReport                string = "at least one of the flags in the group"
+	BranchNotFoundReport            string = "not found"
+	FailedToParseMetricsBuildReport string = "failed to parse metrics-build ID"
 )
 
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
@@ -1680,7 +1695,7 @@ func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, bu
 	return []CommandBuilder{testSuiteCommand, runCommand}
 }
 
-func createReport(projectID uuid.UUID, testSuiteID string, testSuiteRevision *int32, branchID string, metricsBuildID string, length *string, startTimestamp *string, endTimestamp *string, respectRevisionBoundary *bool, name *string, github bool, account string) []CommandBuilder {
+func createReport(projectID uuid.UUID, testSuiteID string, testSuiteRevision *int32, branchID string, metricsBuildID string, length *int, startTimestamp *string, endTimestamp *string, respectRevisionBoundary *bool, name *string, github bool, account string) []CommandBuilder {
 	// We build a create report command with the required an optional flags.
 	reportCommand := CommandBuilder{
 		Command: "reports",
@@ -1715,7 +1730,7 @@ func createReport(projectID uuid.UUID, testSuiteID string, testSuiteRevision *in
 	if length != nil {
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--length",
-			Value: *length,
+			Value: fmt.Sprintf("%v", *length),
 		})
 	}
 	if startTimestamp != nil {
@@ -1738,7 +1753,7 @@ func createReport(projectID uuid.UUID, testSuiteID string, testSuiteRevision *in
 	}
 	if name != nil {
 		createCommand.Flags = append(createCommand.Flags, Flag{
-			Name:  "--name",
+			Name:  "--report-name",
 			Value: *name,
 		})
 	}
@@ -1808,89 +1823,6 @@ func getReportByID(projectID uuid.UUID, reportID string, exitStatus bool) []Comm
 			Name:  "--exit-status",
 			Value: "",
 		})
-	}
-	return []CommandBuilder{reportCommand, getCommand}
-}
-
-func getReportJobsByName(projectID uuid.UUID, reportName string) []CommandBuilder {
-	// We build a get report command with the name flag
-	reportCommand := CommandBuilder{
-		Command: "reports",
-	}
-	getCommand := CommandBuilder{
-		Command: "jobs",
-		Flags: []Flag{
-			{
-				Name:  "--project",
-				Value: projectID.String(),
-			},
-			{
-				Name:  "--report-name",
-				Value: reportName,
-			},
-		},
-	}
-	return []CommandBuilder{reportCommand, getCommand}
-}
-
-func cancelReportByID(projectID uuid.UUID, reportID string) []CommandBuilder {
-	// We build a get report command with the id flag
-	reportCommand := CommandBuilder{
-		Command: "reports",
-	}
-	cancelCommand := CommandBuilder{
-		Command: "cancel",
-		Flags: []Flag{
-			{
-				Name:  "--project",
-				Value: projectID.String(),
-			},
-			{
-				Name:  "--report-id",
-				Value: reportID,
-			},
-		},
-	}
-	return []CommandBuilder{reportCommand, cancelCommand}
-}
-
-func cancelReportByName(projectID uuid.UUID, reportName string) []CommandBuilder {
-	reportCommand := CommandBuilder{
-		Command: "reports",
-	}
-	cancelCommand := CommandBuilder{
-		Command: "cancel",
-		Flags: []Flag{
-			{
-				Name:  "--project",
-				Value: projectID.String(),
-			},
-			{
-				Name:  "--report-name",
-				Value: reportName,
-			},
-		},
-	}
-	return []CommandBuilder{reportCommand, cancelCommand}
-}
-
-func getReportJobsByID(projectID uuid.UUID, reportID string) []CommandBuilder {
-	// We build a get report command with the name flag
-	reportCommand := CommandBuilder{
-		Command: "reports",
-	}
-	getCommand := CommandBuilder{
-		Command: "jobs",
-		Flags: []Flag{
-			{
-				Name:  "--project",
-				Value: projectID.String(),
-			},
-			{
-				Name:  "--report-id",
-				Value: reportID,
-			},
-		},
 	}
 	return []CommandBuilder{reportCommand, getCommand}
 }
@@ -3827,9 +3759,9 @@ func (s *EndToEndTestSuite) TestReports() {
 	uuid.MustParse(metricsBuildIDString)
 
 	// Now, create a test suite with all our experiences, the system, and a metrics build:
-	firstTestSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+	testSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
 	testSuiteDescription := "test suite description"
-	output = s.runCommand(createTestSuite(projectID, firstTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectNoError)
+	output = s.runCommand(createTestSuite(projectID, testSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedTestSuite)
 	// Try with the github flag:
 	secondTestSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
@@ -3845,7 +3777,7 @@ func (s *EndToEndTestSuite) TestReports() {
 	s.Equal("0", revision)
 
 	// Revise w/ github flag
-	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(reviseTestSuite(projectID, testSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedTestSuite)
 	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
 	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
@@ -3854,23 +3786,95 @@ func (s *EndToEndTestSuite) TestReports() {
 	revision = testSuiteIDRevision[1]
 	s.Equal("1", revision)
 
-	// Now, create a report:
-
-	// Things to test:
 	// 1. Create a report passing in length and have it correct [with name, with respect revision and explicit revision 0]
-	// 2. Create a report passing in start and end timestamps and have them correct [with name, with respect revision and implicit revision 1]
-	// 3. Create a report passing in only start timestamp and have it correct [no name, no respect revision and implicit revision 1]
-	// 4. Fail to create based on invalid timestamps
-	// 5. Fail to create based on invalid duration
-	// 6. Fail to create based on both start and length
-	// 7. Fail to create, no test suite id, no branch id, no metrics build
-	// Create one with github and track its status
-	// list and find them all
-
-	// Create a report with length:
 	reportName := fmt.Sprintf("test-report-%s", uuid.New().String())
-	output = s.runCommand(createReport(projectID, reportName, firstTestSuiteName, nil, nil, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, GithubFalse), ExpectNoError)
-	// HERE.
+	output = s.runCommand(createReport(projectID, testSuiteName, Ptr(int32(0)), branchName, metricsBuildIDString, Ptr(28), nil, nil, Ptr(true), Ptr(reportName), GithubFalse, AssociatedAccount), ExpectNoError)
+	s.Contains(output.StdOut, CreatedReport)
+	s.Contains(output.StdOut, EndTimestamp)
+	s.Contains(output.StdOut, StartTimestamp)
+	// Create a second with the github flag and validate the timestamps are correct:
+	reportName = fmt.Sprintf("test-report-%s", uuid.New().String())
+	output = s.runCommand(createReport(projectID, testSuiteName, Ptr(int32(0)), branchName, metricsBuildIDString, Ptr(28), nil, nil, Ptr(true), Ptr(reportName), GithubTrue, AssociatedAccount), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedReport)
+	// Extract the report id:
+	reportIDString := output.StdOut[len(GithubCreatedReport) : len(output.StdOut)-1]
+	uuid.MustParse(reportIDString)
+	// Get the most recent report, by name:
+	output = s.runCommand(getReportByName(projectID, reportName, false), ExpectNoError)
+	// Parse the output into a report:
+	var report api.Report
+	err := json.Unmarshal([]byte(output.StdOut), &report)
+	s.NoError(err)
+	s.Equal(reportName, report.Name)
+	// Validate that the start timestamp is 4 weeks before today within a one minute duration
+	s.WithinDuration(time.Now().UTC().Add(-4*7*24*time.Hour), report.StartTimestamp, time.Minute)
+	// Validate the end timestamp is pretty much now:
+	s.WithinDuration(time.Now().UTC(), report.EndTimestamp, time.Minute)
+	s.Equal(int32(0), report.TestSuiteRevision)
+	s.True(report.RespectRevisionBoundary)
+
+	// 2. Create a report passing in start and end timestamps and have them correct [with name, with respect revision and implicit revision 1]
+	reportName = fmt.Sprintf("test-report-%s", uuid.New().String())
+	startTimestamp := time.Now().UTC().Add(-time.Hour)
+	endTimestamp := time.Now().UTC().Add(-5 * time.Minute)
+	output = s.runCommand(createReport(projectID, testSuiteName, nil, branchName, metricsBuildIDString, nil, Ptr(startTimestamp.Format(time.RFC3339)), Ptr(endTimestamp.Format(time.RFC3339)), Ptr(true), Ptr(reportName), GithubTrue, AssociatedAccount), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedReport)
+	// Extract the report id:
+	reportIDString = output.StdOut[len(GithubCreatedReport) : len(output.StdOut)-1]
+	uuid.MustParse(reportIDString)
+	// Get the most recent report, by name:
+	output = s.runCommand(getReportByName(projectID, reportName, false), ExpectNoError)
+	// Parse the output into a report:
+	err = json.Unmarshal([]byte(output.StdOut), &report)
+	s.NoError(err)
+	s.Equal(reportName, report.Name)
+	// Validate that the start timestamp is correct within a second
+	s.WithinDuration(startTimestamp, report.StartTimestamp, time.Second)
+	// Validate the end timestamp is correct within a second
+	s.WithinDuration(endTimestamp, report.EndTimestamp, time.Second)
+	s.Equal(int32(1), report.TestSuiteRevision)
+	s.True(report.RespectRevisionBoundary)
+
+	// 3. Create a report passing in only start timestamp and have it correct [no name, no respect revision and implicit revision 1]
+	newStartTimestamp := time.Now().UTC().Add(-time.Hour)
+	output = s.runCommand(createReport(projectID, testSuiteName, nil, branchName, metricsBuildIDString, nil, Ptr(newStartTimestamp.Format(time.RFC3339)), nil, nil, nil, GithubTrue, AssociatedAccount), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedReport)
+	// Extract the report id:
+	reportIDString = output.StdOut[len(GithubCreatedReport) : len(output.StdOut)-1]
+	uuid.MustParse(reportIDString)
+	// Get the most recent report, by name:
+	output = s.runCommand(getReportByID(projectID, reportIDString, false), ExpectNoError)
+	// Parse the output into a report:
+	err = json.Unmarshal([]byte(output.StdOut), &report)
+	s.NoError(err)
+	s.NotEqual("", report.Name)
+	// Validate that the start timestamp is correct within a second
+	s.WithinDuration(newStartTimestamp, report.StartTimestamp, time.Second)
+	// Validate the end timestamp is correct within a minute to now
+	s.WithinDuration(time.Now().UTC(), report.EndTimestamp, time.Minute)
+	s.Equal(int32(1), report.TestSuiteRevision)
+	s.False(report.RespectRevisionBoundary)
+
+	// 4. Fail to create based on invalid timestamps
+	output = s.runCommand(createReport(projectID, testSuiteName, nil, branchName, metricsBuildIDString, nil, Ptr("invalid"), nil, nil, nil, GithubTrue, AssociatedAccount), ExpectError)
+	s.Contains(output.StdErr, FailedStartTimestamp)
+	output = s.runCommand(createReport(projectID, report.TestSuiteID.String(), nil, branchIDString, metricsBuildIDString, nil, Ptr(newStartTimestamp.Format(time.RFC3339)), Ptr("invalid"), nil, nil, GithubTrue, AssociatedAccount), ExpectError)
+	s.Contains(output.StdErr, FailedEndTimestamp)
+	// 6. Fail to create based on both end and length
+	output = s.runCommand(createReport(projectID, testSuiteName, nil, branchName, metricsBuildIDString, Ptr(28), nil, Ptr(newStartTimestamp.Format(time.RFC3339)), nil, nil, GithubTrue, AssociatedAccount), ExpectError)
+	s.Contains(output.StdErr, EndLengthMutuallyExclusive)
+	// 7. Fail to create based on no start nor length
+	output = s.runCommand(createReport(projectID, testSuiteName, nil, branchName, metricsBuildIDString, nil, nil, Ptr(newStartTimestamp.Format(time.RFC3339)), nil, nil, GithubTrue, AssociatedAccount), ExpectError)
+	s.Contains(output.StdErr, AtLeastOneReport)
+	// 7. Fail to create, no test suite id, no branch id, no metrics build
+	output = s.runCommand(createReport(projectID, "", nil, "", "", Ptr(28), nil, nil, nil, nil, GithubTrue, AssociatedAccount), ExpectError)
+	s.Contains(output.StdErr, TestSuiteNameReport)
+	output = s.runCommand(createReport(projectID, testSuiteName, nil, "", "", Ptr(28), nil, nil, nil, nil, GithubTrue, AssociatedAccount), ExpectError)
+	s.Contains(output.StdErr, BranchNotFoundReport)
+	output = s.runCommand(createReport(projectID, testSuiteName, nil, branchName, "", Ptr(28), nil, nil, nil, nil, GithubTrue, AssociatedAccount), ExpectError)
+	s.Contains(output.StdErr, FailedToParseMetricsBuildReport)
+
+	//TODO(iain): check the wait and logs commands, once the rest has landed.
 }
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()

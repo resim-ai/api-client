@@ -8,6 +8,18 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Added
+
+- The ReSim CLI now supports the creation of a `test suite report`, which is an evaluation workflow that 
+generates a report (a set of metrics) on the performance of a given branch against that test suite.
+- A report can be triggered via:
+```shell
+resim reports create --name "my-report" --test-suite "Nightly Regression" --branch "main" --length "4w" --metrics-build-id <UUID>
+```
+which will generate a report using the supplied metrics build (which must be capable of generating a report).
+- Other available report commands are similar to batches: `list`, `get`, `wait`, `logs`.
+- For full details of how reports work and how to generate a report, please read the main ReSim [docs](https://docs.resim.ai)
+
 ### v0.3.2 - June 13 2024
 
 #### Added

@@ -88,8 +88,8 @@ func init() {
 	// Metrics Build
 	createReportCmd.Flags().String(reportMetricsBuildIDKey, "", "The ID of the metrics build to use in this report.")
 	createReportCmd.MarkFlagRequired(reportMetricsBuildIDKey)
-	// Duration, Start, End Timestamps
-	createReportCmd.Flags().String(reportLengthKey, "4w", "The duration of the report in duration string format (default 4 weeks). Cannot be used in combination with start and end timestamps.")
+	// Length, Start, End Timestamps
+	createReportCmd.Flags().String(reportLengthKey, "4w", "The length of the report in duration string format (default 4 weeks), from now. Cannot be used in combination with start and end timestamps.")
 	createReportCmd.Flags().String(reportStartTimestampKey, time.Now().UTC().String(), "The start timestamp of the report (in a Golang parsable format using RFC3339). Cannot be used in combination with length.")
 	createReportCmd.MarkFlagsOneRequired(reportLengthKey, reportStartTimestampKey)
 	createReportCmd.Flags().String(reportEndTimestampKey, time.Now().UTC().String(), "The end timestamp of the report (in a Golang parsable format using RFC3339). If not supplied, the current time will be used.")
@@ -171,11 +171,11 @@ func createReport(ccmd *cobra.Command, args []string) {
 			log.Fatal("failed to parse start timestamp as timestamp with REF3339: ", err)
 		}
 	} else {
-		duration, err := time.ParseDuration(viper.GetString(reportLengthKey))
+		length, err := time.ParseDuration(viper.GetString(reportLengthKey))
 		if err != nil {
-			log.Fatal("failed to parse duration: ", err)
+			log.Fatal("failed to parse length: ", err)
 		}
-		startTimestamp = endTimestamp.Add(-duration)
+		startTimestamp = endTimestamp.Add(-length)
 		if !reportGithub {
 			fmt.Println("Start timestamp calculated as:", startTimestamp)
 		}

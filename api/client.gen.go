@@ -257,7 +257,7 @@ type BatchObjectDescription struct {
 }
 
 // BatchParameters defines model for batchParameters.
-type BatchParameters map[string]interface{}
+type BatchParameters map[string]string
 
 // BatchStatus defines model for batchStatus.
 type BatchStatus string

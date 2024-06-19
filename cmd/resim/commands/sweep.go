@@ -191,6 +191,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		BuildID:           &buildID,
 		Parameters:        &sweepParameters,
 		AssociatedAccount: &associatedAccount,
+		TriggeredVia:      DetermineTriggerMethod(),
 	}
 
 	if allExperienceIDs != nil {

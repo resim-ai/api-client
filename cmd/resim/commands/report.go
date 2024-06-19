@@ -198,6 +198,7 @@ func createReport(ccmd *cobra.Command, args []string) {
 		StartTimestamp:          startTimestamp,
 		EndTimestamp:            Ptr(endTimestamp),
 		AssociatedAccount:       &associatedAccount,
+		TriggeredVia:            DetermineTriggerMethod(),
 	}
 
 	if viper.IsSet(reportNameKey) {

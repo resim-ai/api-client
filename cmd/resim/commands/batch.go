@@ -260,14 +260,12 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		associatedAccount = viper.GetString(batchAccountKey)
 	}
 
-	triggeredVia := DetermineTriggerMethod()
-
 	// Build the request body
 	body := api.BatchInput{
 		BuildID:           &buildID,
 		Parameters:        &parameters,
 		AssociatedAccount: &associatedAccount,
-		TriggeredVia:      triggeredVia,
+		TriggeredVia:      DetermineTriggerMethod(),
 	}
 
 	if allExperienceIDs != nil {

@@ -45,6 +45,7 @@ const (
 	BATCHMETRICS ExecutionStep = "BATCH_METRICS"
 	EXPERIENCE   ExecutionStep = "EXPERIENCE"
 	METRICS      ExecutionStep = "METRICS"
+	REPORT       ExecutionStep = "REPORT"
 )
 
 // Defines values for JobStatus.
@@ -256,7 +257,7 @@ type BatchObjectDescription struct {
 }
 
 // BatchParameters defines model for batchParameters.
-type BatchParameters map[string]string
+type BatchParameters map[string]interface{}
 
 // BatchStatus defines model for batchStatus.
 type BatchStatus string
@@ -637,6 +638,7 @@ type ListExperienceTagsOutput struct {
 type ListExperiencesOutput struct {
 	Experiences   *[]Experience `json:"experiences,omitempty"`
 	NextPageToken *string       `json:"nextPageToken,omitempty"`
+	Total         *int          `json:"total,omitempty"`
 }
 
 // ListJobLogsOutput defines model for listJobLogsOutput.
@@ -688,6 +690,30 @@ type ListProjectsOutput struct {
 	Projects      *[]Project `json:"projects,omitempty"`
 }
 
+// ListReportLogsOutput defines model for listReportLogsOutput.
+type ListReportLogsOutput struct {
+	Logs          *[]ReportLog `json:"logs,omitempty"`
+	NextPageToken *string      `json:"nextPageToken,omitempty"`
+}
+
+// ListReportMetricsDataForReportMetricIDsOutput defines model for listReportMetricsDataForReportMetricIDsOutput.
+type ListReportMetricsDataForReportMetricIDsOutput struct {
+	NextPageToken           *string                    `json:"nextPageToken,omitempty"`
+	ReportMetricsDataAndIDs *[]ReportMetricsDataAndIDs `json:"reportMetricsDataAndIDs,omitempty"`
+}
+
+// ListReportMetricsDataOutput defines model for listReportMetricsDataOutput.
+type ListReportMetricsDataOutput struct {
+	NextPageToken     *string        `json:"nextPageToken,omitempty"`
+	ReportMetricsData *[]MetricsData `json:"reportMetricsData,omitempty"`
+}
+
+// ListReportMetricsOutput defines model for listReportMetricsOutput.
+type ListReportMetricsOutput struct {
+	NextPageToken *string   `json:"nextPageToken,omitempty"`
+	ReportMetrics *[]Metric `json:"reportMetrics,omitempty"`
+}
+
 // ListReportsOutput defines model for listReportsOutput.
 type ListReportsOutput struct {
 	NextPageToken *string   `json:"nextPageToken,omitempty"`
@@ -705,6 +731,11 @@ type ListSystemsOutput struct {
 type ListTestSuiteOutput struct {
 	NextPageToken *string      `json:"nextPageToken,omitempty"`
 	TestSuites    *[]TestSuite `json:"testSuites,omitempty"`
+}
+
+// ListTestSuiteRevisionsOutput defines model for listTestSuiteRevisionsOutput.
+type ListTestSuiteRevisionsOutput struct {
+	TestSuites *[]TestSuite `json:"testSuites,omitempty"`
 }
 
 // ListUsersOutput defines model for listUsersOutput.
@@ -934,8 +965,10 @@ type Report struct {
 	EndTimestamp            Timestamp               `json:"endTimestamp"`
 	LastUpdatedTimestamp    Timestamp               `json:"lastUpdatedTimestamp"`
 	MetricsBuildID          MetricsBuildID          `json:"metricsBuildID"`
+	MetricsStatus           MetricStatus            `json:"metricsStatus"`
 	Name                    Name                    `json:"name"`
 	OrgID                   OrgID                   `json:"orgID"`
+	OutputLocation          string                  `json:"outputLocation"`
 	ProjectID               ProjectID               `json:"projectID"`
 	ReportID                ReportID                `json:"reportID"`
 	RespectRevisionBoundary RespectRevisionBoundary `json:"respectRevisionBoundary"`
@@ -963,6 +996,40 @@ type ReportInput struct {
 	TestSuiteID             TestSuiteID              `json:"testSuiteID"`
 	TestSuiteRevision       *TestSuiteRevision       `json:"testSuiteRevision,omitempty"`
 	TriggeredVia            *TriggeredVia            `json:"triggeredVia,omitempty"`
+}
+
+// ReportLog defines model for reportLog.
+type ReportLog struct {
+	Checksum          Checksum    `json:"checksum"`
+	CreationTimestamp Timestamp   `json:"creationTimestamp"`
+	FileName          FileName    `json:"fileName"`
+	FileSize          FileSize    `json:"fileSize"`
+	Location          LogLocation `json:"location"`
+	LogID             LogID       `json:"logID"`
+	LogOutputLocation string      `json:"logOutputLocation"`
+	LogType           LogType     `json:"logType"`
+	OrgID             OrgID       `json:"orgID"`
+	UserID            UserID      `json:"userID"`
+}
+
+// ReportLogInput defines model for reportLogInput.
+type ReportLogInput struct {
+	Checksum Checksum `json:"checksum"`
+	FileName FileName `json:"fileName"`
+	FileSize FileSize `json:"fileSize"`
+	LogType  LogType  `json:"logType"`
+}
+
+// ReportMetricsDataAndIDs defines model for reportMetricsDataAndIDs.
+type ReportMetricsDataAndIDs struct {
+	ReportMetricID    *MetricID    `json:"reportMetricID,omitempty"`
+	ReportMetricsData *MetricsData `json:"reportMetricsData,omitempty"`
+}
+
+// ReportMetricsDataToReportMetric defines model for reportMetricsDataToReportMetric.
+type ReportMetricsDataToReportMetric struct {
+	ReportMetricID       *MetricID        `json:"reportMetricID,omitempty"`
+	ReportMetricsDataIDs *[]MetricsDataID `json:"reportMetricsDataIDs,omitempty"`
 }
 
 // ReportStatus defines model for reportStatus.
@@ -1447,6 +1514,45 @@ type ListReportsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
+// ListLogsForReportParams defines parameters for ListLogsForReport.
+type ListLogsForReportParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListReportMetricsParams defines parameters for ListReportMetrics.
+type ListReportMetricsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListReportMetricsForReportMetricIDsParams defines parameters for ListReportMetricsForReportMetricIDs.
+type ListReportMetricsForReportMetricIDsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListReportMetricsDataForReportMetricIDsParams defines parameters for ListReportMetricsDataForReportMetricIDs.
+type ListReportMetricsDataForReportMetricIDsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// AddReportMetricsDataToReportMetricJSONBody defines parameters for AddReportMetricsDataToReportMetric.
+type AddReportMetricsDataToReportMetricJSONBody = []MetricsDataID
+
+// ListReportMetricsDataParams defines parameters for ListReportMetricsData.
+type ListReportMetricsDataParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// ListReportMetricsDataForReportMetricsDataIDsParams defines parameters for ListReportMetricsDataForReportMetricsDataIDs.
+type ListReportMetricsDataForReportMetricsDataIDsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
 // ListTestSuitesParams defines parameters for ListTestSuites.
 type ListTestSuitesParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -1569,6 +1675,21 @@ type CreateMetricsBuildJSONRequestBody = CreateMetricsBuildInput
 
 // CreateReportJSONRequestBody defines body for CreateReport for application/json ContentType.
 type CreateReportJSONRequestBody = ReportInput
+
+// CreateReportLogJSONRequestBody defines body for CreateReportLog for application/json ContentType.
+type CreateReportLogJSONRequestBody = ReportLogInput
+
+// CreateReportMetricJSONRequestBody defines body for CreateReportMetric for application/json ContentType.
+type CreateReportMetricJSONRequestBody = Metric
+
+// AddReportMetricsDataToReportMetricJSONRequestBody defines body for AddReportMetricsDataToReportMetric for application/json ContentType.
+type AddReportMetricsDataToReportMetricJSONRequestBody = AddReportMetricsDataToReportMetricJSONBody
+
+// CreateReportMetricsDataJSONRequestBody defines body for CreateReportMetricsData for application/json ContentType.
+type CreateReportMetricsDataJSONRequestBody = MetricsData
+
+// UpdateReportMetricsStatusJSONRequestBody defines body for UpdateReportMetricsStatus for application/json ContentType.
+type UpdateReportMetricsStatusJSONRequestBody = MetricStatus
 
 // CreateTestSuiteJSONRequestBody defines body for CreateTestSuite for application/json ContentType.
 type CreateTestSuiteJSONRequestBody = CreateTestSuiteInput
@@ -1939,6 +2060,52 @@ type ClientInterface interface {
 
 	// GetReport request
 	GetReport(ctx context.Context, projectID ProjectID, reportID ReportID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListLogsForReport request
+	ListLogsForReport(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListLogsForReportParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateReportLogWithBody request with any body
+	CreateReportLogWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateReportLog(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetReportLog request
+	GetReportLog(ctx context.Context, projectID ProjectID, reportID ReportID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListReportMetrics request
+	ListReportMetrics(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateReportMetricWithBody request with any body
+	CreateReportMetricWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateReportMetric(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListReportMetricsForReportMetricIDs request
+	ListReportMetricsForReportMetricIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListReportMetricsDataForReportMetricIDs request
+	ListReportMetricsDataForReportMetricIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsDataForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddReportMetricsDataToReportMetricWithBody request with any body
+	AddReportMetricsDataToReportMetricWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddReportMetricsDataToReportMetric(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, body AddReportMetricsDataToReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListReportMetricsData request
+	ListReportMetricsData(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateReportMetricsDataWithBody request with any body
+	CreateReportMetricsDataWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateReportMetricsData(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListReportMetricsDataForReportMetricsDataIDs request
+	ListReportMetricsDataForReportMetricsDataIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateReportMetricsStatusWithBody request with any body
+	UpdateReportMetricsStatusWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateReportMetricsStatus(ctx context.Context, projectID ProjectID, reportID ReportID, body UpdateReportMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTestSuites request
 	ListTestSuites(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3201,6 +3368,210 @@ func (c *Client) ListReportAccounts(ctx context.Context, projectID ProjectID, re
 
 func (c *Client) GetReport(ctx context.Context, projectID ProjectID, reportID ReportID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetReportRequest(c.Server, projectID, reportID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListLogsForReport(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListLogsForReportParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListLogsForReportRequest(c.Server, projectID, reportID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportLogWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportLogRequestWithBody(c.Server, projectID, reportID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportLog(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportLogRequest(c.Server, projectID, reportID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetReportLog(ctx context.Context, projectID ProjectID, reportID ReportID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetReportLogRequest(c.Server, projectID, reportID, logID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListReportMetrics(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListReportMetricsRequest(c.Server, projectID, reportID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportMetricWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportMetricRequestWithBody(c.Server, projectID, reportID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportMetric(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportMetricRequest(c.Server, projectID, reportID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListReportMetricsForReportMetricIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListReportMetricsForReportMetricIDsRequest(c.Server, projectID, reportID, metricID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListReportMetricsDataForReportMetricIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsDataForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListReportMetricsDataForReportMetricIDsRequest(c.Server, projectID, reportID, metricID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddReportMetricsDataToReportMetricWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddReportMetricsDataToReportMetricRequestWithBody(c.Server, projectID, reportID, metricID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddReportMetricsDataToReportMetric(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, body AddReportMetricsDataToReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddReportMetricsDataToReportMetricRequest(c.Server, projectID, reportID, metricID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListReportMetricsData(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListReportMetricsDataRequest(c.Server, projectID, reportID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportMetricsDataWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportMetricsDataRequestWithBody(c.Server, projectID, reportID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportMetricsData(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportMetricsDataRequest(c.Server, projectID, reportID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListReportMetricsDataForReportMetricsDataIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListReportMetricsDataForReportMetricsDataIDsRequest(c.Server, projectID, reportID, metricsDataID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateReportMetricsStatusWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateReportMetricsStatusRequestWithBody(c.Server, projectID, reportID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateReportMetricsStatus(ctx context.Context, projectID ProjectID, reportID ReportID, body UpdateReportMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateReportMetricsStatusRequest(c.Server, projectID, reportID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -8572,6 +8943,826 @@ func NewGetReportRequest(server string, projectID ProjectID, reportID ReportID) 
 	return req, nil
 }
 
+// NewListLogsForReportRequest generates requests for ListLogsForReport
+func NewListLogsForReportRequest(server string, projectID ProjectID, reportID ReportID, params *ListLogsForReportParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/logs", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateReportLogRequest calls the generic CreateReportLog builder with application/json body
+func NewCreateReportLogRequest(server string, projectID ProjectID, reportID ReportID, body CreateReportLogJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateReportLogRequestWithBody(server, projectID, reportID, "application/json", bodyReader)
+}
+
+// NewCreateReportLogRequestWithBody generates requests for CreateReportLog with any type of body
+func NewCreateReportLogRequestWithBody(server string, projectID ProjectID, reportID ReportID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/logs", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetReportLogRequest generates requests for GetReportLog
+func NewGetReportLogRequest(server string, projectID ProjectID, reportID ReportID, logID LogID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "logID", runtime.ParamLocationPath, logID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/logs/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListReportMetricsRequest generates requests for ListReportMetrics
+func NewListReportMetricsRequest(server string, projectID ProjectID, reportID ReportID, params *ListReportMetricsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metrics", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateReportMetricRequest calls the generic CreateReportMetric builder with application/json body
+func NewCreateReportMetricRequest(server string, projectID ProjectID, reportID ReportID, body CreateReportMetricJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateReportMetricRequestWithBody(server, projectID, reportID, "application/json", bodyReader)
+}
+
+// NewCreateReportMetricRequestWithBody generates requests for CreateReportMetric with any type of body
+func NewCreateReportMetricRequestWithBody(server string, projectID ProjectID, reportID ReportID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metrics", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListReportMetricsForReportMetricIDsRequest generates requests for ListReportMetricsForReportMetricIDs
+func NewListReportMetricsForReportMetricIDsRequest(server string, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsForReportMetricIDsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metrics/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListReportMetricsDataForReportMetricIDsRequest generates requests for ListReportMetricsDataForReportMetricIDs
+func NewListReportMetricsDataForReportMetricIDsRequest(server string, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsDataForReportMetricIDsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metrics/%s/metricsData", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddReportMetricsDataToReportMetricRequest calls the generic AddReportMetricsDataToReportMetric builder with application/json body
+func NewAddReportMetricsDataToReportMetricRequest(server string, projectID ProjectID, reportID ReportID, metricID MetricID, body AddReportMetricsDataToReportMetricJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddReportMetricsDataToReportMetricRequestWithBody(server, projectID, reportID, metricID, "application/json", bodyReader)
+}
+
+// NewAddReportMetricsDataToReportMetricRequestWithBody generates requests for AddReportMetricsDataToReportMetric with any type of body
+func NewAddReportMetricsDataToReportMetricRequestWithBody(server string, projectID ProjectID, reportID ReportID, metricID MetricID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metrics/%s/metricsData", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListReportMetricsDataRequest generates requests for ListReportMetricsData
+func NewListReportMetricsDataRequest(server string, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metricsData", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateReportMetricsDataRequest calls the generic CreateReportMetricsData builder with application/json body
+func NewCreateReportMetricsDataRequest(server string, projectID ProjectID, reportID ReportID, body CreateReportMetricsDataJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateReportMetricsDataRequestWithBody(server, projectID, reportID, "application/json", bodyReader)
+}
+
+// NewCreateReportMetricsDataRequestWithBody generates requests for CreateReportMetricsData with any type of body
+func NewCreateReportMetricsDataRequestWithBody(server string, projectID ProjectID, reportID ReportID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metricsData", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListReportMetricsDataForReportMetricsDataIDsRequest generates requests for ListReportMetricsDataForReportMetricsDataIDs
+func NewListReportMetricsDataForReportMetricsDataIDsRequest(server string, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricsDataID", runtime.ParamLocationPath, metricsDataID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metricsData/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateReportMetricsStatusRequest calls the generic UpdateReportMetricsStatus builder with application/json body
+func NewUpdateReportMetricsStatusRequest(server string, projectID ProjectID, reportID ReportID, body UpdateReportMetricsStatusJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateReportMetricsStatusRequestWithBody(server, projectID, reportID, "application/json", bodyReader)
+}
+
+// NewUpdateReportMetricsStatusRequestWithBody generates requests for UpdateReportMetricsStatus with any type of body
+func NewUpdateReportMetricsStatusRequestWithBody(server string, projectID ProjectID, reportID ReportID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metricsStatus", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListTestSuitesRequest generates requests for ListTestSuites
 func NewListTestSuitesRequest(server string, projectID ProjectID, params *ListTestSuitesParams) (*http.Request, error) {
 	var err error
@@ -10868,6 +12059,52 @@ type ClientWithResponsesInterface interface {
 	// GetReportWithResponse request
 	GetReportWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, reqEditors ...RequestEditorFn) (*GetReportResponse, error)
 
+	// ListLogsForReportWithResponse request
+	ListLogsForReportWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListLogsForReportParams, reqEditors ...RequestEditorFn) (*ListLogsForReportResponse, error)
+
+	// CreateReportLogWithBodyWithResponse request with any body
+	CreateReportLogWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportLogResponse, error)
+
+	CreateReportLogWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportLogResponse, error)
+
+	// GetReportLogWithResponse request
+	GetReportLogWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, logID LogID, reqEditors ...RequestEditorFn) (*GetReportLogResponse, error)
+
+	// ListReportMetricsWithResponse request
+	ListReportMetricsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsResponse, error)
+
+	// CreateReportMetricWithBodyWithResponse request with any body
+	CreateReportMetricWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportMetricResponse, error)
+
+	CreateReportMetricWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportMetricResponse, error)
+
+	// ListReportMetricsForReportMetricIDsWithResponse request
+	ListReportMetricsForReportMetricIDsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsForReportMetricIDsResponse, error)
+
+	// ListReportMetricsDataForReportMetricIDsWithResponse request
+	ListReportMetricsDataForReportMetricIDsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsDataForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataForReportMetricIDsResponse, error)
+
+	// AddReportMetricsDataToReportMetricWithBodyWithResponse request with any body
+	AddReportMetricsDataToReportMetricWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddReportMetricsDataToReportMetricResponse, error)
+
+	AddReportMetricsDataToReportMetricWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, body AddReportMetricsDataToReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*AddReportMetricsDataToReportMetricResponse, error)
+
+	// ListReportMetricsDataWithResponse request
+	ListReportMetricsDataWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataResponse, error)
+
+	// CreateReportMetricsDataWithBodyWithResponse request with any body
+	CreateReportMetricsDataWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportMetricsDataResponse, error)
+
+	CreateReportMetricsDataWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportMetricsDataResponse, error)
+
+	// ListReportMetricsDataForReportMetricsDataIDsWithResponse request
+	ListReportMetricsDataForReportMetricsDataIDsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataForReportMetricsDataIDsResponse, error)
+
+	// UpdateReportMetricsStatusWithBodyWithResponse request with any body
+	UpdateReportMetricsStatusWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateReportMetricsStatusResponse, error)
+
+	UpdateReportMetricsStatusWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body UpdateReportMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateReportMetricsStatusResponse, error)
+
 	// ListTestSuitesWithResponse request
 	ListTestSuitesWithResponse(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*ListTestSuitesResponse, error)
 
@@ -12616,6 +13853,270 @@ func (r GetReportResponse) StatusCode() int {
 	return 0
 }
 
+type ListLogsForReportResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListReportLogsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListLogsForReportResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListLogsForReportResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateReportLogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *ReportLog
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateReportLogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateReportLogResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetReportLogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ReportLog
+}
+
+// Status returns HTTPResponse.Status
+func (r GetReportLogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetReportLogResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListReportMetricsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListReportMetricsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListReportMetricsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListReportMetricsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateReportMetricResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Metric
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateReportMetricResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateReportMetricResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListReportMetricsForReportMetricIDsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListReportMetricsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListReportMetricsForReportMetricIDsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListReportMetricsForReportMetricIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListReportMetricsDataForReportMetricIDsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListReportMetricsDataForReportMetricIDsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListReportMetricsDataForReportMetricIDsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListReportMetricsDataForReportMetricIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddReportMetricsDataToReportMetricResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *ReportMetricsDataToReportMetric
+}
+
+// Status returns HTTPResponse.Status
+func (r AddReportMetricsDataToReportMetricResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddReportMetricsDataToReportMetricResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListReportMetricsDataResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListReportMetricsDataOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListReportMetricsDataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListReportMetricsDataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateReportMetricsDataResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *MetricsData
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateReportMetricsDataResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateReportMetricsDataResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListReportMetricsDataForReportMetricsDataIDsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListReportMetricsDataOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListReportMetricsDataForReportMetricsDataIDsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListReportMetricsDataForReportMetricsDataIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateReportMetricsStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Report
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateReportMetricsStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateReportMetricsStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListTestSuitesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -12751,9 +14252,7 @@ func (r CreateBatchForTestSuiteResponse) StatusCode() int {
 type ListTestSuiteRevisionsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *struct {
-		TestSuites *[]TestSuite `json:"testSuites,omitempty"`
-	}
+	JSON200      *ListTestSuiteRevisionsOutput
 }
 
 // Status returns HTTPResponse.Status
@@ -14234,6 +15733,154 @@ func (c *ClientWithResponses) GetReportWithResponse(ctx context.Context, project
 		return nil, err
 	}
 	return ParseGetReportResponse(rsp)
+}
+
+// ListLogsForReportWithResponse request returning *ListLogsForReportResponse
+func (c *ClientWithResponses) ListLogsForReportWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListLogsForReportParams, reqEditors ...RequestEditorFn) (*ListLogsForReportResponse, error) {
+	rsp, err := c.ListLogsForReport(ctx, projectID, reportID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListLogsForReportResponse(rsp)
+}
+
+// CreateReportLogWithBodyWithResponse request with arbitrary body returning *CreateReportLogResponse
+func (c *ClientWithResponses) CreateReportLogWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportLogResponse, error) {
+	rsp, err := c.CreateReportLogWithBody(ctx, projectID, reportID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportLogResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateReportLogWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportLogResponse, error) {
+	rsp, err := c.CreateReportLog(ctx, projectID, reportID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportLogResponse(rsp)
+}
+
+// GetReportLogWithResponse request returning *GetReportLogResponse
+func (c *ClientWithResponses) GetReportLogWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, logID LogID, reqEditors ...RequestEditorFn) (*GetReportLogResponse, error) {
+	rsp, err := c.GetReportLog(ctx, projectID, reportID, logID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetReportLogResponse(rsp)
+}
+
+// ListReportMetricsWithResponse request returning *ListReportMetricsResponse
+func (c *ClientWithResponses) ListReportMetricsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsResponse, error) {
+	rsp, err := c.ListReportMetrics(ctx, projectID, reportID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListReportMetricsResponse(rsp)
+}
+
+// CreateReportMetricWithBodyWithResponse request with arbitrary body returning *CreateReportMetricResponse
+func (c *ClientWithResponses) CreateReportMetricWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportMetricResponse, error) {
+	rsp, err := c.CreateReportMetricWithBody(ctx, projectID, reportID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportMetricResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateReportMetricWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportMetricResponse, error) {
+	rsp, err := c.CreateReportMetric(ctx, projectID, reportID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportMetricResponse(rsp)
+}
+
+// ListReportMetricsForReportMetricIDsWithResponse request returning *ListReportMetricsForReportMetricIDsResponse
+func (c *ClientWithResponses) ListReportMetricsForReportMetricIDsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsForReportMetricIDsResponse, error) {
+	rsp, err := c.ListReportMetricsForReportMetricIDs(ctx, projectID, reportID, metricID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListReportMetricsForReportMetricIDsResponse(rsp)
+}
+
+// ListReportMetricsDataForReportMetricIDsWithResponse request returning *ListReportMetricsDataForReportMetricIDsResponse
+func (c *ClientWithResponses) ListReportMetricsDataForReportMetricIDsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListReportMetricsDataForReportMetricIDsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataForReportMetricIDsResponse, error) {
+	rsp, err := c.ListReportMetricsDataForReportMetricIDs(ctx, projectID, reportID, metricID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListReportMetricsDataForReportMetricIDsResponse(rsp)
+}
+
+// AddReportMetricsDataToReportMetricWithBodyWithResponse request with arbitrary body returning *AddReportMetricsDataToReportMetricResponse
+func (c *ClientWithResponses) AddReportMetricsDataToReportMetricWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddReportMetricsDataToReportMetricResponse, error) {
+	rsp, err := c.AddReportMetricsDataToReportMetricWithBody(ctx, projectID, reportID, metricID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddReportMetricsDataToReportMetricResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddReportMetricsDataToReportMetricWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, body AddReportMetricsDataToReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*AddReportMetricsDataToReportMetricResponse, error) {
+	rsp, err := c.AddReportMetricsDataToReportMetric(ctx, projectID, reportID, metricID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddReportMetricsDataToReportMetricResponse(rsp)
+}
+
+// ListReportMetricsDataWithResponse request returning *ListReportMetricsDataResponse
+func (c *ClientWithResponses) ListReportMetricsDataWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataResponse, error) {
+	rsp, err := c.ListReportMetricsData(ctx, projectID, reportID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListReportMetricsDataResponse(rsp)
+}
+
+// CreateReportMetricsDataWithBodyWithResponse request with arbitrary body returning *CreateReportMetricsDataResponse
+func (c *ClientWithResponses) CreateReportMetricsDataWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportMetricsDataResponse, error) {
+	rsp, err := c.CreateReportMetricsDataWithBody(ctx, projectID, reportID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportMetricsDataResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateReportMetricsDataWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body CreateReportMetricsDataJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportMetricsDataResponse, error) {
+	rsp, err := c.CreateReportMetricsData(ctx, projectID, reportID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportMetricsDataResponse(rsp)
+}
+
+// ListReportMetricsDataForReportMetricsDataIDsWithResponse request returning *ListReportMetricsDataForReportMetricsDataIDsResponse
+func (c *ClientWithResponses) ListReportMetricsDataForReportMetricsDataIDsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataForReportMetricsDataIDsResponse, error) {
+	rsp, err := c.ListReportMetricsDataForReportMetricsDataIDs(ctx, projectID, reportID, metricsDataID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListReportMetricsDataForReportMetricsDataIDsResponse(rsp)
+}
+
+// UpdateReportMetricsStatusWithBodyWithResponse request with arbitrary body returning *UpdateReportMetricsStatusResponse
+func (c *ClientWithResponses) UpdateReportMetricsStatusWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateReportMetricsStatusResponse, error) {
+	rsp, err := c.UpdateReportMetricsStatusWithBody(ctx, projectID, reportID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateReportMetricsStatusResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateReportMetricsStatusWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, body UpdateReportMetricsStatusJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateReportMetricsStatusResponse, error) {
+	rsp, err := c.UpdateReportMetricsStatus(ctx, projectID, reportID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateReportMetricsStatusResponse(rsp)
 }
 
 // ListTestSuitesWithResponse request returning *ListTestSuitesResponse
@@ -16462,6 +18109,318 @@ func ParseGetReportResponse(rsp *http.Response) (*GetReportResponse, error) {
 	return response, nil
 }
 
+// ParseListLogsForReportResponse parses an HTTP response from a ListLogsForReportWithResponse call
+func ParseListLogsForReportResponse(rsp *http.Response) (*ListLogsForReportResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListLogsForReportResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListReportLogsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateReportLogResponse parses an HTTP response from a CreateReportLogWithResponse call
+func ParseCreateReportLogResponse(rsp *http.Response) (*CreateReportLogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateReportLogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ReportLog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetReportLogResponse parses an HTTP response from a GetReportLogWithResponse call
+func ParseGetReportLogResponse(rsp *http.Response) (*GetReportLogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetReportLogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ReportLog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListReportMetricsResponse parses an HTTP response from a ListReportMetricsWithResponse call
+func ParseListReportMetricsResponse(rsp *http.Response) (*ListReportMetricsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListReportMetricsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListReportMetricsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateReportMetricResponse parses an HTTP response from a CreateReportMetricWithResponse call
+func ParseCreateReportMetricResponse(rsp *http.Response) (*CreateReportMetricResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateReportMetricResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Metric
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListReportMetricsForReportMetricIDsResponse parses an HTTP response from a ListReportMetricsForReportMetricIDsWithResponse call
+func ParseListReportMetricsForReportMetricIDsResponse(rsp *http.Response) (*ListReportMetricsForReportMetricIDsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListReportMetricsForReportMetricIDsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListReportMetricsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListReportMetricsDataForReportMetricIDsResponse parses an HTTP response from a ListReportMetricsDataForReportMetricIDsWithResponse call
+func ParseListReportMetricsDataForReportMetricIDsResponse(rsp *http.Response) (*ListReportMetricsDataForReportMetricIDsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListReportMetricsDataForReportMetricIDsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListReportMetricsDataForReportMetricIDsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddReportMetricsDataToReportMetricResponse parses an HTTP response from a AddReportMetricsDataToReportMetricWithResponse call
+func ParseAddReportMetricsDataToReportMetricResponse(rsp *http.Response) (*AddReportMetricsDataToReportMetricResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddReportMetricsDataToReportMetricResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest ReportMetricsDataToReportMetric
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListReportMetricsDataResponse parses an HTTP response from a ListReportMetricsDataWithResponse call
+func ParseListReportMetricsDataResponse(rsp *http.Response) (*ListReportMetricsDataResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListReportMetricsDataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListReportMetricsDataOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateReportMetricsDataResponse parses an HTTP response from a CreateReportMetricsDataWithResponse call
+func ParseCreateReportMetricsDataResponse(rsp *http.Response) (*CreateReportMetricsDataResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateReportMetricsDataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest MetricsData
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListReportMetricsDataForReportMetricsDataIDsResponse parses an HTTP response from a ListReportMetricsDataForReportMetricsDataIDsWithResponse call
+func ParseListReportMetricsDataForReportMetricsDataIDsResponse(rsp *http.Response) (*ListReportMetricsDataForReportMetricsDataIDsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListReportMetricsDataForReportMetricsDataIDsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListReportMetricsDataOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateReportMetricsStatusResponse parses an HTTP response from a UpdateReportMetricsStatusWithResponse call
+func ParseUpdateReportMetricsStatusResponse(rsp *http.Response) (*UpdateReportMetricsStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateReportMetricsStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Report
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListTestSuitesResponse parses an HTTP response from a ListTestSuitesWithResponse call
 func ParseListTestSuitesResponse(rsp *http.Response) (*ListTestSuitesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -16633,9 +18592,7 @@ func ParseListTestSuiteRevisionsResponse(rsp *http.Response) (*ListTestSuiteRevi
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest struct {
-			TestSuites *[]TestSuite `json:"testSuites,omitempty"`
-		}
+		var dest ListTestSuiteRevisionsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

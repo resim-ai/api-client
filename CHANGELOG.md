@@ -19,12 +19,7 @@ resim reports create --name "my-report" --test-suite "Nightly Regression" --bran
 which will generate a report using the supplied metrics build (which must be capable of generating a report).
 - Other available report commands are similar to batches: `get`, `wait`, `logs`.
 - For full details of how reports work and how to generate a report, please read the main ReSim [docs](https://docs.resim.ai)
-
-### v0.3.3 - June 20 2024
-
-#### Changed
-
-- When creating a batch, sweep, or report, additional information will be included to describe
+- When creating a batch, sweep, or report additional environment information will be included to describe
   where it was created from (GitHub, Gitlab, local, etc.)
 
 ### v0.3.2 - June 13 2024

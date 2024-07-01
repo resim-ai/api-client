@@ -157,6 +157,23 @@ func GetCIEnvironmentVariableAccount() string {
 	return account
 }
 
+// Attempt to determine the environment we're in. i.e. are we running in Gitlab CI?
+// Github CI? or maybe just running locally on a customer's machine? This information
+// is useful downstream, for understanding where a batch was triggered from.
+func DetermineTriggerMethod() *api.TriggeredVia {
+	if _, ok := os.LookupEnv("CI"); ok {
+		if _, ok := os.LookupEnv("GITHUB_ACTOR"); ok {
+			return Ptr(api.GITHUB)
+		}
+		if _, ok := os.LookupEnv("GITLAB_USER_LOGIN"); ok {
+			return Ptr(api.GITLAB)
+		}
+		// Unfortunately, we're not sure what ENV we're being executed from
+		return nil
+	}
+	return Ptr(api.LOCAL)
+}
+
 func createBatch(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	batchGithub := viper.GetBool(batchGithubKey)
@@ -248,6 +265,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		BuildID:           &buildID,
 		Parameters:        &parameters,
 		AssociatedAccount: &associatedAccount,
+		TriggeredVia:      DetermineTriggerMethod(),
 	}
 
 	if allExperienceIDs != nil {

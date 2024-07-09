@@ -1861,7 +1861,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	output = s.runCommand(getProject(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Non-existent project:
-	output = s.runCommand(getProject(uuid.Nil.String()), ExpectError)
+	output = s.runCommand(getProject(uuid.New().String()), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Blank name:
 	output = s.runCommand(getProject(""), ExpectError)

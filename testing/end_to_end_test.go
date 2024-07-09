@@ -2031,7 +2031,7 @@ func (s *EndToEndTestSuite) TestSystems() {
 	s.Contains(output.StdErr, EmptySystemName)
 	output = s.runCommand(createSystem(projectIDString, systemName, "", nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptySystemDescription)
-	output = s.runCommand(createSystem(uuid.Nil.String(), systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
+	output = s.runCommand(createSystem(uuid.New().String(), systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 
 	// Check we can list the systems, and our new system is in it:

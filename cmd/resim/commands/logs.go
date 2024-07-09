@@ -31,7 +31,7 @@ var (
 const (
 	logProjectKey = "project"
 	logBatchIDKey = "batch-id"
-	logJobIDKey   = "test-id" // User-facing is test ID, internal is job id
+	logTestIDKey  = "test-id" // User-facing is test ID, internal is job id
 )
 
 func init() {
@@ -39,8 +39,8 @@ func init() {
 	listLogsCmd.MarkFlagRequired(logProjectKey)
 	listLogsCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch the logs are associated with")
 	listLogsCmd.MarkFlagRequired(logBatchIDKey)
-	listLogsCmd.Flags().String(logJobIDKey, "", "The UUID of the test in the batch to list logs for")
-	listLogsCmd.MarkFlagRequired(logJobIDKey)
+	listLogsCmd.Flags().String(logTestIDKey, "", "The UUID of the test in the batch to list logs for")
+	listLogsCmd.MarkFlagRequired(logTestIDKey)
 	listLogsCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	logsCmd.AddCommand(listLogsCmd)
 
@@ -54,7 +54,7 @@ func listLogs(ccmd *cobra.Command, args []string) {
 		log.Fatal("unable to parse batch ID: ", err)
 	}
 
-	testID, err := uuid.Parse(viper.GetString(logJobIDKey))
+	testID, err := uuid.Parse(viper.GetString(logTestIDKey))
 	if err != nil || testID == uuid.Nil {
 		log.Fatal("unable to parse test ID: ", err)
 	}

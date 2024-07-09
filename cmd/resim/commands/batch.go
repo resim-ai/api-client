@@ -44,10 +44,11 @@ var (
 	}
 
 	jobsBatchCmd = &cobra.Command{
-		Use:   "jobs",
-		Short: "jobs - Lists the jobs in a batch",
+		Use:   "tests",
+		Short: "tests - Lists the tests in a batch",
 		Long:  ``,
 		Run:   jobsBatch,
+		Aliases: []string{"jobs"},
 	}
 
 	waitBatchCmd = &cobra.Command{

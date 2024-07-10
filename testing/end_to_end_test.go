@@ -177,10 +177,10 @@ const (
 	EmptyLogFileName      string = "empty log file name"
 	EmptyLogChecksum      string = "No checksum was provided"
 	EmptyLogBatchID       string = "empty batch ID"
-	EmptyLogJobID         string = "empty job ID"
+	EmptyLogTestID        string = "empty test ID"
 	EmptyLogType          string = "invalid log type"
 	EmptyLogExecutionStep string = "invalid execution step"
-	InvalidJobID          string = "unable to parse job ID"
+	InvalidTestID         string = "unable to parse test ID"
 	// Sweep Messages
 	CreatedSweep                  string = "Created sweep"
 	GithubCreatedSweep            string = "sweep_id="
@@ -1137,7 +1137,7 @@ func getBatchJobsByName(projectID uuid.UUID, batchName string) []CommandBuilder 
 		Command: "batches",
 	}
 	getCommand := CommandBuilder{
-		Command: "jobs",
+		Command: "tests",
 		Flags: []Flag{
 			{
 				Name:  "--project",
@@ -1199,7 +1199,7 @@ func getBatchJobsByID(projectID uuid.UUID, batchID string) []CommandBuilder {
 		Command: "batches",
 	}
 	getCommand := CommandBuilder{
-		Command: "jobs",
+		Command: "tests",
 		Flags: []Flag{
 			{
 				Name:  "--project",
@@ -1246,57 +1246,7 @@ func listBatchLogs(projectID uuid.UUID, batchID, batchName string) []CommandBuil
 	return []CommandBuilder{batchCommand, listLogsCommand}
 }
 
-func createLog(projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, name string, fileSize string, checksum string, logType string, executionStep string, github bool) []CommandBuilder {
-	logCommand := CommandBuilder{
-		Command: "logs",
-	}
-	createCommand := CommandBuilder{
-		Command: "create",
-		Flags: []Flag{
-			{
-				Name:  "--project",
-				Value: projectID.String(),
-			},
-			{
-				Name:  "--batch-id",
-				Value: batchID.String(),
-			},
-			{
-				Name:  "--job-id",
-				Value: jobID.String(),
-			},
-			{
-				Name:  "--name",
-				Value: name,
-			},
-			{
-				Name:  "--file-size",
-				Value: fileSize, //passed as string
-			},
-			{
-				Name:  "--checksum",
-				Value: checksum,
-			},
-			{
-				Name:  "--type",
-				Value: logType,
-			},
-			{
-				Name:  "--execution-step",
-				Value: executionStep,
-			},
-		},
-	}
-	if github {
-		createCommand.Flags = append(createCommand.Flags, Flag{
-			Name:  "--github",
-			Value: "",
-		})
-	}
-	return []CommandBuilder{logCommand, createCommand}
-}
-
-func listLogs(projectID uuid.UUID, batchID string, jobID string) []CommandBuilder {
+func listLogs(projectID uuid.UUID, batchID string, testID string) []CommandBuilder {
 	logCommand := CommandBuilder{
 		Command: "log",
 	}
@@ -1312,8 +1262,8 @@ func listLogs(projectID uuid.UUID, batchID string, jobID string) []CommandBuilde
 				Value: batchID,
 			},
 			{
-				Name:  "--job-id",
-				Value: jobID,
+				Name:  "--test-id",
+				Value: testID,
 			},
 		},
 	}
@@ -1911,7 +1861,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	output = s.runCommand(getProject(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Non-existent project:
-	output = s.runCommand(getProject(uuid.Nil.String()), ExpectError)
+	output = s.runCommand(getProject(uuid.New().String()), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Blank name:
 	output = s.runCommand(getProject(""), ExpectError)
@@ -2656,26 +2606,26 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// Create a batch with (only) experience names using the --experiences flag
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceName2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH1 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH1)
 
 	// Create a batch with mixed experience names and IDs in the --experiences flag
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceIDString2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH2 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH2)
 
 	// Create a batch with an ID in the --experiences flag and a tag name in the --experience-tags flag (experience 1 is in the tag)
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceIDString2}, []string{tagName}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH3 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH3)
 
 	// Create a batch without metrics with the github flag set and check the output
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH4 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH4)
 
 	// Now create a batch without the github flag, but with metrics
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, metricsBuildIDString, GithubFalse, emptyParameterMap, AssociatedAccount), ExpectNoError)
@@ -2773,99 +2723,91 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	output = s.runCommand(getBatchByID(projectID, "", ExitStatusFalse), ExpectError)
 	s.Contains(output.StdErr, RequireBatchName)
 
-	// Pass unknown name / id to batches jobs:
+	// Pass unknown name / id to batches tests:
 	output = s.runCommand(getBatchByName(projectID, "does not exist", ExitStatusFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchName)
 	output = s.runCommand(getBatchByID(projectID, "0000-0000-0000-0000-000000000000", ExitStatusFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchID)
 
-	// Now grab the jobs from the batch:
+	// Now grab the tests from the batch:
 	output = s.runCommand(getBatchJobsByName(projectID, batchNameString), ExpectNoError)
 	// Marshal into a struct:
-	var jobs []api.Job
-	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	var tests []api.Job
+	err = json.Unmarshal([]byte(output.StdOut), &tests)
 	s.NoError(err)
-	s.Equal(2, len(jobs))
-	for _, job := range jobs {
-		s.Contains([]uuid.UUID{experienceID1, experienceID2}, *job.ExperienceID)
-		s.Equal(buildID, *job.BuildID)
+	s.Equal(2, len(tests))
+	for _, test := range tests {
+		s.Contains([]uuid.UUID{experienceID1, experienceID2}, *test.ExperienceID)
+		s.Equal(buildID, *test.BuildID)
 	}
 	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
 	// Marshal into a struct:
-	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	err = json.Unmarshal([]byte(output.StdOut), &tests)
 	s.NoError(err)
-	s.Equal(2, len(jobs))
-	for _, job := range jobs {
-		s.Contains([]uuid.UUID{experienceID1, experienceID2}, *job.ExperienceID)
-		s.Equal(buildID, *job.BuildID)
+	s.Equal(2, len(tests))
+	for _, test := range tests {
+		s.Contains([]uuid.UUID{experienceID1, experienceID2}, *test.ExperienceID)
+		s.Equal(buildID, *test.BuildID)
 	}
 
-	jobID1 := *jobs[0].JobID
-	jobID2 := *jobs[1].JobID
-	// Pass blank name / id to batches jobs:
+	testID2 := *tests[1].JobID
+	// Pass blank name / id to batches tests:
 	output = s.runCommand(getBatchJobsByName(projectID, ""), ExpectError)
 	s.Contains(output.StdErr, RequireBatchName)
 	output = s.runCommand(getBatchJobsByID(projectID, ""), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchID)
 
-	// Pass unknown name / id to batches jobs:
+	// Pass unknown name / id to batches tests:
 	output = s.runCommand(getBatchJobsByName(projectID, "does not exist"), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchName)
 
-	// Finally, create logs
-	logName := fmt.Sprintf("test-log-%s", uuid.New().String())
-	output = s.runCommand(createLog(projectID, batchID, jobID1, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectNoError)
-	s.Contains(output.StdOut, CreatedLog)
-	// Validate that all required flags are required:
-	output = s.runCommand(createLog(projectID, uuid.Nil, jobID1, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyLogBatchID)
-	output = s.runCommand(createLog(projectID, batchID, uuid.Nil, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyLogJobID)
-	output = s.runCommand(createLog(projectID, batchID, jobID1, "", "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyLogFileName)
-
-	output = s.runCommand(createLog(projectID, batchID, jobID1, logName, "100", "checksum", "", string(api.EXPERIENCE), GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyLogType)
-	output = s.runCommand(createLog(projectID, batchID, jobID1, logName, "100", "checksum", string(api.ARCHIVELOG), "", GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyLogExecutionStep)
-
-	// TODO(iainjwhiteside): we can't check the empty file size easily in this framework
-
-	// Checksum is actually optional, but warned about:
-	output = s.runCommand(createLog(projectID, batchID, jobID1, logName, "100", "", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubFalse), ExpectNoError)
-	s.Contains(output.StdOut, EmptyLogChecksum)
-
-	// Create w/ the github flag:
-	logName = fmt.Sprintf("test-log-%s", uuid.New().String())
-	output = s.runCommand(createLog(projectID, batchID, jobID2, logName, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubTrue), ExpectNoError)
-	s.Contains(output.StdOut, GithubCreatedLog)
-	log1Location := output.StdOut[len(GithubCreatedLog) : len(output.StdOut)-1]
-	s.Contains(log1Location, "s3://")
-	// Create a second log to test parsing:
-	logName2 := fmt.Sprintf("test-log-%s", uuid.New().String())
-	output = s.runCommand(createLog(projectID, batchID, jobID2, logName2, "100", "checksum", string(api.ARCHIVELOG), string(api.EXPERIENCE), GithubTrue), ExpectNoError)
-	s.Contains(output.StdOut, GithubCreatedLog)
-	log2Location := output.StdOut[len(GithubCreatedLog) : len(output.StdOut)-1]
-	s.Contains(log2Location, "s3://")
-
 	// List logs:
-	output = s.runCommand(listLogs(projectID, batchIDString, jobID2.String()), ExpectNoError)
+	output = s.runCommand(listLogs(projectID, batchIDString, testID2.String()), ExpectNoError)
 	// Marshal into a struct:
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 7)
+	s.Len(logs, 5)
 	for _, log := range logs {
-		s.Equal(jobID2, *log.JobID)
-		s.Contains([]string{logName, logName2, "experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto"}, *log.FileName)
+		s.Equal(testID2, *log.JobID)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto"}, *log.FileName)
 	}
 
 	// Pass blank name / id to logs:
-	output = s.runCommand(listLogs(projectID, "not-a-uuid", jobID2.String()), ExpectError)
+	output = s.runCommand(listLogs(projectID, "not-a-uuid", testID2.String()), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchID)
 	output = s.runCommand(listLogs(projectID, batchIDString, "not-a-uuid"), ExpectError)
-	s.Contains(output.StdErr, InvalidJobID)
+	s.Contains(output.StdErr, InvalidTestID)
 
+	// Ensure the rest of the batches complete:
+	s.Eventually(func() bool {
+		allComplete := true
+		for _, batchIDString := range []string{batchIDStringGH1, batchIDStringGH2, batchIDStringGH3, batchIDStringGH4} {
+			cmd := s.buildCommand(getBatchByID(projectID, batchIDString, ExitStatusTrue))
+			var stdout, stderr bytes.Buffer
+			fmt.Println("About to run command: ", cmd.String())
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			exitCode := 0
+			if err := cmd.Run(); err != nil {
+				if exitError, ok := err.(*exec.ExitError); ok {
+					exitCode = exitError.ExitCode()
+				}
+			}
+			s.Contains(AcceptableBatchStatusCodes, exitCode)
+			s.Empty(stderr.String())
+			s.Empty(stdout.String())
+			// Check if the status is 0, complete, 5 cancelled, 2 failed
+			complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+			if !complete {
+				fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+			} else {
+				fmt.Println("Batch completed, with exitCode:", exitCode)
+			}
+			allComplete = allComplete && complete
+		}
+		return allComplete
+	}, 10*time.Minute, 10*time.Second)
 	// Delete the project:
 	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)

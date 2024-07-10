@@ -22,6 +22,10 @@ which will generate a report using the supplied metrics build (which must be cap
 - When creating a batch, sweep, or report additional environment information will be included to describe
   where it was created from (GitHub, Gitlab, local, etc.)
 
+#### Changed
+
+- Any historic use of 'job' has been replaced with 'test', which is the more accurate external-facing term for the elements of a test batch.
+
 ### v0.3.2 - June 13 2024
 
 #### Added

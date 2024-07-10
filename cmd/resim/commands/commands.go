@@ -123,6 +123,8 @@ func AliasNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "project"
 	case "branch-name":
 		name = "branch"
+	case "job-id":
+		name = "test-id"
 	}
 	return pflag.NormalizedName(name)
 }

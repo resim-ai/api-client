@@ -43,11 +43,12 @@ var (
 		Run:   cancelBatch,
 	}
 
-	jobsBatchCmd = &cobra.Command{
-		Use:   "jobs",
-		Short: "jobs - Lists the jobs in a batch",
-		Long:  ``,
-		Run:   jobsBatch,
+	testsBatchCmd = &cobra.Command{
+		Use:     "tests",
+		Short:   "tests - Lists the tests in a batch",
+		Long:    ``,
+		Run:     testsBatch,
+		Aliases: []string{"jobs"},
 	}
 
 	waitBatchCmd = &cobra.Command{
@@ -117,12 +118,13 @@ func init() {
 	cancelBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(cancelBatchCmd)
 
-	jobsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
-	jobsBatchCmd.MarkFlagRequired(batchProjectKey)
-	jobsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve jobs for.")
-	jobsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
-	jobsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	batchCmd.AddCommand(jobsBatchCmd)
+	testsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	testsBatchCmd.MarkFlagRequired(batchProjectKey)
+	testsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve tests for.")
+	testsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	testsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	testsBatchCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
+	batchCmd.AddCommand(testsBatchCmd)
 
 	waitBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	waitBatchCmd.MarkFlagRequired(batchProjectKey)
@@ -434,7 +436,7 @@ func waitBatch(ccmd *cobra.Command, args []string) {
 	}
 }
 
-func jobsBatch(ccmd *cobra.Command, args []string) {
+func testsBatch(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	var batchID uuid.UUID
 	var err error
@@ -450,8 +452,8 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 		log.Fatal("must specify either the batch ID or the batch name")
 	}
 
-	// Now list the jobs
-	jobs := []api.Job{}
+	// Now list the tests
+	tests := []api.Job{}
 	var pageToken *string = nil
 	for {
 		response, err := Client.ListJobsWithResponse(context.Background(), projectID, batchID, &api.ListJobsParams{
@@ -459,14 +461,14 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			PageToken: pageToken,
 		})
 		if err != nil {
-			log.Fatal("unable to list jobs:", err)
+			log.Fatal("unable to list tests:", err)
 		}
-		ValidateResponse(http.StatusOK, "unable to list jobs", response.HTTPResponse, response.Body)
+		ValidateResponse(http.StatusOK, "unable to list tests", response.HTTPResponse, response.Body)
 		if response.JSON200.Jobs == nil {
-			log.Fatal("unable to list jobs")
+			log.Fatal("unable to list tests")
 		}
 		responseJobs := *response.JSON200.Jobs
-		jobs = append(jobs, responseJobs...)
+		tests = append(tests, responseJobs...)
 
 		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
 			pageToken = response.JSON200.NextPageToken
@@ -474,7 +476,7 @@ func jobsBatch(ccmd *cobra.Command, args []string) {
 			break
 		}
 	}
-	OutputJson(jobs)
+	OutputJson(tests)
 }
 
 func listBatchLogs(ccmd *cobra.Command, args []string) {

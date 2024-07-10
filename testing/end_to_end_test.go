@@ -2606,26 +2606,26 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// Create a batch with (only) experience names using the --experiences flag
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceName2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH1 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH1)
 
 	// Create a batch with mixed experience names and IDs in the --experiences flag
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceIDString2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH2 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH2)
 
 	// Create a batch with an ID in the --experiences flag and a tag name in the --experience-tags flag (experience 1 is in the tag)
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceIDString2}, []string{tagName}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH3 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH3)
 
 	// Create a batch without metrics with the github flag set and check the output
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	batchIDStringGH = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
-	uuid.MustParse(batchIDStringGH)
+	batchIDStringGH4 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDStringGH4)
 
 	// Now create a batch without the github flag, but with metrics
 	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, metricsBuildIDString, GithubFalse, emptyParameterMap, AssociatedAccount), ExpectNoError)
@@ -2779,6 +2779,35 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	output = s.runCommand(listLogs(projectID, batchIDString, "not-a-uuid"), ExpectError)
 	s.Contains(output.StdErr, InvalidTestID)
 
+	// Ensure the rest of the batches complete:
+	s.Eventually(func() bool {
+		allComplete := true
+		for _, batchIDString := range []string{batchIDStringGH1, batchIDStringGH2, batchIDStringGH3, batchIDStringGH4} {
+			cmd := s.buildCommand(getBatchByID(projectID, batchIDString, ExitStatusTrue))
+			var stdout, stderr bytes.Buffer
+			fmt.Println("About to run command: ", cmd.String())
+			cmd.Stdout = &stdout
+			cmd.Stderr = &stderr
+			exitCode := 0
+			if err := cmd.Run(); err != nil {
+				if exitError, ok := err.(*exec.ExitError); ok {
+					exitCode = exitError.ExitCode()
+				}
+			}
+			s.Contains(AcceptableBatchStatusCodes, exitCode)
+			s.Empty(stderr.String())
+			s.Empty(stdout.String())
+			// Check if the status is 0, complete, 5 cancelled, 2 failed
+			complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+			if !complete {
+				fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+			} else {
+				fmt.Println("Batch completed, with exitCode:", exitCode)
+			}
+			allComplete = allComplete && complete
+		}
+		return allComplete
+	}, 10*time.Minute, 10*time.Second)
 	// Delete the project:
 	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, DeletedProject)

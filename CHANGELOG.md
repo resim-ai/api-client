@@ -40,6 +40,12 @@ which will generate a report using the supplied metrics build (which must be cap
 - Experience location validation updated to support non-S3 experience locations.
 
 
+### v0.3.2 - May 23 2024
+
+#### Changed
+
+- Fixes a small bug where CI/CD environment variable are not successfully retrieved.
+
 ### v0.3.1 - May 23 2024
 
 #### Added

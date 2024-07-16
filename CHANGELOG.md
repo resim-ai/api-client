@@ -8,6 +8,8 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.3.5 - July 16 2024
+
 #### Added
 
 - The ReSim CLI now supports the creation of a `test suite report`, which is an evaluation workflow that 

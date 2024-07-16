@@ -45,6 +45,7 @@ which will generate a report using the supplied metrics build (which must be cap
 #### Changed
 
 - Fixes a small bug where CI/CD environment variable are not successfully retrieved.
+- "main" branches are created with a specific MAIN type.
 
 ### v0.3.1 - May 23 2024
 

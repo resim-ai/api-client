@@ -64,7 +64,14 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 	if err != nil {
 		log.Fatal("unable to create token URL: ", err)
 	}
-	authURL, err := url.JoinPath(viper.GetString(authURLKey), "/oauth/device/code")
+
+	// Check if the URL has a trailing slash and add it if not
+	// This prevents an ambiguous error when authenticating against Auth0
+	checkURL := viper.GetString(authURLKey)
+	if !strings.HasSuffix(checkURL, "/") {
+		checkURL += "/"
+	}
+	authURL, err := url.JoinPath(checkURL, "/oauth/device/code")
 	if err != nil {
 		log.Fatal("unable to create authURL: ", err)
 	}

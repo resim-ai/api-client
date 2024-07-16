@@ -23,7 +23,7 @@ which will generate a report using the supplied metrics build (which must be cap
 - For full details of how reports work and how to generate a report, please read the main ReSim [docs](https://docs.resim.ai)
 - When creating a batch, sweep, or report additional environment information will be included to describe
   where it was created from (GitHub, Gitlab, local, etc.)
-
+- It is now possible to delete a system via `resim systems delete`.
 #### Changed
 
 - Any historic use of 'job' has been replaced with 'test', which is the more accurate external-facing term for the elements of a test batch.

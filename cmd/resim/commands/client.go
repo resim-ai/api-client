@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/cli/browser"
 	"github.com/resim-ai/api-client/api"
@@ -20,16 +22,20 @@ import (
 )
 
 const (
-	urlKey                   = "url"
-	authURLKey               = "auth-url"
-	clientIDKey              = "client-id"
-	clientSecretKey          = "client-secret"
-	devInteractiveClientKey  = "dev-interactive-client"
-	prodInteractiveClientKey = "prod-interactive-client"
-	prodGovcloudURL          = "https://api-gov.resim.ai/v1/"
-	prodAPIURL               = "https://api.resim.ai/v1/"
-	prodAuthURL              = "https://resim.us.auth0.com/"
-	devAuthURL               = "https://resim-dev.us.auth0.com/"
+	urlKey                      = "url"
+	usernameKey                 = "username"
+	passwordKey                 = "password"
+	authURLKey                  = "auth-url"
+	clientIDKey                 = "client-id"
+	clientSecretKey             = "client-secret"
+	devInteractiveClientKey     = "dev-interactive-client"
+	prodInteractiveClientKey    = "prod-interactive-client"
+	devNonInteractiveClientKey  = "dev-non-interactive-client"
+	prodNonInteractiveClientKey = "prod-non-interactive-client"
+	prodGovcloudURL             = "https://api-gov.resim.ai/v1/"
+	prodAPIURL                  = "https://api.resim.ai/v1/"
+	prodAuthURL                 = "https://resim.us.auth0.com/"
+	devAuthURL                  = "https://resim-dev.us.auth0.com/"
 )
 
 const CredentialCacheFilename = "cache.json"
@@ -38,6 +44,13 @@ type CredentialCache struct {
 	Tokens      map[string]oauth2.Token `json:"tokens"`
 	TokenSource oauth2.TokenSource
 	ClientID    string
+}
+
+type tokenJSON struct {
+	AccessToken  string `json:"access_token"`
+	TokenType    string `json:"token_type"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int32  `json:"expires_in"`
 }
 
 func init() {
@@ -49,11 +62,20 @@ func init() {
 	rootCmd.PersistentFlags().String(clientSecretKey, "", "Authentication credentials client secret")
 	rootCmd.PersistentFlags().String(devInteractiveClientKey, "", "Client ID for dev interactive login")
 	viper.SetDefault(devInteractiveClientKey, "Rg1F0ZOCBmVYje4UVrS3BKIh4T2nCW9y")
+	rootCmd.PersistentFlags().String(devNonInteractiveClientKey, "", "Client ID for dev non-interactive login")
+	viper.SetDefault(devNonInteractiveClientKey, "LLNl3xsbNLSd16gQyYsiEn3tbLDZo1gj")
 	rootCmd.PersistentFlags().String(prodInteractiveClientKey, "", "Client ID for prod interactive login")
 	viper.SetDefault(prodInteractiveClientKey, "gTp1Y0kOyQ7QzIo2lZm0auGM6FJZZVvy")
+	rootCmd.PersistentFlags().String(prodNonInteractiveClientKey, "", "Client ID for prod non-interactive login")
+	viper.SetDefault(prodNonInteractiveClientKey, "") // TODO
+	rootCmd.PersistentFlags().String(usernameKey, "", "username for non-interactive login")
+	rootCmd.PersistentFlags().String(passwordKey, "", "password for non-interactive login")
 }
 
 func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache, error) {
+	var authMode string
+	var clientID string
+
 	var cache CredentialCache
 	err := cache.loadCredentialCache()
 	if err != nil {
@@ -78,7 +100,31 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 
 	var tokenSource oauth2.TokenSource
 
-	if viper.GetString(clientIDKey) == "" {
+	if viper.IsSet(usernameKey) && viper.IsSet(passwordKey) {
+		switch viper.GetString(authURLKey) {
+		case devAuthURL:
+			clientID = viper.GetString(devNonInteractiveClientKey)
+		case prodAuthURL:
+			clientID = viper.GetString(prodNonInteractiveClientKey)
+		default:
+			log.Fatal("couldn't find non-interactive auth client ID for auth-url")
+		}
+		authMode = "password"
+		fmt.Println("password mode")
+	}
+
+	config := &oauth2.Config{
+		ClientID: clientID,
+		Endpoint: oauth2.Endpoint{
+			DeviceAuthURL: authURL,
+			TokenURL:      tokenURL,
+		},
+		Scopes: []string{
+			"offline_access",
+		},
+	}
+
+	if authMode != "password" && viper.GetString(clientIDKey) == "" {
 		var clientID string
 		switch viper.GetString(authURLKey) {
 		case devAuthURL:
@@ -89,39 +135,30 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 			log.Fatal("couldn't find CLI client ID for auth-url")
 		}
 
-		config := &oauth2.Config{
-			ClientID: clientID,
-			Endpoint: oauth2.Endpoint{
-				DeviceAuthURL: authURL,
-				TokenURL:      tokenURL,
-			},
-			Scopes: []string{
-				"offline_access",
-			},
-		}
-
 		cache.ClientID = clientID
 		token, ok := cache.Tokens[clientID]
 		if ok && token.Valid() {
 			cache.TokenSource = config.TokenSource(ctx, &token)
 		} else {
-			response, err := config.DeviceAuth(ctx, oauth2.SetAuthURLParam("audience", "https://api.resim.ai"))
-			if err != nil {
-				log.Fatal("unable to initiate device auth: ", err)
-			}
+			var token *oauth2.Token
+			{
+				response, err := config.DeviceAuth(ctx, oauth2.SetAuthURLParam("audience", "https://api.resim.ai"))
+				if err != nil {
+					log.Fatal("unable to initiate device auth: ", err)
+				}
 
-			browser.OpenURL(response.VerificationURIComplete)
-			fmt.Printf("If your browser hasn't opened automatically, please open\n%s\n", response.VerificationURIComplete)
-			fmt.Printf("and enter code\n%s\n", response.UserCode)
-			token, err := config.DeviceAccessToken(ctx, response)
-			if err != nil {
-				log.Fatal("unable to complete device auth: ", err)
+				browser.OpenURL(response.VerificationURIComplete)
+				fmt.Printf("If your browser hasn't opened automatically, please open\n%s\n", response.VerificationURIComplete)
+				fmt.Printf("and enter code\n%s\n", response.UserCode)
+				token, err = config.DeviceAccessToken(ctx, response)
+				if err != nil {
+					log.Fatal("unable to complete device auth: ", err)
+				}
 			}
-
 			tokenSource = config.TokenSource(ctx, token)
 			cache.TokenSource = tokenSource
 		}
-	} else {
+	} else if viper.IsSet(clientIDKey) {
 		clientID := viper.GetString(clientIDKey)
 		if clientID == "" {
 			return nil, nil, errors.New("client-id must be specified")
@@ -146,6 +183,45 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 		if token, ok := cache.Tokens[clientID]; ok {
 			cache.TokenSource = oauth2.ReuseTokenSource(&token, tokenSource)
 		} else {
+			cache.TokenSource = tokenSource
+		}
+	} else {
+		if authMode == "password" {
+			var token oauth2.Token
+
+			payloadVals := url.Values{
+				"grant_type": []string{"http://auth0.com/oauth/grant-type/password-realm"},
+				"realm":      []string{"cli-users"},
+				"username":   []string{viper.GetString(usernameKey)},
+				"password":   []string{viper.GetString(passwordKey)},
+				"audience":   []string{"https://api.resim.ai"},
+				"client_id":  []string{clientID},
+			}
+
+			req, _ := http.NewRequest("POST", tokenURL, strings.NewReader(payloadVals.Encode()))
+
+			req.Header.Add("content-type", "application/x-www-form-urlencoded")
+
+			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				log.Fatal("error in password auth: ", err)
+			}
+
+			defer res.Body.Close()
+			body, _ := io.ReadAll(res.Body)
+			var tj tokenJSON
+			err = json.Unmarshal(body, &tj)
+			if err != nil {
+				log.Fatal(err)
+			}
+			token = oauth2.Token{
+				AccessToken:  tj.AccessToken,
+				TokenType:    tj.TokenType,
+				RefreshToken: tj.RefreshToken,
+				Expiry:       time.Now().Add(time.Duration(tj.ExpiresIn) * time.Second),
+			}
+			tokenSource = config.TokenSource(ctx, &token)
+			cache.ClientID = clientID
 			cache.TokenSource = tokenSource
 		}
 	}

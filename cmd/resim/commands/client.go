@@ -75,7 +75,7 @@ func init() {
 	rootCmd.PersistentFlags().String(prodInteractiveClientKey, "", "Client ID for prod interactive login")
 	viper.SetDefault(prodInteractiveClientKey, "gTp1Y0kOyQ7QzIo2lZm0auGM6FJZZVvy")
 	rootCmd.PersistentFlags().String(prodNonInteractiveClientKey, "", "Client ID for prod non-interactive login")
-	viper.SetDefault(prodNonInteractiveClientKey, "") // TODO
+	viper.SetDefault(prodNonInteractiveClientKey, "0Ip56H1LLAo6Dc6IfePaNzgpUxbJGyVI")
 	rootCmd.PersistentFlags().String(usernameKey, "", "username for non-interactive login")
 	rootCmd.PersistentFlags().String(passwordKey, "", "password for non-interactive login")
 }

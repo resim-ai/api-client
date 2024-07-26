@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.3.6 - July 26 2024
+
+#### Added
+
+- The ReSim CLI now supports username and password authentication. Set `RESIM_USERNAME` and `RESIM_PASSWORD` in your environment, for example in your CI workflow's variables, to use this authentication method. If you have an existing client ID and client secret, you can continue to use those for authentication (provided as `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET`).
+
 ### v0.3.5 - July 16 2024
 
 #### Added

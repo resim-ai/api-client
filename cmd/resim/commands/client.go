@@ -231,6 +231,10 @@ func ValidateResponse(expectedStatusCode int, message string, response *http.Res
 }
 
 func determineAuthMode() AuthMode {
+	if viper.IsSet(usernameKey) && viper.IsSet(passwordKey) && viper.IsSet(clientIDKey) && viper.IsSet(clientSecretKey) {
+		log.Fatal("ambiguous authentication arguments provided - please provide username and password OR client ID and client secret.")
+	}
+
 	if viper.IsSet(usernameKey) && viper.IsSet(passwordKey) {
 		return Password
 	}

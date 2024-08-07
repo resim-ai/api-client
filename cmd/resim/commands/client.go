@@ -14,8 +14,7 @@ import (
 	"time"
 
 	"github.com/cli/browser"
-	"github.com/go-jose/go-jose/v4"
-	"github.com/go-jose/go-jose/v4/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -364,19 +363,15 @@ func getAuthURL() (string, string) {
 }
 
 func tokenPermissionsPresent(tokenString string) bool {
-	var claims map[string]interface{}
-
-	token, err := jwt.ParseSigned(tokenString, []jose.SignatureAlgorithm{jose.RS256})
+	token, _, err := new(jwt.Parser).ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
-		log.Fatal("error parsing token: ", "error", err)
+		log.Fatal(err)
 	}
 
-	err = token.UnsafeClaimsWithoutVerification(&claims)
-	if err != nil {
-		log.Fatal("error checking claims: ", "error", err)
-	}
+	claims := token.Claims.(jwt.MapClaims)
 
-	var permissionsCount int
+	permissionsCount := 0
+
 	if permissions, ok := claims["permissions"].([]interface{}); ok {
 		permissionsCount = len(permissions)
 	}

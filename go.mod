@@ -11,7 +11,6 @@ require (
 	github.com/cli/browser v1.3.0
 	github.com/deepmap/oapi-codegen v1.13.4
 	github.com/fatih/color v1.14.1
-	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/google/uuid v1.5.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.19.0
@@ -46,6 +45,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.14.1 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/go-containerregistry v0.17.0
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

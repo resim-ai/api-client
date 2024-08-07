@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/cli/browser"
+	"github.com/go-jose/go-jose/v4"
+	"github.com/go-jose/go-jose/v4/jwt"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -140,16 +142,26 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 	cache.ClientID = clientID
 	token, ok := cache.Tokens[clientID]
 	if !(ok && token.Valid()) {
-		if authMode == Password {
+		switch authMode {
+		case Password:
 			token = doPasswordAuth(tokenURL, clientID)
-		}
-
-		if authMode == DeviceCode {
+		case DeviceCode:
 			token = doDeviceCodeAuth(ctx, authURL, tokenURL, clientID)
+		case ClientCredentials:
+			token = doClientCredentialsAuth(ctx, tokenURL, clientID, clientSecret)
 		}
 
-		if authMode == ClientCredentials {
-			token = doClientCredentialsAuth(ctx, tokenURL, clientID, clientSecret)
+		// on first auth the permissions are not present - check for them and re-auth if they aren't there
+		if !tokenPermissionsPresent(token.AccessToken) {
+			time.Sleep(1 * time.Second)
+			switch authMode {
+			case Password:
+				token = doPasswordAuth(tokenURL, clientID)
+			case DeviceCode:
+				token = doDeviceCodeAuth(ctx, authURL, tokenURL, clientID)
+			case ClientCredentials:
+				token = doClientCredentialsAuth(ctx, tokenURL, clientID, clientSecret)
+			}
 		}
 	}
 
@@ -349,4 +361,25 @@ func getAuthURL() (string, string) {
 	}
 
 	return authURL, tokenURL
+}
+
+func tokenPermissionsPresent(tokenString string) bool {
+	var claims map[string]interface{}
+
+	token, err := jwt.ParseSigned(tokenString, []jose.SignatureAlgorithm{jose.RS256})
+	if err != nil {
+		log.Fatal("error parsing token: ", "error", err)
+	}
+
+	err = token.UnsafeClaimsWithoutVerification(&claims)
+	if err != nil {
+		log.Fatal("error checking claims: ", "error", err)
+	}
+
+	var permissionsCount int
+	if permissions, ok := claims["permissions"].([]interface{}); ok {
+		permissionsCount = len(permissions)
+	}
+
+	return permissionsCount > 0
 }

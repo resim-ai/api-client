@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.3.7 - August 7 2024
+
+### Changed
+
+- For the first authentication, the returned token doesn't have any permissions assigned because the server-side assignment is performed asynchronously. The CLI will now check whether the token has any permissions and retry once if there are none present.
+
 ### v0.3.6 - July 26 2024
 
 #### Added

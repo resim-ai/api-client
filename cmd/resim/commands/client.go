@@ -368,7 +368,10 @@ func tokenPermissionsPresent(tokenString string) bool {
 		log.Fatal(err)
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		log.Fatal("error getting token claims")
+	}
 
 	permissionsCount := 0
 

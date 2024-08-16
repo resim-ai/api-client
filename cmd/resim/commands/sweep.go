@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -54,6 +55,7 @@ const (
 	sweepGridSearchConfigKey = "grid-search-config"
 	sweepParameterNameKey    = "parameter-name"
 	sweepParameterValuesKey  = "parameter-values"
+	sweepPoolLabelsKey       = "pool-labels"
 	sweepExitStatusKey       = "exit-status"
 	sweepGithubKey           = "github"
 	sweepAccountKey          = "account"
@@ -71,6 +73,8 @@ func init() {
 	createSweepCmd.Flags().String(sweepGridSearchConfigKey, "", "Location of a json file listing parameter names and values to perform an exhaustive (combinatorial!) grid search. The json should be a list of objects with 'name' (parameter name) and 'values' (list of values to sample.)")
 	createSweepCmd.Flags().String(sweepParameterNameKey, "", "The name of a single parameter to sweep.")
 	createSweepCmd.Flags().StringSlice(sweepParameterValuesKey, []string{}, "A comma separated list of parameter values to sweep.")
+	// Pool Labels
+	runTestSuiteCmd.Flags().StringSlice(sweepPoolLabelsKey, []string{}, "Pool labels to determine where to run this parameter sweep. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
 	createSweepCmd.Flags().String(sweepAccountKey, "", "Specify a username for a CI/CD platform account to associate with this parameter sweep.")
 	sweepCmd.AddCommand(createSweepCmd)
@@ -179,6 +183,18 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
 	}
 
+	// Parse --pool-labels (if any provided)
+	poolLabels := []api.PoolLabel{}
+	if viper.IsSet(sweepPoolLabelsKey) {
+		poolLabels = viper.GetStringSlice(sweepPoolLabelsKey)
+	}
+	for i := range poolLabels {
+		poolLabels[i] = strings.TrimSpace(poolLabels[i])
+		if poolLabels[i] == "resim" {
+			log.Fatal("failed to run sweep: resim is a reserved pool label")
+		}
+	}
+
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()
@@ -212,6 +228,11 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 	if metricsBuildID != uuid.Nil {
 		body.MetricsBuildID = &metricsBuildID
+	}
+
+	// Add the pool labels if any
+	if len(poolLabels) > 0 {
+		body.PoolLabels = &poolLabels
 	}
 
 	// Make the request

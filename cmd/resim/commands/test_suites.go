@@ -446,7 +446,9 @@ func getTestSuite(ccmd *cobra.Command, args []string) {
 	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
 
 	if viper.GetBool(testSuiteAllRevisionKey) {
-		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID)
+		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID, &api.ListTestSuiteRevisionsParams{
+			PageSize: Ptr(100),
+		})
 		if err != nil {
 			log.Fatal("unable to list test suite revisions:", err)
 		}

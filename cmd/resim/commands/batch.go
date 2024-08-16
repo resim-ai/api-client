@@ -75,6 +75,7 @@ const (
 	batchExperienceTagNamesKey = "experience-tag-names"
 	batchExperienceTagsKey     = "experience-tags"
 	batchParameterKey          = "parameter"
+	batchPoolLabelsKey         = "pool-labels"
 	batchIDKey                 = "batch-id"
 	batchNameKey               = "batch-name"
 	batchAccountKey            = "account"
@@ -99,6 +100,7 @@ func init() {
 	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
 	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
+	createBatchCmd.Flags().StringSlice(batchPoolLabelsKey, []string{}, "Pool labels to determine where to run this batch. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
 	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
 	batchCmd.AddCommand(createBatchCmd)
@@ -255,6 +257,18 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	// Parse --pool-labels (if any provided)
+	poolLabels := []api.PoolLabel{}
+	if viper.IsSet(batchPoolLabelsKey) {
+		poolLabels = viper.GetStringSlice(batchPoolLabelsKey)
+	}
+	for i := range poolLabels {
+		poolLabels[i] = strings.TrimSpace(poolLabels[i])
+		if poolLabels[i] == "resim" {
+			log.Fatal("failed to create batch: resim is a reserved pool label")
+		}
+	}
+
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()
@@ -288,6 +302,10 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	if metricsBuildID != uuid.Nil {
 		body.MetricsBuildID = &metricsBuildID
+	}
+
+	if len(poolLabels) != 0 {
+		body.PoolLabels = &poolLabels
 	}
 
 	// Make the request

@@ -73,8 +73,7 @@ func init() {
 	createSweepCmd.Flags().String(sweepGridSearchConfigKey, "", "Location of a json file listing parameter names and values to perform an exhaustive (combinatorial!) grid search. The json should be a list of objects with 'name' (parameter name) and 'values' (list of values to sample.)")
 	createSweepCmd.Flags().String(sweepParameterNameKey, "", "The name of a single parameter to sweep.")
 	createSweepCmd.Flags().StringSlice(sweepParameterValuesKey, []string{}, "A comma separated list of parameter values to sweep.")
-	// Pool Labels
-	runTestSuiteCmd.Flags().StringSlice(sweepPoolLabelsKey, []string{}, "Pool labels to determine where to run this parameter sweep. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
+	createSweepCmd.Flags().StringSlice(sweepPoolLabelsKey, []string{}, "Pool labels to determine where to run this parameter sweep. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
 	createSweepCmd.Flags().String(sweepAccountKey, "", "Specify a username for a CI/CD platform account to associate with this parameter sweep.")
 	sweepCmd.AddCommand(createSweepCmd)

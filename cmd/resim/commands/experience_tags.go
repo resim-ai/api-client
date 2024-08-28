@@ -182,7 +182,7 @@ pageLoop:
 			context.Background(), projectID, &api.ListExperienceTagsParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
-				OrderBy:   Ptr("timestamp"),
+				OrderBy:   Ptr(api.ListExperienceTagsParamsOrderByTimestamp),
 			})
 		if err != nil {
 			log.Fatal("unable to list experience tags:", err)

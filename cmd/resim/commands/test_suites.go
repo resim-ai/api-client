@@ -78,6 +78,7 @@ const (
 	testSuiteAllRevisionKey  = "all-revisions"
 	testSuiteGithubKey       = "github"
 	testSuiteMetricsBuildKey = "metrics-build"
+	testSuitePoolLabelsKey   = "pool-labels"
 	testSuiteAccountKey      = "account"
 )
 
@@ -157,6 +158,8 @@ func init() {
 	runTestSuiteCmd.MarkFlagRequired(testSuiteBuildIDKey)
 	// Parameters
 	runTestSuiteCmd.Flags().StringSlice(testSuiteParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
+	// Pool Labels
+	runTestSuiteCmd.Flags().StringSlice(testSuitePoolLabelsKey, []string{}, "Pool labels to determine where to run this test suite. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")
 	testSuiteCmd.AddCommand(runTestSuiteCmd)
 
@@ -446,7 +449,9 @@ func getTestSuite(ccmd *cobra.Command, args []string) {
 	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
 
 	if viper.GetBool(testSuiteAllRevisionKey) {
-		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID)
+		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID, &api.ListTestSuiteRevisionsParams{
+			PageSize: Ptr(100),
+		})
 		if err != nil {
 			log.Fatal("unable to list test suite revisions:", err)
 		}
@@ -487,6 +492,18 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	// Parse --pool-labels (if any provided)
+	poolLabels := []api.PoolLabel{}
+	if viper.IsSet(testSuitePoolLabelsKey) {
+		poolLabels = viper.GetStringSlice(testSuitePoolLabelsKey)
+	}
+	for i := range poolLabels {
+		poolLabels[i] = strings.TrimSpace(poolLabels[i])
+		if poolLabels[i] == "resim" {
+			log.Fatal("failed to run test suite: resim is a reserved pool label")
+		}
+	}
+
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()
@@ -499,6 +516,11 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		BuildID:           buildID,
 		Parameters:        &parameters,
 		AssociatedAccount: &associatedAccount,
+	}
+
+	// Add the pool labels if any
+	if len(poolLabels) > 0 {
+		body.PoolLabels = &poolLabels
 	}
 
 	// Make the request

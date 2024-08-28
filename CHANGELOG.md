@@ -8,6 +8,10 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Added
+
+- The ReSim CLI now supports using specific `pool labels` for creating batches, and running test suites and parameter sweeps. Supplying a pool label forces the ReSim Orchestrator to run that batch using an external runner that is compatible with this label combination.
+
 ### v0.3.7 - August 7 2024
 
 ### Changed

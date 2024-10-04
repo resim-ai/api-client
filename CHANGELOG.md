@@ -14,7 +14,7 @@ Changes in this section will be included in the next release.
 
 - The ReSim CLI now supports using specific `pool labels` for creating batches, and running test suites and parameter sweeps. Supplying a pool label forces the ReSim Orchestrator to run that batch using an external runner that is compatible with this label combination.
 - The ReSim CLI now supports creation of test suites that use the 'show on summary' flag, which enables the latest test suite and its reports to be viewed on an overview dashboard on the ReSim Web App.
-- The ReSim CLI now supports the updating of Systems: making changes to the resource requirements used.
+- The ReSim CLI now supports updating systems by making changes to the resource requirements.
 
 ### v0.3.7 - August 7 2024
 

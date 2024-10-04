@@ -132,6 +132,7 @@ const (
 	CreatedSystem             string = "Created system"
 	GithubCreatedSystem       string = "system_id="
 	DeletedSystem             string = "Deleted system"
+	UpdatedSystem             string = "Updated system"
 	EmptySystemName           string = "empty system name"
 	EmptySystemDescription    string = "empty system description"
 	SystemAlreadyRegistered   string = "it may already be registered"
@@ -493,6 +494,86 @@ func createSystem(projectName string, systemName string, systemDescription strin
 		})
 	}
 	return []CommandBuilder{systemCommand, createCommand}
+}
+
+func updateSystem(projectName string, existingSystemName string, newName *string, systemDescription *string, buildVCPUs *int, buildGPUs *int, buildMemoryMiB *int, buildSharedMemoryMB *int, metricsBuildVCPUs *int, metricsBuildGPUs *int, metricsBuildMemoryMiB *int, metricsBuildSharedMemoryMB *int) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "systems",
+	}
+	updateCommand := CommandBuilder{
+		Command: "update",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectName,
+			},
+			{
+				Name:  "--system",
+				Value: existingSystemName,
+			},
+		},
+	}
+	if newName != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--new-name",
+			Value: *newName,
+		})
+	}
+	if systemDescription != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--description",
+			Value: *systemDescription,
+		})
+	}
+	if buildVCPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-vcpus",
+			Value: fmt.Sprintf("%d", *buildVCPUs),
+		})
+	}
+	if buildGPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-gpus",
+			Value: fmt.Sprintf("%d", *buildGPUs),
+		})
+	}
+	if buildMemoryMiB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-memory-mib",
+			Value: fmt.Sprintf("%d", *buildMemoryMiB),
+		})
+	}
+	if buildSharedMemoryMB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-shared-memory-mb",
+			Value: fmt.Sprintf("%d", *buildSharedMemoryMB),
+		})
+	}
+	if metricsBuildVCPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-vcpus",
+			Value: fmt.Sprintf("%d", *metricsBuildVCPUs),
+		})
+	}
+	if metricsBuildGPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-gpus",
+			Value: fmt.Sprintf("%d", *metricsBuildGPUs),
+		})
+	}
+	if metricsBuildMemoryMiB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-memory-mib",
+			Value: fmt.Sprintf("%d", *metricsBuildMemoryMiB),
+		})
+	}
+	if metricsBuildSharedMemoryMB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-shared-memory-mb",
+			Value: fmt.Sprintf("%d", *metricsBuildSharedMemoryMB),
+		})
+	}
+	return []CommandBuilder{systemCommand, updateCommand}
 }
 
 func listSystems(projectID uuid.UUID) []CommandBuilder {
@@ -2180,6 +2261,29 @@ func (s *EndToEndTestSuite) TestSystems() {
 	s.Contains(output.StdErr, EmptySystemName)
 	output = s.runCommand(removeSystemFromMetricsBuild(projectIDString, systemName, ""), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildName)
+
+	// Update the system:
+	const updatedSystemDescription = "updated system description"
+	output = s.runCommand(
+		updateSystem(projectIDString, systemName, nil, Ptr(updatedSystemDescription), nil, nil, nil, nil, nil, nil, nil, nil),
+		ExpectNoError)
+	s.Contains(output.StdOut, UpdatedSystem)
+	// Get the system:
+	output = s.runCommand(getSystem(projectIDString, systemName), ExpectNoError)
+	var updatedSystem api.System
+	err = json.Unmarshal([]byte(output.StdOut), &updatedSystem)
+	s.NoError(err)
+	s.Equal(systemName, updatedSystem.Name)
+	s.Equal(updatedSystemDescription, updatedSystem.Description)
+	s.Equal(buildVCPUs, updatedSystem.BuildVcpus)
+	s.Equal(buildGPUs, updatedSystem.BuildGpus)
+	s.Equal(buildMemoryMiB, updatedSystem.BuildMemoryMib)
+	s.Equal(buildSharedMemoryMB, updatedSystem.BuildSharedMemoryMb)
+	s.Equal(metricsBuildVCPUs, updatedSystem.MetricsBuildVcpus)
+	s.Equal(metricsBuildGPUs, updatedSystem.MetricsBuildGpus)
+	s.Equal(metricsBuildMemoryMiB, updatedSystem.MetricsBuildMemoryMib)
+	s.Equal(metricsBuildSharedMemoryMB, updatedSystem.MetricsBuildSharedMemoryMb)
+	s.Empty(output.StdErr)
 
 	// Delete the system:
 	output = s.runCommand(deleteSystem(projectIDString, systemName), ExpectNoError)

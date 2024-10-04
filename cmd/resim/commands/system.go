@@ -28,6 +28,12 @@ var (
 		Long:  ``,
 		Run:   createSystem,
 	}
+	updateSystemCmd = &cobra.Command{
+		Use:   "update",
+		Short: "update - Update an existing system",
+		Long:  ``,
+		Run:   updateSystem,
+	}
 	getSystemCmd = &cobra.Command{
 		Use:   "get",
 		Short: "get - Return details of a system",
@@ -104,6 +110,21 @@ func init() {
 	createSystemCmd.Flags().Int(systemMetricsBuildSharedMemoryMbKey, DefaultSharedMemoryMB, "The amount of shared memory in MB required to execute the metrics build (default: 64)")
 	createSystemCmd.Flags().Bool(systemGithubKey, false, "Whether to output format in github action friendly format")
 	createSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
+	updateSystemCmd.Flags().String(systemProjectKey, "", "The name or ID of the project the system belongs to")
+	updateSystemCmd.MarkFlagRequired(systemProjectKey)
+	updateSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to update")
+	updateSystemCmd.Flags().String(systemNameKey, "", "New value for the system name")
+	updateSystemCmd.Flags().String(systemDescriptionKey, "", "New value for the description of the system")
+	updateSystemCmd.Flags().Int(systemBuildVCPUsKey, DefaultCPUs, "New value for the number of vCPUs required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildVCPUsKey, DefaultCPUs, "New value for the number of vCPUs required to execute the metrics build")
+	updateSystemCmd.Flags().Int(systemBuildGPUsKey, DefaultGPUs, "New value for the number of GPUs required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildGPUsKey, DefaultGPUs, "New value for the number of GPUs required to execute the metrics build")
+	updateSystemCmd.Flags().Int(systemBuildMemoryMiBKey, DefaultMemoryMiB, "New value for the amount of memory in MiB required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildMemoryMibKey, DefaultMemoryMiB, "New value for the amount of memory in MiB required to execute the metrics build")
+	updateSystemCmd.Flags().Int(systemBuildSharedMemoryMBKey, DefaultSharedMemoryMB, "New value for the amount of shared memory in MB required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildSharedMemoryMbKey, DefaultSharedMemoryMB, "The amount of shared memory in MB required to execute the metrics build")
+	updateSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	getSystemCmd.Flags().String(systemProjectKey, "", "Get system associated with this project")
 	getSystemCmd.MarkFlagRequired(systemProjectKey)
@@ -184,6 +205,48 @@ func deleteSystem(ccmd *cobra.Command, args []string) {
 		ValidateResponse(http.StatusNoContent, "unable to delete system", response.HTTPResponse, response.Body)
 	}
 	fmt.Println("Deleted system successfully!")
+}
+
+func updateSystem(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
+	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
+	updateSystemInput := api.UpdateSystemInput{}
+	if viper.IsSet(systemNameKey) {
+		updateSystemInput.Name = Ptr(viper.GetString(systemNameKey))
+	}
+	if viper.IsSet(systemDescriptionKey) {
+		updateSystemInput.Description = Ptr(viper.GetString(systemDescriptionKey))
+	}
+	if viper.IsSet(systemBuildVCPUsKey) {
+		updateSystemInput.BuildVcpus = Ptr(viper.GetInt(systemBuildVCPUsKey))
+	}
+	if viper.IsSet(systemMetricsBuildVCPUsKey) {
+		updateSystemInput.MetricsBuildVcpus = Ptr(viper.GetInt(systemMetricsBuildVCPUsKey))
+	}
+	if viper.IsSet(systemBuildGPUsKey) {
+		updateSystemInput.BuildGpus = Ptr(viper.GetInt(systemBuildGPUsKey))
+	}
+	if viper.IsSet(systemMetricsBuildGPUsKey) {
+		updateSystemInput.MetricsBuildGpus = Ptr(viper.GetInt(systemMetricsBuildGPUsKey))
+	}
+	if viper.IsSet(systemBuildMemoryMiBKey) {
+		updateSystemInput.BuildMemoryMib = Ptr(viper.GetInt(systemBuildMemoryMiBKey))
+	}
+	if viper.IsSet(systemMetricsBuildMemoryMibKey) {
+		updateSystemInput.MetricsBuildMemoryMib = Ptr(viper.GetInt(systemMetricsBuildMemoryMibKey))
+	}
+	if viper.IsSet(systemBuildSharedMemoryMBKey) {
+		updateSystemInput.BuildSharedMemoryMb = Ptr(viper.GetInt(systemBuildSharedMemoryMBKey))
+	}
+	if viper.IsSet(systemMetricsBuildSharedMemoryMbKey) {
+		updateSystemInput.MetricsBuildSharedMemoryMb = Ptr(viper.GetInt(systemMetricsBuildSharedMemoryMbKey))
+	}
+	response, err := Client.UpdateSystemWithResponse(context.Background(), projectID, systemID, updateSystemInput)
+	if err != nil {
+		log.Fatal("unable to update system:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to update system", response.HTTPResponse, response.Body)
+	fmt.Println("Updated system successfully!")
 }
 
 func listSystems(cmd *cobra.Command, args []string) {

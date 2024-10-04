@@ -92,12 +92,12 @@ func listBuildsByBranch(projectID uuid.UUID, branchID uuid.UUID) []api.Build {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds for branch", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -121,12 +121,12 @@ func listBuildsBySystem(projectID uuid.UUID, systemID uuid.UUID) []api.Build {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds for system", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -150,12 +150,12 @@ func listAllBuilds(projectID uuid.UUID) []api.Build {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -266,7 +266,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	build := *response.JSON201
-	if build.BuildID == nil {
+	if build.BuildID == uuid.Nil {
 		log.Fatal("no build ID")
 	}
 

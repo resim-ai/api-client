@@ -112,12 +112,12 @@ func listMetricsBuilds(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list metrics builds", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.MetricsBuilds == nil {
 			log.Fatal("no metrics builds")
 		}
-		allMetricsBuilds = append(allMetricsBuilds, *response.JSON200.MetricsBuilds...)
-		if pageToken == nil || *pageToken == "" {
+		allMetricsBuilds = append(allMetricsBuilds, response.JSON200.MetricsBuilds...)
+		if *pageToken == "" {
 			break
 		}
 	}

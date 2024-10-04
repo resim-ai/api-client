@@ -306,9 +306,11 @@ func systemMetricsBuilds(ccmd *cobra.Command, args []string) {
 	var allMetricsBuilds []api.MetricsBuild
 
 	for {
-		response, err := Client.ListMetricsBuildsForSystemWithResponse(
-			context.Background(), projectID, systemID, &api.ListMetricsBuildsForSystemParams{
+
+		response, err := Client.ListMetricsBuildsWithResponse(
+			context.Background(), projectID, &api.ListMetricsBuildsParams{
 				PageSize:  Ptr(100),
+				SystemID:  &systemID,
 				PageToken: pageToken,
 			})
 		if err != nil {
@@ -316,12 +318,12 @@ func systemMetricsBuilds(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list metrics builds for system", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.MetricsBuilds == nil {
 			log.Fatal("no experiences")
 		}
-		allMetricsBuilds = append(allMetricsBuilds, *response.JSON200.MetricsBuilds...)
-		if pageToken == nil || *pageToken == "" {
+		allMetricsBuilds = append(allMetricsBuilds, response.JSON200.MetricsBuilds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -347,12 +349,12 @@ func systemBuilds(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds for system", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}

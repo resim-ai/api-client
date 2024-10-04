@@ -2834,7 +2834,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
-	experienceID1 := uuid.MustParse(experienceIDString1)
+	uuid.MustParse(experienceIDString1)
 
 	// Now create the branch:
 	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
@@ -2912,8 +2912,6 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	s.Equal(api.BatchParameters(expectedParameterMap), *batch.Parameters)
 	s.Equal(buildID, *batch.BuildID)
 	s.Equal(metricsBuildID, *batch.MetricsBuildID)
-	s.Equal([]uuid.UUID{experienceID1}, *batch.InstantiatedExperienceIDs)
-	s.Empty(batch.InstantiatedExperienceTagIDs)
 
 	// Delete the project
 	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)

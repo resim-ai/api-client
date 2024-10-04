@@ -151,38 +151,53 @@ const (
 	ListExperienceTagsParamsOrderByTimestamp ListExperienceTagsParamsOrderBy = "timestamp"
 )
 
+// AddSuitesToExperiencesInput defines model for addSuitesToExperiencesInput.
+type AddSuitesToExperiencesInput struct {
+	AllExperiences *bool                  `json:"allExperiences,omitempty"`
+	Experiences    *[]ExperienceID        `json:"experiences,omitempty"`
+	Filters        *ExperienceFilterInput `json:"filters,omitempty"`
+	TestSuiteIDs   []TestSuiteID          `json:"testSuiteIDs"`
+}
+
+// AddTagsToExperiencesInput defines model for addTagsToExperiencesInput.
+type AddTagsToExperiencesInput struct {
+	AllExperiences   *bool                  `json:"allExperiences,omitempty"`
+	ExperienceTagIDs []ExperienceTagID      `json:"experienceTagIDs"`
+	Experiences      *[]ExperienceID        `json:"experiences,omitempty"`
+	Filters          *ExperienceFilterInput `json:"filters,omitempty"`
+}
+
 // AssociatedAccount defines model for associatedAccount.
 type AssociatedAccount = string
 
 // Batch defines model for batch.
 type Batch struct {
-	AdhocTestSuite               *bool                   `json:"adhocTestSuite,omitempty"`
-	AssociatedAccount            AssociatedAccount       `json:"associatedAccount"`
-	BatchID                      *BatchID                `json:"batchID,omitempty"`
-	BatchMetricsStatus           *MetricStatus           `json:"batchMetricsStatus,omitempty"`
-	BranchID                     *BranchID               `json:"branchID,omitempty"`
-	BuildID                      *BuildID                `json:"buildID,omitempty"`
-	CreationTimestamp            *Timestamp              `json:"creationTimestamp,omitempty"`
-	Description                  *string                 `json:"description,omitempty"`
-	FriendlyName                 *FriendlyName           `json:"friendlyName,omitempty"`
-	InstantiatedExperienceIDs    *[]ExperienceID         `json:"instantiatedExperienceIDs,omitempty"`
-	InstantiatedExperienceTagIDs *[]ExperienceTagID      `json:"instantiatedExperienceTagIDs,omitempty"`
-	JobMetricsStatusCounts       *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
-	JobStatusCounts              *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
-	JobsMetricsStatus            *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
-	LastUpdatedTimestamp         *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
-	MetricsBuildID               *MetricsBuildID         `json:"metricsBuildID,omitempty"`
-	OrgID                        *OrgID                  `json:"orgID,omitempty"`
-	OverallMetricsStatus         *MetricStatus           `json:"overallMetricsStatus,omitempty"`
-	Parameters                   *BatchParameters        `json:"parameters,omitempty"`
-	ProjectID                    *ProjectID              `json:"projectID,omitempty"`
-	Status                       *BatchStatus            `json:"status,omitempty"`
-	StatusHistory                *BatchStatusHistory     `json:"statusHistory,omitempty"`
-	SystemID                     *SystemID               `json:"systemID,omitempty"`
-	TestSuiteID                  *TestSuiteID            `json:"testSuiteID,omitempty"`
-	TestSuiteRevision            *TestSuiteRevision      `json:"testSuiteRevision,omitempty"`
-	TotalJobs                    *BatchTotalJobs         `json:"totalJobs,omitempty"`
-	UserID                       *UserID                 `json:"userID,omitempty"`
+	AdhocTestSuite         *bool                   `json:"adhocTestSuite,omitempty"`
+	AssociatedAccount      AssociatedAccount       `json:"associatedAccount"`
+	BatchID                *BatchID                `json:"batchID,omitempty"`
+	BatchMetricsStatus     *MetricStatus           `json:"batchMetricsStatus,omitempty"`
+	BranchID               *BranchID               `json:"branchID,omitempty"`
+	BuildID                *BuildID                `json:"buildID,omitempty"`
+	CreationTimestamp      *Timestamp              `json:"creationTimestamp,omitempty"`
+	Description            *string                 `json:"description,omitempty"`
+	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty"`
+	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
+	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
+	JobsMetricsStatus      *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
+	LastUpdatedTimestamp   *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
+	MetricsBuildID         *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	OrgID                  *OrgID                  `json:"orgID,omitempty"`
+	OverallMetricsStatus   *MetricStatus           `json:"overallMetricsStatus,omitempty"`
+	Parameters             *BatchParameters        `json:"parameters,omitempty"`
+	PoolLabels             *PoolLabels             `json:"poolLabels,omitempty"`
+	ProjectID              *ProjectID              `json:"projectID,omitempty"`
+	Status                 *BatchStatus            `json:"status,omitempty"`
+	StatusHistory          *BatchStatusHistory     `json:"statusHistory,omitempty"`
+	SystemID               *SystemID               `json:"systemID,omitempty"`
+	TestSuiteID            *TestSuiteID            `json:"testSuiteID,omitempty"`
+	TestSuiteRevision      *TestSuiteRevision      `json:"testSuiteRevision,omitempty"`
+	TotalJobs              *BatchTotalJobs         `json:"totalJobs,omitempty"`
+	UserID                 *UserID                 `json:"userID,omitempty"`
 }
 
 // BatchID defines model for batchID.
@@ -197,20 +212,11 @@ type BatchInput struct {
 	ExperienceNames       *[]ExperienceName       `json:"experienceNames"`
 	ExperienceTagIDs      *[]ExperienceTagID      `json:"experienceTagIDs"`
 	ExperienceTagNames    *[]ExperienceTagName    `json:"experienceTagNames"`
-	Filters               *struct {
-		// Name Filter experiences by name
-		Name *string `json:"name,omitempty"`
-
-		// Search A search query. Supports searching by tag_id
-		Search *string `json:"search,omitempty"`
-
-		// Text Filter experiences by a text string on name and description
-		Text *string `json:"text,omitempty"`
-	} `json:"filters,omitempty"`
-	MetricsBuildID *MetricsBuildID  `json:"metricsBuildID,omitempty"`
-	Parameters     *BatchParameters `json:"parameters,omitempty"`
-	PoolLabels     *PoolLabels      `json:"poolLabels,omitempty"`
-	TriggeredVia   *TriggeredVia    `json:"triggeredVia,omitempty"`
+	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
+	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	Parameters            *BatchParameters        `json:"parameters,omitempty"`
+	PoolLabels            *PoolLabels             `json:"poolLabels,omitempty"`
+	TriggeredVia          *TriggeredVia           `json:"triggeredVia,omitempty"`
 }
 
 // BatchJobStatusCounts defines model for batchJobStatusCounts.
@@ -256,6 +262,7 @@ type BatchMetric struct {
 	ProjectID    *ProjectID      `json:"projectID,omitempty"`
 	Status       *MetricStatus   `json:"status,omitempty"`
 	Type         *MetricType     `json:"type,omitempty"`
+	Unit         *string         `json:"unit"`
 	UserID       *UserID         `json:"userID,omitempty"`
 	Value        *MetricValue    `json:"value"`
 }
@@ -323,16 +330,17 @@ type BranchType string
 
 // Build defines model for build.
 type Build struct {
-	BranchID          *BranchID         `json:"branchID,omitempty"`
-	BuildID           *BuildID          `json:"buildID,omitempty"`
-	CreationTimestamp *Timestamp        `json:"creationTimestamp,omitempty"`
-	Description       *BuildDescription `json:"description,omitempty"`
-	ImageUri          *BuildImageUri    `json:"imageUri,omitempty"`
-	OrgID             *OrgID            `json:"orgID,omitempty"`
-	ProjectID         *ProjectID        `json:"projectID,omitempty"`
-	SystemID          *SystemID         `json:"systemID,omitempty"`
-	UserID            *UserID           `json:"userID,omitempty"`
-	Version           *BuildVersion     `json:"version,omitempty"`
+	AssociatedAccount AssociatedAccount `json:"associatedAccount"`
+	BranchID          BranchID          `json:"branchID"`
+	BuildID           BuildID           `json:"buildID"`
+	CreationTimestamp Timestamp         `json:"creationTimestamp"`
+	Description       BuildDescription  `json:"description"`
+	ImageUri          BuildImageUri     `json:"imageUri"`
+	OrgID             OrgID             `json:"orgID"`
+	ProjectID         ProjectID         `json:"projectID"`
+	SystemID          SystemID          `json:"systemID"`
+	UserID            UserID            `json:"userID"`
+	Version           BuildVersion      `json:"version"`
 }
 
 // BuildDescription defines model for buildDescription.
@@ -361,18 +369,21 @@ type CreateBranchInput struct {
 
 // CreateBuildForBranchInput defines model for createBuildForBranchInput.
 type CreateBuildForBranchInput struct {
-	Description *BuildDescription `json:"description,omitempty"`
-	ImageUri    BuildImageUri     `json:"imageUri"`
-	SystemID    SystemID          `json:"systemID"`
-	Version     BuildVersion      `json:"version"`
+	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
+	Description       *BuildDescription  `json:"description,omitempty"`
+	ImageUri          BuildImageUri      `json:"imageUri"`
+	SystemID          SystemID           `json:"systemID"`
+	Version           BuildVersion       `json:"version"`
 }
 
 // CreateBuildForSystemInput defines model for createBuildForSystemInput.
 type CreateBuildForSystemInput struct {
-	BranchID    BranchID          `json:"branchID"`
-	Description *BuildDescription `json:"description,omitempty"`
-	ImageUri    BuildImageUri     `json:"imageUri"`
-	Version     BuildVersion      `json:"version"`
+	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
+	BranchID          BranchID           `json:"branchID"`
+	Description       *BuildDescription  `json:"description,omitempty"`
+	ImageUri          BuildImageUri      `json:"imageUri"`
+	TriggeredVia      *TriggeredVia      `json:"triggeredVia,omitempty"`
+	Version           BuildVersion       `json:"version"`
 }
 
 // CreateExperienceInput defines model for createExperienceInput.
@@ -421,35 +432,18 @@ type CreateTestSuiteInput struct {
 	Description           TestSuiteDescription    `json:"description"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           []ExperienceID          `json:"experiences"`
-	Filters               *struct {
-		// Name Filter experiences by name
-		Name *string `json:"name,omitempty"`
-
-		// Search A search query. Supports searching by tag_id
-		Search *string `json:"search,omitempty"`
-
-		// Text Filter experiences by a text string on name and description
-		Text *string `json:"text,omitempty"`
-	} `json:"filters,omitempty"`
-	MetricsBuildID *MetricsBuildID `json:"metricsBuildID,omitempty"`
-	Name           TestSuiteName   `json:"name"`
-	SystemID       SystemID        `json:"systemID"`
+	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
+	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	Name                  TestSuiteName           `json:"name"`
+	ShowOnSummary         *bool                   `json:"showOnSummary,omitempty"`
+	SystemID              SystemID                `json:"systemID"`
 }
 
-// EditTestSuiteExperiencesInput defines model for editTestSuiteExperiencesInput.
-type EditTestSuiteExperiencesInput struct {
-	AllExperiences *bool           `json:"allExperiences,omitempty"`
-	Experiences    *[]ExperienceID `json:"experiences,omitempty"`
-	Filters        *struct {
-		// Name Filter experiences by name
-		Name *string `json:"name,omitempty"`
-
-		// Search A search query. Supports searching by tag_id
-		Search *string `json:"search,omitempty"`
-
-		// Text Filter experiences by a text string on name and description
-		Text *string `json:"text,omitempty"`
-	} `json:"filters,omitempty"`
+// CustomMetric defines model for customMetric.
+type CustomMetric struct {
+	Name  string  `json:"name"`
+	Unit  *string `json:"unit,omitempty"`
+	Value float64 `json:"value"`
 }
 
 // Event defines model for event.
@@ -498,6 +492,18 @@ type Experience struct {
 	OrgID             OrgID          `json:"orgID"`
 	ProjectID         ProjectID      `json:"projectID"`
 	UserID            UserID         `json:"userID"`
+}
+
+// ExperienceFilterInput defines model for experienceFilterInput.
+type ExperienceFilterInput struct {
+	// Name Filter experiences by name
+	Name *string `json:"name,omitempty"`
+
+	// Search A search query. Supports searching by tag_id
+	Search *string `json:"search,omitempty"`
+
+	// Text Filter experiences by a text string on name and description
+	Text *string `json:"text,omitempty"`
 }
 
 // ExperienceID defines model for experienceID.
@@ -611,6 +617,7 @@ type JobMetric struct {
 	ProjectID    *ProjectID      `json:"projectID,omitempty"`
 	Status       *MetricStatus   `json:"status,omitempty"`
 	Type         *MetricType     `json:"type,omitempty"`
+	Unit         *string         `json:"unit"`
 	UserID       *UserID         `json:"userID,omitempty"`
 	Value        *MetricValue    `json:"value"`
 }
@@ -700,8 +707,9 @@ type ListBranchesOutput struct {
 
 // ListBuildsOutput defines model for listBuildsOutput.
 type ListBuildsOutput struct {
-	Builds        *[]Build `json:"builds,omitempty"`
-	NextPageToken *string  `json:"nextPageToken,omitempty"`
+	Builds        []Build `json:"builds"`
+	NextPageToken string  `json:"nextPageToken"`
+	Total         int     `json:"total"`
 }
 
 // ListExperienceTagsOutput defines model for listExperienceTagsOutput.
@@ -750,8 +758,9 @@ type ListJobsOutput struct {
 
 // ListMetricsBuildOutput defines model for listMetricsBuildOutput.
 type ListMetricsBuildOutput struct {
-	MetricsBuilds *[]MetricsBuild `json:"metricsBuilds,omitempty"`
-	NextPageToken *string         `json:"nextPageToken,omitempty"`
+	MetricsBuilds []MetricsBuild `json:"metricsBuilds"`
+	NextPageToken string         `json:"nextPageToken"`
+	Total         int            `json:"total"`
 }
 
 // ListMetricsDataAndMetricIDOutput defines model for listMetricsDataAndMetricIDOutput.
@@ -821,10 +830,17 @@ type ListTagsForJobMetricsOutput struct {
 	Tags          *[]MetricTag `json:"tags,omitempty"`
 }
 
+// ListTagsForReportMetricsOutput defines model for listTagsForReportMetricsOutput.
+type ListTagsForReportMetricsOutput struct {
+	NextPageToken *string      `json:"nextPageToken,omitempty"`
+	Tags          *[]MetricTag `json:"tags,omitempty"`
+}
+
 // ListTestSuiteOutput defines model for listTestSuiteOutput.
 type ListTestSuiteOutput struct {
-	NextPageToken *string      `json:"nextPageToken,omitempty"`
-	TestSuites    *[]TestSuite `json:"testSuites,omitempty"`
+	NextPageToken string      `json:"nextPageToken"`
+	TestSuites    []TestSuite `json:"testSuites"`
+	Total         int         `json:"total"`
 }
 
 // ListTestSuiteRevisionsOutput defines model for listTestSuiteRevisionsOutput.
@@ -884,6 +900,7 @@ type Metric struct {
 	ProjectID    *ProjectID      `json:"projectID,omitempty"`
 	Status       *MetricStatus   `json:"status,omitempty"`
 	Type         *MetricType     `json:"type,omitempty"`
+	Unit         *string         `json:"unit"`
 	UserID       *UserID         `json:"userID,omitempty"`
 	Value        *MetricValue    `json:"value"`
 }
@@ -978,6 +995,14 @@ type MetricsDataType string
 
 // MetricsDataURL defines model for metricsDataURL.
 type MetricsDataURL = string
+
+// MutateSystemsToExperienceInput defines model for mutateSystemsToExperienceInput.
+type MutateSystemsToExperienceInput struct {
+	AllExperiences *bool                  `json:"allExperiences,omitempty"`
+	Experiences    *[]ExperienceID        `json:"experiences,omitempty"`
+	Filters        *ExperienceFilterInput `json:"filters,omitempty"`
+	SystemIDs      []SystemID             `json:"systemIDs"`
+}
 
 // Name defines model for name.
 type Name = string
@@ -1155,20 +1180,19 @@ type ReviseTestSuiteInput struct {
 	Description           *TestSuiteDescription   `json:"description,omitempty"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           *[]ExperienceID         `json:"experiences,omitempty"`
-	Filters               *struct {
-		// Name Filter experiences by name
-		Name *string `json:"name,omitempty"`
+	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
+	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	Name                  *TestSuiteName          `json:"name,omitempty"`
+	ShowOnSummary         *bool                   `json:"show_on_summary,omitempty"`
+	SystemID              *SystemID               `json:"systemID,omitempty"`
+	UpdateMetricsBuild    bool                    `json:"updateMetricsBuild"`
+}
 
-		// Search A search query. Supports searching by tag_id
-		Search *string `json:"search,omitempty"`
-
-		// Text Filter experiences by a text string on name and description
-		Text *string `json:"text,omitempty"`
-	} `json:"filters,omitempty"`
-	MetricsBuildID     *MetricsBuildID `json:"metricsBuildID,omitempty"`
-	Name               *TestSuiteName  `json:"name,omitempty"`
-	SystemID           *SystemID       `json:"systemID,omitempty"`
-	UpdateMetricsBuild bool            `json:"updateMetricsBuild"`
+// SelectExperiencesInput defines model for selectExperiencesInput.
+type SelectExperiencesInput struct {
+	AllExperiences *bool                  `json:"allExperiences,omitempty"`
+	Experiences    *[]ExperienceID        `json:"experiences,omitempty"`
+	Filters        *ExperienceFilterInput `json:"filters,omitempty"`
 }
 
 // SweepParameter defines model for sweepParameter.
@@ -1190,6 +1214,11 @@ type System struct {
 	MetricsBuildSharedMemoryMb int       `json:"metrics_build_shared_memory_mb"`
 	MetricsBuildVcpus          int       `json:"metrics_build_vcpus"`
 	Name                       string    `json:"name"`
+	NumBatches                 int       `json:"numBatches"`
+	NumBuilds                  int       `json:"numBuilds"`
+	NumExperiences             int       `json:"numExperiences"`
+	NumMetricsBuilds           int       `json:"numMetricsBuilds"`
+	NumTestSuites              int       `json:"numTestSuites"`
 	OrgID                      OrgID     `json:"orgID"`
 	ProjectID                  ProjectID `json:"projectID"`
 	SystemID                   SystemID  `json:"systemID"`
@@ -1211,6 +1240,7 @@ type TestSuite struct {
 	Name              TestSuiteName        `json:"name"`
 	OrgID             OrgID                `json:"orgID"`
 	ProjectID         ProjectID            `json:"projectID"`
+	ShowOnSummary     bool                 `json:"showOnSummary"`
 	SystemID          SystemID             `json:"systemID"`
 	TestSuiteID       TestSuiteID          `json:"testSuiteID"`
 	TestSuiteRevision TestSuiteRevision    `json:"testSuiteRevision"`
@@ -1226,6 +1256,23 @@ type TestSuiteBatchInput struct {
 	TriggeredVia      *TriggeredVia      `json:"triggeredVia,omitempty"`
 }
 
+// TestSuiteBatchSummaryJobResults defines model for testSuiteBatchSummaryJobResults.
+type TestSuiteBatchSummaryJobResults struct {
+	BatchCreationTimestamp Timestamp      `json:"batchCreationTimestamp"`
+	BatchID                BatchID        `json:"batchID"`
+	Blocker                int64          `json:"blocker"`
+	BuildCreationTimestamp Timestamp      `json:"buildCreationTimestamp"`
+	BuildID                BuildID        `json:"buildID"`
+	Cancelled              int64          `json:"cancelled"`
+	Error                  int64          `json:"error"`
+	Metrics                []CustomMetric `json:"metrics"`
+	Passed                 int64          `json:"passed"`
+	Queued                 int64          `json:"queued"`
+	Running                int64          `json:"running"`
+	Total                  int64          `json:"total"`
+	Warning                int64          `json:"warning"`
+}
+
 // TestSuiteDescription defines model for testSuiteDescription.
 type TestSuiteDescription = string
 
@@ -1237,6 +1284,29 @@ type TestSuiteName = string
 
 // TestSuiteRevision defines model for testSuiteRevision.
 type TestSuiteRevision = int32
+
+// TestSuiteSummary defines model for testSuiteSummary.
+type TestSuiteSummary struct {
+	Batches   []TestSuiteBatchSummaryJobResults `json:"batches"`
+	BranchID  BranchID                          `json:"branchID"`
+	Name      TestSuiteName                     `json:"name"`
+	ProjectID ProjectID                         `json:"projectID"`
+	ReportID  ReportID                          `json:"reportID"`
+	Summary   struct {
+		FixedTests int64 `json:"fixedTests"`
+		NewIssues  int64 `json:"newIssues"`
+		NewTests   int64 `json:"newTests"`
+	} `json:"summary"`
+	SystemID          SystemID          `json:"systemID"`
+	TestSuiteID       TestSuiteID       `json:"testSuiteID"`
+	TestSuiteRevision TestSuiteRevision `json:"testSuiteRevision"`
+}
+
+// TestSuiteSummaryOutput defines model for testSuiteSummaryOutput.
+type TestSuiteSummaryOutput struct {
+	NextPageToken string             `json:"nextPageToken"`
+	TestSuites    []TestSuiteSummary `json:"testSuites"`
+}
 
 // Timestamp defines model for timestamp.
 type Timestamp = time.Time
@@ -1299,8 +1369,8 @@ type UpdateProjectInput struct {
 	UpdateMask *UpdateMask          `json:"updateMask,omitempty"`
 }
 
-// UpdateSystemFields defines model for updateSystemFields.
-type UpdateSystemFields struct {
+// UpdateSystemInput defines model for updateSystemInput.
+type UpdateSystemInput struct {
 	BuildGpus                  *int    `json:"build_gpus,omitempty"`
 	BuildMemoryMib             *int    `json:"build_memory_mib,omitempty"`
 	BuildSharedMemoryMb        *int    `json:"build_shared_memory_mb,omitempty"`
@@ -1311,12 +1381,6 @@ type UpdateSystemFields struct {
 	MetricsBuildSharedMemoryMb *int    `json:"metrics_build_shared_memory_mb,omitempty"`
 	MetricsBuildVcpus          *int    `json:"metrics_build_vcpus,omitempty"`
 	Name                       *string `json:"name,omitempty"`
-}
-
-// UpdateSystemInput defines model for updateSystemInput.
-type UpdateSystemInput struct {
-	System     *UpdateSystemFields `json:"system,omitempty"`
-	UpdateMask *UpdateMask         `json:"updateMask,omitempty"`
 }
 
 // UserID defines model for userID.
@@ -1547,7 +1611,7 @@ type ListBatchesForBuildsParams struct {
 
 // ListBuildsParams defines parameters for ListBuilds.
 type ListBuildsParams struct {
-	// Search A search query. Supports searching by branch_id
+	// Search A search query. Supports searching by branch_id, system_id
 	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
@@ -1650,6 +1714,15 @@ type ListReportMetricsDataForReportMetricIDsParams struct {
 // AddReportMetricsDataToReportMetricJSONBody defines parameters for AddReportMetricsDataToReportMetric.
 type AddReportMetricsDataToReportMetricJSONBody = []MetricsDataID
 
+// ListTagsForReportMetricsParams defines parameters for ListTagsForReportMetrics.
+type ListTagsForReportMetricsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
+// CreateReportMetricTagsJSONBody defines parameters for CreateReportMetricTags.
+type CreateReportMetricTagsJSONBody = []MetricTag
+
 // ListReportMetricsDataParams defines parameters for ListReportMetricsData.
 type ListReportMetricsDataParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -1678,6 +1751,12 @@ type ListTestSuitesParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// GetTestSuiteSummaryParams defines parameters for GetTestSuiteSummary.
+type GetTestSuiteSummaryParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
 // ListBatchesForTestSuiteParams defines parameters for ListBatchesForTestSuite.
@@ -1725,12 +1804,6 @@ type ListBuildsForSystemParams struct {
 
 // ListExperiencesForSystemParams defines parameters for ListExperiencesForSystem.
 type ListExperiencesForSystemParams struct {
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
-}
-
-// ListMetricsBuildsForSystemParams defines parameters for ListMetricsBuildsForSystem.
-type ListMetricsBuildsForSystemParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -1808,6 +1881,9 @@ type CreateBuildForBranchJSONRequestBody = CreateBuildForBranchInput
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
 type CreateExperienceTagJSONRequestBody = CreateExperienceTagInput
 
+// AddTagsToExperiencesJSONRequestBody defines body for AddTagsToExperiences for application/json ContentType.
+type AddTagsToExperiencesJSONRequestBody = AddTagsToExperiencesInput
+
 // UpdateExperienceTagJSONRequestBody defines body for UpdateExperienceTag for application/json ContentType.
 type UpdateExperienceTagJSONRequestBody = UpdateExperienceTagInput
 
@@ -1832,6 +1908,9 @@ type CreateReportMetricJSONRequestBody = Metric
 // AddReportMetricsDataToReportMetricJSONRequestBody defines body for AddReportMetricsDataToReportMetric for application/json ContentType.
 type AddReportMetricsDataToReportMetricJSONRequestBody = AddReportMetricsDataToReportMetricJSONBody
 
+// CreateReportMetricTagsJSONRequestBody defines body for CreateReportMetricTags for application/json ContentType.
+type CreateReportMetricTagsJSONRequestBody = CreateReportMetricTagsJSONBody
+
 // CreateReportMetricsDataJSONRequestBody defines body for CreateReportMetricsData for application/json ContentType.
 type CreateReportMetricsDataJSONRequestBody = MetricsData
 
@@ -1841,17 +1920,20 @@ type UpdateReportMetricsStatusJSONRequestBody = MetricStatus
 // CreateTestSuiteJSONRequestBody defines body for CreateTestSuite for application/json ContentType.
 type CreateTestSuiteJSONRequestBody = CreateTestSuiteInput
 
+// AddTestSuitesToExperiencesJSONRequestBody defines body for AddTestSuitesToExperiences for application/json ContentType.
+type AddTestSuitesToExperiencesJSONRequestBody = AddSuitesToExperiencesInput
+
 // ReviseTestSuiteJSONRequestBody defines body for ReviseTestSuite for application/json ContentType.
 type ReviseTestSuiteJSONRequestBody = ReviseTestSuiteInput
 
 // AddExperiencesToTestSuiteJSONRequestBody defines body for AddExperiencesToTestSuite for application/json ContentType.
-type AddExperiencesToTestSuiteJSONRequestBody = EditTestSuiteExperiencesInput
+type AddExperiencesToTestSuiteJSONRequestBody = SelectExperiencesInput
 
 // CreateBatchForTestSuiteJSONRequestBody defines body for CreateBatchForTestSuite for application/json ContentType.
 type CreateBatchForTestSuiteJSONRequestBody = TestSuiteBatchInput
 
 // RemoveExperiencesFromTestSuiteJSONRequestBody defines body for RemoveExperiencesFromTestSuite for application/json ContentType.
-type RemoveExperiencesFromTestSuiteJSONRequestBody = EditTestSuiteExperiencesInput
+type RemoveExperiencesFromTestSuiteJSONRequestBody = SelectExperiencesInput
 
 // CreateBatchForTestSuiteRevisionJSONRequestBody defines body for CreateBatchForTestSuiteRevision for application/json ContentType.
 type CreateBatchForTestSuiteRevisionJSONRequestBody = TestSuiteBatchInput
@@ -1861,6 +1943,12 @@ type CreateParameterSweepJSONRequestBody = ParameterSweepInput
 
 // CreateSystemJSONRequestBody defines body for CreateSystem for application/json ContentType.
 type CreateSystemJSONRequestBody = CreateSystemInput
+
+// AddSystemsToExperiencesJSONRequestBody defines body for AddSystemsToExperiences for application/json ContentType.
+type AddSystemsToExperiencesJSONRequestBody = MutateSystemsToExperienceInput
+
+// RemoveSystemsFromExperiencesJSONRequestBody defines body for RemoveSystemsFromExperiences for application/json ContentType.
+type RemoveSystemsFromExperiencesJSONRequestBody = MutateSystemsToExperienceInput
 
 // UpdateSystemJSONRequestBody defines body for UpdateSystem for application/json ContentType.
 type UpdateSystemJSONRequestBody = UpdateSystemInput
@@ -2166,6 +2254,9 @@ type ClientInterface interface {
 	// ListBuilds request
 	ListBuilds(ctx context.Context, projectID ProjectID, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListBuildAccounts request
+	ListBuildAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetBuild request
 	GetBuild(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2176,6 +2267,11 @@ type ClientInterface interface {
 	CreateExperienceTagWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateExperienceTag(ctx context.Context, projectID ProjectID, body CreateExperienceTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddTagsToExperiencesWithBody request with any body
+	AddTagsToExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddTagsToExperiences(ctx context.Context, projectID ProjectID, body AddTagsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteExperienceTag request
 	DeleteExperienceTag(ctx context.Context, projectID ProjectID, experienceTagID ExperienceTagID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2280,6 +2376,14 @@ type ClientInterface interface {
 
 	AddReportMetricsDataToReportMetric(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, body AddReportMetricsDataToReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListTagsForReportMetrics request
+	ListTagsForReportMetrics(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListTagsForReportMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateReportMetricTagsWithBody request with any body
+	CreateReportMetricTagsWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateReportMetricTags(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, body CreateReportMetricTagsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListReportMetricsData request
 	ListReportMetricsData(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2303,6 +2407,14 @@ type ClientInterface interface {
 	CreateTestSuiteWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateTestSuite(ctx context.Context, projectID ProjectID, body CreateTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddTestSuitesToExperiencesWithBody request with any body
+	AddTestSuitesToExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddTestSuitesToExperiences(ctx context.Context, projectID ProjectID, body AddTestSuitesToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetTestSuiteSummary request
+	GetTestSuiteSummary(ctx context.Context, projectID ProjectID, params *GetTestSuiteSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetTestSuite request
 	GetTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2369,6 +2481,16 @@ type ClientInterface interface {
 
 	CreateSystem(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// AddSystemsToExperiencesWithBody request with any body
+	AddSystemsToExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddSystemsToExperiences(ctx context.Context, projectID ProjectID, body AddSystemsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RemoveSystemsFromExperiencesWithBody request with any body
+	RemoveSystemsFromExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RemoveSystemsFromExperiences(ctx context.Context, projectID ProjectID, body RemoveSystemsFromExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// DeleteSystem request
 	DeleteSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2399,9 +2521,6 @@ type ClientInterface interface {
 
 	// AddSystemToExperience request
 	AddSystemToExperience(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListMetricsBuildsForSystem request
-	ListMetricsBuildsForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RemoveSystemFromMetricsBuild request
 	RemoveSystemFromMetricsBuild(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3402,6 +3521,18 @@ func (c *Client) ListBuilds(ctx context.Context, projectID ProjectID, params *Li
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListBuildAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBuildAccountsRequest(c.Server, projectID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetBuild(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetBuildRequest(c.Server, projectID, buildID)
 	if err != nil {
@@ -3440,6 +3571,30 @@ func (c *Client) CreateExperienceTagWithBody(ctx context.Context, projectID Proj
 
 func (c *Client) CreateExperienceTag(ctx context.Context, projectID ProjectID, body CreateExperienceTagJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateExperienceTagRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddTagsToExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddTagsToExperiencesRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddTagsToExperiences(ctx context.Context, projectID ProjectID, body AddTagsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddTagsToExperiencesRequest(c.Server, projectID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -3894,6 +4049,42 @@ func (c *Client) AddReportMetricsDataToReportMetric(ctx context.Context, project
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListTagsForReportMetrics(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListTagsForReportMetricsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListTagsForReportMetricsRequest(c.Server, projectID, reportID, metricID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportMetricTagsWithBody(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportMetricTagsRequestWithBody(c.Server, projectID, reportID, metricID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateReportMetricTags(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, body CreateReportMetricTagsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateReportMetricTagsRequest(c.Server, projectID, reportID, metricID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListReportMetricsData(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListReportMetricsDataRequest(c.Server, projectID, reportID, params)
 	if err != nil {
@@ -3992,6 +4183,42 @@ func (c *Client) CreateTestSuiteWithBody(ctx context.Context, projectID ProjectI
 
 func (c *Client) CreateTestSuite(ctx context.Context, projectID ProjectID, body CreateTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateTestSuiteRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddTestSuitesToExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddTestSuitesToExperiencesRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddTestSuitesToExperiences(ctx context.Context, projectID ProjectID, body AddTestSuitesToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddTestSuitesToExperiencesRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetTestSuiteSummary(ctx context.Context, projectID ProjectID, params *GetTestSuiteSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetTestSuiteSummaryRequest(c.Server, projectID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4290,6 +4517,54 @@ func (c *Client) CreateSystem(ctx context.Context, projectID ProjectID, body Cre
 	return c.Client.Do(req)
 }
 
+func (c *Client) AddSystemsToExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddSystemsToExperiencesRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddSystemsToExperiences(ctx context.Context, projectID ProjectID, body AddSystemsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddSystemsToExperiencesRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RemoveSystemsFromExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveSystemsFromExperiencesRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RemoveSystemsFromExperiences(ctx context.Context, projectID ProjectID, body RemoveSystemsFromExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveSystemsFromExperiencesRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) DeleteSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteSystemRequest(c.Server, projectID, systemID)
 	if err != nil {
@@ -4412,18 +4687,6 @@ func (c *Client) RemoveSystemFromExperience(ctx context.Context, projectID Proje
 
 func (c *Client) AddSystemToExperience(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAddSystemToExperienceRequest(c.Server, projectID, systemID, experienceID)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListMetricsBuildsForSystem(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListMetricsBuildsForSystemRequest(c.Server, projectID, systemID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -8635,6 +8898,40 @@ func NewListBuildsRequest(server string, projectID ProjectID, params *ListBuilds
 	return req, nil
 }
 
+// NewListBuildAccountsRequest generates requests for ListBuildAccounts
+func NewListBuildAccountsRequest(server string, projectID ProjectID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/builds/accounts", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetBuildRequest generates requests for GetBuild
 func NewGetBuildRequest(server string, projectID ProjectID, buildID BuildID) (*http.Request, error) {
 	var err error
@@ -8808,6 +9105,53 @@ func NewCreateExperienceTagRequestWithBody(server string, projectID ProjectID, c
 	}
 
 	operationPath := fmt.Sprintf("/projects/%s/experienceTags", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewAddTagsToExperiencesRequest calls the generic AddTagsToExperiences builder with application/json body
+func NewAddTagsToExperiencesRequest(server string, projectID ProjectID, body AddTagsToExperiencesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddTagsToExperiencesRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewAddTagsToExperiencesRequestWithBody generates requests for AddTagsToExperiences with any type of body
+func NewAddTagsToExperiencesRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/experienceTags/addExperiences", pathParam0)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -10659,6 +11003,153 @@ func NewAddReportMetricsDataToReportMetricRequestWithBody(server string, project
 	return req, nil
 }
 
+// NewListTagsForReportMetricsRequest generates requests for ListTagsForReportMetrics
+func NewListTagsForReportMetricsRequest(server string, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListTagsForReportMetricsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metrics/%s/tags", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateReportMetricTagsRequest calls the generic CreateReportMetricTags builder with application/json body
+func NewCreateReportMetricTagsRequest(server string, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, body CreateReportMetricTagsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateReportMetricTagsRequestWithBody(server, projectID, reportID, metricID, "application/json", bodyReader)
+}
+
+// NewCreateReportMetricTagsRequestWithBody generates requests for CreateReportMetricTags with any type of body
+func NewCreateReportMetricTagsRequestWithBody(server string, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "reportID", runtime.ParamLocationPath, reportID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "metricID", runtime.ParamLocationPath, metricID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/reports/%s/metrics/%s/tags", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListReportMetricsDataRequest generates requests for ListReportMetricsData
 func NewListReportMetricsDataRequest(server string, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams) (*http.Request, error) {
 	var err error
@@ -11127,6 +11618,125 @@ func NewCreateTestSuiteRequestWithBody(server string, projectID ProjectID, conte
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewAddTestSuitesToExperiencesRequest calls the generic AddTestSuitesToExperiences builder with application/json body
+func NewAddTestSuitesToExperiencesRequest(server string, projectID ProjectID, body AddTestSuitesToExperiencesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddTestSuitesToExperiencesRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewAddTestSuitesToExperiencesRequestWithBody generates requests for AddTestSuitesToExperiences with any type of body
+func NewAddTestSuitesToExperiencesRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/addExperiences", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetTestSuiteSummaryRequest generates requests for GetTestSuiteSummary
+func NewGetTestSuiteSummaryRequest(server string, projectID ProjectID, params *GetTestSuiteSummaryParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/summary", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -12175,6 +12785,100 @@ func NewCreateSystemRequestWithBody(server string, projectID ProjectID, contentT
 	return req, nil
 }
 
+// NewAddSystemsToExperiencesRequest calls the generic AddSystemsToExperiences builder with application/json body
+func NewAddSystemsToExperiencesRequest(server string, projectID ProjectID, body AddSystemsToExperiencesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddSystemsToExperiencesRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewAddSystemsToExperiencesRequestWithBody generates requests for AddSystemsToExperiences with any type of body
+func NewAddSystemsToExperiencesRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/addExperiences", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRemoveSystemsFromExperiencesRequest calls the generic RemoveSystemsFromExperiences builder with application/json body
+func NewRemoveSystemsFromExperiencesRequest(server string, projectID ProjectID, body RemoveSystemsFromExperiencesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRemoveSystemsFromExperiencesRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewRemoveSystemsFromExperiencesRequestWithBody generates requests for RemoveSystemsFromExperiences with any type of body
+func NewRemoveSystemsFromExperiencesRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/systems/removeExperiences", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewDeleteSystemRequest generates requests for DeleteSystem
 func NewDeleteSystemRequest(server string, projectID ProjectID, systemID SystemID) (*http.Request, error) {
 	var err error
@@ -12676,85 +13380,6 @@ func NewAddSystemToExperienceRequest(server string, projectID ProjectID, systemI
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewListMetricsBuildsForSystemRequest generates requests for ListMetricsBuildsForSystem
-func NewListMetricsBuildsForSystemRequest(server string, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "systemID", runtime.ParamLocationPath, systemID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s/systems/%s/metricsBuilds", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageToken != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13375,6 +14000,9 @@ type ClientWithResponsesInterface interface {
 	// ListBuildsWithResponse request
 	ListBuildsWithResponse(ctx context.Context, projectID ProjectID, params *ListBuildsParams, reqEditors ...RequestEditorFn) (*ListBuildsResponse, error)
 
+	// ListBuildAccountsWithResponse request
+	ListBuildAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBuildAccountsResponse, error)
+
 	// GetBuildWithResponse request
 	GetBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*GetBuildResponse, error)
 
@@ -13385,6 +14013,11 @@ type ClientWithResponsesInterface interface {
 	CreateExperienceTagWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateExperienceTagResponse, error)
 
 	CreateExperienceTagWithResponse(ctx context.Context, projectID ProjectID, body CreateExperienceTagJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateExperienceTagResponse, error)
+
+	// AddTagsToExperiencesWithBodyWithResponse request with any body
+	AddTagsToExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddTagsToExperiencesResponse, error)
+
+	AddTagsToExperiencesWithResponse(ctx context.Context, projectID ProjectID, body AddTagsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*AddTagsToExperiencesResponse, error)
 
 	// DeleteExperienceTagWithResponse request
 	DeleteExperienceTagWithResponse(ctx context.Context, projectID ProjectID, experienceTagID ExperienceTagID, reqEditors ...RequestEditorFn) (*DeleteExperienceTagResponse, error)
@@ -13489,6 +14122,14 @@ type ClientWithResponsesInterface interface {
 
 	AddReportMetricsDataToReportMetricWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID MetricID, body AddReportMetricsDataToReportMetricJSONRequestBody, reqEditors ...RequestEditorFn) (*AddReportMetricsDataToReportMetricResponse, error)
 
+	// ListTagsForReportMetricsWithResponse request
+	ListTagsForReportMetricsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListTagsForReportMetricsParams, reqEditors ...RequestEditorFn) (*ListTagsForReportMetricsResponse, error)
+
+	// CreateReportMetricTagsWithBodyWithResponse request with any body
+	CreateReportMetricTagsWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportMetricTagsResponse, error)
+
+	CreateReportMetricTagsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, body CreateReportMetricTagsJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportMetricTagsResponse, error)
+
 	// ListReportMetricsDataWithResponse request
 	ListReportMetricsDataWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataResponse, error)
 
@@ -13512,6 +14153,14 @@ type ClientWithResponsesInterface interface {
 	CreateTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateTestSuiteResponse, error)
 
 	CreateTestSuiteWithResponse(ctx context.Context, projectID ProjectID, body CreateTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateTestSuiteResponse, error)
+
+	// AddTestSuitesToExperiencesWithBodyWithResponse request with any body
+	AddTestSuitesToExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddTestSuitesToExperiencesResponse, error)
+
+	AddTestSuitesToExperiencesWithResponse(ctx context.Context, projectID ProjectID, body AddTestSuitesToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*AddTestSuitesToExperiencesResponse, error)
+
+	// GetTestSuiteSummaryWithResponse request
+	GetTestSuiteSummaryWithResponse(ctx context.Context, projectID ProjectID, params *GetTestSuiteSummaryParams, reqEditors ...RequestEditorFn) (*GetTestSuiteSummaryResponse, error)
 
 	// GetTestSuiteWithResponse request
 	GetTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*GetTestSuiteResponse, error)
@@ -13578,6 +14227,16 @@ type ClientWithResponsesInterface interface {
 
 	CreateSystemWithResponse(ctx context.Context, projectID ProjectID, body CreateSystemJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateSystemResponse, error)
 
+	// AddSystemsToExperiencesWithBodyWithResponse request with any body
+	AddSystemsToExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddSystemsToExperiencesResponse, error)
+
+	AddSystemsToExperiencesWithResponse(ctx context.Context, projectID ProjectID, body AddSystemsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*AddSystemsToExperiencesResponse, error)
+
+	// RemoveSystemsFromExperiencesWithBodyWithResponse request with any body
+	RemoveSystemsFromExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveSystemsFromExperiencesResponse, error)
+
+	RemoveSystemsFromExperiencesWithResponse(ctx context.Context, projectID ProjectID, body RemoveSystemsFromExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveSystemsFromExperiencesResponse, error)
+
 	// DeleteSystemWithResponse request
 	DeleteSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*DeleteSystemResponse, error)
 
@@ -13608,9 +14267,6 @@ type ClientWithResponsesInterface interface {
 
 	// AddSystemToExperienceWithResponse request
 	AddSystemToExperienceWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*AddSystemToExperienceResponse, error)
-
-	// ListMetricsBuildsForSystemWithResponse request
-	ListMetricsBuildsForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*ListMetricsBuildsForSystemResponse, error)
 
 	// RemoveSystemFromMetricsBuildWithResponse request
 	RemoveSystemFromMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*RemoveSystemFromMetricsBuildResponse, error)
@@ -14952,6 +15608,28 @@ func (r ListBuildsResponse) StatusCode() int {
 	return 0
 }
 
+type ListBuildAccountsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListUsersOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBuildAccountsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBuildAccountsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetBuildResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -15012,6 +15690,27 @@ func (r CreateExperienceTagResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateExperienceTagResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddTagsToExperiencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r AddTagsToExperiencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddTagsToExperiencesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -15652,6 +16351,50 @@ func (r AddReportMetricsDataToReportMetricResponse) StatusCode() int {
 	return 0
 }
 
+type ListTagsForReportMetricsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListTagsForReportMetricsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListTagsForReportMetricsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListTagsForReportMetricsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateReportMetricTagsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]MetricTag
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateReportMetricTagsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateReportMetricTagsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListReportMetricsDataResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -15778,6 +16521,49 @@ func (r CreateTestSuiteResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddTestSuitesToExperiencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r AddTestSuitesToExperiencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddTestSuitesToExperiencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetTestSuiteSummaryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *TestSuiteSummaryOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetTestSuiteSummaryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetTestSuiteSummaryResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -16157,6 +16943,48 @@ func (r CreateSystemResponse) StatusCode() int {
 	return 0
 }
 
+type AddSystemsToExperiencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r AddSystemsToExperiencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddSystemsToExperiencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RemoveSystemsFromExperiencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveSystemsFromExperiencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveSystemsFromExperiencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type DeleteSystemResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -16346,28 +17174,6 @@ func (r AddSystemToExperienceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r AddSystemToExperienceResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListMetricsBuildsForSystemResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *ListMetricsBuildOutput
-}
-
-// Status returns HTTPResponse.Status
-func (r ListMetricsBuildsForSystemResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListMetricsBuildsForSystemResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17256,6 +18062,15 @@ func (c *ClientWithResponses) ListBuildsWithResponse(ctx context.Context, projec
 	return ParseListBuildsResponse(rsp)
 }
 
+// ListBuildAccountsWithResponse request returning *ListBuildAccountsResponse
+func (c *ClientWithResponses) ListBuildAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBuildAccountsResponse, error) {
+	rsp, err := c.ListBuildAccounts(ctx, projectID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBuildAccountsResponse(rsp)
+}
+
 // GetBuildWithResponse request returning *GetBuildResponse
 func (c *ClientWithResponses) GetBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*GetBuildResponse, error) {
 	rsp, err := c.GetBuild(ctx, projectID, buildID, reqEditors...)
@@ -17289,6 +18104,23 @@ func (c *ClientWithResponses) CreateExperienceTagWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseCreateExperienceTagResponse(rsp)
+}
+
+// AddTagsToExperiencesWithBodyWithResponse request with arbitrary body returning *AddTagsToExperiencesResponse
+func (c *ClientWithResponses) AddTagsToExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddTagsToExperiencesResponse, error) {
+	rsp, err := c.AddTagsToExperiencesWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddTagsToExperiencesResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddTagsToExperiencesWithResponse(ctx context.Context, projectID ProjectID, body AddTagsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*AddTagsToExperiencesResponse, error) {
+	rsp, err := c.AddTagsToExperiences(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddTagsToExperiencesResponse(rsp)
 }
 
 // DeleteExperienceTagWithResponse request returning *DeleteExperienceTagResponse
@@ -17616,6 +18448,32 @@ func (c *ClientWithResponses) AddReportMetricsDataToReportMetricWithResponse(ctx
 	return ParseAddReportMetricsDataToReportMetricResponse(rsp)
 }
 
+// ListTagsForReportMetricsWithResponse request returning *ListTagsForReportMetricsResponse
+func (c *ClientWithResponses) ListTagsForReportMetricsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID []MetricID, params *ListTagsForReportMetricsParams, reqEditors ...RequestEditorFn) (*ListTagsForReportMetricsResponse, error) {
+	rsp, err := c.ListTagsForReportMetrics(ctx, projectID, reportID, metricID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListTagsForReportMetricsResponse(rsp)
+}
+
+// CreateReportMetricTagsWithBodyWithResponse request with arbitrary body returning *CreateReportMetricTagsResponse
+func (c *ClientWithResponses) CreateReportMetricTagsWithBodyWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateReportMetricTagsResponse, error) {
+	rsp, err := c.CreateReportMetricTagsWithBody(ctx, projectID, reportID, metricID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportMetricTagsResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateReportMetricTagsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricID openapi_types.UUID, body CreateReportMetricTagsJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateReportMetricTagsResponse, error) {
+	rsp, err := c.CreateReportMetricTags(ctx, projectID, reportID, metricID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateReportMetricTagsResponse(rsp)
+}
+
 // ListReportMetricsDataWithResponse request returning *ListReportMetricsDataResponse
 func (c *ClientWithResponses) ListReportMetricsDataWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, params *ListReportMetricsDataParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataResponse, error) {
 	rsp, err := c.ListReportMetricsData(ctx, projectID, reportID, params, reqEditors...)
@@ -17692,6 +18550,32 @@ func (c *ClientWithResponses) CreateTestSuiteWithResponse(ctx context.Context, p
 		return nil, err
 	}
 	return ParseCreateTestSuiteResponse(rsp)
+}
+
+// AddTestSuitesToExperiencesWithBodyWithResponse request with arbitrary body returning *AddTestSuitesToExperiencesResponse
+func (c *ClientWithResponses) AddTestSuitesToExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddTestSuitesToExperiencesResponse, error) {
+	rsp, err := c.AddTestSuitesToExperiencesWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddTestSuitesToExperiencesResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddTestSuitesToExperiencesWithResponse(ctx context.Context, projectID ProjectID, body AddTestSuitesToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*AddTestSuitesToExperiencesResponse, error) {
+	rsp, err := c.AddTestSuitesToExperiences(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddTestSuitesToExperiencesResponse(rsp)
+}
+
+// GetTestSuiteSummaryWithResponse request returning *GetTestSuiteSummaryResponse
+func (c *ClientWithResponses) GetTestSuiteSummaryWithResponse(ctx context.Context, projectID ProjectID, params *GetTestSuiteSummaryParams, reqEditors ...RequestEditorFn) (*GetTestSuiteSummaryResponse, error) {
+	rsp, err := c.GetTestSuiteSummary(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetTestSuiteSummaryResponse(rsp)
 }
 
 // GetTestSuiteWithResponse request returning *GetTestSuiteResponse
@@ -17903,6 +18787,40 @@ func (c *ClientWithResponses) CreateSystemWithResponse(ctx context.Context, proj
 	return ParseCreateSystemResponse(rsp)
 }
 
+// AddSystemsToExperiencesWithBodyWithResponse request with arbitrary body returning *AddSystemsToExperiencesResponse
+func (c *ClientWithResponses) AddSystemsToExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddSystemsToExperiencesResponse, error) {
+	rsp, err := c.AddSystemsToExperiencesWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddSystemsToExperiencesResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddSystemsToExperiencesWithResponse(ctx context.Context, projectID ProjectID, body AddSystemsToExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*AddSystemsToExperiencesResponse, error) {
+	rsp, err := c.AddSystemsToExperiences(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddSystemsToExperiencesResponse(rsp)
+}
+
+// RemoveSystemsFromExperiencesWithBodyWithResponse request with arbitrary body returning *RemoveSystemsFromExperiencesResponse
+func (c *ClientWithResponses) RemoveSystemsFromExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveSystemsFromExperiencesResponse, error) {
+	rsp, err := c.RemoveSystemsFromExperiencesWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveSystemsFromExperiencesResponse(rsp)
+}
+
+func (c *ClientWithResponses) RemoveSystemsFromExperiencesWithResponse(ctx context.Context, projectID ProjectID, body RemoveSystemsFromExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveSystemsFromExperiencesResponse, error) {
+	rsp, err := c.RemoveSystemsFromExperiences(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveSystemsFromExperiencesResponse(rsp)
+}
+
 // DeleteSystemWithResponse request returning *DeleteSystemResponse
 func (c *ClientWithResponses) DeleteSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*DeleteSystemResponse, error) {
 	rsp, err := c.DeleteSystem(ctx, projectID, systemID, reqEditors...)
@@ -17998,15 +18916,6 @@ func (c *ClientWithResponses) AddSystemToExperienceWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseAddSystemToExperienceResponse(rsp)
-}
-
-// ListMetricsBuildsForSystemWithResponse request returning *ListMetricsBuildsForSystemResponse
-func (c *ClientWithResponses) ListMetricsBuildsForSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, params *ListMetricsBuildsForSystemParams, reqEditors ...RequestEditorFn) (*ListMetricsBuildsForSystemResponse, error) {
-	rsp, err := c.ListMetricsBuildsForSystem(ctx, projectID, systemID, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListMetricsBuildsForSystemResponse(rsp)
 }
 
 // RemoveSystemFromMetricsBuildWithResponse request returning *RemoveSystemFromMetricsBuildResponse
@@ -19579,6 +20488,32 @@ func ParseListBuildsResponse(rsp *http.Response) (*ListBuildsResponse, error) {
 	return response, nil
 }
 
+// ParseListBuildAccountsResponse parses an HTTP response from a ListBuildAccountsWithResponse call
+func ParseListBuildAccountsResponse(rsp *http.Response) (*ListBuildAccountsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBuildAccountsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListUsersOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetBuildResponse parses an HTTP response from a GetBuildWithResponse call
 func ParseGetBuildResponse(rsp *http.Response) (*GetBuildResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -19652,6 +20587,22 @@ func ParseCreateExperienceTagResponse(rsp *http.Response) (*CreateExperienceTagR
 		}
 		response.JSON201 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseAddTagsToExperiencesResponse parses an HTTP response from a AddTagsToExperiencesWithResponse call
+func ParseAddTagsToExperiencesResponse(rsp *http.Response) (*AddTagsToExperiencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddTagsToExperiencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -20371,6 +21322,58 @@ func ParseAddReportMetricsDataToReportMetricResponse(rsp *http.Response) (*AddRe
 	return response, nil
 }
 
+// ParseListTagsForReportMetricsResponse parses an HTTP response from a ListTagsForReportMetricsWithResponse call
+func ParseListTagsForReportMetricsResponse(rsp *http.Response) (*ListTagsForReportMetricsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListTagsForReportMetricsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListTagsForReportMetricsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateReportMetricTagsResponse parses an HTTP response from a CreateReportMetricTagsWithResponse call
+func ParseCreateReportMetricTagsResponse(rsp *http.Response) (*CreateReportMetricTagsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateReportMetricTagsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []MetricTag
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListReportMetricsDataResponse parses an HTTP response from a ListReportMetricsDataWithResponse call
 func ParseListReportMetricsDataResponse(rsp *http.Response) (*ListReportMetricsDataResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -20521,6 +21524,48 @@ func ParseCreateTestSuiteResponse(rsp *http.Response) (*CreateTestSuiteResponse,
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddTestSuitesToExperiencesResponse parses an HTTP response from a AddTestSuitesToExperiencesWithResponse call
+func ParseAddTestSuitesToExperiencesResponse(rsp *http.Response) (*AddTestSuitesToExperiencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddTestSuitesToExperiencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetTestSuiteSummaryResponse parses an HTTP response from a GetTestSuiteSummaryWithResponse call
+func ParseGetTestSuiteSummaryResponse(rsp *http.Response) (*GetTestSuiteSummaryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetTestSuiteSummaryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest TestSuiteSummaryOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	}
 
@@ -20959,6 +22004,38 @@ func ParseCreateSystemResponse(rsp *http.Response) (*CreateSystemResponse, error
 	return response, nil
 }
 
+// ParseAddSystemsToExperiencesResponse parses an HTTP response from a AddSystemsToExperiencesWithResponse call
+func ParseAddSystemsToExperiencesResponse(rsp *http.Response) (*AddSystemsToExperiencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddSystemsToExperiencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseRemoveSystemsFromExperiencesResponse parses an HTTP response from a RemoveSystemsFromExperiencesWithResponse call
+func ParseRemoveSystemsFromExperiencesResponse(rsp *http.Response) (*RemoveSystemsFromExperiencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveSystemsFromExperiencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseDeleteSystemResponse parses an HTTP response from a DeleteSystemWithResponse call
 func ParseDeleteSystemResponse(rsp *http.Response) (*DeleteSystemResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -21158,32 +22235,6 @@ func ParseAddSystemToExperienceResponse(rsp *http.Response) (*AddSystemToExperie
 	response := &AddSystemToExperienceResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
-	}
-
-	return response, nil
-}
-
-// ParseListMetricsBuildsForSystemResponse parses an HTTP response from a ListMetricsBuildsForSystemWithResponse call
-func ParseListMetricsBuildsForSystemResponse(rsp *http.Response) (*ListMetricsBuildsForSystemResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListMetricsBuildsForSystemResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListMetricsBuildOutput
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
 	}
 
 	return response, nil

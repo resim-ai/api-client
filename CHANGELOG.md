@@ -8,7 +8,7 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
-### v0.3.8 - Octover 4 2024
+### v0.3.8 - October 4 2024
 
 #### Added
 

@@ -74,7 +74,8 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	// Check the branch exists:
 	branchID := getBranchID(Client, projectID, viper.GetString(ingestBranchKey), true)
 	// Create a build using the ReSim standard log ingest build:
-	logIngestURI := "hello world"
+	// TODO: make this correct. I don't think this will work in general
+	logIngestURI := "public.ecr.aws/docker/library/hello-world:latest"
 
 	body := api.CreateBuildForBranchInput{
 		Description: Ptr("A ReSim Log Ingest Build"),
@@ -147,11 +148,48 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		log.Fatal("no batch ID")
 	}
 
+	// Get the jobs for this batch:
+	jobsResponse, err := Client.ListJobsWithResponse(context.Background(), projectID, *batch.BatchID, &api.ListJobsParams{
+		PageSize:  Ptr(10),
+		PageToken: nil,
+	})
+	if err != nil {
+		log.Fatal("unable to get jobs for batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to get jobs for batch", jobsResponse.HTTPResponse, jobsResponse.Body)
+	if jobsResponse.JSON200 == nil {
+		log.Fatal("empty response")
+	}
+	jobs := *jobsResponse.JSON200.Jobs
+	if len(jobs) != 1 {
+		log.Fatal("expected 1 job, got", len(jobs))
+	}
+	theJob := jobs[0]
+	jobID := theJob.JobID
+
 	// Report the results back to the user
 	if logGithub {
 		fmt.Printf("batch_id=%s\n", batch.BatchID.String())
 	} else {
 		fmt.Println("Ingested log successfully!")
 		fmt.Printf("Batch ID: %s\n", batch.BatchID.String())
+		if resimURL := maybeGenerateResimURL(projectID, *batch.BatchID, *jobID); resimURL != "" {
+			fmt.Printf("View the results at %s\n", resimURL)
+		}
 	}
+}
+
+func maybeGenerateResimURL(projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID) string {
+	// Generate resim url for the test:
+	apiURL := viper.GetString(urlKey)
+	baseURL := ""
+	if apiURL == stagingAPIURL {
+		baseURL = "https://app.resim.io/"
+	} else if apiURL == prodAPIURL {
+		baseURL = "https://app.resim.ai/"
+	}
+	if baseURL != "" {
+		return fmt.Sprintf("%s/projects/%s/batches/%s/jobs/%s", baseURL, projectID.String(), batchID.String(), jobID.String())
+	}
+	return ""
 }

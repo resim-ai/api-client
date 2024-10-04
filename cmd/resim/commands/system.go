@@ -162,6 +162,7 @@ func init() {
 	systemsMetricsBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	systemCmd.AddCommand(createSystemCmd)
+	systemCmd.AddCommand(updateSystemCmd)
 	systemCmd.AddCommand(getSystemCmd)
 	systemCmd.AddCommand(deleteSystemCmd)
 	systemCmd.AddCommand(listSystemsCmd)

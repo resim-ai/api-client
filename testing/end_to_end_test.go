@@ -515,7 +515,7 @@ func updateSystem(projectName string, existingSystemName string, newName *string
 	}
 	if newName != nil {
 		updateCommand.Flags = append(updateCommand.Flags, Flag{
-			Name:  "--new-name",
+			Name:  "--name",
 			Value: *newName,
 		})
 	}
@@ -2267,6 +2267,8 @@ func (s *EndToEndTestSuite) TestSystems() {
 	output = s.runCommand(
 		updateSystem(projectIDString, systemName, nil, Ptr(updatedSystemDescription), nil, nil, nil, nil, nil, nil, nil, nil),
 		ExpectNoError)
+	fmt.Println(output.StdErr)
+	fmt.Println(output.StdOut)
 	s.Contains(output.StdOut, UpdatedSystem)
 	// Get the system:
 	output = s.runCommand(getSystem(projectIDString, systemName), ExpectNoError)
@@ -2285,8 +2287,42 @@ func (s *EndToEndTestSuite) TestSystems() {
 	s.Equal(metricsBuildSharedMemoryMB, updatedSystem.MetricsBuildSharedMemoryMb)
 	s.Empty(output.StdErr)
 
+	// Sample edit for all the resout of the resources
+	newName := "foobar"
+	newBuildCPUs := 100
+	newBuildMemory := 101
+	newBuildGPUs := 102
+	newBuildSharedMemory := 103
+	newMetricsBuildCPUs := 100
+	newMetricsBuildMemory := 101
+	newMetricsBuildGPUs := 102
+	newMetricsBuildSharedMemory := 103
+
+	output = s.runCommand(
+		updateSystem(projectIDString, systemName, Ptr(newName), nil, Ptr(newBuildCPUs), Ptr(newBuildGPUs), Ptr(newBuildMemory), Ptr(newBuildSharedMemory), Ptr(newMetricsBuildCPUs), Ptr(newMetricsBuildGPUs), Ptr(newMetricsBuildMemory), Ptr(newMetricsBuildSharedMemory)),
+		ExpectNoError)
+	fmt.Println(output.StdErr)
+	fmt.Println(output.StdOut)
+	s.Contains(output.StdOut, UpdatedSystem)
+	// Get the system:
+	output = s.runCommand(getSystem(projectIDString, newName), ExpectNoError)
+	var newUpdatedSystem api.System
+	err = json.Unmarshal([]byte(output.StdOut), &newUpdatedSystem)
+	s.NoError(err)
+	s.Equal(newName, newUpdatedSystem.Name)
+	s.Equal(updatedSystemDescription, newUpdatedSystem.Description)
+	s.Equal(newBuildCPUs, newUpdatedSystem.BuildVcpus)
+	s.Equal(newBuildGPUs, newUpdatedSystem.BuildGpus)
+	s.Equal(newBuildMemory, newUpdatedSystem.BuildMemoryMib)
+	s.Equal(newBuildSharedMemory, newUpdatedSystem.BuildSharedMemoryMb)
+	s.Equal(newMetricsBuildCPUs, newUpdatedSystem.MetricsBuildVcpus)
+	s.Equal(newMetricsBuildGPUs, newUpdatedSystem.MetricsBuildGpus)
+	s.Equal(newMetricsBuildMemory, newUpdatedSystem.MetricsBuildMemoryMib)
+	s.Equal(newMetricsBuildSharedMemory, newUpdatedSystem.MetricsBuildSharedMemoryMb)
+	s.Empty(output.StdErr)
+
 	// Delete the system:
-	output = s.runCommand(deleteSystem(projectIDString, systemName), ExpectNoError)
+	output = s.runCommand(deleteSystem(projectIDString, newName), ExpectNoError)
 	s.Contains(output.StdOut, DeletedSystem)
 	s.Empty(output.StdErr)
 

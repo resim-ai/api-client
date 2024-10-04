@@ -66,20 +66,21 @@ var (
 )
 
 const (
-	testSuiteProjectKey      = "project"
-	testSuiteNameKey         = "name"
-	testSuiteDescriptionKey  = "description"
-	testSuiteBuildIDKey      = "build-id"
-	testSuiteSystemKey       = "system"
-	testSuiteExperiencesKey  = "experiences"
-	testSuiteParameterKey    = "parameter"
-	testSuiteKey             = "test-suite"
-	testSuiteRevisionKey     = "revision"
-	testSuiteAllRevisionKey  = "all-revisions"
-	testSuiteGithubKey       = "github"
-	testSuiteMetricsBuildKey = "metrics-build"
-	testSuitePoolLabelsKey   = "pool-labels"
-	testSuiteAccountKey      = "account"
+	testSuiteProjectKey       = "project"
+	testSuiteNameKey          = "name"
+	testSuiteDescriptionKey   = "description"
+	testSuiteBuildIDKey       = "build-id"
+	testSuiteSystemKey        = "system"
+	testSuiteExperiencesKey   = "experiences"
+	testSuiteParameterKey     = "parameter"
+	testSuiteKey              = "test-suite"
+	testSuiteRevisionKey      = "revision"
+	testSuiteAllRevisionKey   = "all-revisions"
+	testSuiteGithubKey        = "github"
+	testSuiteMetricsBuildKey  = "metrics-build"
+	testSuitePoolLabelsKey    = "pool-labels"
+	testSuiteAccountKey       = "account"
+	testSuiteShowOnSummaryKey = "show-on-summary"
 )
 
 func init() {
@@ -102,6 +103,8 @@ func init() {
 	// Experiences
 	createTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "List of experience names or list of experience IDs to form this test suite.")
 	createTestSuiteCmd.MarkFlagRequired(testSuiteExperiencesKey)
+	// Show on Summary
+	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
 
 	// Get Test Suite
@@ -239,6 +242,10 @@ func createTestSuite(ccmd *cobra.Command, args []string) {
 		body.MetricsBuildID = &metricsBuildID
 	}
 
+	if viper.IsSet(testSuiteShowOnSummaryKey) {
+		body.ShowOnSummary = Ptr(viper.GetBool(testSuiteShowOnSummaryKey))
+	}
+
 	// Make the request
 	response, err := Client.CreateTestSuiteWithResponse(context.Background(), projectID, body)
 	if err != nil {
@@ -370,12 +377,12 @@ func listTestSuites(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list test suites", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.TestSuites == nil {
 			log.Fatal("no test suites")
 		}
-		allTestSuites = append(allTestSuites, *response.JSON200.TestSuites...)
-		if pageToken == nil || *pageToken == "" {
+		allTestSuites = append(allTestSuites, response.JSON200.TestSuites...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -412,7 +419,7 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 			if response.JSON200.TestSuites == nil {
 				log.Fatal("unable to find test suite: ", testSuiteKeyRaw)
 			}
-			testSuites := *response.JSON200.TestSuites
+			testSuites := response.JSON200.TestSuites
 
 			for _, suite := range testSuites {
 				if suite.Name == testSuiteKeyRaw {
@@ -421,8 +428,8 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 				}
 			}
 
-			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
-				pageToken = response.JSON200.NextPageToken
+			if response.JSON200.NextPageToken != "" {
+				pageToken = &response.JSON200.NextPageToken
 			} else {
 				log.Fatal("unable to find test suite: ", testSuiteKeyRaw)
 			}

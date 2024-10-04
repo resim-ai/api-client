@@ -132,6 +132,7 @@ const (
 	CreatedSystem             string = "Created system"
 	GithubCreatedSystem       string = "system_id="
 	DeletedSystem             string = "Deleted system"
+	UpdatedSystem             string = "Updated system"
 	EmptySystemName           string = "empty system name"
 	EmptySystemDescription    string = "empty system description"
 	SystemAlreadyRegistered   string = "it may already be registered"
@@ -493,6 +494,86 @@ func createSystem(projectName string, systemName string, systemDescription strin
 		})
 	}
 	return []CommandBuilder{systemCommand, createCommand}
+}
+
+func updateSystem(projectName string, existingSystemName string, newName *string, systemDescription *string, buildVCPUs *int, buildGPUs *int, buildMemoryMiB *int, buildSharedMemoryMB *int, metricsBuildVCPUs *int, metricsBuildGPUs *int, metricsBuildMemoryMiB *int, metricsBuildSharedMemoryMB *int) []CommandBuilder {
+	systemCommand := CommandBuilder{
+		Command: "systems",
+	}
+	updateCommand := CommandBuilder{
+		Command: "update",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectName,
+			},
+			{
+				Name:  "--system",
+				Value: existingSystemName,
+			},
+		},
+	}
+	if newName != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--name",
+			Value: *newName,
+		})
+	}
+	if systemDescription != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--description",
+			Value: *systemDescription,
+		})
+	}
+	if buildVCPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-vcpus",
+			Value: fmt.Sprintf("%d", *buildVCPUs),
+		})
+	}
+	if buildGPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-gpus",
+			Value: fmt.Sprintf("%d", *buildGPUs),
+		})
+	}
+	if buildMemoryMiB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-memory-mib",
+			Value: fmt.Sprintf("%d", *buildMemoryMiB),
+		})
+	}
+	if buildSharedMemoryMB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--build-shared-memory-mb",
+			Value: fmt.Sprintf("%d", *buildSharedMemoryMB),
+		})
+	}
+	if metricsBuildVCPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-vcpus",
+			Value: fmt.Sprintf("%d", *metricsBuildVCPUs),
+		})
+	}
+	if metricsBuildGPUs != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-gpus",
+			Value: fmt.Sprintf("%d", *metricsBuildGPUs),
+		})
+	}
+	if metricsBuildMemoryMiB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-memory-mib",
+			Value: fmt.Sprintf("%d", *metricsBuildMemoryMiB),
+		})
+	}
+	if metricsBuildSharedMemoryMB != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--metrics-build-shared-memory-mb",
+			Value: fmt.Sprintf("%d", *metricsBuildSharedMemoryMB),
+		})
+	}
+	return []CommandBuilder{systemCommand, updateCommand}
 }
 
 func listSystems(projectID uuid.UUID) []CommandBuilder {
@@ -2181,8 +2262,67 @@ func (s *EndToEndTestSuite) TestSystems() {
 	output = s.runCommand(removeSystemFromMetricsBuild(projectIDString, systemName, ""), ExpectError)
 	s.Contains(output.StdErr, EmptyMetricsBuildName)
 
+	// Update the system:
+	const updatedSystemDescription = "updated system description"
+	output = s.runCommand(
+		updateSystem(projectIDString, systemName, nil, Ptr(updatedSystemDescription), nil, nil, nil, nil, nil, nil, nil, nil),
+		ExpectNoError)
+	fmt.Println(output.StdErr)
+	fmt.Println(output.StdOut)
+	s.Contains(output.StdOut, UpdatedSystem)
+	// Get the system:
+	output = s.runCommand(getSystem(projectIDString, systemName), ExpectNoError)
+	var updatedSystem api.System
+	err = json.Unmarshal([]byte(output.StdOut), &updatedSystem)
+	s.NoError(err)
+	s.Equal(systemName, updatedSystem.Name)
+	s.Equal(updatedSystemDescription, updatedSystem.Description)
+	s.Equal(buildVCPUs, updatedSystem.BuildVcpus)
+	s.Equal(buildGPUs, updatedSystem.BuildGpus)
+	s.Equal(buildMemoryMiB, updatedSystem.BuildMemoryMib)
+	s.Equal(buildSharedMemoryMB, updatedSystem.BuildSharedMemoryMb)
+	s.Equal(metricsBuildVCPUs, updatedSystem.MetricsBuildVcpus)
+	s.Equal(metricsBuildGPUs, updatedSystem.MetricsBuildGpus)
+	s.Equal(metricsBuildMemoryMiB, updatedSystem.MetricsBuildMemoryMib)
+	s.Equal(metricsBuildSharedMemoryMB, updatedSystem.MetricsBuildSharedMemoryMb)
+	s.Empty(output.StdErr)
+
+	// Sample edit for all the resout of the resources
+	newName := "foobar"
+	newBuildCPUs := 100
+	newBuildMemory := 101
+	newBuildGPUs := 102
+	newBuildSharedMemory := 103
+	newMetricsBuildCPUs := 100
+	newMetricsBuildMemory := 101
+	newMetricsBuildGPUs := 102
+	newMetricsBuildSharedMemory := 103
+
+	output = s.runCommand(
+		updateSystem(projectIDString, systemName, Ptr(newName), nil, Ptr(newBuildCPUs), Ptr(newBuildGPUs), Ptr(newBuildMemory), Ptr(newBuildSharedMemory), Ptr(newMetricsBuildCPUs), Ptr(newMetricsBuildGPUs), Ptr(newMetricsBuildMemory), Ptr(newMetricsBuildSharedMemory)),
+		ExpectNoError)
+	fmt.Println(output.StdErr)
+	fmt.Println(output.StdOut)
+	s.Contains(output.StdOut, UpdatedSystem)
+	// Get the system:
+	output = s.runCommand(getSystem(projectIDString, newName), ExpectNoError)
+	var newUpdatedSystem api.System
+	err = json.Unmarshal([]byte(output.StdOut), &newUpdatedSystem)
+	s.NoError(err)
+	s.Equal(newName, newUpdatedSystem.Name)
+	s.Equal(updatedSystemDescription, newUpdatedSystem.Description)
+	s.Equal(newBuildCPUs, newUpdatedSystem.BuildVcpus)
+	s.Equal(newBuildGPUs, newUpdatedSystem.BuildGpus)
+	s.Equal(newBuildMemory, newUpdatedSystem.BuildMemoryMib)
+	s.Equal(newBuildSharedMemory, newUpdatedSystem.BuildSharedMemoryMb)
+	s.Equal(newMetricsBuildCPUs, newUpdatedSystem.MetricsBuildVcpus)
+	s.Equal(newMetricsBuildGPUs, newUpdatedSystem.MetricsBuildGpus)
+	s.Equal(newMetricsBuildMemory, newUpdatedSystem.MetricsBuildMemoryMib)
+	s.Equal(newMetricsBuildSharedMemory, newUpdatedSystem.MetricsBuildSharedMemoryMb)
+	s.Empty(output.StdErr)
+
 	// Delete the system:
-	output = s.runCommand(deleteSystem(projectIDString, systemName), ExpectNoError)
+	output = s.runCommand(deleteSystem(projectIDString, newName), ExpectNoError)
 	s.Contains(output.StdOut, DeletedSystem)
 	s.Empty(output.StdErr)
 
@@ -2834,7 +2974,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
-	experienceID1 := uuid.MustParse(experienceIDString1)
+	uuid.MustParse(experienceIDString1)
 
 	// Now create the branch:
 	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
@@ -2912,8 +3052,6 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	s.Equal(api.BatchParameters(expectedParameterMap), *batch.Parameters)
 	s.Equal(buildID, *batch.BuildID)
 	s.Equal(metricsBuildID, *batch.MetricsBuildID)
-	s.Equal([]uuid.UUID{experienceID1}, *batch.InstantiatedExperienceIDs)
-	s.Empty(batch.InstantiatedExperienceTagIDs)
 
 	// Delete the project
 	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)

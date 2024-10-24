@@ -12,6 +12,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.13.4
 	github.com/fatih/color v1.14.1
 	github.com/google/uuid v1.5.0
+	github.com/slack-go/slack v0.15.0
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.19.0
 	golang.org/x/oauth2 v0.22.0
@@ -20,6 +21,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect

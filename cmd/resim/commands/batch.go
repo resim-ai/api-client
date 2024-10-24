@@ -3,7 +3,6 @@ package commands
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -358,6 +357,7 @@ func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
 		system  *api.System
 		reports *[]api.Report
 	)
+	// todo: matt: programatically convert api url from cobra to frontend
 	baseUrl := fmt.Sprintf("%sprojects/%s", "https://app.resim.io/", batch.ProjectID.String())
 	blocks := &slack.Blocks{BlockSet: make([]slack.Block, 3, 3)}
 
@@ -378,7 +378,6 @@ func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
 	system = systemResponse.JSON200
 
 	// Intro text
-	// todo: matt: programatically convert bff url from cobra to frontend
 	introData := struct {
 		SuiteUrl   string
 		SuiteName  string
@@ -510,9 +509,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 	if viper.GetBool(batchSlackOutputKey) {
-		enc := json.NewEncoder(os.Stdout)
-		enc.SetEscapeHTML(false)
-		enc.Encode(batchToSlackWebhookPayload(batch))
+		OutputJson(batchToSlackWebhookPayload(batch))
 	} else {
 		OutputJson(batch)
 	}

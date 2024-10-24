@@ -1,17 +1,20 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
+	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -84,6 +87,7 @@ const (
 	batchExitStatusKey         = "exit-status"
 	batchWaitTimeoutKey        = "wait-timeout"
 	batchWaitPollKey           = "poll-every"
+	batchSlackOutputKey        = "slack"
 )
 
 func init() {
@@ -111,6 +115,7 @@ func init() {
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = internal error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
+	getBatchCmd.Flags().Bool(batchSlackOutputKey, false, "If set, output batch summary as a Slack webhook payload")
 	batchCmd.AddCommand(getBatchCmd)
 
 	cancelBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
@@ -346,6 +351,93 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	}
 }
 
+func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
+	var (
+		suite   *api.TestSuite
+		system  *api.System
+		reports *[]api.Report
+	)
+	// todo: matt: programatically convert api url from cobra to frontend
+	baseUrl := fmt.Sprintf("%sprojects/%s", "https://app.resim.io/", batch.ProjectID.String())
+	blocks := &slack.Blocks{BlockSet: make([]slack.Block, 3, 3)}
+
+	// Get the suite object
+	suiteResponse, err := Client.GetTestSuiteWithResponse(context.Background(), *batch.ProjectID, *batch.TestSuiteID)
+	if err != nil {
+		log.Fatal("unable to retrieve suite for batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to retrieve suite for batch", suiteResponse.HTTPResponse, suiteResponse.Body)
+	suite = suiteResponse.JSON200
+
+	// Get the system object
+	systemResponse, err := Client.GetSystemWithResponse(context.Background(), *batch.ProjectID, *batch.SystemID)
+	if err != nil {
+		log.Fatal("unable to retrieve system for batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to retrieve system for batch", systemResponse.HTTPResponse, systemResponse.Body)
+	system = systemResponse.JSON200
+
+	// Intro text
+	introData := struct {
+		SuiteUrl   string
+		SuiteName  string
+		BatchUrl   string
+		SystemUrl  string
+		SystemName string
+	}{
+		fmt.Sprintf("%s/test-suites/%s/revisions/%d", baseUrl, batch.TestSuiteID.String(), *batch.TestSuiteRevision),
+		suite.Name,
+		fmt.Sprintf("%s/batches/%s", baseUrl, batch.BatchID.String()),
+		fmt.Sprintf("%s/systems/%s", baseUrl, batch.SystemID.String()),
+		system.Name,
+	}
+	introTemplate := template.Must(template.New("intro").Parse("Last night’s <{{.SuiteUrl}}|{{.SuiteName}}> *<{{.BatchUrl}}|run>* for <{{.SystemUrl}}|{{.SystemName}}> ran successfully with the following breakdown:"))
+	var introBuffer bytes.Buffer
+	introTemplate.Execute(&introBuffer, introData)
+	introTextBlock := slack.NewTextBlockObject("mrkdwn", introBuffer.String(), false, false)
+	blocks.BlockSet[0] = slack.NewSectionBlock(introTextBlock, nil, nil)
+
+	// List section
+	boldStyle := slack.RichTextSectionTextStyle{Bold: true}
+	buildListElement := func(count int, label string, filter string) *slack.RichTextSection {
+		return slack.NewRichTextSection(
+			slack.NewRichTextSectionTextElement(fmt.Sprintf("%d ", count), nil),
+			slack.NewRichTextSectionLinkElement(introData.BatchUrl+"?performanceFilter="+filter, label, &boldStyle),
+		)
+	}
+
+	listBlock := slack.NewRichTextList("bullet", 0,
+		slack.NewRichTextSection(slack.NewRichTextSectionTextElement(fmt.Sprintf("%d total tests", *batch.TotalJobs), nil)),
+		// Passed calculation borrowed from bff: https://github.com/resim-ai/rerun/blob/ebf0cde9472f555ae099e08e512ed4a7dfdf01f4/bff/lib/bff/batches/conflated_status_counts.ex#L49
+		buildListElement(batch.JobStatusCounts.Succeeded-(batch.JobMetricsStatusCounts.FailBlock+batch.JobMetricsStatusCounts.FailWarn), "Passed", "Passed"),
+		buildListElement(batch.JobMetricsStatusCounts.FailBlock, "Blocking", "Blocker"),
+		buildListElement(batch.JobMetricsStatusCounts.FailWarn, "Warning", "Warning"),
+		buildListElement(batch.JobStatusCounts.Error, "Erroring", "Error"),
+	)
+	blocks.BlockSet[1] = slack.NewRichTextBlock("list", listBlock)
+
+	// Report section
+	reportResponse, err := Client.ListReportsWithResponse(context.Background(), *batch.ProjectID, &api.ListReportsParams{Search: Ptr(fmt.Sprintf("test_suite_id = \"%s\"", batch.TestSuiteID.String())), OrderBy: Ptr("timestamp")})
+	if err != nil {
+		log.Fatal("unable to retrieve report for batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to retrieve report for batch", reportResponse.HTTPResponse, reportResponse.Body)
+	reports = reportResponse.JSON200.Reports
+	if len(*reports) > 0 {
+		reportFooter := fmt.Sprintf("See more historical details in the nightly *<%s/reports/%s|Report>*.", baseUrl, (*reports)[0].ReportID)
+		reportTextBlock := slack.NewTextBlockObject("mrkdwn", reportFooter, false, false)
+		blocks.BlockSet[2] = slack.NewSectionBlock(reportTextBlock, nil, nil)
+	} else {
+		blocks.BlockSet = blocks.BlockSet[:2]
+	}
+
+	webhookPayload := slack.WebhookMessage{
+		Username: "ReSim",
+		Blocks:   blocks,
+	}
+	return &webhookPayload
+}
+
 func actualGetBatch(projectID uuid.UUID, batchIDRaw string, batchName string) *api.Batch {
 	var batch *api.Batch
 	if batchIDRaw != "" {
@@ -418,8 +510,11 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unknown batch status: ", batch.Status)
 		}
 	}
-
-	OutputJson(batch)
+	if viper.GetBool(batchSlackOutputKey) {
+		OutputJson(batchToSlackWebhookPayload(batch))
+	} else {
+		OutputJson(batch)
+	}
 }
 
 func waitBatch(ccmd *cobra.Command, args []string) {

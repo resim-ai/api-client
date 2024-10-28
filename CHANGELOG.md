@@ -8,6 +8,11 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Added
+
+- The ReSim CLI now supports outputting a Slack Webhook payload from the `batch get` command. Providing
+the `--slack` flag will replace the current JSON output with a formatted payload.
+
 ### v0.3.8 - October 4 2024
 
 #### Added

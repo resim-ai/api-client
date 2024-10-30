@@ -8,6 +8,8 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.3.9 - October 30 2024
+
 #### Added
 
 - The ReSim CLI now supports outputting a Slack Webhook payload from the `batch get` command. Providing

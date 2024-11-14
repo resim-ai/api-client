@@ -116,7 +116,7 @@ func init() {
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
 	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = internal error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
+	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch workflow status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	getBatchCmd.Flags().Bool(batchSlackOutputKey, false, "If set, output batch summary as a Slack webhook payload")
 	batchCmd.AddCommand(getBatchCmd)
 

@@ -38,11 +38,11 @@ var (
 		Run:   getProject,
 	}
 
-	deleteProjectCmd = &cobra.Command{
-		Use:   "delete",
-		Short: "delete - Deletes a project",
+	archiveProjectCmd = &cobra.Command{
+		Use:   "archive",
+		Short: "archive - Archives a project",
 		Long:  ``,
-		Run:   deleteProject,
+		Run:   archiveProject,
 	}
 
 	listProjectsCmd = &cobra.Command{
@@ -81,10 +81,10 @@ func init() {
 	getProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	projectCmd.AddCommand(getProjectCmd)
 
-	deleteProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project to delete")
-	deleteProjectCmd.MarkFlagRequired(projectKey)
-	deleteProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
-	projectCmd.AddCommand(deleteProjectCmd)
+	archiveProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project to delete")
+	archiveProjectCmd.MarkFlagRequired(projectKey)
+	archiveProjectCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
+	projectCmd.AddCommand(archiveProjectCmd)
 
 	projectCmd.AddCommand(listProjectsCmd)
 
@@ -235,14 +235,14 @@ func getProject(ccmd *cobra.Command, args []string) {
 	enc.Encode(project)
 }
 
-func deleteProject(ccmd *cobra.Command, args []string) {
+func archiveProject(ccmd *cobra.Command, args []string) {
 	var projectID uuid.UUID
 	if viper.IsSet(projectKey) {
 		projectID = getProjectID(Client, viper.GetString(projectKey))
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
 	}
-	response, err := Client.DeleteProjectWithResponse(context.Background(), projectID)
+	response, err := Client.ArchiveProjectWithResponse(context.Background(), projectID)
 	if err != nil {
 		log.Fatal("unable to delete project:", err)
 	}

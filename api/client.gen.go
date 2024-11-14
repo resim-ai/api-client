@@ -167,6 +167,9 @@ type AddTagsToExperiencesInput struct {
 	Filters          *ExperienceFilterInput `json:"filters,omitempty"`
 }
 
+// Archived defines model for archived.
+type Archived = bool
+
 // AssociatedAccount defines model for associatedAccount.
 type AssociatedAccount = string
 
@@ -1072,6 +1075,7 @@ type PoolLabels = []PoolLabel
 
 // Project defines model for project.
 type Project struct {
+	Archived          Archived  `json:"archived"`
 	CreationTimestamp Timestamp `json:"creationTimestamp"`
 	Description       string    `json:"description"`
 	Name              string    `json:"name"`
@@ -1203,6 +1207,7 @@ type SweepParameter struct {
 
 // System defines model for system.
 type System struct {
+	Archived                   Archived  `json:"archived"`
 	BuildGpus                  int       `json:"build_gpus"`
 	BuildMemoryMib             int       `json:"build_memory_mib"`
 	BuildSharedMemoryMb        int       `json:"build_shared_memory_mb"`
@@ -1473,10 +1478,13 @@ type ListJobsParams struct {
 	Name *string `form:"name,omitempty" json:"name,omitempty"`
 
 	// Text Filter experiences (in job) by a text string on name and description
-	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
-	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	Text *string `form:"text,omitempty" json:"text,omitempty"`
+
+	// ExperienceTagIDs Filter jobs by the tag id(s) attached to the experience
+	ExperienceTagIDs *[]openapi_types.UUID `form:"experienceTagIDs,omitempty" json:"experienceTagIDs,omitempty"`
+	PageSize         *PageSize             `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken        *PageToken            `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy          *OrderBy              `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // ListEventsForJobParams defines parameters for ListEventsForJob.
@@ -2043,8 +2051,8 @@ type ClientInterface interface {
 
 	CreateProject(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteProject request
-	DeleteProject(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// ArchiveProject request
+	ArchiveProject(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetProject request
 	GetProject(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2491,8 +2499,8 @@ type ClientInterface interface {
 
 	RemoveSystemsFromExperiences(ctx context.Context, projectID ProjectID, body RemoveSystemsFromExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteSystem request
-	DeleteSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// ArchiveSystem request
+	ArchiveSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetSystem request
 	GetSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2597,8 +2605,8 @@ func (c *Client) CreateProject(ctx context.Context, body CreateProjectJSONReques
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteProject(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteProjectRequest(c.Server, projectID)
+func (c *Client) ArchiveProject(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveProjectRequest(c.Server, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -4565,8 +4573,8 @@ func (c *Client) RemoveSystemsFromExperiences(ctx context.Context, projectID Pro
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteSystemRequest(c.Server, projectID, systemID)
+func (c *Client) ArchiveSystem(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveSystemRequest(c.Server, projectID, systemID)
 	if err != nil {
 		return nil, err
 	}
@@ -4953,8 +4961,8 @@ func NewCreateProjectRequestWithBody(server string, contentType string, body io.
 	return req, nil
 }
 
-// NewDeleteProjectRequest generates requests for DeleteProject
-func NewDeleteProjectRequest(server string, projectID ProjectID) (*http.Request, error) {
+// NewArchiveProjectRequest generates requests for ArchiveProject
+func NewArchiveProjectRequest(server string, projectID ProjectID) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5580,6 +5588,22 @@ func NewListJobsRequest(server string, projectID ProjectID, batchID BatchID, par
 		if params.Text != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.ExperienceTagIDs != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "experienceTagIDs", runtime.ParamLocationQuery, *params.ExperienceTagIDs); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -12879,8 +12903,8 @@ func NewRemoveSystemsFromExperiencesRequestWithBody(server string, projectID Pro
 	return req, nil
 }
 
-// NewDeleteSystemRequest generates requests for DeleteSystem
-func NewDeleteSystemRequest(server string, projectID ProjectID, systemID SystemID) (*http.Request, error) {
+// NewArchiveSystemRequest generates requests for ArchiveSystem
+func NewArchiveSystemRequest(server string, projectID ProjectID, systemID SystemID) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -13789,8 +13813,8 @@ type ClientWithResponsesInterface interface {
 
 	CreateProjectWithResponse(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateProjectResponse, error)
 
-	// DeleteProjectWithResponse request
-	DeleteProjectWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*DeleteProjectResponse, error)
+	// ArchiveProjectWithResponse request
+	ArchiveProjectWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ArchiveProjectResponse, error)
 
 	// GetProjectWithResponse request
 	GetProjectWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*GetProjectResponse, error)
@@ -14237,8 +14261,8 @@ type ClientWithResponsesInterface interface {
 
 	RemoveSystemsFromExperiencesWithResponse(ctx context.Context, projectID ProjectID, body RemoveSystemsFromExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveSystemsFromExperiencesResponse, error)
 
-	// DeleteSystemWithResponse request
-	DeleteSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*DeleteSystemResponse, error)
+	// ArchiveSystemWithResponse request
+	ArchiveSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*ArchiveSystemResponse, error)
 
 	// GetSystemWithResponse request
 	GetSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*GetSystemResponse, error)
@@ -14360,13 +14384,13 @@ func (r CreateProjectResponse) StatusCode() int {
 	return 0
 }
 
-type DeleteProjectResponse struct {
+type ArchiveProjectResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteProjectResponse) Status() string {
+func (r ArchiveProjectResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -14374,7 +14398,7 @@ func (r DeleteProjectResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteProjectResponse) StatusCode() int {
+func (r ArchiveProjectResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -16985,13 +17009,13 @@ func (r RemoveSystemsFromExperiencesResponse) StatusCode() int {
 	return 0
 }
 
-type DeleteSystemResponse struct {
+type ArchiveSystemResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteSystemResponse) Status() string {
+func (r ArchiveSystemResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -16999,7 +17023,7 @@ func (r DeleteSystemResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteSystemResponse) StatusCode() int {
+func (r ArchiveSystemResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17389,13 +17413,13 @@ func (c *ClientWithResponses) CreateProjectWithResponse(ctx context.Context, bod
 	return ParseCreateProjectResponse(rsp)
 }
 
-// DeleteProjectWithResponse request returning *DeleteProjectResponse
-func (c *ClientWithResponses) DeleteProjectWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*DeleteProjectResponse, error) {
-	rsp, err := c.DeleteProject(ctx, projectID, reqEditors...)
+// ArchiveProjectWithResponse request returning *ArchiveProjectResponse
+func (c *ClientWithResponses) ArchiveProjectWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ArchiveProjectResponse, error) {
+	rsp, err := c.ArchiveProject(ctx, projectID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteProjectResponse(rsp)
+	return ParseArchiveProjectResponse(rsp)
 }
 
 // GetProjectWithResponse request returning *GetProjectResponse
@@ -18821,13 +18845,13 @@ func (c *ClientWithResponses) RemoveSystemsFromExperiencesWithResponse(ctx conte
 	return ParseRemoveSystemsFromExperiencesResponse(rsp)
 }
 
-// DeleteSystemWithResponse request returning *DeleteSystemResponse
-func (c *ClientWithResponses) DeleteSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*DeleteSystemResponse, error) {
-	rsp, err := c.DeleteSystem(ctx, projectID, systemID, reqEditors...)
+// ArchiveSystemWithResponse request returning *ArchiveSystemResponse
+func (c *ClientWithResponses) ArchiveSystemWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, reqEditors ...RequestEditorFn) (*ArchiveSystemResponse, error) {
+	rsp, err := c.ArchiveSystem(ctx, projectID, systemID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteSystemResponse(rsp)
+	return ParseArchiveSystemResponse(rsp)
 }
 
 // GetSystemWithResponse request returning *GetSystemResponse
@@ -19066,15 +19090,15 @@ func ParseCreateProjectResponse(rsp *http.Response) (*CreateProjectResponse, err
 	return response, nil
 }
 
-// ParseDeleteProjectResponse parses an HTTP response from a DeleteProjectWithResponse call
-func ParseDeleteProjectResponse(rsp *http.Response) (*DeleteProjectResponse, error) {
+// ParseArchiveProjectResponse parses an HTTP response from a ArchiveProjectWithResponse call
+func ParseArchiveProjectResponse(rsp *http.Response) (*ArchiveProjectResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteProjectResponse{
+	response := &ArchiveProjectResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -22036,15 +22060,15 @@ func ParseRemoveSystemsFromExperiencesResponse(rsp *http.Response) (*RemoveSyste
 	return response, nil
 }
 
-// ParseDeleteSystemResponse parses an HTTP response from a DeleteSystemWithResponse call
-func ParseDeleteSystemResponse(rsp *http.Response) (*DeleteSystemResponse, error) {
+// ParseArchiveSystemResponse parses an HTTP response from a ArchiveSystemWithResponse call
+func ParseArchiveSystemResponse(rsp *http.Response) (*ArchiveSystemResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteSystemResponse{
+	response := &ArchiveSystemResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

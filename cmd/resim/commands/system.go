@@ -40,11 +40,11 @@ var (
 		Long:  ``,
 		Run:   getSystem,
 	}
-	deleteSystemCmd = &cobra.Command{
-		Use:   "delete",
-		Short: "delete - Delete a system",
+	archiveSystemCmd = &cobra.Command{
+		Use:   "archive",
+		Short: "archive - Archive a system",
 		Long:  ``,
-		Run:   deleteSystem,
+		Run:   archiveSystem,
 	}
 	listSystemsCmd = &cobra.Command{
 		Use:   "list",
@@ -132,11 +132,11 @@ func init() {
 	getSystemCmd.MarkFlagRequired(systemKey)
 	getSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
-	deleteSystemCmd.Flags().String(systemProjectKey, "", "System associated with this project")
-	deleteSystemCmd.MarkFlagRequired(systemProjectKey)
-	deleteSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to delete")
-	deleteSystemCmd.MarkFlagRequired(systemKey)
-	deleteSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+	archiveSystemCmd.Flags().String(systemProjectKey, "", "System associated with this project")
+	archiveSystemCmd.MarkFlagRequired(systemProjectKey)
+	archiveSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to delete")
+	archiveSystemCmd.MarkFlagRequired(systemKey)
+	archiveSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	listSystemsCmd.Flags().String(systemProjectKey, "", "List systems associated with this project")
 	listSystemsCmd.MarkFlagRequired(systemProjectKey)
@@ -164,7 +164,7 @@ func init() {
 	systemCmd.AddCommand(createSystemCmd)
 	systemCmd.AddCommand(updateSystemCmd)
 	systemCmd.AddCommand(getSystemCmd)
-	systemCmd.AddCommand(deleteSystemCmd)
+	systemCmd.AddCommand(archiveSystemCmd)
 	systemCmd.AddCommand(listSystemsCmd)
 	systemCmd.AddCommand(systemsBuildsCmd)
 	systemCmd.AddCommand(systemsExperiencesCmd)
@@ -193,19 +193,19 @@ func getSystem(ccmd *cobra.Command, args []string) {
 	enc.Encode(system)
 }
 
-func deleteSystem(ccmd *cobra.Command, args []string) {
+func archiveSystem(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
 	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
-	response, err := Client.DeleteSystemWithResponse(context.Background(), projectID, systemID)
+	response, err := Client.ArchiveSystemWithResponse(context.Background(), projectID, systemID)
 	if err != nil {
-		log.Fatal("unable to delete system:", err)
+		log.Fatal("unable to archive system:", err)
 	}
 	if response.HTTPResponse.StatusCode == http.StatusNotFound {
 		log.Fatal("failed to find system with requested id: ", systemID.String())
 	} else {
-		ValidateResponse(http.StatusNoContent, "unable to delete system", response.HTTPResponse, response.Body)
+		ValidateResponse(http.StatusNoContent, "unable to archive system", response.HTTPResponse, response.Body)
 	}
-	fmt.Println("Deleted system successfully!")
+	fmt.Println("Archived system successfully!")
 }
 
 func updateSystem(ccmd *cobra.Command, args []string) {

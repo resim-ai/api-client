@@ -244,14 +244,14 @@ func archiveProject(ccmd *cobra.Command, args []string) {
 	}
 	response, err := Client.ArchiveProjectWithResponse(context.Background(), projectID)
 	if err != nil {
-		log.Fatal("unable to delete project:", err)
+		log.Fatal("unable to archive project:", err)
 	}
 	if response.HTTPResponse.StatusCode == http.StatusNotFound {
-		log.Fatal("failed to delete project. No project exists with requested id: ", projectID.String())
+		log.Fatal("failed to archive project. No project exists with requested id: ", projectID.String())
 	} else {
-		ValidateResponse(http.StatusNoContent, "unable to delete project", response.HTTPResponse, response.Body)
+		ValidateResponse(http.StatusNoContent, "unable to archive project", response.HTTPResponse, response.Body)
 	}
-	fmt.Println("Deleted project successfully!")
+	fmt.Println("Archived project successfully!")
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this

@@ -166,7 +166,7 @@ func init() {
 	runTestSuiteCmd.Flags().StringSlice(testSuitePoolLabelsKey, []string{}, "Pool labels to determine where to run this test suite. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")
 	// Optional: Friendly name
-	runTestSuiteCmd.Flags().String(testSuiteBatchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but is recommended to make it easier to identify batches.")
+	runTestSuiteCmd.Flags().String(testSuiteBatchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
 	testSuiteCmd.AddCommand(runTestSuiteCmd)
 
 	// Test Suite Batches

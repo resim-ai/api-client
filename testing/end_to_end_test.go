@@ -120,7 +120,7 @@ const (
 	EmptyProjectName        string = "empty project name"
 	EmptyProjectDescription string = "empty project description"
 	FailedToFindProject     string = "failed to find project"
-	DeletedProject          string = "Deleted project"
+	ArchivedProject         string = "Archived project"
 	ProjectNameCollision    string = "project name matches an existing"
 	// Branch Messages
 	CreatedBranch       string = "Created branch"
@@ -131,7 +131,7 @@ const (
 	// System Message
 	CreatedSystem             string = "Created system"
 	GithubCreatedSystem       string = "system_id="
-	DeletedSystem             string = "Deleted system"
+	ArchivedSystem            string = "Archived system"
 	UpdatedSystem             string = "Updated system"
 	EmptySystemName           string = "empty system name"
 	EmptySystemDescription    string = "empty system description"
@@ -355,13 +355,13 @@ func getProject(projectName string) []CommandBuilder {
 	return []CommandBuilder{projectCommand, getCommand}
 }
 
-func deleteProject(projectName string) []CommandBuilder {
+func archiveProject(projectName string) []CommandBuilder {
 	// We build a get project command with the name flag
 	projectCommand := CommandBuilder{
 		Command: "projects",
 	}
-	deleteCommand := CommandBuilder{
-		Command: "delete",
+	archiveCommand := CommandBuilder{
+		Command: "archive",
 		Flags: []Flag{
 			{
 				Name:  "--name",
@@ -369,7 +369,7 @@ func deleteProject(projectName string) []CommandBuilder {
 			},
 		},
 	}
-	return []CommandBuilder{projectCommand, deleteCommand}
+	return []CommandBuilder{projectCommand, archiveCommand}
 }
 
 func createBranch(projectID uuid.UUID, name string, branchType string, github bool) []CommandBuilder {
@@ -612,12 +612,12 @@ func getSystem(project string, system string) []CommandBuilder {
 	return []CommandBuilder{systemCommand, getCommand}
 }
 
-func deleteSystem(project string, system string) []CommandBuilder {
+func archiveSystem(project string, system string) []CommandBuilder {
 	systemCommand := CommandBuilder{
 		Command: "system",
 	}
-	deleteCommand := CommandBuilder{
-		Command: "delete",
+	archiveCommand := CommandBuilder{
+		Command: "archive",
 		Flags: []Flag{
 			{
 				Name:  "--project",
@@ -629,7 +629,7 @@ func deleteSystem(project string, system string) []CommandBuilder {
 			},
 		},
 	}
-	return []CommandBuilder{systemCommand, deleteCommand}
+	return []CommandBuilder{systemCommand, archiveCommand}
 }
 
 func systemBuilds(project string, system string) []CommandBuilder {
@@ -1922,7 +1922,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	output = s.runCommand(listProjects(), ExpectNoError)
 	s.Contains(output.StdOut, projectName)
 
-	// Now get, verify, and delete the project:
+	// Now get, verify, and archive the project:
 	fmt.Println("Testing project get command")
 	output = s.runCommand(getProject(projectName), ExpectNoError)
 	var project api.Project
@@ -1952,15 +1952,15 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 	output = s.runCommand(createProject(project.ProjectID.String(), "description", GithubFalse), ExpectError)
 	s.Contains(output.StdErr, ProjectNameCollision)
 
-	fmt.Println("Testing project delete command")
-	output = s.runCommand(deleteProject(projectName), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	fmt.Println("Testing project archive command")
+	output = s.runCommand(archiveProject(projectName), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
-	// Verify that attempting to re-delete will fail:
-	output = s.runCommand(deleteProject(projectName), ExpectError)
+	// Verify that attempting to re-archive will fail:
+	output = s.runCommand(archiveProject(projectName), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 	// Verify that a valid project ID is needed:
-	output = s.runCommand(deleteProject(""), ExpectError)
+	output = s.runCommand(archiveProject(""), ExpectError)
 	s.Contains(output.StdErr, FailedToFindProject)
 }
 
@@ -1972,7 +1972,7 @@ func (s *EndToEndTestSuite) TestProjectCreateGithub() {
 	// We expect to be able to parse the project ID as a UUID
 	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
 	projectID := uuid.MustParse(projectIDString)
-	// Now get, verify, and delete the project:
+	// Now get, verify, and archive the project:
 	output = s.runCommand(getProject(projectIDString), ExpectNoError)
 	var project api.Project
 	err := json.Unmarshal([]byte(output.StdOut), &project)
@@ -1980,8 +1980,8 @@ func (s *EndToEndTestSuite) TestProjectCreateGithub() {
 	s.Equal(projectName, project.Name)
 	s.Equal(projectID, project.ProjectID)
 	s.Empty(output.StdErr)
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2013,9 +2013,9 @@ func (s *EndToEndTestSuite) TestBranchCreate() {
 	output = s.runCommand(listBranches(projectID), ExpectNoError)
 	s.Contains(output.StdOut, branchName)
 
-	// Delete the test project
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the test project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2038,9 +2038,9 @@ func (s *EndToEndTestSuite) TestBranchCreateGithub() {
 	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
 	uuid.MustParse(branchIDString)
 
-	// Delete the test project
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the test project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2321,14 +2321,14 @@ func (s *EndToEndTestSuite) TestSystems() {
 	s.Equal(newMetricsBuildSharedMemory, newUpdatedSystem.MetricsBuildSharedMemoryMb)
 	s.Empty(output.StdErr)
 
-	// Delete the system:
-	output = s.runCommand(deleteSystem(projectIDString, newName), ExpectNoError)
-	s.Contains(output.StdOut, DeletedSystem)
+	// Archive the system:
+	output = s.runCommand(archiveSystem(projectIDString, newName), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedSystem)
 	s.Empty(output.StdErr)
 
-	// Delete the test project
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the test project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2369,9 +2369,9 @@ func (s *EndToEndTestSuite) TestSystemCreateGithub() {
 	output = s.runCommand(listSystems(projectID), ExpectNoError)
 	s.Contains(output.StdOut, systemName)
 
-	// Delete the test project
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the test project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2452,11 +2452,11 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	// Validate the image URI is required to be valid and have a tag:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildImage)
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
-	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateGithub() {
@@ -2491,11 +2491,11 @@ func (s *EndToEndTestSuite) TestBuildCreateGithub() {
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
-	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2537,11 +2537,11 @@ func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
 	s.Contains(output.StdOut, CreatedBuild)
 	s.Contains(output.StdOut, fmt.Sprintf("Branch with name %v doesn't currently exist.", newBranchName))
 	s.Contains(output.StdOut, CreatedBranch)
-	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2589,7 +2589,7 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	s.Contains(output.StdErr, EmptyExperienceDescription)
 	output = s.runCommand(createExperience(projectID, experienceName, "description", "", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceLocation)
-	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
 	// Test creating an experience with the launch profile flag:
 	launchProfileID := uuid.New().String()
@@ -2601,9 +2601,9 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	output = s.runCommand(experienceCommand, ExpectError)
 	s.Contains(output.StdErr, DeprecatedLaunchProfile)
 
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2623,11 +2623,11 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)
-	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 
 }
@@ -2659,7 +2659,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	experienceID2 := uuid.MustParse(experienceIDString2)
-	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
 	// Now create the branch:
 	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
@@ -2683,7 +2683,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	buildID := uuid.MustParse(buildIDString)
-	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 
 	// Create a metrics build:
 	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
@@ -2948,9 +2948,9 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 		}
 		return allComplete
 	}, 10*time.Minute, 10*time.Second)
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -2998,7 +2998,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	buildID := uuid.MustParse(buildIDString)
-	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 
 	// Create a metrics build:
 	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
@@ -3053,9 +3053,9 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	s.Equal(buildID, *batch.BuildID)
 	s.Equal(metricsBuildID, *batch.MetricsBuildID)
 
-	// Delete the project
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
@@ -3083,7 +3083,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	experienceID2 := uuid.MustParse(experienceIDString2)
-	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Delete the experiences when possible
+	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
 	// Now create the branch:
 	branchName := fmt.Sprintf("sweep-test-branch-%s", uuid.New().String())
@@ -3107,7 +3107,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	uuid.MustParse(buildIDString)
-	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Delete builds when possible
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 
 	// Create a metrics build:
 	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
@@ -3269,9 +3269,9 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	output = s.runCommand(listSweeps(projectID), ExpectNoError)
 	s.Contains(output.StdOut, sweepNameString)
 
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -3320,9 +3320,9 @@ func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
 	output = s.runCommand(createMetricsBuild(projectID, "name", "public.ecr.aws/docker/library/hello-world", "1.1.1", EmptySlice, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidMetricsBuildImage)
 
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -3344,9 +3344,9 @@ func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
 	output = s.runCommand(listMetricsBuilds(projectID), ExpectNoError)
 	s.Contains(output.StdOut, metricsBuildIDString)
 
-	// Delete the project:
-	output = s.runCommand(deleteProject(projectIDString), ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
@@ -3571,12 +3571,12 @@ func (s *EndToEndTestSuite) TestAliases() {
 	s.NoError(err)
 	s.Equal(2, len(builds))
 
-	// Delete the project, using the aliased command:
-	deleteProjectCommand := CommandBuilder{
+	// Archive the project, using the aliased command:
+	archiveProjectCommand := CommandBuilder{
 		Command: "project",
 	}
-	deleteProjectByIDCommand := CommandBuilder{
-		Command: "delete",
+	archiveProjectByIDCommand := CommandBuilder{
+		Command: "archive",
 		Flags: []Flag{
 			{
 				Name:  "--project-id",
@@ -3584,8 +3584,8 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 		},
 	}
-	output = s.runCommand([]CommandBuilder{deleteProjectCommand, deleteProjectByIDCommand}, ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	output = s.runCommand([]CommandBuilder{archiveProjectCommand, archiveProjectByIDCommand}, ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 
 	// Finally, create a new project to verify deletion with the old 'name' flag:
@@ -3596,9 +3596,9 @@ func (s *EndToEndTestSuite) TestAliases() {
 	// We expect to be able to parse the project ID as a UUID
 	projectIDString = output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
 	uuid.MustParse(projectIDString)
-	// Delete the project, using the aliased command:
-	deleteProjectByNameCommand := CommandBuilder{
-		Command: "delete",
+	// Archive the project, using the aliased command:
+	archiveProjectByNameCommand := CommandBuilder{
+		Command: "archive",
 		Flags: []Flag{
 			{
 				Name:  "--name",
@@ -3606,8 +3606,8 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 		},
 	}
-	output = s.runCommand([]CommandBuilder{deleteProjectCommand, deleteProjectByNameCommand}, ExpectNoError)
-	s.Contains(output.StdOut, DeletedProject)
+	output = s.runCommand([]CommandBuilder{archiveProjectCommand, archiveProjectByNameCommand}, ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 

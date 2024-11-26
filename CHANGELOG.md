@@ -8,6 +8,10 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Changed
+
+- The default behavior for systems and projects is not deletion, but archival, so the CLI has been updated to reflect this.
+
 ### v0.3.9 - October 30 2024
 
 #### Added
@@ -50,6 +54,7 @@ which will generate a report using the supplied metrics build (which must be cap
 - For full details of how reports work and how to generate a report, please read the main ReSim [docs](https://docs.resim.ai)
 - When creating a batch, sweep, or report additional environment information will be included to describe
   where it was created from (GitHub, Gitlab, local, etc.)
+
 #### Changed
 
 - Any historic use of 'job' has been replaced with 'test', which is the more accurate external-facing term for the elements of a test batch.

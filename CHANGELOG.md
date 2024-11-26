@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.3.10 - November 26 2024
+
+#### Added
+
+- The ReSim CLI now supports specifying a batch name when running test suites or ad-hoc batches (via `--batch-name`).
+
 #### Changed
 
 - The default behavior for systems and projects is not deletion, but archival, so the CLI has been updated to reflect this.

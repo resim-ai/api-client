@@ -82,7 +82,7 @@ func init() {
 	getSweepCmd.Flags().String(sweepIDKey, "", "The ID of the sweep to retrieve.")
 	getSweepCmd.Flags().String(sweepNameKey, "", "The name of the sweep to retrieve (e.g. rejoicing-aquamarine-starfish).")
 	getSweepCmd.MarkFlagsMutuallyExclusive(sweepIDKey, sweepNameKey)
-	getSweepCmd.Flags().Bool(sweepExitStatusKey, false, "If set, exit code corresponds to sweep status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 4=CANCELLED)")
+	getSweepCmd.Flags().Bool(sweepExitStatusKey, false, "If set, exit code corresponds to sweep status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	sweepCmd.AddCommand(getSweepCmd)
 
 	listSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to list the sweeps within")

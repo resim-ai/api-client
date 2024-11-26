@@ -81,6 +81,7 @@ const (
 	testSuitePoolLabelsKey    = "pool-labels"
 	testSuiteAccountKey       = "account"
 	testSuiteShowOnSummaryKey = "show-on-summary"
+	testSuiteBatchNameKey     = "batch-name"
 )
 
 func init() {
@@ -164,6 +165,8 @@ func init() {
 	// Pool Labels
 	runTestSuiteCmd.Flags().StringSlice(testSuitePoolLabelsKey, []string{}, "Pool labels to determine where to run this test suite. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")
+	// Optional: Friendly name
+	runTestSuiteCmd.Flags().String(testSuiteBatchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
 	testSuiteCmd.AddCommand(runTestSuiteCmd)
 
 	// Test Suite Batches
@@ -528,6 +531,11 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	// Add the pool labels if any
 	if len(poolLabels) > 0 {
 		body.PoolLabels = &poolLabels
+	}
+
+	// Add the batch name if any
+	if viper.IsSet(testSuiteBatchNameKey) {
+		body.BatchName = Ptr(viper.GetString(testSuiteBatchNameKey))
 	}
 
 	// Make the request

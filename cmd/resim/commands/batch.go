@@ -109,12 +109,13 @@ func init() {
 	createBatchCmd.Flags().StringSlice(batchPoolLabelsKey, []string{}, "Pool labels to determine where to run this batch. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
 	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
+	createBatchCmd.Flags().String(batchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	getBatchCmd.MarkFlagRequired(batchProjectKey)
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
-	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this returns the most recent batch with that name.")
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch workflow status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	getBatchCmd.Flags().Bool(batchSlackOutputKey, false, "If set, output batch summary as a Slack webhook payload")
@@ -123,14 +124,14 @@ func init() {
 	cancelBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	cancelBatchCmd.MarkFlagRequired(batchProjectKey)
 	cancelBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to cancel.")
-	cancelBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to cancel (e.g. rejoicing-aquamarine-starfish).")
+	cancelBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to cancel (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this cancels the most recent batch with that name.")
 	cancelBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(cancelBatchCmd)
 
 	testsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	testsBatchCmd.MarkFlagRequired(batchProjectKey)
 	testsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve tests for.")
-	testsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	testsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this returns the most recent batch with that name.")
 	testsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	testsBatchCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	batchCmd.AddCommand(testsBatchCmd)
@@ -138,7 +139,7 @@ func init() {
 	waitBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	waitBatchCmd.MarkFlagRequired(batchProjectKey)
 	waitBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to await completion.")
-	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to await completion (e.g. rejoicing-aquamarine-starfish).")
+	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to await completion (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this waits for the most recent batch with that name.")
 	waitBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish, expressed in Golang duration string.")
 	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
@@ -147,7 +148,7 @@ func init() {
 	logsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	logsBatchCmd.MarkFlagRequired(batchProjectKey)
 	logsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to list logs for.")
-	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish).")
+	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this lists logs for the most recent batch with that name.")
 	logsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	logsBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(logsBatchCmd)
@@ -289,6 +290,11 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		Parameters:        &parameters,
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
+	}
+
+	// Parse --batch-name (if any provided)
+	if viper.IsSet(batchNameKey) {
+		body.BatchName = Ptr(viper.GetString(batchNameKey))
 	}
 
 	if allExperienceIDs != nil {

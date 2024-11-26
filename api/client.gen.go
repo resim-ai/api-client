@@ -81,6 +81,7 @@ const (
 	ARCHIVELOG       LogType = "ARCHIVE_LOG"
 	CONTAINERLOG     LogType = "CONTAINER_LOG"
 	EXECUTIONLOG     LogType = "EXECUTION_LOG"
+	FOXGLOVEMCAPLOG  LogType = "FOXGLOVE_MCAP_LOG"
 	MCAPLOG          LogType = "MCAP_LOG"
 	METRICSOUTPUTLOG LogType = "METRICS_OUTPUT_LOG"
 	MP4LOG           LogType = "MP4_LOG"
@@ -209,6 +210,7 @@ type BatchID = openapi_types.UUID
 // BatchInput defines model for batchInput.
 type BatchInput struct {
 	AssociatedAccount     *AssociatedAccount      `json:"associatedAccount,omitempty"`
+	BatchName             *Name                   `json:"batchName,omitempty"`
 	BuildID               *BuildID                `json:"buildID,omitempty"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs"`
 	ExperienceIDs         *[]ExperienceID         `json:"experienceIDs"`
@@ -1255,6 +1257,7 @@ type TestSuite struct {
 // TestSuiteBatchInput defines model for testSuiteBatchInput.
 type TestSuiteBatchInput struct {
 	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
+	BatchName         *Name              `json:"batchName,omitempty"`
 	BuildID           BuildID            `json:"buildID"`
 	Parameters        *BatchParameters   `json:"parameters,omitempty"`
 	PoolLabels        *PoolLabels        `json:"poolLabels,omitempty"`

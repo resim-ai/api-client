@@ -2834,7 +2834,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdErr, BranchTagMutuallyExclusive)
 
 	// Try a batch with non-percentage allowable failure percent:
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil, Ptr(101)), ExpectError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil, Ptr(101)), ExpectError)
 	s.Contains(output.StdErr, AllowableFailurePercent)
 
 	// Get batch passing the status flag. We need to manually execute and grab the exit code:

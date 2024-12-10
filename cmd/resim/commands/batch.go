@@ -72,24 +72,25 @@ var (
 )
 
 const (
-	batchProjectKey            = "project"
-	batchBuildIDKey            = "build-id"
-	batchExperienceIDsKey      = "experience-ids"
-	batchExperiencesKey        = "experiences"
-	batchExperienceTagIDsKey   = "experience-tag-ids"
-	batchExperienceTagNamesKey = "experience-tag-names"
-	batchExperienceTagsKey     = "experience-tags"
-	batchParameterKey          = "parameter"
-	batchPoolLabelsKey         = "pool-labels"
-	batchIDKey                 = "batch-id"
-	batchNameKey               = "batch-name"
-	batchAccountKey            = "account"
-	batchGithubKey             = "github"
-	batchMetricsBuildKey       = "metrics-build-id"
-	batchExitStatusKey         = "exit-status"
-	batchWaitTimeoutKey        = "wait-timeout"
-	batchWaitPollKey           = "poll-every"
-	batchSlackOutputKey        = "slack"
+	batchProjectKey                 = "project"
+	batchBuildIDKey                 = "build-id"
+	batchExperienceIDsKey           = "experience-ids"
+	batchExperiencesKey             = "experiences"
+	batchExperienceTagIDsKey        = "experience-tag-ids"
+	batchExperienceTagNamesKey      = "experience-tag-names"
+	batchExperienceTagsKey          = "experience-tags"
+	batchParameterKey               = "parameter"
+	batchPoolLabelsKey              = "pool-labels"
+	batchIDKey                      = "batch-id"
+	batchNameKey                    = "batch-name"
+	batchAccountKey                 = "account"
+	batchGithubKey                  = "github"
+	batchMetricsBuildKey            = "metrics-build-id"
+	batchExitStatusKey              = "exit-status"
+	batchWaitTimeoutKey             = "wait-timeout"
+	batchWaitPollKey                = "poll-every"
+	batchSlackOutputKey             = "slack"
+	batchAllowableFailurePercentKey = "allowable-failure-percent"
 )
 
 func init() {
@@ -110,6 +111,7 @@ func init() {
 	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
 	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
 	createBatchCmd.Flags().String(batchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
+	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
@@ -295,6 +297,15 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	// Parse --batch-name (if any provided)
 	if viper.IsSet(batchNameKey) {
 		body.BatchName = Ptr(viper.GetString(batchNameKey))
+	}
+
+	// Parse --allowable-failure-percent (if any provided)
+	if viper.IsSet(batchAllowableFailurePercentKey) {
+		allowableFailurePercent := viper.GetInt(batchAllowableFailurePercentKey)
+		if allowableFailurePercent < 0 || allowableFailurePercent > 100 {
+			log.Fatal("allowable failure percent must be between 0 and 100")
+		}
+		body.AllowableFailurePercent = &allowableFailurePercent
 	}
 
 	if allExperienceIDs != nil {

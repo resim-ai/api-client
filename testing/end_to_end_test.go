@@ -200,6 +200,7 @@ const (
 	EmptyTestSuiteExperiences  string = "empty list of experiences"
 	RevisedTestSuite           string = "Revised test suite"
 	CreatedTestSuiteBatch      string = "Created batch for test suite"
+	AllowableFailurePercent    string = "allowable failure percent must be between 0 and 100"
 	// Report Messages
 	CreatedReport                   string = "Created report"
 	TestSuiteNameReport             string = "must specify the test suite name or ID"
@@ -1073,7 +1074,7 @@ func listExperiencesWithTag(projectID uuid.UUID, tag string) []CommandBuilder {
 	return []CommandBuilder{listExperiencesWithTagCommand, listCommand}
 }
 
-func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string, experiences []string, experienceTags []string, metricsBuildID string, github bool, parameters map[string]string, account string, batchName *string) []CommandBuilder {
+func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string, experiences []string, experienceTags []string, metricsBuildID string, github bool, parameters map[string]string, account string, batchName *string, allowableFailurePercent *int) []CommandBuilder {
 	// We build a create batch command with the build-id, experience-ids, experience-tag-ids, and experience-tag-names flags
 	// We do not require any specific combination of these flags, and validate in tests that the CLI only allows one of TagIDs or TagNames
 	// and that at least one of the experiences flags is provided.
@@ -1154,6 +1155,13 @@ func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, ex
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--batch-name",
 			Value: *batchName,
+		})
+	}
+
+	if allowableFailurePercent != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--allowable-failure-percent",
+			Value: fmt.Sprintf("%d", *allowableFailurePercent),
 		})
 	}
 
@@ -1683,7 +1691,7 @@ func getTestSuiteBatches(projectID uuid.UUID, testSuiteName string, revision *in
 	return []CommandBuilder{testSuitesCommand, batchesCommand}
 }
 
-func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string) []CommandBuilder {
+func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string, allowableFailurePercent *int) []CommandBuilder {
 	// We build a get batch command with the name flag
 	testSuiteCommand := CommandBuilder{
 		Command: "suites",
@@ -1738,6 +1746,14 @@ func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, bu
 			Value: *batchName,
 		})
 	}
+
+	if allowableFailurePercent != nil {
+		runCommand.Flags = append(runCommand.Flags, Flag{
+			Name:  "--allowable-failure-percent",
+			Value: fmt.Sprintf("%d", *allowableFailurePercent),
+		})
+	}
+
 	return []CommandBuilder{testSuiteCommand, runCommand}
 }
 
@@ -2755,30 +2771,30 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdErr, InvalidBatchName)
 
 	// Fail to create a batch without any experience ids, tags, or names
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil), ExpectError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil, nil), ExpectError)
 	s.Contains(output.StdErr, SelectOneRequired)
 
 	// Create a batch with (only) experience names using the --experiences flag
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceName2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil), ExpectNoError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceName2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH1 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	uuid.MustParse(batchIDStringGH1)
 
 	// Create a batch with mixed experience names and IDs in the --experiences flag
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceIDString2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil), ExpectNoError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName1, experienceIDString2}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH2 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	uuid.MustParse(batchIDStringGH2)
 
 	// Create a batch with an ID in the --experiences flag and a tag name in the --experience-tags flag (experience 1 is in the tag)
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceIDString2}, []string{tagName}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil), ExpectNoError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceIDString2}, []string{tagName}, "", GithubTrue, emptyParameterMap, AssociatedAccount, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH3 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	uuid.MustParse(batchIDStringGH3)
 
 	// Create a batch without metrics with the github flag set, with a specified batch name and check the output
 	batchName := fmt.Sprintf("test-batch-%s", uuid.New().String())
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, &batchName), ExpectNoError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, emptyParameterMap, AssociatedAccount, &batchName, Ptr(100)), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH4 := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	uuid.MustParse(batchIDStringGH4)
@@ -2789,7 +2805,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Contains(output.StdOut, batchIDStringGH4)
 
 	// Now create a batch without the github flag, but with metrics
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, metricsBuildIDString, GithubFalse, emptyParameterMap, AssociatedAccount, nil), ExpectNoError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, metricsBuildIDString, GithubFalse, emptyParameterMap, AssociatedAccount, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, CreatedBatch)
 	s.Empty(output.StdErr)
 
@@ -2808,14 +2824,18 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	batchNameParts := strings.Split(batchNameString, "-")
 	s.Equal(3, len(batchNameParts))
 	// Try a batch without any experiences:
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil), ExpectError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil, nil), ExpectError)
 	s.Contains(output.StdErr, SelectOneRequired)
 	// Try a batch without a build id:
-	output = s.runCommand(createBatch(projectID, "", []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil), ExpectError)
+	output = s.runCommand(createBatch(projectID, "", []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil, nil), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildID)
 	// Try a batch with both experience tag ids and experience tag names (even if fake):
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{"tag-id"}, []string{"tag-name"}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil), ExpectError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{"tag-id"}, []string{"tag-name"}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil, nil), ExpectError)
 	s.Contains(output.StdErr, BranchTagMutuallyExclusive)
+
+	// Try a batch with non-percentage allowable failure percent:
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{}, []string{}, "", GithubFalse, emptyParameterMap, AssociatedAccount, nil, Ptr(101)), ExpectError)
+	s.Contains(output.StdErr, AllowableFailurePercent)
 
 	// Get batch passing the status flag. We need to manually execute and grab the exit code:
 	// Since we have just submitted the batch, we would expect it to be running or submitted
@@ -3029,7 +3049,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	metricsBuildID := uuid.MustParse(metricsBuildIDString)
 
 	// Create a batch with (only) experience names using the --experiences flag with some parameters
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName}, []string{}, metricsBuildIDString, GithubTrue, expectedParameterMap, AssociatedAccount, nil), ExpectNoError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName}, []string{}, metricsBuildIDString, GithubTrue, expectedParameterMap, AssociatedAccount, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	batchID := uuid.MustParse(batchIDStringGH)
@@ -3768,7 +3788,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.Len(testSuite.Experiences, 1)
 	s.ElementsMatch(experienceIDs[0], testSuite.Experiences[0])
 	// Then run.
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil), ExpectNoError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, CreatedTestSuiteBatch)
 	// Then list the test suite batches
 	output = s.runCommand(getTestSuiteBatches(projectID, firstTestSuiteName, nil), ExpectNoError)
@@ -3783,7 +3803,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 
 	// Create a new run using github and with a specific batch name:
 	batchName := fmt.Sprintf("test-batch-%s", uuid.New().String())
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName), ExpectNoError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName, Ptr(100)), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	// Parse the output to get a batch id:
 	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
@@ -3806,6 +3826,12 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 		}
 	}
 	s.True(found)
+
+	// Try running a test suite with a non-percentage allowable failure percent:
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(101)), ExpectError)
+	s.Contains(output.StdErr, AllowableFailurePercent)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(-1)), ExpectError)
+	s.Contains(output.StdErr, AllowableFailurePercent)
 }
 
 func (s *EndToEndTestSuite) TestReports() {

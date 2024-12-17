@@ -66,22 +66,23 @@ var (
 )
 
 const (
-	testSuiteProjectKey       = "project"
-	testSuiteNameKey          = "name"
-	testSuiteDescriptionKey   = "description"
-	testSuiteBuildIDKey       = "build-id"
-	testSuiteSystemKey        = "system"
-	testSuiteExperiencesKey   = "experiences"
-	testSuiteParameterKey     = "parameter"
-	testSuiteKey              = "test-suite"
-	testSuiteRevisionKey      = "revision"
-	testSuiteAllRevisionKey   = "all-revisions"
-	testSuiteGithubKey        = "github"
-	testSuiteMetricsBuildKey  = "metrics-build"
-	testSuitePoolLabelsKey    = "pool-labels"
-	testSuiteAccountKey       = "account"
-	testSuiteShowOnSummaryKey = "show-on-summary"
-	testSuiteBatchNameKey     = "batch-name"
+	testSuiteProjectKey                 = "project"
+	testSuiteNameKey                    = "name"
+	testSuiteDescriptionKey             = "description"
+	testSuiteBuildIDKey                 = "build-id"
+	testSuiteSystemKey                  = "system"
+	testSuiteExperiencesKey             = "experiences"
+	testSuiteParameterKey               = "parameter"
+	testSuiteKey                        = "test-suite"
+	testSuiteRevisionKey                = "revision"
+	testSuiteAllRevisionKey             = "all-revisions"
+	testSuiteGithubKey                  = "github"
+	testSuiteMetricsBuildKey            = "metrics-build"
+	testSuitePoolLabelsKey              = "pool-labels"
+	testSuiteAccountKey                 = "account"
+	testSuiteShowOnSummaryKey           = "show-on-summary"
+	testSuiteBatchNameKey               = "batch-name"
+	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 )
 
 func init() {
@@ -167,6 +168,7 @@ func init() {
 	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")
 	// Optional: Friendly name
 	runTestSuiteCmd.Flags().String(testSuiteBatchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
+	runTestSuiteCmd.Flags().Int(testSuiteAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	testSuiteCmd.AddCommand(runTestSuiteCmd)
 
 	// Test Suite Batches
@@ -536,6 +538,15 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	// Add the batch name if any
 	if viper.IsSet(testSuiteBatchNameKey) {
 		body.BatchName = Ptr(viper.GetString(testSuiteBatchNameKey))
+	}
+
+	// Parse --allowable-failure-percent (if any provided)
+	if viper.IsSet(testSuiteAllowableFailurePercentKey) {
+		allowableFailurePercent := viper.GetInt(testSuiteAllowableFailurePercentKey)
+		if allowableFailurePercent < 0 || allowableFailurePercent > 100 {
+			log.Fatal("allowable failure percent must be between 0 and 100")
+		}
+		body.AllowableFailurePercent = &allowableFailurePercent
 	}
 
 	// Make the request

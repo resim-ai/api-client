@@ -40,6 +40,13 @@ const (
 	RELEASE       BranchType = "RELEASE"
 )
 
+// Defines values for CompareBatchesStatusFilter.
+const (
+	BOTHFAILING CompareBatchesStatusFilter = "BOTH_FAILING"
+	BOTHPASSING CompareBatchesStatusFilter = "BOTH_PASSING"
+	ONEFAILING  CompareBatchesStatusFilter = "ONE_FAILING"
+)
+
 // Defines values for ConflatedJobStatus.
 const (
 	ConflatedJobStatusBLOCKER   ConflatedJobStatus = "BLOCKER"
@@ -55,6 +62,19 @@ const (
 const (
 	ABSOLUTE EventTimestampType = "ABSOLUTE"
 	RELATIVE EventTimestampType = "RELATIVE"
+)
+
+// Defines values for ExecutionErrorParentType.
+const (
+	BATCH ExecutionErrorParentType = "BATCH"
+	JOB   ExecutionErrorParentType = "JOB"
+)
+
+// Defines values for ExecutionErrorSource.
+const (
+	CUSTOMERCONFIG   ExecutionErrorSource = "CUSTOMER_CONFIG"
+	CUSTOMERWORKLOAD ExecutionErrorSource = "CUSTOMER_WORKLOAD"
+	PLATFORM         ExecutionErrorSource = "PLATFORM"
 )
 
 // Defines values for ExecutionStep.
@@ -184,6 +204,7 @@ type Batch struct {
 	BuildID                *BuildID                `json:"buildID,omitempty"`
 	CreationTimestamp      *Timestamp              `json:"creationTimestamp,omitempty"`
 	Description            *string                 `json:"description,omitempty"`
+	ExecutionErrors        *[]ExecutionError       `json:"executionErrors,omitempty"`
 	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty"`
 	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
@@ -209,19 +230,20 @@ type BatchID = openapi_types.UUID
 
 // BatchInput defines model for batchInput.
 type BatchInput struct {
-	AssociatedAccount     *AssociatedAccount      `json:"associatedAccount,omitempty"`
-	BatchName             *Name                   `json:"batchName,omitempty"`
-	BuildID               *BuildID                `json:"buildID,omitempty"`
-	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs"`
-	ExperienceIDs         *[]ExperienceID         `json:"experienceIDs"`
-	ExperienceNames       *[]ExperienceName       `json:"experienceNames"`
-	ExperienceTagIDs      *[]ExperienceTagID      `json:"experienceTagIDs"`
-	ExperienceTagNames    *[]ExperienceTagName    `json:"experienceTagNames"`
-	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
-	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
-	Parameters            *BatchParameters        `json:"parameters,omitempty"`
-	PoolLabels            *PoolLabels             `json:"poolLabels,omitempty"`
-	TriggeredVia          *TriggeredVia           `json:"triggeredVia,omitempty"`
+	AllowableFailurePercent *int                    `json:"allowableFailurePercent"`
+	AssociatedAccount       *AssociatedAccount      `json:"associatedAccount,omitempty"`
+	BatchName               *Name                   `json:"batchName,omitempty"`
+	BuildID                 *BuildID                `json:"buildID,omitempty"`
+	ExcludedExperienceIDs   *[]ExcludedExperienceID `json:"excludedExperienceIDs"`
+	ExperienceIDs           *[]ExperienceID         `json:"experienceIDs"`
+	ExperienceNames         *[]ExperienceName       `json:"experienceNames"`
+	ExperienceTagIDs        *[]ExperienceTagID      `json:"experienceTagIDs"`
+	ExperienceTagNames      *[]ExperienceTagName    `json:"experienceTagNames"`
+	Filters                 *ExperienceFilterInput  `json:"filters,omitempty"`
+	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	Parameters              *BatchParameters        `json:"parameters,omitempty"`
+	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty"`
+	TriggeredVia            *TriggeredVia           `json:"triggeredVia,omitempty"`
 }
 
 // BatchJobStatusCounts defines model for batchJobStatusCounts.
@@ -363,6 +385,33 @@ type BuildVersion = string
 // Checksum defines model for checksum.
 type Checksum = string
 
+// CompareBatchTest defines model for compareBatchTest.
+type CompareBatchTest struct {
+	ExperienceID   ExperienceID             `json:"experienceID"`
+	ExperienceName ExperienceName           `json:"experienceName"`
+	FromTest       *CompareBatchTestDetails `json:"fromTest"`
+	ToTest         *CompareBatchTestDetails `json:"toTest"`
+}
+
+// CompareBatchTestDetails defines model for compareBatchTestDetails.
+type CompareBatchTestDetails struct {
+	JobID JobID `json:"jobID"`
+
+	// NumMetrics The number of failblock/failwarn/passing metrics (based on job's status). Otherwise this will be null
+	NumMetrics *int               `json:"numMetrics"`
+	Status     ConflatedJobStatus `json:"status"`
+}
+
+// CompareBatchesOutput defines model for compareBatchesOutput.
+type CompareBatchesOutput struct {
+	NextPageToken string             `json:"nextPageToken"`
+	Tests         []CompareBatchTest `json:"tests"`
+	Total         int                `json:"total"`
+}
+
+// CompareBatchesStatusFilter defines model for compareBatchesStatusFilter.
+type CompareBatchesStatusFilter string
+
 // ConflatedJobStatus defines model for conflatedJobStatus.
 type ConflatedJobStatus string
 
@@ -483,6 +532,27 @@ type EventTimestampType string
 
 // ExcludedExperienceID defines model for excludedExperienceID.
 type ExcludedExperienceID = openapi_types.UUID
+
+// ExecutionError defines model for executionError.
+type ExecutionError struct {
+	// ErrorCode Standardized error code (e.g., UNKNOWN_ERROR, NONZERO_EXIT_CODE)
+	ErrorCode string `json:"errorCode"`
+
+	// ErrorText Human-readable error message
+	ErrorText string `json:"errorText"`
+
+	// Metadata Additional structured error data
+	Metadata   map[string]interface{}    `json:"metadata"`
+	ParentID   *openapi_types.UUID       `json:"parentID,omitempty"`
+	ParentType *ExecutionErrorParentType `json:"parentType,omitempty"`
+	Source     *ExecutionErrorSource     `json:"source,omitempty"`
+}
+
+// ExecutionErrorParentType defines model for ExecutionError.ParentType.
+type ExecutionErrorParentType string
+
+// ExecutionErrorSource defines model for ExecutionError.Source.
+type ExecutionErrorSource string
 
 // ExecutionStep defines model for executionStep.
 type ExecutionStep string
@@ -1045,16 +1115,17 @@ type ParameterSweepID = openapi_types.UUID
 
 // ParameterSweepInput defines model for parameterSweepInput.
 type ParameterSweepInput struct {
-	AssociatedAccount  *AssociatedAccount   `json:"associatedAccount,omitempty"`
-	BuildID            *BuildID             `json:"buildID,omitempty"`
-	ExperienceIDs      *[]ExperienceID      `json:"experienceIDs"`
-	ExperienceNames    *[]ExperienceName    `json:"experienceNames"`
-	ExperienceTagIDs   *[]ExperienceTagID   `json:"experienceTagIDs"`
-	ExperienceTagNames *[]ExperienceTagName `json:"experienceTagNames"`
-	MetricsBuildID     *MetricsBuildID      `json:"metricsBuildID,omitempty"`
-	Parameters         *[]SweepParameter    `json:"parameters,omitempty"`
-	PoolLabels         *PoolLabels          `json:"poolLabels,omitempty"`
-	TriggeredVia       *TriggeredVia        `json:"triggeredVia,omitempty"`
+	AllowableFailurePercent *int                 `json:"allowableFailurePercent"`
+	AssociatedAccount       *AssociatedAccount   `json:"associatedAccount,omitempty"`
+	BuildID                 *BuildID             `json:"buildID,omitempty"`
+	ExperienceIDs           *[]ExperienceID      `json:"experienceIDs"`
+	ExperienceNames         *[]ExperienceName    `json:"experienceNames"`
+	ExperienceTagIDs        *[]ExperienceTagID   `json:"experienceTagIDs"`
+	ExperienceTagNames      *[]ExperienceTagName `json:"experienceTagNames"`
+	MetricsBuildID          *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Parameters              *[]SweepParameter    `json:"parameters,omitempty"`
+	PoolLabels              *PoolLabels          `json:"poolLabels,omitempty"`
+	TriggeredVia            *TriggeredVia        `json:"triggeredVia,omitempty"`
 }
 
 // ParameterSweepStatus defines model for parameterSweepStatus.
@@ -1123,6 +1194,7 @@ type ReportInput struct {
 	EndTimestamp            *Timestamp               `json:"endTimestamp,omitempty"`
 	MetricsBuildID          MetricsBuildID           `json:"metricsBuildID"`
 	Name                    *Name                    `json:"name,omitempty"`
+	PoolLabels              *PoolLabels              `json:"poolLabels,omitempty"`
 	RespectRevisionBoundary *RespectRevisionBoundary `json:"respectRevisionBoundary,omitempty"`
 	StartTimestamp          Timestamp                `json:"startTimestamp"`
 	TestSuiteID             TestSuiteID              `json:"testSuiteID"`
@@ -1256,12 +1328,13 @@ type TestSuite struct {
 
 // TestSuiteBatchInput defines model for testSuiteBatchInput.
 type TestSuiteBatchInput struct {
-	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
-	BatchName         *Name              `json:"batchName,omitempty"`
-	BuildID           BuildID            `json:"buildID"`
-	Parameters        *BatchParameters   `json:"parameters,omitempty"`
-	PoolLabels        *PoolLabels        `json:"poolLabels,omitempty"`
-	TriggeredVia      *TriggeredVia      `json:"triggeredVia,omitempty"`
+	AllowableFailurePercent *int               `json:"allowableFailurePercent"`
+	AssociatedAccount       *AssociatedAccount `json:"associatedAccount,omitempty"`
+	BatchName               *Name              `json:"batchName,omitempty"`
+	BuildID                 BuildID            `json:"buildID"`
+	Parameters              *BatchParameters   `json:"parameters,omitempty"`
+	PoolLabels              *PoolLabels        `json:"poolLabels,omitempty"`
+	TriggeredVia            *TriggeredVia      `json:"triggeredVia,omitempty"`
 }
 
 // TestSuiteBatchSummaryJobResults defines model for testSuiteBatchSummaryJobResults.
@@ -1467,6 +1540,17 @@ type ListAllJobsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// CompareBatchesParams defines parameters for CompareBatches.
+type CompareBatchesParams struct {
+	// Status filter tests by their status
+	Status *CompareBatchesStatusFilter `form:"status,omitempty" json:"status,omitempty"`
+
+	// Search filter tests by their name
+	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
 // ListJobsParams defines parameters for ListJobs.
@@ -2089,6 +2173,9 @@ type ClientInterface interface {
 
 	// CancelBatch request
 	CancelBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CompareBatches request
+	CompareBatches(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListJobs request
 	ListJobs(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2754,6 +2841,18 @@ func (c *Client) UpdateBatch(ctx context.Context, projectID ProjectID, batchID B
 
 func (c *Client) CancelBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCancelBatchRequest(c.Server, projectID, batchID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CompareBatches(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCompareBatchesRequest(c.Server, projectID, batchID, otherBatchID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -5497,6 +5596,124 @@ func NewCancelBatchRequest(server string, projectID ProjectID, batchID BatchID) 
 	}
 
 	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCompareBatchesRequest generates requests for CompareBatches
+func NewCompareBatchesRequest(server string, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "otherBatchID", runtime.ParamLocationPath, otherBatchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/compare/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "status", runtime.ParamLocationQuery, *params.Status); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Search != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -13852,6 +14069,9 @@ type ClientWithResponsesInterface interface {
 	// CancelBatchWithResponse request
 	CancelBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*CancelBatchResponse, error)
 
+	// CompareBatchesWithResponse request
+	CompareBatchesWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*CompareBatchesResponse, error)
+
 	// ListJobsWithResponse request
 	ListJobsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*ListJobsResponse, error)
 
@@ -14599,6 +14819,28 @@ func (r CancelBatchResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CancelBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CompareBatchesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *CompareBatchesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r CompareBatchesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CompareBatchesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17530,6 +17772,15 @@ func (c *ClientWithResponses) CancelBatchWithResponse(ctx context.Context, proje
 	return ParseCancelBatchResponse(rsp)
 }
 
+// CompareBatchesWithResponse request returning *CompareBatchesResponse
+func (c *ClientWithResponses) CompareBatchesWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*CompareBatchesResponse, error) {
+	rsp, err := c.CompareBatches(ctx, projectID, batchID, otherBatchID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCompareBatchesResponse(rsp)
+}
+
 // ListJobsWithResponse request returning *ListJobsResponse
 func (c *ClientWithResponses) ListJobsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*ListJobsResponse, error) {
 	rsp, err := c.ListJobs(ctx, projectID, batchID, params, reqEditors...)
@@ -19328,6 +19579,32 @@ func ParseCancelBatchResponse(rsp *http.Response) (*CancelBatchResponse, error) 
 	response := &CancelBatchResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseCompareBatchesResponse parses an HTTP response from a CompareBatchesWithResponse call
+func ParseCompareBatchesResponse(rsp *http.Response) (*CompareBatchesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CompareBatchesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest CompareBatchesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil

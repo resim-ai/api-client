@@ -21,12 +21,21 @@ var (
 		Long:    ``,
 		Aliases: []string{"build"},
 	}
+
 	createBuildCmd = &cobra.Command{
 		Use:   "create",
 		Short: "create - Creates a new build",
 		Long:  ``,
 		Run:   createBuild,
 	}
+
+	updateBuildCmd = &cobra.Command{
+		Use:   "update",
+		Short: "update - Updates a build (either branch or description)",
+		Long:  ``,
+		Run:   updateBuild,
+	}
+
 	listBuildsCmd = &cobra.Command{
 		Use:   "list",
 		Short: "list - Lists existing builds",
@@ -42,6 +51,8 @@ const (
 	buildProjectKey          = "project"
 	buildSystemKey           = "system"
 	buildBranchKey           = "branch"
+	buildBranchIDKey         = "branch-id"
+	buildBuildIDKey          = "build-id"
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
 )
@@ -70,8 +81,16 @@ func init() {
 	listBuildsCmd.MarkFlagsMutuallyExclusive(buildBranchKey, buildSystemKey) // We currently only support filtering by one, the other, or none
 	listBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
+	updateBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
+	updateBuildCmd.MarkFlagRequired(buildProjectKey)
+	updateBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to update")
+	updateBuildCmd.Flags().String(buildBranchIDKey, "", "New value for the build's branch ID")
+	updateBuildCmd.Flags().String(buildDescriptionKey, "", "New value for the description of the build")
+
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
+	buildCmd.AddCommand(updateBuildCmd)
+
 	rootCmd.AddCommand(buildCmd)
 }
 
@@ -277,4 +296,31 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		fmt.Println("Created build successfully!")
 		fmt.Printf("Build ID: %s\n", build.BuildID.String())
 	}
+}
+
+func updateBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+	buildID, err := uuid.Parse(viper.GetString(buildBuildIDKey))
+	if err != nil {
+		log.Fatal("unable to parse build ID:", err)
+	}
+	// Check the build id exists
+	_, err = Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+	if err != nil {
+		log.Fatal("unable to get build:", err)
+	}
+	updateBuildInput := api.UpdateBuildInput{}
+	if viper.IsSet(buildBranchIDKey) {
+		branchID := getBranchID(Client, projectID, viper.GetString(buildBranchIDKey), true)
+		updateBuildInput.Build.BranchID = Ptr(branchID)
+	}
+	if viper.IsSet(buildDescriptionKey) {
+		updateBuildInput.Build.Description = Ptr(viper.GetString(buildDescriptionKey))
+	}
+	response, err := Client.UpdateBuildWithResponse(context.Background(), projectID, buildID, updateBuildInput)
+	if err != nil {
+		log.Fatal("unable to update build:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to update build", response.HTTPResponse, response.Body)
+	fmt.Println("Updated build successfully!")
 }

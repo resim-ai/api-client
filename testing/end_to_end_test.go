@@ -147,6 +147,7 @@ const (
 	EmptySystem           string = "system not supplied"
 	SystemDoesNotExist    string = "failed to find system"
 	BranchNotExist        string = "Branch does not exist"
+	UpdatedBuild          string = "Updated build"
 	// Metrics Build Messages
 	CreatedMetricsBuild       string = "Created metrics build"
 	GithubCreatedMetricsBuild string = "metrics_build_id="
@@ -836,6 +837,58 @@ func createBuild(projectName string, branchName string, systemName string, descr
 		})
 	}
 	return []CommandBuilder{buildCommand, createCommand}
+}
+
+func updateBuild(projectName string, existingBuildID uuid.UUID, newBranchID *uuid.UUID, buildDescription *string) []CommandBuilder {
+	buildCommand := CommandBuilder{
+		Command: "builds",
+	}
+	updateCommand := CommandBuilder{
+		Command: "update",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectName,
+			},
+			{
+				Name:  "--build-id",
+				Value: existingBuildID.String(),
+			},
+		},
+	}
+	if newBranchID != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--branch-id",
+			Value: (*newBranchID).String(),
+		})
+	}
+	if buildDescription != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--description",
+			Value: *buildDescription,
+		})
+	}
+	return []CommandBuilder{buildCommand, updateCommand}
+}
+
+func getBuild(projectName string, existingBuildID uuid.UUID) []CommandBuilder {
+	buildCommand := CommandBuilder{
+		Command: "builds",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectName,
+			},
+			{
+				Name:  "--build-id",
+				Value: existingBuildID.String(),
+			},
+		},
+	}
+	return []CommandBuilder{buildCommand, getCommand}
 }
 
 func listBuilds(projectID uuid.UUID, branchName *string, systemName *string) []CommandBuilder {
@@ -2407,7 +2460,7 @@ func (s *EndToEndTestSuite) TestSystemCreateGithub() {
 }
 
 // Test the build creation:
-func (s *EndToEndTestSuite) TestBuildCreate() {
+func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 	fmt.Println("Testing build creation")
 	// First create a project
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -2433,9 +2486,10 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
 	systemID := uuid.MustParse(systemIDString)
 	// Now create the build:
-	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	originalBuildDescription := "description"
+	output = s.runCommand(createBuild(projectName, branchName, systemName, originalBuildDescription, "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
-	uuid.MustParse(buildIDString)
+	buildID := uuid.MustParse(buildIDString)
 
 	// Check we can list the builds by passing in the branch, and our new build is in it:
 	output = s.runCommand(listBuilds(projectID, Ptr(branchName), nil), ExpectNoError) // with no system filter
@@ -2483,6 +2537,35 @@ func (s *EndToEndTestSuite) TestBuildCreate() {
 	// Validate the image URI is required to be valid and have a tag:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildImage)
+	// Update the branch id:
+	secondBranchName := fmt.Sprintf("updated-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(projectID, secondBranchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	updatedBranchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	updatedBranchID := uuid.MustParse(updatedBranchIDString)
+	output = s.runCommand(updateBuild(projectIDString, buildID, Ptr(updatedBranchID), nil), ExpectNoError)
+	s.Contains(output.StdOut, UpdatedBuild)
+	// Get the build and check:
+	output = s.runCommand(getBuild(projectIDString, buildID), ExpectNoError)
+	var build api.Build
+	err := json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(updatedBranchID, build.BranchID)
+	s.Equal(originalBuildDescription, build.Description)
+	s.Empty(output.StdErr)
+
+	updatedBuildDescription := "updated description"
+	output = s.runCommand(updateBuild(projectIDString, buildID, nil, Ptr(updatedBuildDescription)), ExpectNoError)
+	s.Contains(output.StdOut, UpdatedBuild)
+	// Get the build and check:
+	output = s.runCommand(getBuild(projectIDString, buildID), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(updatedBranchID, build.BranchID)
+	s.Equal(updatedBuildDescription, build.Description)
+	s.Empty(output.StdErr)
+
 	// Archive the project:
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)

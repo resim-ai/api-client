@@ -64,19 +64,6 @@ const (
 	RELATIVE EventTimestampType = "RELATIVE"
 )
 
-// Defines values for ExecutionErrorParentType.
-const (
-	BATCH ExecutionErrorParentType = "BATCH"
-	JOB   ExecutionErrorParentType = "JOB"
-)
-
-// Defines values for ExecutionErrorSource.
-const (
-	CUSTOMERCONFIG   ExecutionErrorSource = "CUSTOMER_CONFIG"
-	CUSTOMERWORKLOAD ExecutionErrorSource = "CUSTOMER_WORKLOAD"
-	PLATFORM         ExecutionErrorSource = "PLATFORM"
-)
-
 // Defines values for ExecutionStep.
 const (
 	BATCHMETRICS ExecutionStep = "BATCH_METRICS"
@@ -151,10 +138,10 @@ const (
 
 // Defines values for ReportStatus.
 const (
-	ERROR     ReportStatus = "ERROR"
-	RUNNING   ReportStatus = "RUNNING"
-	SUBMITTED ReportStatus = "SUBMITTED"
-	SUCCEEDED ReportStatus = "SUCCEEDED"
+	ReportStatusERROR     ReportStatus = "ERROR"
+	ReportStatusRUNNING   ReportStatus = "RUNNING"
+	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
+	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
 // Defines values for TriggeredVia.
@@ -204,7 +191,7 @@ type Batch struct {
 	BuildID                *BuildID                `json:"buildID,omitempty"`
 	CreationTimestamp      *Timestamp              `json:"creationTimestamp,omitempty"`
 	Description            *string                 `json:"description,omitempty"`
-	ExecutionErrors        *[]ExecutionError       `json:"executionErrors,omitempty"`
+	ExecutionError         *ExecutionError         `json:"executionError,omitempty"`
 	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty"`
 	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
@@ -490,6 +477,7 @@ type CreateTestSuiteInput struct {
 	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
 	Name                  TestSuiteName           `json:"name"`
 	ShowOnSummary         *bool                   `json:"showOnSummary,omitempty"`
+	SummaryReferenceDate  *Timestamp              `json:"summaryReferenceDate,omitempty"`
 	SystemID              SystemID                `json:"systemID"`
 }
 
@@ -537,22 +525,7 @@ type ExcludedExperienceID = openapi_types.UUID
 type ExecutionError struct {
 	// ErrorCode Standardized error code (e.g., UNKNOWN_ERROR, NONZERO_EXIT_CODE)
 	ErrorCode string `json:"errorCode"`
-
-	// ErrorText Human-readable error message
-	ErrorText string `json:"errorText"`
-
-	// Metadata Additional structured error data
-	Metadata   map[string]interface{}    `json:"metadata"`
-	ParentID   *openapi_types.UUID       `json:"parentID,omitempty"`
-	ParentType *ExecutionErrorParentType `json:"parentType,omitempty"`
-	Source     *ExecutionErrorSource     `json:"source,omitempty"`
 }
-
-// ExecutionErrorParentType defines model for ExecutionError.ParentType.
-type ExecutionErrorParentType string
-
-// ExecutionErrorSource defines model for ExecutionError.Source.
-type ExecutionErrorSource string
 
 // ExecutionStep defines model for executionStep.
 type ExecutionStep string
@@ -622,6 +595,13 @@ type FileName = string
 // FileSize defines model for fileSize.
 type FileSize = int64
 
+// FirstBuildMetric The first batch metric in the sequence, and some info about how it has changed
+type FirstBuildMetric struct {
+	Delta float64   `json:"delta"`
+	Time  Timestamp `json:"time"`
+	Value float64   `json:"value"`
+}
+
 // FriendlyName defines model for friendlyName.
 type FriendlyName = string
 
@@ -641,6 +621,7 @@ type Job struct {
 	ConflatedStatus      *ConflatedJobStatus `json:"conflatedStatus,omitempty"`
 	CreationTimestamp    *Timestamp          `json:"creationTimestamp,omitempty"`
 	Description          *string             `json:"description,omitempty"`
+	ExecutionError       *ExecutionError     `json:"executionError,omitempty"`
 	ExperienceID         *ExperienceID       `json:"experienceID,omitempty"`
 	ExperienceName       *ExperienceName     `json:"experienceName,omitempty"`
 	JobID                *JobID              `json:"jobID,omitempty"`
@@ -731,6 +712,31 @@ type JobStatusHistory = []JobStatusHistoryType
 type JobStatusHistoryType struct {
 	Status    *JobStatus `json:"status,omitempty"`
 	UpdatedAt *Timestamp `json:"updatedAt,omitempty"`
+}
+
+// KeyMetric defines model for keyMetric.
+type KeyMetric struct {
+	// FirstBuildMetric The first batch metric in the sequence, and some info about how it has changed
+	FirstBuildMetric *FirstBuildMetric           `json:"firstBuildMetric"`
+	LatestValue      float64                     `json:"latestValue"`
+	Name             string                      `json:"name"`
+	Performance      []KeyMetricPerformancePoint `json:"performance"`
+
+	// Target The optional desired target for this metric
+	Target *KeyMetricTarget `json:"target"`
+	Unit   *string          `json:"unit"`
+}
+
+// KeyMetricPerformancePoint defines model for keyMetricPerformancePoint.
+type KeyMetricPerformancePoint struct {
+	Time  Timestamp `json:"time"`
+	Value float64   `json:"value"`
+}
+
+// KeyMetricTarget The optional desired target for this metric
+type KeyMetricTarget struct {
+	Operator string  `json:"operator"`
+	Value    float64 `json:"value"`
 }
 
 // LineNumber defines model for lineNumber.
@@ -1160,6 +1166,13 @@ type Project struct {
 // ProjectID defines model for projectID.
 type ProjectID = openapi_types.UUID
 
+// ReferenceBatchSummary defines model for referenceBatchSummary.
+type ReferenceBatchSummary struct {
+	FixedTests int64 `json:"fixedTests"`
+	NewIssues  int64 `json:"newIssues"`
+	NewTests   int64 `json:"newTests"`
+}
+
 // Report defines model for report.
 type Report struct {
 	AssociatedAccount       AssociatedAccount       `json:"associatedAccount"`
@@ -1312,18 +1325,19 @@ type TagID = openapi_types.UUID
 
 // TestSuite defines model for testSuite.
 type TestSuite struct {
-	CreationTimestamp Timestamp            `json:"creationTimestamp"`
-	Description       TestSuiteDescription `json:"description"`
-	Experiences       []ExperienceID       `json:"experiences"`
-	MetricsBuildID    *MetricsBuildID      `json:"metricsBuildID,omitempty"`
-	Name              TestSuiteName        `json:"name"`
-	OrgID             OrgID                `json:"orgID"`
-	ProjectID         ProjectID            `json:"projectID"`
-	ShowOnSummary     bool                 `json:"showOnSummary"`
-	SystemID          SystemID             `json:"systemID"`
-	TestSuiteID       TestSuiteID          `json:"testSuiteID"`
-	TestSuiteRevision TestSuiteRevision    `json:"testSuiteRevision"`
-	UserID            UserID               `json:"userID"`
+	CreationTimestamp    Timestamp            `json:"creationTimestamp"`
+	Description          TestSuiteDescription `json:"description"`
+	Experiences          []ExperienceID       `json:"experiences"`
+	MetricsBuildID       *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	Name                 TestSuiteName        `json:"name"`
+	OrgID                OrgID                `json:"orgID"`
+	ProjectID            ProjectID            `json:"projectID"`
+	ShowOnSummary        bool                 `json:"showOnSummary"`
+	SummaryReferenceDate *Timestamp           `json:"summaryReferenceDate,omitempty"`
+	SystemID             SystemID             `json:"systemID"`
+	TestSuiteID          TestSuiteID          `json:"testSuiteID"`
+	TestSuiteRevision    TestSuiteRevision    `json:"testSuiteRevision"`
+	UserID               UserID               `json:"userID"`
 }
 
 // TestSuiteBatchInput defines model for testSuiteBatchInput.
@@ -1368,19 +1382,23 @@ type TestSuiteRevision = int32
 
 // TestSuiteSummary defines model for testSuiteSummary.
 type TestSuiteSummary struct {
-	Batches   []TestSuiteBatchSummaryJobResults `json:"batches"`
-	BranchID  BranchID                          `json:"branchID"`
-	Name      TestSuiteName                     `json:"name"`
-	ProjectID ProjectID                         `json:"projectID"`
-	ReportID  ReportID                          `json:"reportID"`
-	Summary   struct {
+	Batches               []TestSuiteBatchSummaryJobResults `json:"batches"`
+	BranchID              BranchID                          `json:"branchID"`
+	KeyMetric             *KeyMetric                        `json:"keyMetric"`
+	Name                  TestSuiteName                     `json:"name"`
+	ProjectID             ProjectID                         `json:"projectID"`
+	ReferenceBatch        *TestSuiteBatchSummaryJobResults  `json:"referenceBatch,omitempty"`
+	ReferenceBatchSummary *ReferenceBatchSummary            `json:"referenceBatchSummary"`
+	ReportID              ReportID                          `json:"reportID"`
+	Summary               struct {
 		FixedTests int64 `json:"fixedTests"`
 		NewIssues  int64 `json:"newIssues"`
 		NewTests   int64 `json:"newTests"`
 	} `json:"summary"`
-	SystemID          SystemID          `json:"systemID"`
-	TestSuiteID       TestSuiteID       `json:"testSuiteID"`
-	TestSuiteRevision TestSuiteRevision `json:"testSuiteRevision"`
+	SystemID             SystemID             `json:"systemID"`
+	TestSuiteDescription TestSuiteDescription `json:"testSuiteDescription"`
+	TestSuiteID          TestSuiteID          `json:"testSuiteID"`
+	TestSuiteRevision    TestSuiteRevision    `json:"testSuiteRevision"`
 }
 
 // TestSuiteSummaryOutput defines model for testSuiteSummaryOutput.
@@ -1398,6 +1416,18 @@ type TriggeredVia string
 // UpdateBatchInput defines model for updateBatchInput.
 type UpdateBatchInput struct {
 	Description string `json:"description"`
+}
+
+// UpdateBuildFields defines model for updateBuildFields.
+type UpdateBuildFields struct {
+	BranchID    *openapi_types.UUID `json:"branchID,omitempty"`
+	Description *string             `json:"description,omitempty"`
+}
+
+// UpdateBuildInput defines model for updateBuildInput.
+type UpdateBuildInput struct {
+	Build      *UpdateBuildFields `json:"build,omitempty"`
+	UpdateMask *UpdateMask        `json:"updateMask,omitempty"`
 }
 
 // UpdateEventInput defines model for updateEventInput.
@@ -1973,6 +2003,9 @@ type CreateBranchForProjectJSONRequestBody = CreateBranchInput
 // CreateBuildForBranchJSONRequestBody defines body for CreateBuildForBranch for application/json ContentType.
 type CreateBuildForBranchJSONRequestBody = CreateBuildForBranchInput
 
+// UpdateBuildJSONRequestBody defines body for UpdateBuild for application/json ContentType.
+type UpdateBuildJSONRequestBody = UpdateBuildInput
+
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
 type CreateExperienceTagJSONRequestBody = CreateExperienceTagInput
 
@@ -2357,6 +2390,11 @@ type ClientInterface interface {
 
 	// GetBuild request
 	GetBuild(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateBuildWithBody request with any body
+	UpdateBuildWithBody(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body UpdateBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListExperienceTags request
 	ListExperienceTags(ctx context.Context, projectID ProjectID, params *ListExperienceTagsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3645,6 +3683,30 @@ func (c *Client) ListBuildAccounts(ctx context.Context, projectID ProjectID, req
 
 func (c *Client) GetBuild(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetBuildRequest(c.Server, projectID, buildID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateBuildWithBody(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBuildRequestWithBody(c.Server, projectID, buildID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body UpdateBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateBuildRequest(c.Server, projectID, buildID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9217,6 +9279,60 @@ func NewGetBuildRequest(server string, projectID ProjectID, buildID BuildID) (*h
 	return req, nil
 }
 
+// NewUpdateBuildRequest calls the generic UpdateBuild builder with application/json body
+func NewUpdateBuildRequest(server string, projectID ProjectID, buildID BuildID, body UpdateBuildJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateBuildRequestWithBody(server, projectID, buildID, "application/json", bodyReader)
+}
+
+// NewUpdateBuildRequestWithBody generates requests for UpdateBuild with any type of body
+func NewUpdateBuildRequestWithBody(server string, projectID ProjectID, buildID BuildID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "buildID", runtime.ParamLocationPath, buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/builds/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListExperienceTagsRequest generates requests for ListExperienceTags
 func NewListExperienceTagsRequest(server string, projectID ProjectID, params *ListExperienceTagsParams) (*http.Request, error) {
 	var err error
@@ -14253,6 +14369,11 @@ type ClientWithResponsesInterface interface {
 	// GetBuildWithResponse request
 	GetBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*GetBuildResponse, error)
 
+	// UpdateBuildWithBodyWithResponse request with any body
+	UpdateBuildWithBodyWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBuildResponse, error)
+
+	UpdateBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body UpdateBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBuildResponse, error)
+
 	// ListExperienceTagsWithResponse request
 	ListExperienceTagsWithResponse(ctx context.Context, projectID ProjectID, params *ListExperienceTagsParams, reqEditors ...RequestEditorFn) (*ListExperienceTagsResponse, error)
 
@@ -15026,6 +15147,7 @@ func (r ListJobLogsForJobResponse) StatusCode() int {
 type CreateJobLogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *JobLog
 	JSON201      *JobLog
 }
 
@@ -15355,6 +15477,7 @@ func (r ListBatchLogsForBatchResponse) StatusCode() int {
 type CreateBatchLogResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	JSON200      *BatchLog
 	JSON201      *BatchLog
 }
 
@@ -15915,6 +16038,28 @@ func (r GetBuildResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Build
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateBuildResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -18358,6 +18503,23 @@ func (c *ClientWithResponses) GetBuildWithResponse(ctx context.Context, projectI
 	return ParseGetBuildResponse(rsp)
 }
 
+// UpdateBuildWithBodyWithResponse request with arbitrary body returning *UpdateBuildResponse
+func (c *ClientWithResponses) UpdateBuildWithBodyWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateBuildResponse, error) {
+	rsp, err := c.UpdateBuildWithBody(ctx, projectID, buildID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBuildResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body UpdateBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBuildResponse, error) {
+	rsp, err := c.UpdateBuild(ctx, projectID, buildID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateBuildResponse(rsp)
+}
+
 // ListExperienceTagsWithResponse request returning *ListExperienceTagsResponse
 func (c *ClientWithResponses) ListExperienceTagsWithResponse(ctx context.Context, projectID ProjectID, params *ListExperienceTagsParams, reqEditors ...RequestEditorFn) (*ListExperienceTagsResponse, error) {
 	rsp, err := c.ListExperienceTags(ctx, projectID, params, reqEditors...)
@@ -19832,6 +19994,13 @@ func ParseCreateJobLogResponse(rsp *http.Response) (*CreateJobLogResponse, error
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobLog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
 		var dest JobLog
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -20212,6 +20381,13 @@ func ParseCreateBatchLogResponse(rsp *http.Response) (*CreateBatchLogResponse, e
 	}
 
 	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BatchLog
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
 		var dest BatchLog
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
@@ -20827,6 +21003,32 @@ func ParseGetBuildResponse(rsp *http.Response) (*GetBuildResponse, error) {
 	}
 
 	response := &GetBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Build
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateBuildResponse parses an HTTP response from a UpdateBuildWithResponse call
+func ParseUpdateBuildResponse(rsp *http.Response) (*UpdateBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateBuildResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

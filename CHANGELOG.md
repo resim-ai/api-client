@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.4.0 - January 24 2025
+
+#### Added
+
+- The ReSim CLI now supports updating builds via `builds update`. A build can be updated with a new branch ID and a new description. The version and image must be static.
+
 ### v0.3.11 - December 10 2024
 
 #### Added

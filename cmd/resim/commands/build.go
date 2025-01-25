@@ -325,14 +325,20 @@ func updateBuild(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("unable to get build:", err)
 	}
-	updateBuildInput := api.UpdateBuildInput{}
+	updateBuildInput := api.UpdateBuildInput{
+		Build: &api.UpdateBuildFields{},
+	}
+	updateMask := []string{}
 	if viper.IsSet(buildBranchIDKey) {
 		branchID := getBranchID(Client, projectID, viper.GetString(buildBranchIDKey), true)
 		updateBuildInput.Build.BranchID = Ptr(branchID)
+		updateMask = append(updateMask, "branchID")
 	}
 	if viper.IsSet(buildDescriptionKey) {
 		updateBuildInput.Build.Description = Ptr(viper.GetString(buildDescriptionKey))
+		updateMask = append(updateMask, "description")
 	}
+	updateBuildInput.UpdateMask = Ptr(updateMask)
 	response, err := Client.UpdateBuildWithResponse(context.Background(), projectID, buildID, updateBuildInput)
 	if err != nil {
 		log.Fatal("unable to update build:", err)

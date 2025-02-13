@@ -148,7 +148,7 @@ func selectProject(ccmd *cobra.Command, args []string) {
 	// Therefore we can safely save it again without adding any additional flags.
 	v := viper.New()
 	v.SetConfigName("resim")
-	v.SetConfigType("json")
+	v.SetConfigType("yaml")
 	v.AddConfigPath(os.ExpandEnv(ConfigPath))
 	if err := v.ReadInConfig(); err != nil {
 		switch err.(type) {

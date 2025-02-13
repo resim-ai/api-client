@@ -8,6 +8,16 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.4.1 - February 13 2025
+
+#### Added
+
+- The ReSim CLI now shows help when no subcommands are provided.
+
+#### Fixed
+
+- The CLI no longer fails to select a new project if the config file is present.
+
 ### v0.4.0 - January 24 2025
 
 #### Added

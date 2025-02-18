@@ -4253,6 +4253,87 @@ func (s *EndToEndTestSuite) TestReports() {
 
 	//TODO(iain): check the wait and logs commands, once the rest has landed.
 }
+
+func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
+	fmt.Println("Testing batch creation with a single experience and 0s timeout")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Create an experience
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, Ptr(int32(0)), GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString)
+
+	// Now create the branch
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Create the system
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// Now create the build
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+
+	// Attempt to create a batch with a 0s timeout
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, map[string]string{}, AssociatedAccount, nil, Ptr(0)), ExpectError)
+	// Expect the batch to be created successfully
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDString)
+
+	// Now, wait for the batch to complete and validate that it has an error:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getBatchByID(projectID, batchIDString, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 errored
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	s.Contains(output.StdOut, "ERROR")
+
+	// Archive the project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
+	s.Empty(output.StdErr)
+}
+
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()
 	viper.SetDefault(Config, Dev)

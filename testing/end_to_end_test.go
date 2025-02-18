@@ -2829,7 +2829,7 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	s.Equal(experienceName, experience.Name)
 	s.Equal("description", experience.Description)
 	s.Equal("location", experience.Location)
-	s.Equal(3600, experience.ContainerTimeoutSeconds) // default timeout
+	s.Equal(int32(3600), experience.ContainerTimeoutSeconds) // default timeout
 
 	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
@@ -4293,7 +4293,7 @@ func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
 	uuid.MustParse(buildIDString)
 
 	// Attempt to create a batch with a 0s timeout
-	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, map[string]string{}, AssociatedAccount, nil, Ptr(0)), ExpectError)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, map[string]string{}, AssociatedAccount, nil, Ptr(0)), ExpectNoError)
 	// Expect the batch to be created successfully
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]

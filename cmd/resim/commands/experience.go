@@ -32,6 +32,12 @@ var (
 		Long:  ``,
 		Run:   getExperience,
 	}
+	updateExperienceCmd = &cobra.Command{
+		Use:   "update",
+		Short: "update - Update an existing experience",
+		Long:  ``,
+		Run:   updateExperience,
+	}
 	listExperiencesCmd = &cobra.Command{
 		Use:   "list",
 		Short: "list - Lists experiences",
@@ -94,13 +100,27 @@ func init() {
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	createExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
 	createExperienceCmd.Flags().Int32(experienceTimeoutKey, 3600, "The timeout for the experience container in seconds. Default is 3600 (1 hour)")
+	createExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(createExperienceCmd)
 
 	getExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
 	getExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	getExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to get")
 	getExperienceCmd.MarkFlagRequired(experienceKey)
+	getExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(getExperienceCmd)
+
+	updateExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
+	updateExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	updateExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to update")
+	updateExperienceCmd.MarkFlagRequired(experienceKey)
+	updateExperienceCmd.Flags().String(experienceNameKey, "", "New value for the name of the experience")
+	updateExperienceCmd.Flags().String(experienceDescriptionKey, "", "New value for the description of the experience")
+	updateExperienceCmd.Flags().String(experienceLocationKey, "", "New value for the location of the experience, e.g. an S3 URI for the experience folder")
+	updateExperienceCmd.Flags().Int32(experienceTimeoutKey, 3600, "New value for the timeout for the experience container in seconds.")
+	updateExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
+	experienceCmd.AddCommand(updateExperienceCmd)
 
 	listExperiencesCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
 	listExperiencesCmd.MarkFlagRequired(experienceProjectKey)
@@ -249,6 +269,39 @@ func getExperience(ccmd *cobra.Command, args []string) {
 	}
 	experience := response.JSON200
 	OutputJson(experience)
+}
+
+func updateExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	updateExperienceInput := api.UpdateExperienceInput{
+		Experience: &api.UpdateExperienceFields{},
+	}
+
+	updateMask := []string{}
+	if viper.IsSet(experienceNameKey) {
+		updateExperienceInput.Experience.Name = Ptr(viper.GetString(experienceNameKey))
+		updateMask = append(updateMask, "name")
+	}
+	if viper.IsSet(experienceDescriptionKey) {
+		updateExperienceInput.Experience.Description = Ptr(viper.GetString(experienceDescriptionKey))
+		updateMask = append(updateMask, "description")
+	}
+	if viper.IsSet(experienceLocationKey) {
+		updateExperienceInput.Experience.Location = Ptr(viper.GetString(experienceLocationKey))
+		updateMask = append(updateMask, "location")
+	}
+	if viper.IsSet(experienceTimeoutKey) {
+		updateExperienceInput.Experience.ContainerTimeoutSeconds = Ptr(viper.GetInt32(experienceTimeoutKey))
+		updateMask = append(updateMask, "containerTimeoutSeconds")
+	}
+	updateExperienceInput.UpdateMask = Ptr(updateMask)
+	response, err := Client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, updateExperienceInput)
+	if err != nil {
+		log.Fatal("unable to update experience:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to update experience", response.HTTPResponse, response.Body)
+	fmt.Println("Updated experience successfully!")
 }
 
 func listExperiences(ccmd *cobra.Command, args []string) {

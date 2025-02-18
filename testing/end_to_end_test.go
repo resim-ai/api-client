@@ -976,7 +976,7 @@ func listMetricsBuilds(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{metricsBuildsCommand, listCommand}
 }
 
-func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, timeout *int32, github bool) []CommandBuilder {
+func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, timeout *time.Duration, github bool) []CommandBuilder {
 	// We build a create experience command with the name, description, location flags
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
@@ -1011,7 +1011,7 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 	if timeout != nil {
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--timeout",
-			Value: fmt.Sprintf("%d", *timeout),
+			Value: timeout.String(),
 		})
 	}
 	if github {
@@ -1043,7 +1043,7 @@ func getExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
 	return []CommandBuilder{experienceCommand, getCommand}
 }
 
-func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, timeout *int32) []CommandBuilder {
+func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, timeout *time.Duration) []CommandBuilder {
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
 	}
@@ -1081,7 +1081,7 @@ func updateExperience(projectID uuid.UUID, experienceKey string, name *string, d
 	if timeout != nil {
 		updateCommand.Flags = append(updateCommand.Flags, Flag{
 			Name:  "--timeout",
-			Value: fmt.Sprintf("%d", *timeout),
+			Value: timeout.String(),
 		})
 	}
 	return []CommandBuilder{experienceCommand, updateCommand}
@@ -2756,7 +2756,8 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 
 	systemNames := []string{systemName1, systemName2}
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	timeout := int32(200)
+	timeoutSeconds := int32(200)
+	timeout := time.Duration(timeoutSeconds) * time.Second
 	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedExperience)
 	s.Empty(output.StdErr)
@@ -2861,7 +2862,8 @@ func (s *EndToEndTestSuite) TestExperienceUpdate() {
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	originalDescription := "original description"
 	originalLocation := "original location"
-	originalTimeout := int32(200)
+	originalTimeoutSeconds := int32(200)
+	originalTimeout := time.Duration(originalTimeoutSeconds) * time.Second
 	output = s.runCommand(createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, &originalTimeout, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -2869,38 +2871,40 @@ func (s *EndToEndTestSuite) TestExperienceUpdate() {
 	// 1. Update the experience name alone and verify
 	newName := "updated-experience-name"
 	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), nil, nil, nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, originalDescription, originalLocation, originalTimeout)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, originalDescription, originalLocation, originalTimeoutSeconds)
 
 	// 2. Update the description alone and verify
 	newDescription := "updated description"
 	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, Ptr(newDescription), nil, nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, originalLocation, originalTimeout)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, originalLocation, originalTimeoutSeconds)
 
 	// 3. Update the location alone and verify
 	newLocation := "updated location"
 	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, Ptr(newLocation), nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, originalTimeout)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, originalTimeoutSeconds)
 
 	// 4. Update the timeout alone and verify
-	newTimeout := int32(300)
-	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, Ptr(newTimeout)), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+	newTimeoutSeconds := int32(300)
+	newTimeout := time.Duration(newTimeoutSeconds) * time.Second
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, &newTimeout), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
 
 	// 5. Update the name and description and verify
 	newName = "final-experience-name"
 	newDescription = "final description"
 	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), nil, nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
 
 	// 6. Update the name, description, and location and verify
 	newLocation = "final location"
 	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
 
 	// 7. Update the name, description, location, and timeout and verify
-	newTimeout = int32(400)
+	newTimeoutSeconds = int32(400)
+	newTimeout = time.Duration(newTimeoutSeconds) * time.Second
 	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), Ptr(newTimeout)), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
 
 	// Archive the project:
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
@@ -4267,7 +4271,7 @@ func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
 	// Create an experience
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, Ptr(int32(0)), GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, Ptr(0*time.Second), GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)

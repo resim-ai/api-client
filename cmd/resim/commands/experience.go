@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -99,7 +101,7 @@ func init() {
 	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	createExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
-	createExperienceCmd.Flags().Int32(experienceTimeoutKey, 3600, "The timeout for the experience container in seconds. Default is 3600 (1 hour)")
+	createExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
 	createExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(createExperienceCmd)
 
@@ -117,7 +119,7 @@ func init() {
 	updateExperienceCmd.Flags().String(experienceNameKey, "", "New value for the name of the experience")
 	updateExperienceCmd.Flags().String(experienceDescriptionKey, "", "New value for the description of the experience")
 	updateExperienceCmd.Flags().String(experienceLocationKey, "", "New value for the location of the experience, e.g. an S3 URI for the experience folder")
-	updateExperienceCmd.Flags().Int32(experienceTimeoutKey, 3600, "New value for the timeout for the experience container in seconds.")
+	createExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
 	updateExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	experienceCmd.AddCommand(updateExperienceCmd)
@@ -183,7 +185,8 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience location")
 	}
 
-	containerTimeoutSeconds := viper.GetInt32(experienceTimeoutKey)
+	containerTimeout := viper.GetDuration(experienceTimeoutKey)
+	containerTimeoutSeconds := int32(math.Floor(containerTimeout.Seconds()))
 
 	body := api.CreateExperienceInput{
 		Name:                    experienceName,
@@ -292,7 +295,9 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 		updateMask = append(updateMask, "location")
 	}
 	if viper.IsSet(experienceTimeoutKey) {
-		updateExperienceInput.Experience.ContainerTimeoutSeconds = Ptr(viper.GetInt32(experienceTimeoutKey))
+		containerTimeout := viper.GetDuration(experienceTimeoutKey)
+		containerTimeoutSeconds := int32(math.Floor(containerTimeout.Seconds()))
+		updateExperienceInput.Experience.ContainerTimeoutSeconds = &containerTimeoutSeconds
 		updateMask = append(updateMask, "containerTimeoutSeconds")
 	}
 	updateExperienceInput.UpdateMask = Ptr(updateMask)

@@ -2772,7 +2772,7 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	s.Equal(experienceName, experience.Name)
 	s.Equal("description", experience.Description)
 	s.Equal("location", experience.Location)
-	s.Equal(timeout, experience.ContainerTimeoutSeconds)
+	s.Equal(timeoutSeconds, experience.ContainerTimeoutSeconds)
 	// Validate that the experience is available for each system:
 	for _, systemName := range systemNames {
 		output = s.runCommand(systemExperiences(projectIDString, systemName), ExpectNoError)

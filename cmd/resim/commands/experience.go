@@ -26,6 +26,12 @@ var (
 		Long:  ``,
 		Run:   createExperience,
 	}
+	getExperienceCmd = &cobra.Command{
+		Use:   "get",
+		Short: "get - Get information about an experience",
+		Long:  ``,
+		Run:   getExperience,
+	}
 	listExperiencesCmd = &cobra.Command{
 		Use:   "list",
 		Short: "list - Lists experiences",
@@ -71,6 +77,7 @@ const (
 	experienceLaunchProfileKey = "launch-profile"
 	experienceGithubKey        = "github"
 	experienceTagKey           = "tag"
+	experienceTimeoutKey       = "timeout"
 )
 
 func init() {
@@ -86,7 +93,14 @@ func init() {
 	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	createExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
+	createExperienceCmd.Flags().Int32(experienceTimeoutKey, 3600, "The timeout for the experience container in seconds. Default is 3600 (1 hour)")
 	experienceCmd.AddCommand(createExperienceCmd)
+
+	getExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
+	getExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	getExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to get")
+	getExperienceCmd.MarkFlagRequired(experienceKey)
+	experienceCmd.AddCommand(getExperienceCmd)
 
 	listExperiencesCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
 	listExperiencesCmd.MarkFlagRequired(experienceProjectKey)
@@ -149,10 +163,13 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience location")
 	}
 
+	containerTimeoutSeconds := viper.GetInt32(experienceTimeoutKey)
+
 	body := api.CreateExperienceInput{
-		Name:        experienceName,
-		Description: experienceDescription,
-		Location:    experienceLocation,
+		Name:                    experienceName,
+		Description:             experienceDescription,
+		Location:                experienceLocation,
+		ContainerTimeoutSeconds: &containerTimeoutSeconds,
 	}
 
 	if viper.IsSet(experienceLaunchProfileKey) {
@@ -218,11 +235,26 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	}
 }
 
+func getExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+
+	response, err := Client.GetExperienceWithResponse(context.Background(), projectID, experienceID)
+	if err != nil {
+		log.Fatal("failed to get experience:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to get experience", response.HTTPResponse, response.Body)
+	if response.JSON200 == nil {
+		log.Fatal("empty response")
+	}
+	experience := response.JSON200
+	OutputJson(experience)
+}
+
 func listExperiences(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	var pageToken *string = nil
-
 	var allExperiences []api.Experience
+	var pageToken *string = nil
 
 	for {
 		response, err := Client.ListExperiencesWithResponse(

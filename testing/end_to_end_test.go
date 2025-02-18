@@ -1043,6 +1043,50 @@ func getExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
 	return []CommandBuilder{experienceCommand, getCommand}
 }
 
+func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, timeout *int32) []CommandBuilder {
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	updateCommand := CommandBuilder{
+		Command: "update",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--experience",
+				Value: experienceKey,
+			},
+		},
+	}
+	if name != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--name",
+			Value: *name,
+		})
+	}
+	if description != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--description",
+			Value: *description,
+		})
+	}
+	if location != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--location",
+			Value: *location,
+		})
+	}
+	if timeout != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--timeout",
+			Value: fmt.Sprintf("%d", *timeout),
+		})
+	}
+	return []CommandBuilder{experienceCommand, updateCommand}
+}
+
 func createExperienceTag(projectID uuid.UUID, name string, description string) []CommandBuilder {
 	experienceTagCommand := CommandBuilder{
 		Command: "experience-tags",
@@ -2793,7 +2837,75 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
+}
 
+func (s *EndToEndTestSuite) verifyExperienceUpdate(projectID uuid.UUID, experienceID, expectedName, expectedDescription, expectedLocation string, expectedTimeout int32) {
+	output := s.runCommand(getExperience(projectID, experienceID), ExpectNoError)
+	s.Contains(output.StdOut, expectedName)
+	s.Contains(output.StdOut, expectedDescription)
+	s.Contains(output.StdOut, expectedLocation)
+	s.Contains(output.StdOut, fmt.Sprintf("%d", expectedTimeout))
+}
+
+func (s *EndToEndTestSuite) TestExperienceUpdate() {
+	fmt.Println("Testing experience update command")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Create an experience:
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	originalDescription := "original description"
+	originalLocation := "original location"
+	originalTimeout := int32(200)
+	output = s.runCommand(createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, &originalTimeout, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+
+	// 1. Update the experience name alone and verify
+	newName := "updated-experience-name"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), nil, nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, originalDescription, originalLocation, originalTimeout)
+
+	// 2. Update the description alone and verify
+	newDescription := "updated description"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, Ptr(newDescription), nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, originalLocation, originalTimeout)
+
+	// 3. Update the location alone and verify
+	newLocation := "updated location"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, Ptr(newLocation), nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, originalTimeout)
+
+	// 4. Update the timeout alone and verify
+	newTimeout := int32(300)
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, Ptr(newTimeout)), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+
+	// 5. Update the name and description and verify
+	newName = "final-experience-name"
+	newDescription = "final description"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+
+	// 6. Update the name, description, and location and verify
+	newLocation = "final location"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+
+	// 7. Update the name, description, location, and timeout and verify
+	newTimeout = int32(400)
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), Ptr(newTimeout)), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeout)
+
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
+	s.Empty(output.StdErr)
 }
 
 func (s *EndToEndTestSuite) TestBatchAndLogs() {

@@ -8,6 +8,14 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.5.0 - February 18 2025
+
+#### Added
+
+- The ReSim Platform now supports container timeouts, which can be set when creating or updating an experience. The intention is to allow users to specify a timeout for the container that is running the experience. If the container runs longer than this, it will be terminated.
+- The ReSim CLI now supports updating experiences via `experiences update`. An experience can be updated with a new name, description, location, and container timeout.
+
+
 ### v0.4.1 - February 13 2025
 
 #### Added

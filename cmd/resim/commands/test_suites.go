@@ -135,12 +135,14 @@ func init() {
 	reviseTestSuiteCmd.Flags().String(testSuiteSystemKey, "", "A new name or ID of the system that the new test suite is designed for.")
 	// Description [optional]
 	reviseTestSuiteCmd.Flags().String(testSuiteDescriptionKey, "", "A new description for the test suite revision.")
+	// Show on Summary [optional]
+	reviseTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
 	// Metrics build
 	reviseTestSuiteCmd.Flags().String(testSuiteMetricsBuildKey, "", "A new ID of the metrics build to use in this test suite revision. To unset an existing metrics build, pass a nil uuid (00000000-0000-0000-0000-000000000000).")
 	// Experiences
 	reviseTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "A list of updated experience names or list of experience IDs to have in the test suite revision.")
 	// We need something to revise!
-	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey)
+	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey, testSuiteShowOnSummaryKey)
 	testSuiteCmd.AddCommand(reviseTestSuiteCmd)
 
 	// List Test Suite
@@ -299,6 +301,10 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 
 	if viper.IsSet(testSuiteDescriptionKey) {
 		reviseRequest.Description = Ptr(viper.GetString(testSuiteDescriptionKey))
+	}
+
+	if viper.IsSet(testSuiteShowOnSummaryKey) {
+		reviseRequest.ShowOnSummary = Ptr(viper.GetBool(testSuiteShowOnSummaryKey))
 	}
 
 	if viper.IsSet(testSuiteSystemKey) {

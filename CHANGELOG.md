@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.6.0 - February 19 2025
+
+#### Added
+
+- The test suite `revise` command now supports the `--show-on-summary` flag, which can be used to specify whether the latest results of a test suite should be displayed on the overview dashboard.
+
 ### v0.5.0 - February 18 2025
 
 #### Added

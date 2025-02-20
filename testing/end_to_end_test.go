@@ -1682,7 +1682,7 @@ func createTestSuite(projectID uuid.UUID, name string, description string, syste
 	return []CommandBuilder{suitesCommand, createCommand}
 }
 
-func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, github bool) []CommandBuilder {
+func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, showOnSummary *bool, github bool) []CommandBuilder {
 	suitesCommand := CommandBuilder{
 		Command: "suites",
 	}
@@ -1715,6 +1715,12 @@ func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, descri
 		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
 			Name:  "--description",
 			Value: *description,
+		})
+	}
+	if showOnSummary != nil {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--show-on-summary",
+			Value: fmt.Sprintf("%t", *showOnSummary),
 		})
 	}
 	if experiences != nil && len(*experiences) > 0 {
@@ -3996,10 +4002,10 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 
 	// Revise the test suite:
 	// Now, create a test suite with all our experiences, the system, and a metrics build:
-	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubFalse), ExpectNoError)
+	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, RevisedTestSuite)
 	// Revise w/ github flag
-	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedTestSuite)
 	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
 	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
@@ -4157,8 +4163,16 @@ func (s *EndToEndTestSuite) TestReports() {
 	revision := testSuiteIDRevision[1]
 	s.Equal("0", revision)
 
+	// Get the test suite and validate the show on summary flag is false:
+	output = s.runCommand(getTestSuite(projectID, testSuiteName, Ptr(int32(0)), false), ExpectNoError)
+	// Parse the output into a test suite:
+	var testSuite api.TestSuite
+	err := json.Unmarshal([]byte(output.StdOut), &testSuite)
+	s.NoError(err)
+	s.False(testSuite.ShowOnSummary)
+
 	// Revise w/ github flag
-	output = s.runCommand(reviseTestSuite(projectID, testSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(reviseTestSuite(projectID, testSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, Ptr(true), GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedTestSuite)
 	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
 	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
@@ -4166,6 +4180,12 @@ func (s *EndToEndTestSuite) TestReports() {
 	uuid.MustParse(testSuiteIDRevision[0])
 	revision = testSuiteIDRevision[1]
 	s.Equal("1", revision)
+	// Get the test suite and validate the show on summary flag is true:
+	output = s.runCommand(getTestSuite(projectID, testSuiteName, Ptr(int32(1)), false), ExpectNoError)
+	// Parse the output into a test suite:
+	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
+	s.NoError(err)
+	s.True(testSuite.ShowOnSummary)
 
 	// 1. Create a report passing in length and have it correct [with name, with respect revision and explicit revision 0]
 	reportName := fmt.Sprintf("test-report-%s", uuid.New().String())
@@ -4184,7 +4204,7 @@ func (s *EndToEndTestSuite) TestReports() {
 	output = s.runCommand(getReportByName(projectID, reportName, false), ExpectNoError)
 	// Parse the output into a report:
 	var report api.Report
-	err := json.Unmarshal([]byte(output.StdOut), &report)
+	err = json.Unmarshal([]byte(output.StdOut), &report)
 	s.NoError(err)
 	s.Equal(reportName, report.Name)
 	// Validate that the start timestamp is 4 weeks before today within a one minute duration

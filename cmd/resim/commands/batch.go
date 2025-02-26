@@ -106,7 +106,7 @@ func init() {
 	createBatchCmd.Flags().String(batchExperienceTagIDsKey, "", "Comma-separated list of experience tag IDs to run.")
 	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
-	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
+	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters e.g. 'param1=value1,param2=value2'. If multiple = signs are used, the first one will be used to determine the key, and the rest will be part of as the value.")
 	createBatchCmd.Flags().StringSlice(batchPoolLabelsKey, []string{}, "Pool labels to determine where to run this batch. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
 	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
@@ -259,11 +259,11 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	if viper.IsSet(batchParameterKey) {
 		parameterStrings := viper.GetStringSlice(batchParameterKey)
 		for _, parameterString := range parameterStrings {
-			parameter := strings.Split(parameterString, ":")
-			if len(parameter) != 2 {
-				log.Fatal("failed to parse parameter: ", parameterString, " - must be in the format <parameter-name>:<parameter-value>")
+			key, value, err := ParseParameterString(parameterString)
+			if err != nil {
+				log.Fatal(err)
 			}
-			parameters[parameter[0]] = parameter[1]
+			parameters[key] = value
 		}
 	}
 
@@ -411,7 +411,7 @@ func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
 		baseUrl.JoinPath("systems", batch.SystemID.String()).String(),
 		system.Name,
 	}
-	introTemplate := template.Must(template.New("intro").Parse("Last night’s <{{.SuiteUrl}}|{{.SuiteName}}> *<{{.BatchUrl}}|run>* for <{{.SystemUrl}}|{{.SystemName}}> ran successfully with the following breakdown:"))
+	introTemplate := template.Must(template.New("intro").Parse("Last night's <{{.SuiteUrl}}|{{.SuiteName}}> *<{{.BatchUrl}}|run>* for <{{.SystemUrl}}|{{.SystemName}}> ran successfully with the following breakdown:"))
 	var introBuffer bytes.Buffer
 	err = introTemplate.Execute(&introBuffer, introData)
 	if err != nil {

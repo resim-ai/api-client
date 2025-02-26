@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.7.0 - February 26 2025
+
+#### Changed
+
+- The `suites run` and `batches create`  commands now support using a separate delimiter for parameters: e.g. "key=value" to support cases where a colon is a natural part of the key e.g. `namespace::param=value`
+
 ### v0.6.0 - February 19 2025
 
 #### Added

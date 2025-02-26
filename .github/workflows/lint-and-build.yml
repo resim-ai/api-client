@@ -16,13 +16,13 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
       - name: Check Format
         run: if [ "$(go fmt ./... | wc -l)" -gt 0 ]; then exit 1; fi
       - name: Go Vet
-        run: if ["$(go vet ./... | wc -l)" -gt 0]; then exit 1; fi
+        run: if [ "$(go vet ./... | wc -l)" -gt 0 ]; then exit 1; fi
       - name: Build
         run: go build ./...
       - name: Test
@@ -33,9 +33,9 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
       - name: End-to-end test
         env:
           CONFIG: staging

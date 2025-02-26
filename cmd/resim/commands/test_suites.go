@@ -164,7 +164,7 @@ func init() {
 	runTestSuiteCmd.Flags().String(testSuiteBuildIDKey, "", "The ID of the build to use in this test suite run.")
 	runTestSuiteCmd.MarkFlagRequired(testSuiteBuildIDKey)
 	// Parameters
-	runTestSuiteCmd.Flags().StringSlice(testSuiteParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters.")
+	runTestSuiteCmd.Flags().StringSlice(testSuiteParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters e.g. 'param1=value1,param2=value2'. If multiple = signs are used, the first one will be used to determine the key, and the rest will be part of the value.")
 	// Pool Labels
 	runTestSuiteCmd.Flags().StringSlice(testSuitePoolLabelsKey, []string{}, "Pool labels to determine where to run this test suite. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")

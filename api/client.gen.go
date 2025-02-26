@@ -93,6 +93,7 @@ const (
 	METRICSOUTPUTLOG LogType = "METRICS_OUTPUT_LOG"
 	MP4LOG           LogType = "MP4_LOG"
 	OTHERLOG         LogType = "OTHER_LOG"
+	RERUNIOLOG       LogType = "RERUN_IO_LOG"
 )
 
 // Defines values for MetricStatus.
@@ -497,7 +498,7 @@ type DebugExperienceOutput struct {
 	ClusterCAData   *string  `json:"clusterCAData,omitempty"`
 	ClusterEndpoint *string  `json:"clusterEndpoint,omitempty"`
 	ClusterToken    *string  `json:"clusterToken,omitempty"`
-	PodName         *string  `json:"podName,omitempty"`
+	Namespace       *string  `json:"namespace,omitempty"`
 }
 
 // Event defines model for event.
@@ -1527,6 +1528,9 @@ type OrderBy = string
 // PageSize defines model for pageSize.
 type PageSize = int
 
+// PageSizeUnbounded defines model for pageSizeUnbounded.
+type PageSizeUnbounded = int
+
 // PageToken defines model for pageToken.
 type PageToken = string
 
@@ -1741,10 +1745,10 @@ type ListExperiencesParams struct {
 	Text *string `form:"text,omitempty" json:"text,omitempty"`
 
 	// Search A search query. Supports searching by tag_id, test_suite_id and system_id
-	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
-	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	Search    *string            `form:"search,omitempty" json:"search,omitempty"`
+	PageSize  *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken         `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy           `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // ListExperienceTagsForExperienceParams defines parameters for ListExperienceTagsForExperience.

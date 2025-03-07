@@ -31,6 +31,11 @@ var (
 )
 
 func rootCommand(cmd *cobra.Command, args []string) {
+	if len(args) == 0 {
+		cmd.Help()
+		os.Exit(0)
+	}
+
 	viper.SetConfigName("resim")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(os.ExpandEnv(ConfigPath))

@@ -2,9 +2,11 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/uuid"
@@ -21,12 +23,28 @@ var (
 		Long:    ``,
 		Aliases: []string{"build"},
 	}
+
 	createBuildCmd = &cobra.Command{
 		Use:   "create",
 		Short: "create - Creates a new build",
 		Long:  ``,
 		Run:   createBuild,
 	}
+
+	updateBuildCmd = &cobra.Command{
+		Use:   "update",
+		Short: "update - Updates a build (either branch or description)",
+		Long:  ``,
+		Run:   updateBuild,
+	}
+
+	getBuildCmd = &cobra.Command{
+		Use:   "get",
+		Short: "get - Get a build by ID",
+		Long:  ``,
+		Run:   getBuild,
+	}
+
 	listBuildsCmd = &cobra.Command{
 		Use:   "list",
 		Short: "list - Lists existing builds",
@@ -42,6 +60,8 @@ const (
 	buildProjectKey          = "project"
 	buildSystemKey           = "system"
 	buildBranchKey           = "branch"
+	buildBranchIDKey         = "branch-id"
+	buildBuildIDKey          = "build-id"
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
 )
@@ -70,8 +90,23 @@ func init() {
 	listBuildsCmd.MarkFlagsMutuallyExclusive(buildBranchKey, buildSystemKey) // We currently only support filtering by one, the other, or none
 	listBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
+	updateBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
+	updateBuildCmd.MarkFlagRequired(buildProjectKey)
+	updateBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to update")
+	createBuildCmd.MarkFlagRequired(buildBuildIDKey)
+	updateBuildCmd.Flags().String(buildBranchIDKey, "", "New value for the build's branch ID")
+	updateBuildCmd.Flags().String(buildDescriptionKey, "", "New value for the description of the build")
+
+	getBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
+	getBuildCmd.MarkFlagRequired(buildProjectKey)
+	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
+	getBuildCmd.MarkFlagRequired(buildBuildIDKey)
+
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
+	buildCmd.AddCommand(updateBuildCmd)
+	buildCmd.AddCommand(getBuildCmd)
+
 	rootCmd.AddCommand(buildCmd)
 }
 
@@ -92,12 +127,12 @@ func listBuildsByBranch(projectID uuid.UUID, branchID uuid.UUID) []api.Build {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds for branch", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -121,12 +156,12 @@ func listBuildsBySystem(projectID uuid.UUID, systemID uuid.UUID) []api.Build {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds for system", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -150,12 +185,12 @@ func listAllBuilds(projectID uuid.UUID) []api.Build {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -266,7 +301,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	build := *response.JSON201
-	if build.BuildID == nil {
+	if build.BuildID == uuid.Nil {
 		log.Fatal("no build ID")
 	}
 
@@ -277,4 +312,73 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		fmt.Println("Created build successfully!")
 		fmt.Printf("Build ID: %s\n", build.BuildID.String())
 	}
+}
+
+func updateBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+	buildID, err := uuid.Parse(viper.GetString(buildBuildIDKey))
+	if err != nil {
+		log.Fatal("unable to parse build ID:", err)
+	}
+	// Check the build id exists
+	_, err = Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+	if err != nil {
+		log.Fatal("unable to get build:", err)
+	}
+	updateBuildInput := api.UpdateBuildInput{
+		Build: &api.UpdateBuildFields{},
+	}
+	updateMask := []string{}
+	if viper.IsSet(buildBranchIDKey) {
+		branchID := getBranchID(Client, projectID, viper.GetString(buildBranchIDKey), true)
+		updateBuildInput.Build.BranchID = Ptr(branchID)
+		updateMask = append(updateMask, "branchID")
+	}
+	if viper.IsSet(buildDescriptionKey) {
+		updateBuildInput.Build.Description = Ptr(viper.GetString(buildDescriptionKey))
+		updateMask = append(updateMask, "description")
+	}
+	updateBuildInput.UpdateMask = Ptr(updateMask)
+	response, err := Client.UpdateBuildWithResponse(context.Background(), projectID, buildID, updateBuildInput)
+	if err != nil {
+		log.Fatal("unable to update build:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to update build", response.HTTPResponse, response.Body)
+	fmt.Println("Updated build successfully!")
+}
+
+func getBuild(ccmd *cobra.Command, args []string) {
+	var build *api.Build
+	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+	buildID := getBuildID(Client, projectID, viper.GetString(buildBuildIDKey))
+	response, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+	if err != nil {
+		log.Fatal("unable to retrieve build:", err)
+	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatal("failed to find build with requested id: ", projectID.String())
+	} else {
+		ValidateResponse(http.StatusOK, "unable to retrieve build", response.HTTPResponse, response.Body)
+	}
+	build = response.JSON200
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", " ")
+	enc.Encode(build)
+}
+
+func getBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, uuidString string) uuid.UUID {
+	err := uuid.Validate(uuidString)
+	if err != nil {
+		log.Fatal("invalid build ID: ", uuidString)
+	}
+	potentialBuildID := uuid.MustParse(uuidString)
+	response, err := client.GetBuildWithResponse(context.Background(), projectID, potentialBuildID)
+	if err != nil {
+		log.Fatal("failed to find build with ID: ", uuidString)
+	}
+	if response.HTTPResponse.StatusCode != http.StatusOK {
+		log.Fatal("failed to find build with ID: ", uuidString)
+	}
+	return potentialBuildID
 }

@@ -106,7 +106,7 @@ func init() {
 	getReportCmd.Flags().String(reportIDKey, "", "The ID of the report to retrieve.")
 	getReportCmd.Flags().String(reportNameKey, "", "The name of the report to retrieve (e.g. rejoicing-aquamarine-starfish). If multiple reports exist with this name, then the most recent is fetched.")
 	getReportCmd.MarkFlagsMutuallyExclusive(reportIDKey, reportNameKey)
-	getReportCmd.Flags().Bool(reportExitStatusKey, false, "If set, exit code corresponds to report status (1 = internal error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING)")
+	getReportCmd.Flags().Bool(reportExitStatusKey, false, "If set, exit code corresponds to report status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING)")
 	reportCmd.AddCommand(getReportCmd)
 
 	// Await Report Fields

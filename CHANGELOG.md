@@ -8,6 +8,73 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.7.0 - February 26 2025
+
+#### Changed
+
+- The `suites run` and `batches create`  commands now support using a separate delimiter for parameters: e.g. "key=value" to support cases where a colon is a natural part of the key e.g. `namespace::param=value`
+
+### v0.6.0 - February 19 2025
+
+#### Added
+
+- The test suite `revise` command now supports the `--show-on-summary` flag, which can be used to specify whether the latest results of a test suite should be displayed on the overview dashboard.
+
+### v0.5.0 - February 18 2025
+
+#### Added
+
+- The ReSim Platform now supports container timeouts, which can be set when creating or updating an experience. The intention is to allow users to specify a timeout for the container that is running the experience. If the container runs longer than this, it will be terminated.
+- The ReSim CLI now supports updating experiences via `experiences update`. An experience can be updated with a new name, description, location, and container timeout.
+
+
+### v0.4.1 - February 13 2025
+
+#### Added
+
+- The ReSim CLI now shows help when no subcommands are provided.
+
+#### Fixed
+
+- The CLI no longer fails to select a new project if the config file is present.
+
+### v0.4.0 - January 24 2025
+
+#### Added
+
+- The ReSim CLI now supports updating builds via `builds update`. A build can be updated with a new branch ID and a new description. The version and image must be static.
+
+### v0.3.11 - December 10 2024
+
+#### Added
+
+- The ReSim CLI now supports an allowable failure percent for batches and test suites (`--allowable-failure-percent`). This is a percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.
+
+### v0.3.10 - November 26 2024
+
+#### Added
+
+- The ReSim CLI now supports specifying a batch name when running test suites or ad-hoc batches (via `--batch-name`).
+
+#### Changed
+
+- The default behavior for systems and projects is not deletion, but archival, so the CLI has been updated to reflect this.
+
+### v0.3.9 - October 30 2024
+
+#### Added
+
+- The ReSim CLI now supports outputting a Slack Webhook payload from the `batch get` command. Providing
+  the `--slack` flag will replace the current JSON output with a formatted payload.
+
+### v0.3.8 - October 4 2024
+
+#### Added
+
+- The ReSim CLI now supports using specific `pool labels` for creating batches, and running test suites and parameter sweeps. Supplying a pool label forces the ReSim Orchestrator to run that batch using an external runner that is compatible with this label combination.
+- The ReSim CLI now supports creation of test suites that use the 'show on summary' flag, which enables the latest test suite and its reports to be viewed on an overview dashboard on the ReSim Web App.
+- The ReSim CLI now supports updating systems by making changes to the resource requirements.
+
 ### v0.3.7 - August 7 2024
 
 ### Changed
@@ -24,17 +91,21 @@ Changes in this section will be included in the next release.
 
 #### Added
 
-- The ReSim CLI now supports the creation of a `test suite report`, which is an evaluation workflow that 
-generates a report (a set of metrics) on the performance of a given branch against that test suite.
+- The ReSim CLI now supports the creation of a `test suite report`, which is an evaluation workflow that
+  generates a report (a set of metrics) on the performance of a given branch against that test suite.
 - A report can be triggered via:
+
 ```shell
 resim reports create --name "my-report" --test-suite "Nightly Regression" --branch "main" --length "4w" --metrics-build-id <UUID>
 ```
+
 which will generate a report using the supplied metrics build (which must be capable of generating a report).
+
 - Other available report commands are similar to batches: `get`, `wait`, `logs`.
 - For full details of how reports work and how to generate a report, please read the main ReSim [docs](https://docs.resim.ai)
 - When creating a batch, sweep, or report additional environment information will be included to describe
   where it was created from (GitHub, Gitlab, local, etc.)
+
 #### Changed
 
 - Any historic use of 'job' has been replaced with 'test', which is the more accurate external-facing term for the elements of a test batch.
@@ -64,21 +135,23 @@ which will generate a report using the supplied metrics build (which must be cap
 
 - The ReSim CLI now supports extracting a CI/CD username into an associated account field, in
   order to associate users and batches that have been kicked-off via a machine token. This is
-  supported automatically for batches created within GitHub and GitLab right now, but is 
+  supported automatically for batches created within GitHub and GitLab right now, but is
   available manually with other platforms via the `--account` flag.
 - The ReSim CLI now has full support for creating and managing **test suites** :rocket:
-  - A Test Suite, described in detail at [ReSim Docs](https://docs.resim.ai), provides a way to 
-  specify a set of experiences and a metrics build that you intend as a repeatedly used test
-  for a particular system, e.g. CI Smoke Tests. Then, for a build of that system, one simply 
-  needs to run the test suite to get the results, rather than specifying the experiences each 
-  time.
 
-  This also has the benefit of decoupling the definition of a regular set of tests from its 
+  - A Test Suite, described in detail at [ReSim Docs](https://docs.resim.ai), provides a way to
+    specify a set of experiences and a metrics build that you intend as a repeatedly used test
+    for a particular system, e.g. CI Smoke Tests. Then, for a build of that system, one simply
+    needs to run the test suite to get the results, rather than specifying the experiences each
+    time.
+
+  This also has the benefit of decoupling the definition of a regular set of tests from its
   running. As such, test suites are inherently versioned: updating the name, experiences, or
   metrics build creates a new revision. One can `run` a test suite at its latest revision or
   a specific revision.
 
   - A test suite can be created within the CLI as follows:
+
   ```shell
     resim suites create --project "autonomy-stack" --name "smoke tests" \
     --description "The set of smoke tests for my system" \
@@ -86,8 +159,9 @@ which will generate a report using the supplied metrics build (which must be cap
     --metrics-build "<metrics-build-id>" \
     --experiences "experience1, experience2, ..."
   ```
+
   - One can list the test suites: `resim suites list --project "autonomy-stack"` and get a single
-  test suite, a specific revision, or all revisions with `resim suites get`
+    test suite, a specific revision, or all revisions with `resim suites get`
   - A revision can be created with `resim suites revise`, which takes the same parameters as creation
   - Finally, a test suite can be run with `resim suites run --suite "smoke tests" --build <build-id>`
 
@@ -96,36 +170,42 @@ which will generate a report using the supplied metrics build (which must be cap
 #### Added
 
 - The ReSim CLI now has full support for creating and managing **systems** :rocket:
-  - A System, described in detail at [ReSim Docs](https://docs.resim.ai), provides a way to 
-  categorize builds based on what subsystem or testing style they may be e.g. perception 
-  log replay, localization closed loop, full-stack. Eeach build belongs to a given 
-  system and systems define the resource requirements needed to run that particular 
-  build. 
 
-  In addition, users are encouraged to explicitly label *experiences* and *metrics builds* 
-  as compatible with a given system, which enables the ReSim platform to validate test 
+  - A System, described in detail at [ReSim Docs](https://docs.resim.ai), provides a way to
+    categorize builds based on what subsystem or testing style they may be e.g. perception
+    log replay, localization closed loop, full-stack. Eeach build belongs to a given
+    system and systems define the resource requirements needed to run that particular
+    build.
+
+  In addition, users are encouraged to explicitly label _experiences_ and _metrics builds_
+  as compatible with a given system, which enables the ReSim platform to validate test
   batches before they run. For maximum flexibility in experiences and metrics builds, we
   enable them to be registered against many systems.
 
   - A system can be created within the CLI as follows:
+
   ```shell
     resim systems create --project "autonomy-stack" --name "perception" \
     --description "The perception subsystem of our autonomy stack" \
     --build-vcpus 4 --build-memory-mib 16384 --build-gpus 0
   ```
+
   - Build creation now **requires** a `--system "my-system"` flag.
   - One can list the builds for that system: `resim systems builds --project "autonomy-stack" --system "my-system"`
   - One can similarly list the experiences or metrics builds compatible with that system:
+
   ```shell
     resim systems experiences --project "autonomy-stack" --system "my-system"
     resim systems metrics-builds --project "autonomy-stack" --system "my-system"
   ```
-  - When creating a new experience or metrics build, one can pass a `--systems "my-first-system", "my-second-system"` 
-  flag to express compatibility. For ad-hoc additions, removes, we offer `resim experiences add-system`
-  and `resim experiences remove-system`.
+
+  - When creating a new experience or metrics build, one can pass a `--systems "my-first-system", "my-second-system"`
+    flag to express compatibility. For ad-hoc additions, removes, we offer `resim experiences add-system`
+    and `resim experiences remove-system`.
   - In future releases, `resim batches create` will validate compatibility of the test batch you intend to create.
 
 - Cancellation - we introduce a cancel command which cancels a batch. Cancellation impacts any queued tests and lets actively running tests finish.
+
 ### v0.2.1 - March 26 2024
 
 #### Added
@@ -148,7 +228,7 @@ which will generate a report using the supplied metrics build (which must be cap
 
 #### Changed
 
-- `project list` will list projects by name. A * will denote the active project, if set.
+- `project list` will list projects by name. A \* will denote the active project, if set.
 - Updated to cobra v1.8.0
 
 ### v0.1.30 - February 08 2024
@@ -159,6 +239,7 @@ which will generate a report using the supplied metrics build (which must be cap
 - The `experience create` command now returns a list of files found in the storage location to help with validation.
 
 #### Changed
+
 - Fixed a bug in the reporting of error messages from commands.
 
 ### v0.1.29 - December 21 2023
@@ -171,11 +252,13 @@ which will generate a report using the supplied metrics build (which must be cap
 ### v0.1.28 - November 30 2023
 
 #### Changed
+
 - Fixed a bug in the handling of invalid/expired cached tokens.
 
 ### v0.1.27 - November 29 2023
 
 #### Added
+
 - The CLI now enables the creation, listing, and getting of parameter sweeps. Parameter sweeps enable one to pass specific values to a build to, for example, search for an optimal setting for a particular component. A parameter sweep can be created like a batch, but with the addition of either:
   - A `parameter-name` and `parameter-values` flag pair that enable a single dimension sweep with a comma separated list of values for the named parameter
   - A `grid-search-config` file can be passed, as a json list: `[{"name" : "param", "values" : [ "value1", "value2" ]}, ...]` for example. This can create a multi-dimensional grid search.
@@ -196,6 +279,7 @@ which will generate a report using the supplied metrics build (which must be cap
 #### Added
 
 - The `experiences` command now has:
+
   - `tag` and `untag` subcommands for tagging and untagging experiences
   - A `list` subcommand for listing experiences
 
@@ -229,7 +313,7 @@ which will generate a report using the supplied metrics build (which must be cap
 
 #### Added
 
-- The builds, branches and projects commands now have a `list` subcommand 
+- The builds, branches and projects commands now have a `list` subcommand
 
 #### Changed
 

@@ -66,19 +66,23 @@ var (
 )
 
 const (
-	testSuiteProjectKey      = "project"
-	testSuiteNameKey         = "name"
-	testSuiteDescriptionKey  = "description"
-	testSuiteBuildIDKey      = "build-id"
-	testSuiteSystemKey       = "system"
-	testSuiteExperiencesKey  = "experiences"
-	testSuiteParameterKey    = "parameter"
-	testSuiteKey             = "test-suite"
-	testSuiteRevisionKey     = "revision"
-	testSuiteAllRevisionKey  = "all-revisions"
-	testSuiteGithubKey       = "github"
-	testSuiteMetricsBuildKey = "metrics-build"
-	testSuiteAccountKey      = "account"
+	testSuiteProjectKey                 = "project"
+	testSuiteNameKey                    = "name"
+	testSuiteDescriptionKey             = "description"
+	testSuiteBuildIDKey                 = "build-id"
+	testSuiteSystemKey                  = "system"
+	testSuiteExperiencesKey             = "experiences"
+	testSuiteParameterKey               = "parameter"
+	testSuiteKey                        = "test-suite"
+	testSuiteRevisionKey                = "revision"
+	testSuiteAllRevisionKey             = "all-revisions"
+	testSuiteGithubKey                  = "github"
+	testSuiteMetricsBuildKey            = "metrics-build"
+	testSuitePoolLabelsKey              = "pool-labels"
+	testSuiteAccountKey                 = "account"
+	testSuiteShowOnSummaryKey           = "show-on-summary"
+	testSuiteBatchNameKey               = "batch-name"
+	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 )
 
 func init() {
@@ -101,6 +105,8 @@ func init() {
 	// Experiences
 	createTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "List of experience names or list of experience IDs to form this test suite.")
 	createTestSuiteCmd.MarkFlagRequired(testSuiteExperiencesKey)
+	// Show on Summary
+	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
 
 	// Get Test Suite
@@ -129,12 +135,14 @@ func init() {
 	reviseTestSuiteCmd.Flags().String(testSuiteSystemKey, "", "A new name or ID of the system that the new test suite is designed for.")
 	// Description [optional]
 	reviseTestSuiteCmd.Flags().String(testSuiteDescriptionKey, "", "A new description for the test suite revision.")
+	// Show on Summary [optional]
+	reviseTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
 	// Metrics build
 	reviseTestSuiteCmd.Flags().String(testSuiteMetricsBuildKey, "", "A new ID of the metrics build to use in this test suite revision. To unset an existing metrics build, pass a nil uuid (00000000-0000-0000-0000-000000000000).")
 	// Experiences
 	reviseTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "A list of updated experience names or list of experience IDs to have in the test suite revision.")
 	// We need something to revise!
-	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey)
+	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey, testSuiteShowOnSummaryKey)
 	testSuiteCmd.AddCommand(reviseTestSuiteCmd)
 
 	// List Test Suite
@@ -156,8 +164,13 @@ func init() {
 	runTestSuiteCmd.Flags().String(testSuiteBuildIDKey, "", "The ID of the build to use in this test suite run.")
 	runTestSuiteCmd.MarkFlagRequired(testSuiteBuildIDKey)
 	// Parameters
-	runTestSuiteCmd.Flags().StringSlice(testSuiteParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
+	runTestSuiteCmd.Flags().StringSlice(testSuiteParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters e.g. 'param1=value1,param2=value2'. If multiple = signs are used, the first one will be used to determine the key, and the rest will be part of the value.")
+	// Pool Labels
+	runTestSuiteCmd.Flags().StringSlice(testSuitePoolLabelsKey, []string{}, "Pool labels to determine where to run this test suite. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")
+	// Optional: Friendly name
+	runTestSuiteCmd.Flags().String(testSuiteBatchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
+	runTestSuiteCmd.Flags().Int(testSuiteAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	testSuiteCmd.AddCommand(runTestSuiteCmd)
 
 	// Test Suite Batches
@@ -236,6 +249,10 @@ func createTestSuite(ccmd *cobra.Command, args []string) {
 		body.MetricsBuildID = &metricsBuildID
 	}
 
+	if viper.IsSet(testSuiteShowOnSummaryKey) {
+		body.ShowOnSummary = Ptr(viper.GetBool(testSuiteShowOnSummaryKey))
+	}
+
 	// Make the request
 	response, err := Client.CreateTestSuiteWithResponse(context.Background(), projectID, body)
 	if err != nil {
@@ -284,6 +301,10 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 
 	if viper.IsSet(testSuiteDescriptionKey) {
 		reviseRequest.Description = Ptr(viper.GetString(testSuiteDescriptionKey))
+	}
+
+	if viper.IsSet(testSuiteShowOnSummaryKey) {
+		reviseRequest.ShowOnSummary = Ptr(viper.GetBool(testSuiteShowOnSummaryKey))
 	}
 
 	if viper.IsSet(testSuiteSystemKey) {
@@ -367,12 +388,12 @@ func listTestSuites(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list test suites", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.TestSuites == nil {
 			log.Fatal("no test suites")
 		}
-		allTestSuites = append(allTestSuites, *response.JSON200.TestSuites...)
-		if pageToken == nil || *pageToken == "" {
+		allTestSuites = append(allTestSuites, response.JSON200.TestSuites...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -409,7 +430,7 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 			if response.JSON200.TestSuites == nil {
 				log.Fatal("unable to find test suite: ", testSuiteKeyRaw)
 			}
-			testSuites := *response.JSON200.TestSuites
+			testSuites := response.JSON200.TestSuites
 
 			for _, suite := range testSuites {
 				if suite.Name == testSuiteKeyRaw {
@@ -418,8 +439,8 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 				}
 			}
 
-			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
-				pageToken = response.JSON200.NextPageToken
+			if response.JSON200.NextPageToken != "" {
+				pageToken = &response.JSON200.NextPageToken
 			} else {
 				log.Fatal("unable to find test suite: ", testSuiteKeyRaw)
 			}
@@ -446,7 +467,9 @@ func getTestSuite(ccmd *cobra.Command, args []string) {
 	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
 
 	if viper.GetBool(testSuiteAllRevisionKey) {
-		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID)
+		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID, &api.ListTestSuiteRevisionsParams{
+			PageSize: Ptr(100),
+		})
 		if err != nil {
 			log.Fatal("unable to list test suite revisions:", err)
 		}
@@ -476,14 +499,26 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 
 	// Parse --parameter (if any provided)
 	parameters := api.BatchParameters{}
-	if viper.IsSet(batchParameterKey) {
-		parameterStrings := viper.GetStringSlice(batchParameterKey)
+	if viper.IsSet(testSuiteParameterKey) {
+		parameterStrings := viper.GetStringSlice(testSuiteParameterKey)
 		for _, parameterString := range parameterStrings {
-			parameter := strings.Split(parameterString, ":")
-			if len(parameter) != 2 {
-				log.Fatal("failed to parse parameter: ", parameterString, " - must be in the format <parameter-name>:<parameter-value>")
+			key, value, err := ParseParameterString(parameterString)
+			if err != nil {
+				log.Fatal(err)
 			}
-			parameters[parameter[0]] = parameter[1]
+			parameters[key] = value
+		}
+	}
+
+	// Parse --pool-labels (if any provided)
+	poolLabels := []api.PoolLabel{}
+	if viper.IsSet(testSuitePoolLabelsKey) {
+		poolLabels = viper.GetStringSlice(testSuitePoolLabelsKey)
+	}
+	for i := range poolLabels {
+		poolLabels[i] = strings.TrimSpace(poolLabels[i])
+		if poolLabels[i] == "resim" {
+			log.Fatal("failed to run test suite: resim is a reserved pool label")
 		}
 	}
 
@@ -499,6 +534,25 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		BuildID:           buildID,
 		Parameters:        &parameters,
 		AssociatedAccount: &associatedAccount,
+	}
+
+	// Add the pool labels if any
+	if len(poolLabels) > 0 {
+		body.PoolLabels = &poolLabels
+	}
+
+	// Add the batch name if any
+	if viper.IsSet(testSuiteBatchNameKey) {
+		body.BatchName = Ptr(viper.GetString(testSuiteBatchNameKey))
+	}
+
+	// Parse --allowable-failure-percent (if any provided)
+	if viper.IsSet(testSuiteAllowableFailurePercentKey) {
+		allowableFailurePercent := viper.GetInt(testSuiteAllowableFailurePercentKey)
+		if allowableFailurePercent < 0 || allowableFailurePercent > 100 {
+			log.Fatal("allowable failure percent must be between 0 and 100")
+		}
+		body.AllowableFailurePercent = &allowableFailurePercent
 	}
 
 	// Make the request

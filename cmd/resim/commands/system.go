@@ -28,17 +28,23 @@ var (
 		Long:  ``,
 		Run:   createSystem,
 	}
+	updateSystemCmd = &cobra.Command{
+		Use:   "update",
+		Short: "update - Update an existing system",
+		Long:  ``,
+		Run:   updateSystem,
+	}
 	getSystemCmd = &cobra.Command{
 		Use:   "get",
 		Short: "get - Return details of a system",
 		Long:  ``,
 		Run:   getSystem,
 	}
-	deleteSystemCmd = &cobra.Command{
-		Use:   "delete",
-		Short: "delete - Delete a system",
+	archiveSystemCmd = &cobra.Command{
+		Use:   "archive",
+		Short: "archive - Archive a system",
 		Long:  ``,
-		Run:   deleteSystem,
+		Run:   archiveSystem,
 	}
 	listSystemsCmd = &cobra.Command{
 		Use:   "list",
@@ -105,17 +111,32 @@ func init() {
 	createSystemCmd.Flags().Bool(systemGithubKey, false, "Whether to output format in github action friendly format")
 	createSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
+	updateSystemCmd.Flags().String(systemProjectKey, "", "The name or ID of the project the system belongs to")
+	updateSystemCmd.MarkFlagRequired(systemProjectKey)
+	updateSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to update")
+	updateSystemCmd.Flags().String(systemNameKey, "", "New value for the system name")
+	updateSystemCmd.Flags().String(systemDescriptionKey, "", "New value for the description of the system")
+	updateSystemCmd.Flags().Int(systemBuildVCPUsKey, DefaultCPUs, "New value for the number of vCPUs required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildVCPUsKey, DefaultCPUs, "New value for the number of vCPUs required to execute the metrics build")
+	updateSystemCmd.Flags().Int(systemBuildGPUsKey, DefaultGPUs, "New value for the number of GPUs required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildGPUsKey, DefaultGPUs, "New value for the number of GPUs required to execute the metrics build")
+	updateSystemCmd.Flags().Int(systemBuildMemoryMiBKey, DefaultMemoryMiB, "New value for the amount of memory in MiB required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildMemoryMibKey, DefaultMemoryMiB, "New value for the amount of memory in MiB required to execute the metrics build")
+	updateSystemCmd.Flags().Int(systemBuildSharedMemoryMBKey, DefaultSharedMemoryMB, "New value for the amount of shared memory in MB required to execute the build")
+	updateSystemCmd.Flags().Int(systemMetricsBuildSharedMemoryMbKey, DefaultSharedMemoryMB, "The amount of shared memory in MB required to execute the metrics build")
+	updateSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+
 	getSystemCmd.Flags().String(systemProjectKey, "", "Get system associated with this project")
 	getSystemCmd.MarkFlagRequired(systemProjectKey)
 	getSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to get details for")
 	getSystemCmd.MarkFlagRequired(systemKey)
 	getSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
-	deleteSystemCmd.Flags().String(systemProjectKey, "", "System associated with this project")
-	deleteSystemCmd.MarkFlagRequired(systemProjectKey)
-	deleteSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to delete")
-	deleteSystemCmd.MarkFlagRequired(systemKey)
-	deleteSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+	archiveSystemCmd.Flags().String(systemProjectKey, "", "System associated with this project")
+	archiveSystemCmd.MarkFlagRequired(systemProjectKey)
+	archiveSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to delete")
+	archiveSystemCmd.MarkFlagRequired(systemKey)
+	archiveSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	listSystemsCmd.Flags().String(systemProjectKey, "", "List systems associated with this project")
 	listSystemsCmd.MarkFlagRequired(systemProjectKey)
@@ -141,8 +162,9 @@ func init() {
 	systemsMetricsBuildsCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	systemCmd.AddCommand(createSystemCmd)
+	systemCmd.AddCommand(updateSystemCmd)
 	systemCmd.AddCommand(getSystemCmd)
-	systemCmd.AddCommand(deleteSystemCmd)
+	systemCmd.AddCommand(archiveSystemCmd)
 	systemCmd.AddCommand(listSystemsCmd)
 	systemCmd.AddCommand(systemsBuildsCmd)
 	systemCmd.AddCommand(systemsExperiencesCmd)
@@ -171,19 +193,61 @@ func getSystem(ccmd *cobra.Command, args []string) {
 	enc.Encode(system)
 }
 
-func deleteSystem(ccmd *cobra.Command, args []string) {
+func archiveSystem(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
 	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
-	response, err := Client.DeleteSystemWithResponse(context.Background(), projectID, systemID)
+	response, err := Client.ArchiveSystemWithResponse(context.Background(), projectID, systemID)
 	if err != nil {
-		log.Fatal("unable to delete system:", err)
+		log.Fatal("unable to archive system:", err)
 	}
 	if response.HTTPResponse.StatusCode == http.StatusNotFound {
 		log.Fatal("failed to find system with requested id: ", systemID.String())
 	} else {
-		ValidateResponse(http.StatusNoContent, "unable to delete system", response.HTTPResponse, response.Body)
+		ValidateResponse(http.StatusNoContent, "unable to archive system", response.HTTPResponse, response.Body)
 	}
-	fmt.Println("Deleted system successfully!")
+	fmt.Println("Archived system successfully!")
+}
+
+func updateSystem(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(systemProjectKey))
+	systemID := getSystemID(Client, projectID, viper.GetString(systemKey), true)
+	updateSystemInput := api.UpdateSystemInput{}
+	if viper.IsSet(systemNameKey) {
+		updateSystemInput.Name = Ptr(viper.GetString(systemNameKey))
+	}
+	if viper.IsSet(systemDescriptionKey) {
+		updateSystemInput.Description = Ptr(viper.GetString(systemDescriptionKey))
+	}
+	if viper.IsSet(systemBuildVCPUsKey) {
+		updateSystemInput.BuildVcpus = Ptr(viper.GetInt(systemBuildVCPUsKey))
+	}
+	if viper.IsSet(systemMetricsBuildVCPUsKey) {
+		updateSystemInput.MetricsBuildVcpus = Ptr(viper.GetInt(systemMetricsBuildVCPUsKey))
+	}
+	if viper.IsSet(systemBuildGPUsKey) {
+		updateSystemInput.BuildGpus = Ptr(viper.GetInt(systemBuildGPUsKey))
+	}
+	if viper.IsSet(systemMetricsBuildGPUsKey) {
+		updateSystemInput.MetricsBuildGpus = Ptr(viper.GetInt(systemMetricsBuildGPUsKey))
+	}
+	if viper.IsSet(systemBuildMemoryMiBKey) {
+		updateSystemInput.BuildMemoryMib = Ptr(viper.GetInt(systemBuildMemoryMiBKey))
+	}
+	if viper.IsSet(systemMetricsBuildMemoryMibKey) {
+		updateSystemInput.MetricsBuildMemoryMib = Ptr(viper.GetInt(systemMetricsBuildMemoryMibKey))
+	}
+	if viper.IsSet(systemBuildSharedMemoryMBKey) {
+		updateSystemInput.BuildSharedMemoryMb = Ptr(viper.GetInt(systemBuildSharedMemoryMBKey))
+	}
+	if viper.IsSet(systemMetricsBuildSharedMemoryMbKey) {
+		updateSystemInput.MetricsBuildSharedMemoryMb = Ptr(viper.GetInt(systemMetricsBuildSharedMemoryMbKey))
+	}
+	response, err := Client.UpdateSystemWithResponse(context.Background(), projectID, systemID, updateSystemInput)
+	if err != nil {
+		log.Fatal("unable to update system:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to update system", response.HTTPResponse, response.Body)
+	fmt.Println("Updated system successfully!")
 }
 
 func listSystems(cmd *cobra.Command, args []string) {
@@ -306,9 +370,11 @@ func systemMetricsBuilds(ccmd *cobra.Command, args []string) {
 	var allMetricsBuilds []api.MetricsBuild
 
 	for {
-		response, err := Client.ListMetricsBuildsForSystemWithResponse(
-			context.Background(), projectID, systemID, &api.ListMetricsBuildsForSystemParams{
+
+		response, err := Client.ListMetricsBuildsWithResponse(
+			context.Background(), projectID, &api.ListMetricsBuildsParams{
 				PageSize:  Ptr(100),
+				SystemID:  &systemID,
 				PageToken: pageToken,
 			})
 		if err != nil {
@@ -316,12 +382,12 @@ func systemMetricsBuilds(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list metrics builds for system", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.MetricsBuilds == nil {
 			log.Fatal("no experiences")
 		}
-		allMetricsBuilds = append(allMetricsBuilds, *response.JSON200.MetricsBuilds...)
-		if pageToken == nil || *pageToken == "" {
+		allMetricsBuilds = append(allMetricsBuilds, response.JSON200.MetricsBuilds...)
+		if *pageToken == "" {
 			break
 		}
 	}
@@ -347,12 +413,12 @@ func systemBuilds(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list builds for system", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
+		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Builds == nil {
 			log.Fatal("no builds")
 		}
-		allBuilds = append(allBuilds, *response.JSON200.Builds...)
-		if pageToken == nil || *pageToken == "" {
+		allBuilds = append(allBuilds, response.JSON200.Builds...)
+		if *pageToken == "" {
 			break
 		}
 	}

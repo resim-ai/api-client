@@ -1,17 +1,22 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
+	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -67,22 +72,25 @@ var (
 )
 
 const (
-	batchProjectKey            = "project"
-	batchBuildIDKey            = "build-id"
-	batchExperienceIDsKey      = "experience-ids"
-	batchExperiencesKey        = "experiences"
-	batchExperienceTagIDsKey   = "experience-tag-ids"
-	batchExperienceTagNamesKey = "experience-tag-names"
-	batchExperienceTagsKey     = "experience-tags"
-	batchParameterKey          = "parameter"
-	batchIDKey                 = "batch-id"
-	batchNameKey               = "batch-name"
-	batchAccountKey            = "account"
-	batchGithubKey             = "github"
-	batchMetricsBuildKey       = "metrics-build-id"
-	batchExitStatusKey         = "exit-status"
-	batchWaitTimeoutKey        = "wait-timeout"
-	batchWaitPollKey           = "poll-every"
+	batchProjectKey                 = "project"
+	batchBuildIDKey                 = "build-id"
+	batchExperienceIDsKey           = "experience-ids"
+	batchExperiencesKey             = "experiences"
+	batchExperienceTagIDsKey        = "experience-tag-ids"
+	batchExperienceTagNamesKey      = "experience-tag-names"
+	batchExperienceTagsKey          = "experience-tags"
+	batchParameterKey               = "parameter"
+	batchPoolLabelsKey              = "pool-labels"
+	batchIDKey                      = "batch-id"
+	batchNameKey                    = "batch-name"
+	batchAccountKey                 = "account"
+	batchGithubKey                  = "github"
+	batchMetricsBuildKey            = "metrics-build-id"
+	batchExitStatusKey              = "exit-status"
+	batchWaitTimeoutKey             = "wait-timeout"
+	batchWaitPollKey                = "poll-every"
+	batchSlackOutputKey             = "slack"
+	batchAllowableFailurePercentKey = "allowable-failure-percent"
 )
 
 func init() {
@@ -98,30 +106,34 @@ func init() {
 	createBatchCmd.Flags().String(batchExperienceTagIDsKey, "", "Comma-separated list of experience tag IDs to run.")
 	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
 	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
-	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>:<parameter-value>. Accepts repeated parameters or comma-separated parameters.")
+	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters e.g. 'param1=value1,param2=value2'. If multiple = signs are used, the first one will be used to determine the key, and the rest will be part of as the value.")
+	createBatchCmd.Flags().StringSlice(batchPoolLabelsKey, []string{}, "Pool labels to determine where to run this batch. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
 	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
+	createBatchCmd.Flags().String(batchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
+	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	getBatchCmd.MarkFlagRequired(batchProjectKey)
 	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
-	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this returns the most recent batch with that name.")
 	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch status (1 = internal error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
+	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch workflow status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
+	getBatchCmd.Flags().Bool(batchSlackOutputKey, false, "If set, output batch summary as a Slack webhook payload")
 	batchCmd.AddCommand(getBatchCmd)
 
 	cancelBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	cancelBatchCmd.MarkFlagRequired(batchProjectKey)
 	cancelBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to cancel.")
-	cancelBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to cancel (e.g. rejoicing-aquamarine-starfish).")
+	cancelBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to cancel (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this cancels the most recent batch with that name.")
 	cancelBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(cancelBatchCmd)
 
 	testsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	testsBatchCmd.MarkFlagRequired(batchProjectKey)
 	testsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve tests for.")
-	testsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish).")
+	testsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this returns the most recent batch with that name.")
 	testsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	testsBatchCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	batchCmd.AddCommand(testsBatchCmd)
@@ -129,7 +141,7 @@ func init() {
 	waitBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	waitBatchCmd.MarkFlagRequired(batchProjectKey)
 	waitBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to await completion.")
-	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to await completion (e.g. rejoicing-aquamarine-starfish).")
+	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to await completion (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this waits for the most recent batch with that name.")
 	waitBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish, expressed in Golang duration string.")
 	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
@@ -138,7 +150,7 @@ func init() {
 	logsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
 	logsBatchCmd.MarkFlagRequired(batchProjectKey)
 	logsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to list logs for.")
-	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish).")
+	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this lists logs for the most recent batch with that name.")
 	logsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	logsBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(logsBatchCmd)
@@ -247,11 +259,23 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	if viper.IsSet(batchParameterKey) {
 		parameterStrings := viper.GetStringSlice(batchParameterKey)
 		for _, parameterString := range parameterStrings {
-			parameter := strings.Split(parameterString, ":")
-			if len(parameter) != 2 {
-				log.Fatal("failed to parse parameter: ", parameterString, " - must be in the format <parameter-name>:<parameter-value>")
+			key, value, err := ParseParameterString(parameterString)
+			if err != nil {
+				log.Fatal(err)
 			}
-			parameters[parameter[0]] = parameter[1]
+			parameters[key] = value
+		}
+	}
+
+	// Parse --pool-labels (if any provided)
+	poolLabels := []api.PoolLabel{}
+	if viper.IsSet(batchPoolLabelsKey) {
+		poolLabels = viper.GetStringSlice(batchPoolLabelsKey)
+	}
+	for i := range poolLabels {
+		poolLabels[i] = strings.TrimSpace(poolLabels[i])
+		if poolLabels[i] == "resim" {
+			log.Fatal("failed to create batch: resim is a reserved pool label")
 		}
 	}
 
@@ -268,6 +292,20 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		Parameters:        &parameters,
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
+	}
+
+	// Parse --batch-name (if any provided)
+	if viper.IsSet(batchNameKey) {
+		body.BatchName = Ptr(viper.GetString(batchNameKey))
+	}
+
+	// Parse --allowable-failure-percent (if any provided)
+	if viper.IsSet(batchAllowableFailurePercentKey) {
+		allowableFailurePercent := viper.GetInt(batchAllowableFailurePercentKey)
+		if allowableFailurePercent < 0 || allowableFailurePercent > 100 {
+			log.Fatal("allowable failure percent must be between 0 and 100")
+		}
+		body.AllowableFailurePercent = &allowableFailurePercent
 	}
 
 	if allExperienceIDs != nil {
@@ -288,6 +326,10 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	if metricsBuildID != uuid.Nil {
 		body.MetricsBuildID = &metricsBuildID
+	}
+
+	if len(poolLabels) != 0 {
+		body.PoolLabels = &poolLabels
 	}
 
 	// Make the request
@@ -326,6 +368,81 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	if !batchGithub {
 		fmt.Println("Status:", *batch.Status)
 	}
+}
+
+func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
+	baseUrl, err := url.Parse(strings.Replace(viper.GetString(urlKey), "api", "app", 1))
+	if err != nil {
+		log.Fatal("unable to parse url:", err)
+	}
+	baseUrl.Path, err = url.JoinPath("projects", batch.ProjectID.String())
+	if err != nil {
+		log.Fatal("unable to build base url:", err)
+	}
+	blocks := &slack.Blocks{BlockSet: make([]slack.Block, 2)}
+
+	// Get the suite object
+	suiteResponse, err := Client.GetTestSuiteWithResponse(context.Background(), *batch.ProjectID, *batch.TestSuiteID)
+	if err != nil {
+		log.Fatal("unable to retrieve suite for batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to retrieve suite for batch", suiteResponse.HTTPResponse, suiteResponse.Body)
+	suite := *suiteResponse.JSON200
+
+	// Get the system object
+	systemResponse, err := Client.GetSystemWithResponse(context.Background(), *batch.ProjectID, *batch.SystemID)
+	if err != nil {
+		log.Fatal("unable to retrieve system for batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to retrieve system for batch", systemResponse.HTTPResponse, systemResponse.Body)
+	system := *systemResponse.JSON200
+
+	// Intro text
+	introData := struct {
+		SuiteUrl   string
+		SuiteName  string
+		BatchUrl   string
+		SystemUrl  string
+		SystemName string
+	}{
+		baseUrl.JoinPath("test-suites", batch.TestSuiteID.String(), "revisions", strconv.Itoa(int(*batch.TestSuiteRevision))).String(),
+		suite.Name,
+		baseUrl.JoinPath("batches", batch.BatchID.String()).String(),
+		baseUrl.JoinPath("systems", batch.SystemID.String()).String(),
+		system.Name,
+	}
+	introTemplate := template.Must(template.New("intro").Parse("Last night's <{{.SuiteUrl}}|{{.SuiteName}}> *<{{.BatchUrl}}|run>* for <{{.SystemUrl}}|{{.SystemName}}> ran successfully with the following breakdown:"))
+	var introBuffer bytes.Buffer
+	err = introTemplate.Execute(&introBuffer, introData)
+	if err != nil {
+		log.Fatal("couldn't execute template", err)
+	}
+	introTextBlock := slack.NewTextBlockObject("mrkdwn", introBuffer.String(), false, false)
+	blocks.BlockSet[0] = slack.NewSectionBlock(introTextBlock, nil, nil)
+
+	// List section
+	boldStyle := slack.RichTextSectionTextStyle{Bold: true}
+	buildListElement := func(count int, label string, filter string) *slack.RichTextSection {
+		return slack.NewRichTextSection(
+			slack.NewRichTextSectionTextElement(fmt.Sprintf("%d ", count), nil),
+			slack.NewRichTextSectionLinkElement(introData.BatchUrl+"?performanceFilter="+filter, label, &boldStyle),
+		)
+	}
+
+	listBlock := slack.NewRichTextList("bullet", 0,
+		slack.NewRichTextSection(slack.NewRichTextSectionTextElement(fmt.Sprintf("%d total tests", *batch.TotalJobs), nil)),
+		// Passed calculation borrowed from bff: https://github.com/resim-ai/rerun/blob/ebf0cde9472f555ae099e08e512ed4a7dfdf01f4/bff/lib/bff/batches/conflated_status_counts.ex#L49
+		buildListElement(batch.JobStatusCounts.Succeeded-(batch.JobMetricsStatusCounts.FailBlock+batch.JobMetricsStatusCounts.FailWarn), "Passed", "Passed"),
+		buildListElement(batch.JobMetricsStatusCounts.FailBlock, "Blocking", "Blocker"),
+		buildListElement(batch.JobMetricsStatusCounts.FailWarn, "Warning", "Warning"),
+		buildListElement(batch.JobStatusCounts.Error, "Erroring", "Error"),
+	)
+	blocks.BlockSet[1] = slack.NewRichTextBlock("list", listBlock)
+
+	webhookPayload := slack.WebhookMessage{
+		Blocks: blocks,
+	}
+	return &webhookPayload
 }
 
 func actualGetBatch(projectID uuid.UUID, batchIDRaw string, batchName string) *api.Batch {
@@ -400,8 +517,11 @@ func getBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("unknown batch status: ", batch.Status)
 		}
 	}
-
-	OutputJson(batch)
+	if viper.GetBool(batchSlackOutputKey) {
+		OutputJson(batchToSlackWebhookPayload(batch))
+	} else {
+		OutputJson(batch)
+	}
 }
 
 func waitBatch(ccmd *cobra.Command, args []string) {

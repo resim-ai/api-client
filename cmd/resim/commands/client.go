@@ -16,6 +16,7 @@ import (
 	"github.com/cli/browser"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
@@ -82,7 +83,7 @@ func init() {
 	rootCmd.PersistentFlags().String(passwordKey, "", "password for non-interactive login")
 }
 
-func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache, error) {
+func Authenticate(ctx context.Context) (*CredentialCache, error) {
 	var cache CredentialCache
 	err := cache.loadCredentialCache()
 	if err != nil {
@@ -168,13 +169,24 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 	tokenSource = oauth2.ReuseTokenSource(&token, tokenSource)
 	cache.TokenSource = tokenSource
 
-	oauthClient := oauth2.NewClient(ctx, tokenSource)
+	return &cache, nil
+}
+
+func GetClient(ctx context.Context, cache CredentialCache) (*api.ClientWithResponses, error) {
+	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)
 
 	client, err := api.NewClientWithResponses(viper.GetString(urlKey), api.WithHTTPClient(oauthClient))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return client, &cache, nil
+	return client, nil
+}
+
+func GetBffClient(ctx context.Context, cache CredentialCache) *bff.Client {
+	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)
+
+	// TODO: remove hardcoded URL
+	return bff.NewBffClient("http://localhost:4000/graphql", oauthClient)
 }
 
 func (c *CredentialCache) loadCredentialCache() error {

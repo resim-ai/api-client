@@ -35,8 +35,12 @@ func init() {
 
 // Read the given file and return a base64 encoded string of the file contents
 func readFile(path string) string {
-	file, _ := os.ReadFile(path)
-	// TODO: handle error
+	file, err := os.ReadFile(path)
+
+	if err != nil {
+		log.Fatalf("Failed to read file %s: %s", path, err)
+	}
+
 	return base64.StdEncoding.EncodeToString(file)
 }
 
@@ -91,14 +95,14 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Fatalf("failed to read body: %s", err)
+		log.Fatalf("failed to read response body: %s", err)
 	}
 
 	if response.StatusCode != http.StatusOK {
 		log.Fatalf("Got non-200 response: %d", response.StatusCode)
 	}
 
-	var graphqlResponse GraphQLResponse
+	var graphqlResponse graphQLResponse
 	if err := json.Unmarshal(body, &graphqlResponse); err != nil {
 		log.Fatalf("Failed to read response body: %s", err)
 	}
@@ -115,18 +119,9 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 			log.Printf("\t%s\n", t.Name)
 		}
 	}
-
-	/*
-		- Check if workdir is a git repo, err if not
-		- Check if git repo contains .resim/metrics/metrics.y[a]ml file, err if not
-		- Base64 encode the metrics.yml file
-		- Base64 encode all .resim/metrics/templates/*.heex files
-		- bffClient.updateMetricsConfig???
-		- print success/failure
-	*/
 }
 
-type GraphQLResponse struct {
+type graphQLResponse struct {
 	Data   any `json:"data"`
 	Errors []struct {
 		Message string `json:"message"`

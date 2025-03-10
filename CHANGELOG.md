@@ -37,6 +37,12 @@ Changes in this section will be included in the next release.
 - A new `ingest` command now supports ingesting existing logs -- from field testing, for example -- into the ReSim platform and running metrics on them. It works by importing a log with a given name and cloud storage location then running metrics on it. For more information see the [ReSim docs](https://docs.resim.ai/guides/log-ingest) for more details.
 - The test suite run command now supports a `--metrics-build-override` flag to allow you to take advantage of the test suite grouping, but test out a new metrics build.
 
+### v0.8.0 - March 11 2025
+
+#### Added
+
+- A `metrics sync` command was added. This command is part of our new metrics framework and will sync your metrics config files, located in your git repo under a `.resim` folder, into ReSim.
+
 ### v0.7.0 - February 26 2025
 
 #### Changed

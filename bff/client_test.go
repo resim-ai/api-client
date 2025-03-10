@@ -2,7 +2,6 @@ package bff
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -47,7 +46,6 @@ func TestUpdateMetricsConfig(t *testing.T) {
 	var request requestGraphqlQuery
 	err = json.Unmarshal(requestBody, &request)
 	assert.NoError(t, err)
-	fmt.Println(request)
 	assert.Contains(t, request.Query, "mutation UpdateMetricsConfig")
 	assert.Equal(t, "metricsFile", request.Variables.Config)
 

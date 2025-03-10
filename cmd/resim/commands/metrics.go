@@ -99,7 +99,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	}
 
 	if response.StatusCode != http.StatusOK {
-		log.Fatalf("Got non-200 response: %d", response.StatusCode)
+		log.Fatalf("Got non-200 response %d: %s", response.StatusCode, string(body))
 	}
 
 	var graphqlResponse graphQLResponse

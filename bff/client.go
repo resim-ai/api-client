@@ -7,15 +7,17 @@ import (
 	"net/http"
 )
 
-// Client manages queries and mutations with the BFF GraphQL API
-type Client struct {
-	// apiKey string
-	apiURL string
-	client *http.Client
+type APIClient interface {
+	Do(request *http.Request) (*http.Response, error)
 }
 
-func NewBffClient(apiURL string, client *http.Client) *Client {
+// Client manages queries and mutations with the BFF GraphQL API
+type Client struct {
+	apiURL string
+	client APIClient
+}
 
+func NewClient(apiURL string, client APIClient) *Client {
 	return &Client{
 		apiURL: apiURL,
 		client: client,
@@ -39,6 +41,10 @@ func (client *Client) UpdateMetricsConfig(metricsFile string, templates []Metric
 		"templateFiles": templates,
 	}
 
+	return client.makeRequest(query, variables)
+}
+
+func (client *Client) makeRequest(query string, variables map[string]any) (*http.Response, error) {
 	payload := map[string]any{
 		"query":     query,
 		"variables": variables,
@@ -49,13 +55,12 @@ func (client *Client) UpdateMetricsConfig(metricsFile string, templates []Metric
 		return &http.Response{}, fmt.Errorf("error marshaling request body: %w", err)
 	}
 
-	request, err := http.NewRequest("POST", client.apiURL, bytes.NewBuffer(jsonBody))
+	request, err := http.NewRequest(http.MethodPost, client.apiURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return &http.Response{}, fmt.Errorf("error creating request: %w", err)
 	}
 
 	request.Header.Set("Content-Type", "application/json")
-	// request.Header.Set("Authorization", "Bearer "+client.apiKey)
 
 	return client.client.Do(request)
 }

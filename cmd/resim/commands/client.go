@@ -184,9 +184,26 @@ func GetClient(ctx context.Context, cache CredentialCache) (*api.ClientWithRespo
 
 func GetBffClient(ctx context.Context, cache CredentialCache) *bff.Client {
 	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)
+	return bff.NewClient(inferGraphqlAPI(viper.GetString(urlKey)), oauthClient)
+}
 
-	// TODO: remove hardcoded URL
-	return bff.NewBffClient("http://localhost:4000/graphql", oauthClient)
+// Infer the URL of the BFF's GraphQL, instead of making users
+// awkwardly specify it like `resim --url api.resim.ai/v1 --bff-url bff.resim.ai/graphql projects list`,
+// which is bound to cause mistakes.
+func inferGraphqlAPI(rerunAPIurl string) string {
+	url, err := url.Parse(rerunAPIurl)
+	if err != nil {
+		log.Fatal("error parsing API url: ", err)
+	}
+
+	url.Path = "/graphql"
+	if strings.Contains(url.Host, "localhost") {
+		url.Host = "localhost:4000"
+	} else {
+		url.Host = strings.Replace(url.Host, "api.", "bff.", 1)
+	}
+
+	return url.String()
 }
 
 func (c *CredentialCache) loadCredentialCache() error {

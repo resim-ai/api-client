@@ -130,7 +130,9 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	}
 
 	// Finally, create a batch to process the log
+	ingestionBatchName := fmt.Sprintf("Ingested Log: %s", experience.Name)
 	batchBody := api.BatchInput{
+		BatchName:         Ptr(ingestionBatchName),
 		ExperienceIDs:     Ptr([]uuid.UUID{experienceID}),
 		BuildID:           Ptr(build.BuildID),
 		AssociatedAccount: &associatedAccount,

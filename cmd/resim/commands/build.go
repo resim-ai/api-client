@@ -382,3 +382,36 @@ func getBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, uu
 	}
 	return potentialBuildID
 }
+
+// Attempt to find an existing build for that branch, imageURI, and version
+func getBuildIDFromImageURIAndVersion(client api.ClientWithResponsesInterface, projectID uuid.UUID, systemID uuid.UUID, branchID uuid.UUID, imageURI string, version string, shouldFail bool) uuid.UUID {
+	var pageToken *string = nil
+	for {
+		response, err := client.ListBuildsWithResponse(context.Background(), projectID, &api.ListBuildsParams{
+			PageSize:  Ptr(100),
+			OrderBy:   Ptr("timestamp"),
+			Search:    Ptr(fmt.Sprintf("branch_id=\"%v\"", branchID)),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("failed to list builds:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list builds", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil || response.JSON200.Builds == nil {
+			log.Fatal("no builds")
+		}
+		pageToken = &response.JSON200.NextPageToken
+		for _, build := range response.JSON200.Builds {
+			if build.ImageUri == imageURI && build.Version == version {
+				return build.BuildID
+			}
+		}
+		if *pageToken == "" {
+			break
+		}
+	}
+	if shouldFail {
+		log.Fatal("failed to find build with image URI and version: ", imageURI, version)
+	}
+	return uuid.Nil
+}

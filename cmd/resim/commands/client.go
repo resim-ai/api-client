@@ -35,6 +35,7 @@ const (
 	prodNonInteractiveClientKey = "prod-non-interactive-client"
 	prodGovcloudURL             = "https://api-gov.resim.ai/v1/"
 	prodAPIURL                  = "https://api.resim.ai/v1/"
+	stagingAPIURL               = "https://api.resim.io/v1/"
 	prodAuthURL                 = "https://resim.us.auth0.com/"
 	devAuthURL                  = "https://resim-dev.us.auth0.com/"
 )

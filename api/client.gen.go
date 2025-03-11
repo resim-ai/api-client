@@ -87,12 +87,14 @@ const (
 const (
 	ARCHIVELOG       LogType = "ARCHIVE_LOG"
 	CONTAINERLOG     LogType = "CONTAINER_LOG"
+	ERRORLOG         LogType = "ERROR_LOG"
 	EXECUTIONLOG     LogType = "EXECUTION_LOG"
 	FOXGLOVEMCAPLOG  LogType = "FOXGLOVE_MCAP_LOG"
 	MCAPLOG          LogType = "MCAP_LOG"
 	METRICSOUTPUTLOG LogType = "METRICS_OUTPUT_LOG"
 	MP4LOG           LogType = "MP4_LOG"
 	OTHERLOG         LogType = "OTHER_LOG"
+	RERUNIOLOG       LogType = "RERUN_IO_LOG"
 )
 
 // Defines values for MetricStatus.
@@ -138,10 +140,10 @@ const (
 
 // Defines values for ReportStatus.
 const (
-	ReportStatusERROR     ReportStatus = "ERROR"
-	ReportStatusRUNNING   ReportStatus = "RUNNING"
-	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
-	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
+	ERROR     ReportStatus = "ERROR"
+	RUNNING   ReportStatus = "RUNNING"
+	SUBMITTED ReportStatus = "SUBMITTED"
+	SUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
 // Defines values for TriggeredVia.
@@ -192,6 +194,7 @@ type Batch struct {
 	CreationTimestamp      *Timestamp              `json:"creationTimestamp,omitempty"`
 	Description            *string                 `json:"description,omitempty"`
 	ExecutionError         *ExecutionError         `json:"executionError,omitempty"`
+	ExecutionErrors        *[]ExecutionError       `json:"executionErrors"`
 	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty"`
 	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
@@ -493,7 +496,11 @@ type DebugExperienceInput struct {
 
 // DebugExperienceOutput defines model for debugExperienceOutput.
 type DebugExperienceOutput struct {
-	BatchID *BatchID `json:"batchID,omitempty"`
+	BatchID         *BatchID `json:"batchID,omitempty"`
+	ClusterCAData   *string  `json:"clusterCAData,omitempty"`
+	ClusterEndpoint *string  `json:"clusterEndpoint,omitempty"`
+	ClusterToken    *string  `json:"clusterToken,omitempty"`
+	Namespace       *string  `json:"namespace,omitempty"`
 }
 
 // Event defines model for event.
@@ -620,6 +627,7 @@ type Job struct {
 	CreationTimestamp    *Timestamp          `json:"creationTimestamp,omitempty"`
 	Description          *string             `json:"description,omitempty"`
 	ExecutionError       *ExecutionError     `json:"executionError,omitempty"`
+	ExecutionErrors      *[]ExecutionError   `json:"executionErrors"`
 	ExperienceID         *ExperienceID       `json:"experienceID,omitempty"`
 	ExperienceName       *ExperienceName     `json:"experienceName,omitempty"`
 	JobID                *JobID              `json:"jobID,omitempty"`
@@ -1523,6 +1531,9 @@ type OrderBy = string
 // PageSize defines model for pageSize.
 type PageSize = int
 
+// PageSizeUnbounded defines model for pageSizeUnbounded.
+type PageSizeUnbounded = int
+
 // PageToken defines model for pageToken.
 type PageToken = string
 
@@ -1737,10 +1748,10 @@ type ListExperiencesParams struct {
 	Text *string `form:"text,omitempty" json:"text,omitempty"`
 
 	// Search A search query. Supports searching by tag_id, test_suite_id and system_id
-	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
-	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	Search    *string            `form:"search,omitempty" json:"search,omitempty"`
+	PageSize  *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken         `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy           `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // ListExperienceTagsForExperienceParams defines parameters for ListExperienceTagsForExperience.

@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.8.0 - March 12 2025
+
+#### Added
+
+- A new `ingest` command now supports ingesting existing logs -- from field testing, for example -- into the ReSim platform and running metrics on them. It works by importing a log with a given name and cloud storage location then running metrics on it. For more information see the [ReSim docs](https://docs.resim.ai/guides/log-ingest) for more details.
+
 ### v0.7.0 - February 26 2025
 
 #### Changed

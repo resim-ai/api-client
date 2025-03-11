@@ -32,6 +32,8 @@ const (
 	ingestExperienceTagsKey     = "tags"
 	ingestGithubKey             = "github"
 	ingestMetricsBuildKey       = "metrics-build-id"
+
+	logIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
 )
 
 func init() {
@@ -43,11 +45,9 @@ func init() {
 	ingestLogCmd.Flags().String(ingestSystemKey, "", "The name or ID of the system that generated the log")
 	ingestLogCmd.MarkFlagRequired(ingestSystemKey)
 	// Branch
-	ingestLogCmd.Flags().String(ingestBranchKey, "", "The name or ID of the branch of the software that generated the log")
-	ingestLogCmd.MarkFlagRequired(ingestBranchKey) // TODO: make optional
+	ingestLogCmd.Flags().String(ingestBranchKey, "log-ingest-branch", "The name or ID of the branch of the software that generated the log; if not provided, a default branch `log-ingest-branch` will be used")
 	// Build
-	ingestLogCmd.Flags().String(ingestVersionKey, "", "The version (often commit sha) of the software that generated the log")
-	ingestLogCmd.MarkFlagRequired(ingestVersionKey) // TODO: make optional
+	ingestLogCmd.Flags().String(ingestVersionKey, "latest", "The version (often commit SHA) of the software that generated the log; if not provided, a default version `latest` will be used")
 	// Metrics Build
 	ingestLogCmd.Flags().String(ingestMetricsBuildKey, "", "The ID of the metrics build to use in processing this log.")
 	ingestLogCmd.MarkFlagRequired(ingestMetricsBuildKey)
@@ -58,24 +58,22 @@ func init() {
 	ingestLogCmd.Flags().String(ingestExperienceLocationKey, "", "An S3 prefix, which ReSim has access to, where the log is stored.")
 	ingestLogCmd.MarkFlagRequired(ingestExperienceLocationKey)
 	// Tags
-	ingestLogCmd.Flags().String(ingestExperienceTagsKey, "", "Comma-separated list of tags to apply.") // TODO: implement
+	ingestLogCmd.Flags().StringSlice(ingestExperienceTagsKey, []string{}, "Comma-separated list of tags to apply. ReSim will automatically add the `ingested-via-resim` tag.")
 	rootCmd.AddCommand(ingestLogCmd)
 }
 
 func ingestLog(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
-	logGithub := viper.GetBool(ingestGithubKey)
-	if !logGithub {
+	logIngestGithub := viper.GetBool(ingestGithubKey)
+	if !logIngestGithub {
 		fmt.Println("Ingesting a log...")
 	}
 
 	// Check the system exists:
 	systemID := getSystemID(Client, projectID, viper.GetString(ingestSystemKey), true)
 	// Check the branch exists:
-	branchID := getBranchID(Client, projectID, viper.GetString(ingestBranchKey), true)
+	branchID := getOrCreateBranchID(Client, projectID, viper.GetString(ingestBranchKey), logIngestGithub)
 	// Create a build using the ReSim standard log ingest build:
-	// TODO: make this correct. I don't think this will work in general
-	logIngestURI := "public.ecr.aws/docker/library/hello-world:latest"
 
 	body := api.CreateBuildForBranchInput{
 		Description: Ptr("A ReSim Log Ingest Build"),
@@ -92,15 +90,12 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	build := *response.JSON201
-	if build.BuildID == nil {
-		log.Fatal("no build ID")
-	}
 
 	// Create the experience
 	experienceBody := api.CreateExperienceInput{
 		Name:        viper.GetString(ingestExperienceNameKey),
 		Location:    viper.GetString(ingestExperienceLocationKey),
-		Description: "A ReSim Log Ingest Experience",
+		Description: "Ingested into ReSim via the CLI",
 	}
 	experienceResponse, err := Client.CreateExperienceWithResponse(context.Background(), projectID, experienceBody)
 	if err != nil {
@@ -112,6 +107,14 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	}
 	experience := *experienceResponse.JSON201
 	experienceID := experience.ExperienceID
+
+	// Create or get any associated experience tags:
+	experienceTags := viper.GetStringSlice(ingestExperienceTagsKey)
+	experienceTags = append(experienceTags, "ingested-via-resim")
+	for _, tag := range experienceTags {
+		getOrCreateExperienceTagID(Client, projectID, tag)
+		tagExperienceHelper(Client, projectID, experienceID, tag)
+	}
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
@@ -129,7 +132,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	// Finally, create a batch to process the log
 	batchBody := api.BatchInput{
 		ExperienceIDs:     Ptr([]uuid.UUID{experienceID}),
-		BuildID:           build.BuildID,
+		BuildID:           Ptr(build.BuildID),
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
 		MetricsBuildID:    Ptr(metricsBuildID),
@@ -168,7 +171,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	jobID := theJob.JobID
 
 	// Report the results back to the user
-	if logGithub {
+	if logIngestGithub {
 		fmt.Printf("batch_id=%s\n", batch.BatchID.String())
 	} else {
 		fmt.Println("Ingested log successfully!")

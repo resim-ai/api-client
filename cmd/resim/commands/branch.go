@@ -199,3 +199,33 @@ pageLoop:
 	}
 	return branchID
 }
+
+func getOrCreateBranchID(client api.ClientWithResponsesInterface, projectID uuid.UUID, branchName string, github bool) uuid.UUID {
+	branchID := getBranchID(client, projectID, branchName, false)
+	if branchID == uuid.Nil {
+		if !github {
+			fmt.Printf("Branch with name %v doesn't currently exist. Creating... \n", branchName)
+		}
+		branchType := api.CHANGEREQUEST
+		if branchName == "main" || branchName == "master" {
+			branchType = api.MAIN
+		}
+		// Create the branch
+		body := api.CreateBranchInput{
+			Name:       branchName,
+			BranchType: branchType,
+		}
+
+		response, err := Client.CreateBranchForProjectWithResponse(context.Background(), projectID, body)
+		if err != nil {
+			log.Fatal("failed to create branch:", err)
+		}
+		ValidateResponse(http.StatusCreated, fmt.Sprintf("failed to create a new branch with name %v", branchName),
+			response.HTTPResponse, response.Body)
+		branchID = response.JSON201.BranchID
+		if !github {
+			fmt.Printf("Created branch with ID %v\n", branchID)
+		}
+	}
+	return branchID
+}

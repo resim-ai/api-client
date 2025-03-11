@@ -79,8 +79,17 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience tag description")
 	}
 
-	// add experiences if they are set
+	experienceTag := createExperienceTagHelper(Client, projectID, experienceTagName, experienceTagDescription)
+	if experienceTag.ExperienceTagID == uuid.Nil {
+		log.Fatal("no experience tag ID")
+	}
 
+	fmt.Println("Created experience tag")
+	fmt.Printf("Experience Tag: %s\n", experienceTag.Name)
+}
+
+func createExperienceTagHelper(client api.ClientWithResponsesInterface, projectID uuid.UUID, experienceTagName string, experienceTagDescription string) api.ExperienceTag {
+	// add experiences if they are set
 	body := api.CreateExperienceTagInput{
 		Name:        experienceTagName,
 		Description: experienceTagDescription,
@@ -94,13 +103,7 @@ func createExperienceTag(ccmd *cobra.Command, args []string) {
 	if response.JSON201 == nil {
 		log.Fatal("empty response")
 	}
-	experienceTag := response.JSON201
-	if experienceTag.ExperienceTagID == uuid.Nil {
-		log.Fatal("no experience tag ID")
-	}
-
-	fmt.Println("Created experience tag")
-	fmt.Printf("Experience Tag: %s\n", experienceTag.Name)
+	return *response.JSON201
 }
 
 func listExperienceTags(ccmd *cobra.Command, args []string) {
@@ -139,7 +142,7 @@ func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience tag name")
 	}
 
-	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
+	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName, true)
 
 	var pageToken *string = nil
 	var experiences []api.Experience
@@ -172,7 +175,7 @@ func listExperiencesWithTag(ccmd *cobra.Command, args []string) {
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func getExperienceTagIDForName(client api.ClientWithResponsesInterface, projectID uuid.UUID, experienceTagName string) uuid.UUID {
+func getExperienceTagIDForName(client api.ClientWithResponsesInterface, projectID uuid.UUID, experienceTagName string, failWhenNotFound bool) uuid.UUID {
 	// Page through experience tags until we find the one we want:
 	var experienceTagID uuid.UUID = uuid.Nil
 	var pageToken *string = nil
@@ -210,8 +213,17 @@ pageLoop:
 			break
 		}
 	}
-	if experienceTagID == uuid.Nil {
+	if experienceTagID == uuid.Nil && failWhenNotFound {
 		log.Fatal("failed to find experience tag with requested name: ", experienceTagName)
+	}
+	return experienceTagID
+}
+
+func getOrCreateExperienceTagID(client api.ClientWithResponsesInterface, projectID uuid.UUID, experienceTagName string) uuid.UUID {
+	experienceTagID := getExperienceTagIDForName(client, projectID, experienceTagName, false)
+	if experienceTagID == uuid.Nil {
+		experienceTag := createExperienceTagHelper(client, projectID, experienceTagName, "")
+		experienceTagID = experienceTag.ExperienceTagID
 	}
 	return experienceTagID
 }

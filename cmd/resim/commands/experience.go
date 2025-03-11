@@ -351,8 +351,11 @@ func tagExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse experience ID: ", err)
 	}
 
-	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
+	tagExperienceHelper(Client, projectID, experienceID, experienceTagName)
+}
 
+func tagExperienceHelper(client api.ClientWithResponsesInterface, projectID uuid.UUID, experienceID uuid.UUID, experienceTagName string) {
+	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName, true)
 	response, err := Client.AddExperienceTagToExperienceWithResponse(
 		context.Background(), projectID,
 		experienceTagID,
@@ -379,7 +382,7 @@ func untagExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse experience ID: ", err)
 	}
 
-	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName)
+	experienceTagID := getExperienceTagIDForName(Client, projectID, experienceTagName, true)
 	response, err := Client.RemoveExperienceTagFromExperienceWithResponse(
 		context.Background(), projectID,
 		experienceTagID,

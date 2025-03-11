@@ -16,7 +16,7 @@ import (
 var (
 	ingestLogCmd = &cobra.Command{
 		Use:   "ingest",
-		Short: "ingest - Ingests a new log and generates metrics analysis",
+		Short: "ingest - Ingests a new log, creating a build to track the software version, and generates metrics analysis",
 		Long:  ``,
 		Run:   ingestLog,
 	}
@@ -62,19 +62,12 @@ func init() {
 	rootCmd.AddCommand(ingestLogCmd)
 }
 
-func ingestLog(ccmd *cobra.Command, args []string) {
-	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
-	logIngestGithub := viper.GetBool(ingestGithubKey)
-	if !logIngestGithub {
-		fmt.Println("Ingesting a log...")
+// Index over the imageURI and the version to determine whether or not we want to create a new build:
+func getOrCreateBuild(client api.ClientWithResponsesInterface, projectID uuid.UUID, branchID uuid.UUID, systemID uuid.UUID, imageURI string, version string) uuid.UUID {
+	buildID := getBuildIDFromImageURIAndVersion(client, projectID, systemID, branchID, imageURI, version, false)
+	if buildID != uuid.Nil {
+		return buildID
 	}
-
-	// Check the system exists:
-	systemID := getSystemID(Client, projectID, viper.GetString(ingestSystemKey), true)
-	// Check the branch exists:
-	branchID := getOrCreateBranchID(Client, projectID, viper.GetString(ingestBranchKey), logIngestGithub)
-	// Create a build using the ReSim standard log ingest build:
-
 	body := api.CreateBuildForBranchInput{
 		Description: Ptr("A ReSim Log Ingest Build"),
 		ImageUri:    logIngestURI,
@@ -90,6 +83,23 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	build := *response.JSON201
+	return build.BuildID
+}
+
+func ingestLog(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	logIngestGithub := viper.GetBool(ingestGithubKey)
+	if !logIngestGithub {
+		fmt.Println("Ingesting a log...")
+	}
+
+	// Check the system exists:
+	systemID := getSystemID(Client, projectID, viper.GetString(ingestSystemKey), true)
+	// Check the branch exists:
+	branchID := getOrCreateBranchID(Client, projectID, viper.GetString(ingestBranchKey), logIngestGithub)
+	// Create a build using the ReSim standard log ingest build:
+
+	buildID := getOrCreateBuild(Client, projectID, branchID, systemID, logIngestURI, viper.GetString(ingestVersionKey))
 
 	// Create the experience
 	experienceBody := api.CreateExperienceInput{
@@ -134,7 +144,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	batchBody := api.BatchInput{
 		BatchName:         Ptr(ingestionBatchName),
 		ExperienceIDs:     Ptr([]uuid.UUID{experienceID}),
-		BuildID:           Ptr(build.BuildID),
+		BuildID:           Ptr(buildID),
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
 		MetricsBuildID:    Ptr(metricsBuildID),

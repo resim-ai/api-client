@@ -390,7 +390,7 @@ func getBuildIDFromImageURIAndVersion(client api.ClientWithResponsesInterface, p
 		response, err := client.ListBuildsWithResponse(context.Background(), projectID, &api.ListBuildsParams{
 			PageSize:  Ptr(100),
 			OrderBy:   Ptr("timestamp"),
-			Search:    Ptr(fmt.Sprintf("branch_id=%s", branchID)),
+			Search:    Ptr(fmt.Sprintf("branch_id=\"%v\"", branchID)),
 			PageToken: pageToken,
 		})
 		if err != nil {

@@ -217,6 +217,8 @@ const (
 	AtLeastOneReport                string = "at least one of the flags in the group"
 	BranchNotFoundReport            string = "not found"
 	FailedToParseMetricsBuildReport string = "failed to parse metrics-build ID"
+	// Log Ingest Messages
+	LogIngested string = "Ingested log successfully!"
 )
 
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
@@ -1295,6 +1297,61 @@ func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, ex
 		})
 	}
 	return []CommandBuilder{batchCommand, createCommand}
+}
+
+func createIngestedLog(projectID uuid.UUID, system string, branchname *string, version *string, metricsBuildID uuid.UUID, logName string, logLocation string, experienceTags []string, github bool) []CommandBuilder {
+	ingestCommand := CommandBuilder{
+		Command: "ingest",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--system",
+				Value: system,
+			},
+			{
+				Name:  "--log-name",
+				Value: logName,
+			},
+			{
+				Name:  "--log-location",
+				Value: logLocation,
+			},
+			{
+				Name:  "--metrics-build-id",
+				Value: metricsBuildID.String(),
+			},
+		},
+	}
+
+	if branchname != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--branch",
+			Value: *branchname,
+		})
+	}
+	if version != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--version",
+			Value: *version,
+		})
+	}
+	if len(experienceTags) > 0 {
+		experienceTagsString := strings.Join(experienceTags, ",")
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--tags",
+			Value: experienceTagsString,
+		})
+	}
+	if github {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{ingestCommand}
 }
 
 func getBatchByName(projectID uuid.UUID, batchName string, exitStatus bool) []CommandBuilder {
@@ -4358,6 +4415,259 @@ func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestLogIngest() {
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// Create the system
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	systemID := uuid.MustParse(systemIDString)
+
+	// A metrics build:
+	output = s.runCommand(createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	metricsBuildID := uuid.MustParse(metricsBuildIDString)
+
+	// There are no branches and there are no builds; we use the ingest command to create:
+	firstBranchName := "test-branch"
+	firstVersion := "first-version"
+	logName := fmt.Sprintf("test-log-%s", uuid.New().String())
+
+	logLocation := fmt.Sprintf("s3://%v/test-object/", s.Config.E2EBucket)
+
+	experienceTags := []string{"test-tag"}
+	ingestCommand := createIngestedLog(projectID, systemID.String(), &firstBranchName, &firstVersion, metricsBuildID, logName, logLocation, experienceTags, GithubTrue)
+	output = s.runCommand(ingestCommand, ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	batchID := uuid.MustParse(batchIDString)
+
+	// Await the batch to complete:
+	s.Eventually(func() bool {
+		complete, exitCode := checkBatchComplete(s, projectID, batchID)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, batchID.String(), ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	var batch api.Batch
+	err := json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	expectedBatchName := fmt.Sprintf("Ingested Log: %s", logName)
+	s.Equal(expectedBatchName, *batch.FriendlyName)
+
+	// Get the build and check version:
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	var build api.Build
+	err = json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(firstVersion, build.Version)
+	// Get the branch and check the name:
+	output = s.runCommand(listBranches(projectID), ExpectNoError)
+	var branches []api.Branch
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(1, len(branches))
+	s.Equal(firstBranchName, branches[0].Name)
+
+	// Get the job ID:
+	output = s.runCommand(getBatchJobsByID(projectID, batchID.String()), ExpectNoError)
+	var jobs []api.Job
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(1, len(jobs))
+	jobID := jobs[0].JobID
+
+	// Check the logs and ensure the `file.name` file exists:
+	output = s.runCommand(listLogs(projectID, batchID.String(), jobID.String()), ExpectNoError)
+	logs := []api.Log{}
+	err = json.Unmarshal([]byte(output.StdOut), &logs)
+	s.NoError(err)
+	found := false
+	for _, log := range logs {
+		if log.FileName != nil && *log.FileName == "file.name" {
+			found = true
+			break
+		}
+	}
+	s.True(found)
+
+	// Get the experience:
+	output = s.runCommand(getExperience(projectID, jobs[0].ExperienceID.String()), ExpectNoError)
+	var experience api.Experience
+	err = json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(logName, experience.Name)
+	s.Equal(logLocation, experience.Location)
+	// Finally, validate the tags:
+	output = s.runCommand(listExperiencesWithTag(projectID, "ingested-via-resim"), ExpectNoError)
+	var experiencesWithTag []api.Experience
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(logName, experiencesWithTag[0].Name)
+	// And the specificed tag
+	output = s.runCommand(listExperiencesWithTag(projectID, experienceTags[0]), ExpectNoError)
+	experiencesWithTag = []api.Experience{}
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(logName, experiencesWithTag[0].Name)
+
+	// Now, defaults:
+	secondLogName := fmt.Sprintf("test-log-%v", uuid.New())
+	secondLogTags := []string{"test-tag-2"}
+	defaultBranchName := "log-ingest-branch"
+	defaultVersion := "latest"
+	secondLogCommand := createIngestedLog(projectID, systemID.String(), nil, nil, metricsBuildID, secondLogName, logLocation, secondLogTags, GithubTrue)
+	output = s.runCommand(secondLogCommand, ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	secondBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	secondBatchID := uuid.MustParse(secondBatchIDString)
+
+	// Await the batch to complete:
+	s.Eventually(func() bool {
+		complete, exitCode := checkBatchComplete(s, projectID, secondBatchID)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, secondBatchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	expectedBatchName = fmt.Sprintf("Ingested Log: %s", secondLogName)
+	s.Equal(expectedBatchName, *batch.FriendlyName)
+
+	// Get the build and check version:
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(defaultVersion, build.Version)
+	defaultBuildID := build.BuildID
+	// Get the branch and check the name:
+	output = s.runCommand(listBranches(projectID), ExpectNoError)
+	branches = []api.Branch{}
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(2, len(branches))
+	s.Equal(firstBranchName, branches[1].Name)
+	s.Equal(defaultBranchName, branches[0].Name)
+	// Get the job ID:
+	output = s.runCommand(getBatchJobsByID(projectID, secondBatchIDString), ExpectNoError)
+	jobs = []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(1, len(jobs))
+	jobID = jobs[0].JobID
+
+	// Check the logs and ensure the `file.name` file exists:
+	output = s.runCommand(listLogs(projectID, secondBatchIDString, jobID.String()), ExpectNoError)
+	logs = []api.Log{}
+	err = json.Unmarshal([]byte(output.StdOut), &logs)
+	s.NoError(err)
+	found = false
+	for _, log := range logs {
+		if log.FileName != nil && *log.FileName == "file.name" {
+			found = true
+			break
+		}
+	}
+	s.True(found)
+
+	// Get the experience:
+	output = s.runCommand(getExperience(projectID, jobs[0].ExperienceID.String()), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(secondLogName, experience.Name)
+	s.Equal(logLocation, experience.Location)
+	// Finally, validate the tags:
+	output = s.runCommand(listExperiencesWithTag(projectID, "ingested-via-resim"), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(2, len(experiencesWithTag))
+	// And the specificed tag
+	output = s.runCommand(listExperiencesWithTag(projectID, secondLogTags[0]), ExpectNoError)
+	experiencesWithTag = []api.Experience{}
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(secondLogName, experiencesWithTag[0].Name)
+	// And that there is no overflow
+	output = s.runCommand(listExperiencesWithTag(projectID, experienceTags[0]), ExpectNoError)
+	experiencesWithTag = []api.Experience{}
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(logName, experiencesWithTag[0].Name)
+
+	// Validate that things are not recreated:
+	thirdLogName := fmt.Sprintf("test-log-%v", uuid.New())
+	output = s.runCommand(createIngestedLog(projectID, systemID.String(), nil, nil, metricsBuildID, thirdLogName, logLocation, secondLogTags, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	thirdBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, thirdBatchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	expectedBatchName = fmt.Sprintf("Ingested Log: %s", thirdLogName)
+	s.Equal(expectedBatchName, *batch.FriendlyName)
+
+	// Get the build and check version:
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(defaultVersion, build.Version)
+	s.Equal(defaultBuildID, build.BuildID)
+	// Get the branch and check the name and that no new branches were created:
+	output = s.runCommand(listBranches(projectID), ExpectNoError)
+	branches = []api.Branch{}
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(2, len(branches))
+	s.Equal(firstBranchName, branches[1].Name)
+	s.Equal(defaultBranchName, branches[0].Name)
+
+}
+
+func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {
+	cmd := s.buildCommand(getBatchByID(projectID, batchID.String(), ExitStatusTrue))
+	var stdout, stderr bytes.Buffer
+	fmt.Println("About to run command: ", cmd.String())
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	exitCode := 0
+	if err := cmd.Run(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitCode = exitError.ExitCode()
+		}
+	}
+	s.Contains(AcceptableBatchStatusCodes, exitCode)
+	s.Empty(stderr.String())
+	s.Empty(stdout.String())
+	// Check if the status is 0, complete, 5 cancelled, 2 failed
+	complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+	return complete, exitCode
 }
 
 func TestEndToEndTestSuite(t *testing.T) {

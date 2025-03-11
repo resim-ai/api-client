@@ -27,8 +27,8 @@ const (
 	ingestSystemKey             = "system"
 	ingestBranchKey             = "branch"
 	ingestVersionKey            = "version"
-	ingestExperienceNameKey     = "experience-name"
-	ingestExperienceLocationKey = "remote-log-location"
+	ingestLogNameKey            = "log-name"
+	ingestExperienceLocationKey = "log-location"
 	ingestExperienceTagsKey     = "tags"
 	ingestGithubKey             = "github"
 	ingestMetricsBuildKey       = "metrics-build-id"
@@ -52,8 +52,8 @@ func init() {
 	ingestLogCmd.Flags().String(ingestMetricsBuildKey, "", "The ID of the metrics build to use in processing this log.")
 	ingestLogCmd.MarkFlagRequired(ingestMetricsBuildKey)
 	// Log Name
-	ingestLogCmd.Flags().String(ingestExperienceNameKey, "", "A project-unique name to use in processing this log, often a run id.")
-	ingestLogCmd.MarkFlagRequired(ingestExperienceNameKey)
+	ingestLogCmd.Flags().String(ingestLogNameKey, "", "A project-unique name to use in processing this log, often a run id.")
+	ingestLogCmd.MarkFlagRequired(ingestLogNameKey)
 	// Log Location
 	ingestLogCmd.Flags().String(ingestExperienceLocationKey, "", "An S3 prefix, which ReSim has access to, where the log is stored.")
 	ingestLogCmd.MarkFlagRequired(ingestExperienceLocationKey)
@@ -103,7 +103,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 
 	// Create the experience
 	experienceBody := api.CreateExperienceInput{
-		Name:        viper.GetString(ingestExperienceNameKey),
+		Name:        viper.GetString(ingestLogNameKey),
 		Location:    viper.GetString(ingestExperienceLocationKey),
 		Description: "Ingested into ReSim via the CLI",
 	}

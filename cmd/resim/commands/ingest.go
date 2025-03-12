@@ -32,8 +32,9 @@ const (
 	ingestExperienceTagsKey     = "tags"
 	ingestGithubKey             = "github"
 	ingestMetricsBuildKey       = "metrics-build-id"
+	ingestBuildKey              = "build-id"
 
-	logIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
+	LogIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
 )
 
 func init() {
@@ -44,10 +45,14 @@ func init() {
 	// System
 	ingestLogCmd.Flags().String(ingestSystemKey, "", "The name or ID of the system that generated the log")
 	ingestLogCmd.MarkFlagRequired(ingestSystemKey)
+	// Build ID
+	ingestLogCmd.Flags().String(ingestBuildKey, "", "The ID of the build to use to pre-process the log. If not provided, the default ReSim log ingest build will be used to simply copy the log to the correct location.")
 	// Branch
 	ingestLogCmd.Flags().String(ingestBranchKey, "log-ingest-branch", "The name or ID of the branch of the software that generated the log; if not provided, a default branch `log-ingest-branch` will be used")
-	// Build
+	// Build version
 	ingestLogCmd.Flags().String(ingestVersionKey, "latest", "The version (often commit SHA) of the software that generated the log; if not provided, a default version `latest` will be used")
+	ingestLogCmd.MarkFlagsMutuallyExclusive(ingestBuildKey, ingestVersionKey)
+	ingestLogCmd.MarkFlagsMutuallyExclusive(ingestBuildKey, ingestBranchKey)
 	// Metrics Build
 	ingestLogCmd.Flags().String(ingestMetricsBuildKey, "", "The ID of the metrics build to use in processing this log.")
 	ingestLogCmd.MarkFlagRequired(ingestMetricsBuildKey)
@@ -70,7 +75,7 @@ func getOrCreateBuild(client api.ClientWithResponsesInterface, projectID uuid.UU
 	}
 	body := api.CreateBuildForBranchInput{
 		Description: Ptr("A ReSim Log Ingest Build"),
-		ImageUri:    logIngestURI,
+		ImageUri:    LogIngestURI,
 		Version:     viper.GetString(ingestVersionKey),
 		SystemID:    systemID,
 	}
@@ -99,7 +104,16 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	branchID := getOrCreateBranchID(Client, projectID, viper.GetString(ingestBranchKey), logIngestGithub)
 	// Create a build using the ReSim standard log ingest build:
 
-	buildID := getOrCreateBuild(Client, projectID, branchID, systemID, logIngestURI, viper.GetString(ingestVersionKey))
+	var buildID uuid.UUID
+	var err error
+	if viper.IsSet(ingestBuildKey) {
+		buildID, err = uuid.Parse(viper.GetString(ingestBuildKey))
+		if err != nil {
+			log.Fatal("invalid build ID")
+		}
+	} else {
+		buildID = getOrCreateBuild(Client, projectID, branchID, systemID, LogIngestURI, viper.GetString(ingestVersionKey))
+	}
 
 	// Create the experience
 	experienceBody := api.CreateExperienceInput{

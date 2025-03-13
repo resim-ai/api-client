@@ -4655,14 +4655,12 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	s.Equal(firstBranchName, branches[1].Name)
 	s.Equal(defaultBranchName, branches[0].Name)
 
-	// Finally, use the existing build ID:
-
 	//Create a build:
 	output = s.runCommand(createBuild(projectName, firstBranchName, systemName, "description", commands.LogIngestURI, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	existingBuildID := uuid.MustParse(buildIDString)
-
+	// Finally, use the existing build ID:
 	fourthLogName := fmt.Sprintf("test-log-%v", uuid.New())
 	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, fourthLogName, logLocation, secondLogTags, Ptr(existingBuildID), GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
@@ -4675,6 +4673,14 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	expectedBatchName = fmt.Sprintf("Ingested Log: %s", fourthLogName)
 	s.Equal(expectedBatchName, *batch.FriendlyName)
 
+	// Check the MuTex parameters:
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, fourthLogName, logLocation, secondLogTags, Ptr(existingBuildID), GithubTrue), ExpectError)
+	const flagGroupTemplate = "if any flags in the group [%[1]v %[2]v] are set none of the others can be; [%[1]v %[2]v] were all set"
+	s.Contains(output.StdErr, fmt.Sprintf(flagGroupTemplate, "build-id", "system"))
+	output = s.runCommand(createIngestedLog(projectID, nil, &firstBranchName, nil, metricsBuildID, fourthLogName, logLocation, secondLogTags, Ptr(existingBuildID), GithubTrue), ExpectError)
+	s.Contains(output.StdErr, fmt.Sprintf(flagGroupTemplate, "build-id", "branch"))
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, &firstVersion, metricsBuildID, fourthLogName, logLocation, secondLogTags, Ptr(existingBuildID), GithubTrue), ExpectError)
+	s.Contains(output.StdErr, fmt.Sprintf(flagGroupTemplate, "build-id", "version"))
 }
 
 func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {

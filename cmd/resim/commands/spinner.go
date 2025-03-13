@@ -10,13 +10,13 @@ import (
 
 type Spinner struct {
 	spinner *spinner.Spinner
-	ccmd *cobra.Command
+	ccmd    *cobra.Command
 }
 
 func NewSpinner(ccmd *cobra.Command) *Spinner {
 	return &Spinner{
-		spinner: spinner.New(spinner.CharSets[14], 100 * time.Millisecond),
-		ccmd: ccmd,
+		spinner: spinner.New(spinner.CharSets[14], 100*time.Millisecond),
+		ccmd:    ccmd,
 	}
 }
 
@@ -29,8 +29,10 @@ func (s *Spinner) Start(msg string) {
 	s.spinner.Start()
 }
 
-func (s *Spinner) Stop(finalMsg string) {
-	s.spinner.FinalMSG = finalMsg
+func (s *Spinner) Stop(finalMsg *string) {
+	if finalMsg != nil {
+		s.spinner.FinalMSG = *finalMsg
+	}
 	s.spinner.Stop()
 }
 

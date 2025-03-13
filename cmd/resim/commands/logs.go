@@ -123,6 +123,7 @@ func listLogs(ccmd *cobra.Command, args []string) {
 }
 
 func isFileZipped(f os.File) (bool, error) {
+	f.Seek(0, io.SeekStart)
 	info, err := os.Stat(f.Name())
 	if err != nil {
 		return false, errors.New("could not 'stat' file")
@@ -229,6 +230,24 @@ func unzipFile(zippedFile os.File) error {
 	return deferredErr
 }
 
+func downloadLogToFile(jobLog api.JobLog, file *os.File) error {
+	resp, err := http.Get(*jobLog.LogOutputLocation)
+
+	if err != nil {
+		return errors.New("unable to download log: " + err.Error())
+	}
+	defer resp.Body.Close()
+	
+	bytesWritten, err := io.Copy(file, resp.Body)
+	if err != nil {
+		return errors.New("unable to write log file: " + err.Error())
+	}
+	if bytesWritten != *jobLog.FileSize {
+		return fmt.Errorf("wrote %d bytes to %s but expected %d", bytesWritten, file.Name(), *jobLog.FileSize)
+	}
+	return nil
+}
+
 func downloadLogs(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(logProjectKey))
 	batchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
@@ -250,7 +269,7 @@ func downloadLogs(ccmd *cobra.Command, args []string) {
 		}
 		if len(files) > 0 {
 			log.Fatal("output directory is not empty: ", outputDir)
-		}	
+		}
 	} else {
 		os.MkdirAll(outputDir, 0755)
 	}
@@ -269,41 +288,40 @@ func downloadLogs(ccmd *cobra.Command, args []string) {
 	}
 
 	for _, jobLog := range logs {
-		filePath := filepath.Join(outputDir, *jobLog.FileName)
-		resp, err := http.Get(*jobLog.LogOutputLocation)
-
 		s.Update(fmt.Sprintf("Downloading %s...", *jobLog.FileName))
-		
-		if err != nil {
-			log.Fatal("unable to download log: ", err)
-		}
-		defer resp.Body.Close()
+
+		filePath := filepath.Join(outputDir, *jobLog.FileName)
 		out, err := os.Create(filePath)
 		if err != nil {
 			log.Fatal("unable to create log file: ", err)
 		}
-		defer out.Close()
-		bytesWritten, err := io.Copy(out, resp.Body)
+		
+		err = downloadLogToFile(jobLog, out)
 		if err != nil {
-			log.Fatal("unable to write log file: ", err)
+			log.Fatal("unable to download log: ", err)
 		}
-		if bytesWritten != *jobLog.FileSize {
-			log.Fatal("wrote ", bytesWritten, " bytes to ", filePath, " but expected ", *jobLog.FileSize)
-		}
-		out.Seek(0, io.SeekStart)
-		isZipped, err := isFileZipped(*out)
-		if err != nil {
-			log.Fatal("unable to determine if log file is zipped: ", err)
-		}
-		if *jobLog.LogType == api.ARCHIVELOG && isZipped {
-			s.Update(fmt.Sprintf("Unzipping %s...", *jobLog.FileName))
-			// unzip the file
-			err = unzipFile(*out)
+
+		if *jobLog.LogType == api.ARCHIVELOG {
+			isZipped, err := isFileZipped(*out)
 			if err != nil {
-				log.Fatal("unable to unzip log file: ", err)
+				log.Fatal("unable to determine if log file is zipped: ", err)
 			}
+			
+			if isZipped {
+				s.Update(fmt.Sprintf("Unzipping %s...", *jobLog.FileName))
+				err = unzipFile(*out)
+				if err != nil {
+					log.Fatal("unable to unzip log file: ", err)
+				}
+				out.Close()
+				os.Remove(filePath)
+				continue
+			}
+		} else {
+			out.Close()
 		}
 	}
 
-	s.Stop(fmt.Sprintf("Downloaded %d logs to %s\n", len(logs), outputDir))
+	s.Stop(nil)
+	fmt.Printf("Downloaded %d logs to %s\n", len(logs), outputDir)
 }

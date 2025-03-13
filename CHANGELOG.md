@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.9.0 - March 13 2025
+
+#### Changed
+
+- The `resim ingest` command now supports using a custom log ingestion build ID, to allow you to preprocess a log. It can be run with `--build-id`. This is mutually exclusive with the `--branch` and `--version` flags.
+
 ### v0.8.0 - March 12 2025
 
 #### Added

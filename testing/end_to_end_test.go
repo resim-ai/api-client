@@ -1877,7 +1877,7 @@ func getTestSuiteBatches(projectID uuid.UUID, testSuiteName string, revision *in
 	return []CommandBuilder{testSuitesCommand, batchesCommand}
 }
 
-func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string, allowableFailurePercent *int) []CommandBuilder {
+func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string, allowableFailurePercent *int, metricsBuildID *string) []CommandBuilder {
 	// We build a get batch command with the name flag
 	testSuiteCommand := CommandBuilder{
 		Command: "suites",
@@ -1937,6 +1937,13 @@ func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, bu
 		runCommand.Flags = append(runCommand.Flags, Flag{
 			Name:  "--allowable-failure-percent",
 			Value: fmt.Sprintf("%d", *allowableFailurePercent),
+		})
+	}
+
+	if metricsBuildID != nil {
+		runCommand.Flags = append(runCommand.Flags, Flag{
+			Name:  "--metrics-build-override",
+			Value: *metricsBuildID,
 		})
 	}
 
@@ -4100,7 +4107,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.Len(testSuite.Experiences, 1)
 	s.ElementsMatch(experienceIDs[0], testSuite.Experiences[0])
 	// Then run.
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, nil), ExpectNoError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, CreatedTestSuiteBatch)
 	// Then list the test suite batches
 	output = s.runCommand(getTestSuiteBatches(projectID, firstTestSuiteName, nil), ExpectNoError)
@@ -4115,7 +4122,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 
 	// Create a new run using github and with a specific batch name:
 	batchName := fmt.Sprintf("test-batch-%s", uuid.New().String())
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName, Ptr(100)), ExpectNoError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName, Ptr(100), nil), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	// Parse the output to get a batch id:
 	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
@@ -4140,10 +4147,31 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.True(found)
 
 	// Try running a test suite with a non-percentage allowable failure percent:
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(101)), ExpectError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(101), nil), ExpectError)
 	s.Contains(output.StdErr, AllowableFailurePercent)
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(-1)), ExpectError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(-1), nil), ExpectError)
 	s.Contains(output.StdErr, AllowableFailurePercent)
+
+	// Try running a test suite with a metrics build override:
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, nil, nil, Ptr(metricsBuildIDString)), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	// Parse the output to get a batch id:
+	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDString)
+	// Get the batch:
+	output = s.runCommand(getBatchByName(projectID, batchName, ExitStatusFalse), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(metricsBuildIDString, batch.MetricsBuildID.String())
+	s.Equal(buildIDString, batch.BuildID.String())
+	// Get the jobs for the batch:
+	output = s.runCommand(getBatchJobsByName(projectID, batchName), ExpectNoError)
+	jobs := []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Len(jobs, 1)
+	// The job should have the correct experience ID:
+	s.Equal(experienceIDs[0], *jobs[0].ExperienceID)
 }
 
 func (s *EndToEndTestSuite) TestReports() {

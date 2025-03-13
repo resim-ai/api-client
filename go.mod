@@ -8,6 +8,7 @@ retract (
 )
 
 require (
+	github.com/briandowns/spinner v1.23.2
 	github.com/cli/browser v1.3.0
 	github.com/deepmap/oapi-codegen v1.13.4
 	github.com/fatih/color v1.14.1
@@ -20,7 +21,6 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
@@ -30,6 +30,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
+	golang.org/x/term v0.22.0 // indirect
 )
 
 require (

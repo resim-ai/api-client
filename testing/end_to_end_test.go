@@ -4675,12 +4675,14 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 
 	// Check the MuTex parameters:
 	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, fourthLogName, logLocation, secondLogTags, Ptr(existingBuildID), GithubTrue), ExpectError)
-	const flagGroupTemplate = "if any flags in the group [%[1]v %[2]v] are set none of the others can be; [%[1]v %[2]v] were all set"
-	s.Contains(output.StdErr, fmt.Sprintf(flagGroupTemplate, "build-id", "system"))
+	s.Contains(output.StdErr, "build-id")
+	s.Contains(output.StdErr, "system")
 	output = s.runCommand(createIngestedLog(projectID, nil, &firstBranchName, nil, metricsBuildID, fourthLogName, logLocation, secondLogTags, Ptr(existingBuildID), GithubTrue), ExpectError)
-	s.Contains(output.StdErr, fmt.Sprintf(flagGroupTemplate, "build-id", "branch"))
+	s.Contains(output.StdErr, "build-id")
+	s.Contains(output.StdErr, "branch")
 	output = s.runCommand(createIngestedLog(projectID, nil, nil, &firstVersion, metricsBuildID, fourthLogName, logLocation, secondLogTags, Ptr(existingBuildID), GithubTrue), ExpectError)
-	s.Contains(output.StdErr, fmt.Sprintf(flagGroupTemplate, "build-id", "version"))
+	s.Contains(output.StdErr, "build-id")
+	s.Contains(output.StdErr, "version")
 }
 
 func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {

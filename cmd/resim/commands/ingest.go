@@ -42,11 +42,11 @@ func init() {
 	// Project
 	ingestLogCmd.Flags().String(ingestProjectKey, "", "The name or ID of the project to associate with the log")
 	ingestLogCmd.MarkFlagRequired(ingestProjectKey)
-	// System
-	ingestLogCmd.Flags().String(ingestSystemKey, "", "The name or ID of the system that generated the log")
-	ingestLogCmd.MarkFlagRequired(ingestSystemKey)
 	// Build ID
 	ingestLogCmd.Flags().String(ingestBuildKey, "", "The ID of the build to use to pre-process the log. If not provided, the default ReSim log ingest build will be used to simply copy the log to the correct location.")
+	// System
+	ingestLogCmd.Flags().String(ingestSystemKey, "", "The name or ID of the system that generated the log")
+	ingestLogCmd.MarkFlagsMutuallyExclusive(ingestBuildKey, ingestSystemKey)
 	// Branch
 	ingestLogCmd.Flags().String(ingestBranchKey, "log-ingest-branch", "The name or ID of the branch of the software that generated the log; if not provided, a default branch `log-ingest-branch` will be used")
 	// Build version
@@ -98,12 +98,6 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		fmt.Println("Ingesting a log...")
 	}
 
-	// Check the system exists:
-	systemID := getSystemID(Client, projectID, viper.GetString(ingestSystemKey), true)
-	// Check the branch exists:
-	branchID := getOrCreateBranchID(Client, projectID, viper.GetString(ingestBranchKey), logIngestGithub)
-	// Create a build using the ReSim standard log ingest build:
-
 	var buildID uuid.UUID
 	var err error
 	if viper.IsSet(ingestBuildKey) {
@@ -112,6 +106,10 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 			log.Fatal("invalid build ID")
 		}
 	} else {
+		// Create a build using the ReSim standard log ingest build:
+		systemID := getSystemID(Client, projectID, viper.GetString(ingestSystemKey), true)
+		// Check the branch exists:
+		branchID := getOrCreateBranchID(Client, projectID, viper.GetString(ingestBranchKey), logIngestGithub)
 		buildID = getOrCreateBuild(Client, projectID, branchID, systemID, LogIngestURI, viper.GetString(ingestVersionKey))
 	}
 

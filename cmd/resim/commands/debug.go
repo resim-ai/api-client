@@ -30,7 +30,7 @@ import (
 var (
 	debugCmd = &cobra.Command{
 		Use:   "debug",
-		Short: "debug - Launch an interactive debug session",
+		Short: "debug - Launch an interactive debug session. Provide an experience name or ID and a build ID or batch name or ID, and you will be placed into a shell inside a container running the image associated with the build or batch, with the experience data present in /tmp/resim/inputs. Any files you write to /tmp/resim/outputs will be uploaded as log files when you exit the shell.",
 		Long:  ``,
 		Run:   debug,
 	}
@@ -41,15 +41,17 @@ const (
 	debugBuildKey      = "build"
 	debugExperienceKey = "experience"
 	debugBatchKey      = "batch"
+	debugCommandKey    = "command"
 )
 
 func init() {
 	debugCmd.Flags().String(debugProjectKey, "", "The name or ID of the project to associate with the debug session")
 	debugCmd.MarkFlagRequired(debugProjectKey)
-	debugCmd.Flags().String(debugBuildKey, "", "The ID of the build to debug")
-	debugCmd.Flags().String(debugBatchKey, "", "The ID of the batch to debug")
-	debugCmd.Flags().String(debugExperienceKey, "", "The experience to debug")
+	debugCmd.Flags().String(debugBuildKey, "", "The name or ID of the build to debug")
+	debugCmd.Flags().String(debugBatchKey, "", "The name or ID of the batch to debug")
+	debugCmd.Flags().String(debugExperienceKey, "", "The name or ID of the experience to debug")
 	debugCmd.MarkFlagRequired(debugExperienceKey)
+	debugCmd.Flags().String(debugCommandKey, "", "The command to run in the debug session. Must be installed in the image, e.g. bash")
 	rootCmd.AddCommand(debugCmd)
 }
 
@@ -70,39 +72,38 @@ func debug(ccmd *cobra.Command, args []string) {
 	ctx := context.Background()
 	projectID := getProjectID(Client, viper.GetString(debugProjectKey))
 
-	// pool label
 	poolLabels := []string{"resim:k8s"}
+	body := api.DebugExperienceInput{
+		PoolLabels: &poolLabels,
+	}
 
 	buildIDString := viper.GetString(debugBuildKey)
 	batchRef := viper.GetString(debugBatchKey)
 
 	if buildIDString == "" && batchRef == "" {
-		log.Fatal("Either a build ID or batch ID must be provided")
+		log.Fatal("Either a build ID or batch name or ID must be provided")
 	}
 
 	if buildIDString != "" && batchRef != "" {
-		log.Fatal("Only one of build ID or batch ID must be provided")
+		log.Fatal("Only one of build ID or batch name or ID must be provided")
 	}
 
-	buildID, err := uuid.Parse(buildIDString)
-	if err != nil {
-		log.Fatal("invalid build ID: ", err)
-	}
-
-	experienceID := getExperienceID(Client, projectID, viper.GetString(debugExperienceKey), true)
-
-	body := api.DebugExperienceJSONRequestBody{
-		PoolLabels: &poolLabels,
-	}
-
+	var buildID uuid.UUID
+	var err error
 	if batchRef != "" {
 		batch := actualGetBatch(projectID, "", batchRef)
 		body.BatchID = batch.BatchID
+	} else {
+		buildID, err = uuid.Parse(buildIDString)
+		if err != nil {
+			log.Fatal("Invalid build ID: ", err)
+		}
+		if buildID != uuid.Nil {
+			body.BuildID = &buildID
+		}
 	}
 
-	if buildID != uuid.Nil {
-		body.BuildID = &buildID
-	}
+	experienceID := getExperienceID(Client, projectID, viper.GetString(debugExperienceKey), true)
 
 	response, err := Client.DebugExperienceWithResponse(ctx, projectID, experienceID, body)
 	if err != nil {
@@ -125,7 +126,10 @@ func debug(ccmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}()
 
-	command := "sh"
+	command := viper.GetString(debugCommandKey)
+	if command == "" {
+		command = "sh"
+	}
 
 	serverAddress := debugExperience.ClusterEndpoint
 	token := debugExperience.ClusterToken
@@ -148,13 +152,12 @@ func debug(ccmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	// Wait for pod to be ready by finding it with the label selector
 	listOptions := metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("resim.io/parentID=%s,resim.io/role=customer", debugExperience.BatchID),
 	}
 
 	var pod *v1.Pod
-	for range make([]struct{}, 24) { // 24 * 5 = 2 minutes
+	for range make([]struct{}, 120) { // 120 * 5 = 10 minutes. A big image can take a long time to pull onto the host.
 		pods, err := clientSet.CoreV1().Pods(*debugExperience.Namespace).List(ctx, listOptions)
 		if err != nil {
 			panic(err)
@@ -169,7 +172,7 @@ func debug(ccmd *cobra.Command, args []string) {
 	}
 
 	if pod == nil {
-		log.Fatal("Could not find running pod with matching label")
+		log.Fatal("Could not find running batch")
 	}
 
 	req := clientSet.CoreV1().RESTClient().Post().
@@ -196,7 +199,6 @@ func debug(ccmd *cobra.Command, args []string) {
 		In:  os.Stdin,
 		Out: os.Stdout,
 		Raw: true,
-		// Parent: term.StdStreams(),
 	}
 	if err := t.Safe(term.SafeFunc(func() error { return nil })); err != nil {
 		panic(err)
@@ -214,7 +216,7 @@ func debug(ccmd *cobra.Command, args []string) {
 	sizeQueue := t.MonitorSize(t.GetSize())
 
 	err = exec.StreamWithContext(
-		context.TODO(),
+		context.Background(),
 		remotecommand.StreamOptions{
 			Stdin:             t.In,
 			Stdout:            t.Out,
@@ -229,10 +231,10 @@ func debug(ccmd *cobra.Command, args []string) {
 
 func cancelDebugBatch(projectID uuid.UUID, batchID uuid.UUID) {
 	fmt.Println("Cancelling debug batch...")
-	response, err := Client.CancelBatchWithResponse(context.TODO(), projectID, batchID)
+	response, err := Client.CancelBatchWithResponse(context.Background(), projectID, batchID)
 	if err != nil {
-		log.Fatal("unable to cancel batch: ", err)
+		log.Fatal("Unable to cancel batch: ", err)
 	}
 
-	ValidateResponse(http.StatusOK, "unable to cancel batch", response.HTTPResponse, response.Body)
+	ValidateResponse(http.StatusOK, "Unable to cancel batch", response.HTTPResponse, response.Body)
 }

@@ -237,7 +237,7 @@ func downloadLogToFile(jobLog api.JobLog, file *os.File) error {
 		return errors.New("unable to download log: " + err.Error())
 	}
 	defer resp.Body.Close()
-	
+
 	bytesWritten, err := io.Copy(file, resp.Body)
 	if err != nil {
 		return errors.New("unable to write log file: " + err.Error())
@@ -295,7 +295,7 @@ func downloadLogs(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("unable to create log file: ", err)
 		}
-		
+
 		err = downloadLogToFile(jobLog, out)
 		if err != nil {
 			log.Fatal("unable to download log: ", err)
@@ -306,7 +306,7 @@ func downloadLogs(ccmd *cobra.Command, args []string) {
 			if err != nil {
 				log.Fatal("unable to determine if log file is zipped: ", err)
 			}
-			
+
 			if isZipped {
 				s.Update(fmt.Sprintf("Unzipping %s...", *jobLog.FileName))
 				err = unzipFile(*out)

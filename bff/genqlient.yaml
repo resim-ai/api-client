@@ -1,0 +1,8 @@
+# For full documentation see https://github.com/Khan/genqlient/blob/main/docs/genqlient.yaml
+schema: schema.graphql
+operations:
+- queries/*.graphql
+generated: generated.go
+bindings:
+  UUID:
+    type: github.com/google/uuid.UUID

@@ -8,6 +8,12 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.8.0 - March ?? 2025
+
+#### Added
+
+- A `metrics sync` command was added. This command is part of our new metrics framework and will sync your metrics config files, located in your git repo under a `.resim` folder, into ReSim.
+
 ### v0.10.0 - March 14 2025
 
 #### Added

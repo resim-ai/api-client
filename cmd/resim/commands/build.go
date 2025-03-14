@@ -243,7 +243,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 
 	inputBuildImageURI := viper.GetString(buildImageURIKey)
 	var buildImageURI *string = nil
-	
+
 	inputBuildSpecLocation := viper.GetString(buildSpecKey)
 	var buildSpec *[]byte = nil
 
@@ -318,11 +318,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	body := api.CreateBuildForBranchInput{
-		Description: Ptr(buildDescription),
-		ImageUri:    buildImageURI,
-		BuildSpecification:   buildSpec,
-		Version:     buildVersion,
-		SystemID:    systemID,
+		Description:        Ptr(buildDescription),
+		ImageUri:           buildImageURI,
+		BuildSpecification: buildSpec,
+		Version:            buildVersion,
+		SystemID:           systemID,
 	}
 
 	response, err := Client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)

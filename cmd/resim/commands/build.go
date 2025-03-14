@@ -14,6 +14,7 @@ import (
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -64,13 +65,12 @@ const (
 	buildBuildIDKey          = "build-id"
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
+	buildSpecKey             = "build-spec"
 )
 
 func init() {
 	createBuildCmd.Flags().String(buildDescriptionKey, "", "The description of the build, often a commit message")
 	createBuildCmd.MarkFlagRequired(buildDescriptionKey)
-	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
-	createBuildCmd.MarkFlagRequired(buildImageURIKey)
 	createBuildCmd.Flags().String(buildVersionKey, "", "The version of the build image, usually a commit ID")
 	createBuildCmd.MarkFlagRequired(buildVersionKey)
 	createBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project to create the build in")
@@ -82,6 +82,9 @@ func init() {
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
 	createBuildCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
+	createBuildCmd.Flags().String(buildSpecKey, "", "The path to a file containing the build spec")
+	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildSpecKey)
 
 	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
 	listBuildsCmd.MarkFlagRequired(buildProjectKey)
@@ -238,14 +241,43 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty build version")
 	}
 
-	buildImageURI := viper.GetString(buildImageURIKey)
-	if buildImageURI == "" {
-		log.Fatal("empty build image URI")
+	inputBuildImageURI := viper.GetString(buildImageURIKey)
+	var buildImageURI *string = nil
+	
+	inputBuildSpecLocation := viper.GetString(buildSpecKey)
+	var buildSpec *[]byte = nil
+
+	if inputBuildImageURI == "" && inputBuildSpecLocation == "" {
+		log.Fatal("either --buildSpec or --image is required")
 	}
-	// Validate that the image URI is valid:
-	_, err := name.ParseReference(buildImageURI, name.StrictValidation)
-	if err != nil {
-		log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
+
+	if inputBuildImageURI != "" && inputBuildSpecLocation != "" {
+		log.Fatal("only one of --buildSpec or --image is allowed")
+	}
+
+	if inputBuildImageURI != "" {
+		// Validate that the image URI is valid:
+		_, err := name.ParseReference(inputBuildImageURI, name.StrictValidation)
+		if err != nil {
+			log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
+		}
+
+		buildImageURI = Ptr(inputBuildImageURI)
+	}
+
+	if inputBuildSpecLocation != "" {
+		// We assume that the build spec is a valid YAML file
+		buildSpecAsYAML, err := os.ReadFile(inputBuildSpecLocation)
+		if err != nil {
+			log.Fatal("failed to read the build spec")
+		}
+
+		buildSpecAsJSON, err := yaml.YAMLToJSON(buildSpecAsYAML)
+		if err != nil {
+			log.Fatal("failed to convert the build spec to JSON")
+		}
+
+		buildSpec = Ptr(buildSpecAsJSON)
 	}
 
 	// Check if the project exists, by listing projects:
@@ -286,8 +318,9 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	body := api.CreateBuildForBranchInput{
-		Description: &buildDescription,
+		Description: Ptr(buildDescription),
 		ImageUri:    buildImageURI,
+		BuildSpecification:   buildSpec,
 		Version:     buildVersion,
 		SystemID:    systemID,
 	}

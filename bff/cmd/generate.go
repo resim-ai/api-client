@@ -9,8 +9,7 @@ import (
 	"github.com/suessflorian/gqlfetch"
 )
 
-// TODO: change to prod
-const GRAPHQL_API = "http://localhost:4000/graphql"
+const GRAPHQL_API = "https://bff.resim.ai/graphql"
 
 func main() {
 	log.Printf("Downloading GraphQL schema from %s", GRAPHQL_API)

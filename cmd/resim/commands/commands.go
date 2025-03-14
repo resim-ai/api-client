@@ -8,15 +8,15 @@ import (
 	"log"
 	"os"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/api"
-	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
 var Client api.ClientWithResponsesInterface
-var BffClient *bff.Client
+var BffClient graphql.Client
 
 const ConfigPath = "$HOME/.resim"
 

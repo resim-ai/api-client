@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/cli/browser"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/resim-ai/api-client/api"
-	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
@@ -34,6 +34,7 @@ const (
 	prodInteractiveClientKey    = "prod-interactive-client"
 	devNonInteractiveClientKey  = "dev-non-interactive-client"
 	prodNonInteractiveClientKey = "prod-non-interactive-client"
+	verboseKey                  = "verbose"
 	prodGovcloudURL             = "https://api-gov.resim.ai/v1/"
 	prodAPIURL                  = "https://api.resim.ai/v1/"
 	stagingAPIURL               = "https://api.resim.io/v1/"
@@ -81,6 +82,7 @@ func init() {
 	viper.SetDefault(prodNonInteractiveClientKey, "0Ip56H1LLAo6Dc6IfePaNzgpUxbJGyVI")
 	rootCmd.PersistentFlags().String(usernameKey, "", "username for non-interactive login")
 	rootCmd.PersistentFlags().String(passwordKey, "", "password for non-interactive login")
+	rootCmd.PersistentFlags().Bool(verboseKey, false, "Verbose mode")
 }
 
 func Authenticate(ctx context.Context) (*CredentialCache, error) {
@@ -182,9 +184,9 @@ func GetClient(ctx context.Context, cache CredentialCache) (*api.ClientWithRespo
 	return client, nil
 }
 
-func GetBffClient(ctx context.Context, cache CredentialCache) *bff.Client {
+func GetBffClient(ctx context.Context, cache CredentialCache) graphql.Client {
 	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)
-	return bff.NewClient(inferGraphqlAPI(viper.GetString(urlKey)), oauthClient)
+	return graphql.NewClient(inferGraphqlAPI(viper.GetString(urlKey)), oauthClient)
 }
 
 // Infer the URL of the BFF's GraphQL, instead of making users
@@ -202,7 +204,6 @@ func inferGraphqlAPI(rerunAPIurl string) string {
 	} else {
 		url.Host = strings.Replace(url.Host, "api.", "bff.", 1)
 	}
-
 	return url.String()
 }
 

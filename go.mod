@@ -2,7 +2,7 @@ module github.com/resim-ai/api-client
 
 go 1.22.5
 
-toolchain go1.24.1
+toolchain go1.22.12
 
 retract (
 	v0.1.25

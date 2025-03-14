@@ -1555,6 +1555,34 @@ func listLogs(projectID uuid.UUID, batchID string, testID string) []CommandBuild
 	return []CommandBuilder{logCommand, listCommand}
 }
 
+func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string) []CommandBuilder {
+	logCommand := CommandBuilder{
+		Command: "log",
+	}
+	downloadCommand := CommandBuilder{
+		Command: "download",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--batch-id",
+				Value: batchID,
+			},
+			{
+				Name:  "--test-id",
+				Value: testID,
+			},
+			{
+				Name:  "--output",
+				Value: outputDir,
+			},
+		},
+	}
+	return []CommandBuilder{logCommand, downloadCommand}
+}
+
 func createSweep(projectID uuid.UUID, buildID string, experiences []string, experienceTags []string, metricsBuildID string, parameterName string, parameterValues []string, configFileLocation string, github bool, account string) []CommandBuilder {
 	// We build a create sweep command with the build-id, experiences, experience-tags, and metrics-build-id flags
 	// We additionally require either the parameter-name and parameter-values flags, or the grid-search-config flag
@@ -3002,7 +3030,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	emptyParameterMap := map[string]string{}
 	// First create two experiences:
 	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	experienceLocation := fmt.Sprintf("s3://%s/test-object/", s.Config.E2EBucket)
 	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
@@ -3036,7 +3064,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	uuid.MustParse(systemIDString)
 
 	// Now create the build:
-	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/resim/open-builds/log-ingest:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -3275,10 +3303,24 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 5)
+	s.Len(logs, 8)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto"}, *log.FileName)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs.zip", "file.name", "parameters.json"}, *log.FileName)
+	}
+
+	// Download the logs:
+	tempDir, err := os.MkdirTemp("", "test-logs")
+	s.NoError(err)
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 logs to %s", tempDir))
+
+	// Check that the logs were downloaded and unzipped:
+	files, err := os.ReadDir(tempDir)
+	s.NoError(err)
+	s.Len(files, 8)
+	for _, file := range files {
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs", "file.name", "parameters.json"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:

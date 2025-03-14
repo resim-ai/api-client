@@ -1,17 +1,16 @@
 package commands
 
 import (
+	"context"
 	"encoding/base64"
-	"encoding/json"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path"
 	"strings"
 
 	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 var (
@@ -45,13 +44,18 @@ func readFile(path string) string {
 }
 
 func syncMetrics(cmd *cobra.Command, args []string) {
+
+	verboseMode := viper.GetBool(verboseKey)
+
 	workDir, err := os.Getwd()
 	if err != nil {
 		log.Fatalf("failed to get working directory: %s", err)
 	}
 
 	configFilePath := path.Join(workDir, ".resim/metrics/config.yml")
-	log.Println("Looking for metrics config at .resim/metrics/config.yml")
+	if verboseMode {
+		log.Println("Looking for metrics config at .resim/metrics/config.yml")
+	}
 
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		log.Fatalf("failed to find ReSim metrics config at %s\nAre you in the right folder?\n", configFilePath)
@@ -59,7 +63,9 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 
 	configFile := readFile(configFilePath)
 
-	log.Println("Looking for templates in .resim/metrics/templates/")
+	if verboseMode {
+		log.Println("Looking for templates in .resim/metrics/templates/")
+	}
 	templates := []bff.MetricsTemplate{}
 	templateDir := path.Join(workDir, ".resim/metrics/templates")
 	files, err := os.ReadDir(templateDir)
@@ -67,63 +73,45 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 		log.Fatal(err)
 	}
 	if len(files) == 0 {
-		log.Printf("Found 0 template files at %s\n", templateDir)
+		if verboseMode {
+			log.Printf("Found 0 template files at %s\n", templateDir)
+		}
 	}
 	for _, file := range files {
 		if file.IsDir() {
-			log.Printf("Skipping directory %s\n", file.Name())
+			if verboseMode {
+				log.Printf("Skipping directory %s\n", file.Name())
+			}
 			continue
 		}
 		if !strings.HasSuffix(strings.ToLower(file.Name()), ".heex") {
-			log.Printf("Skipping non .heex file %s\n", file.Name())
+			if verboseMode {
+				log.Printf("Skipping non .heex file %s\n", file.Name())
+			}
 			continue
 		}
-		log.Printf("Found template %s", file.Name())
+		if verboseMode {
+			log.Printf("Found template %s", file.Name())
+		}
 		contents := readFile(path.Join(workDir, ".resim/metrics/templates/", file.Name()))
 		if len(contents) == 0 {
-			log.Printf("Template %s is empty!\n", file.Name())
+			if verboseMode {
+				log.Printf("Template %s is empty!\n", file.Name())
+			}
 		} else {
 			templates = append(templates, bff.MetricsTemplate{Name: file.Name(), Contents: contents})
 		}
 	}
 
-	response, err := BffClient.UpdateMetricsConfig(configFile, templates)
+	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, configFile, templates)
 	if err != nil {
-		log.Fatal(err)
-	}
-	defer response.Body.Close()
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Fatalf("failed to read response body: %s", err)
+		log.Fatalf("Failed to sync metrics config: %s", err)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		log.Fatalf("Got non-200 response %d: %s", response.StatusCode, string(body))
-	}
-
-	var graphqlResponse graphQLResponse
-	if err := json.Unmarshal(body, &graphqlResponse); err != nil {
-		log.Fatalf("Failed to read response body: %s", err)
-	}
-
-	if len(graphqlResponse.Errors) > 0 {
-		errors := []string{}
-		for _, e := range graphqlResponse.Errors {
-			errors = append(errors, e.Message)
-		}
-		log.Fatalf("Request failed:\n%s", strings.Join(errors, ", "))
-	} else {
+	if verboseMode {
 		log.Println("Successfully synced metrics config, and the following templates:")
 		for _, t := range templates {
 			log.Printf("\t%s\n", t.Name)
 		}
 	}
-}
-
-type graphQLResponse struct {
-	Data   any `json:"data"`
-	Errors []struct {
-		Message string `json:"message"`
-	} `json:"errors"`
 }

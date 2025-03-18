@@ -42,6 +42,12 @@ var (
 		Long:  ``,
 		Run:   listSweeps,
 	}
+	cancelSweepCmd = &cobra.Command{
+		Use:   "cancel",
+		Short: "cancel - Cancels a parameter sweep",
+		Long:  ``,
+		Run:   cancelSweep,
+	}
 )
 
 const (
@@ -84,6 +90,13 @@ func init() {
 	getSweepCmd.MarkFlagsMutuallyExclusive(sweepIDKey, sweepNameKey)
 	getSweepCmd.Flags().Bool(sweepExitStatusKey, false, "If set, exit code corresponds to sweep status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED)")
 	sweepCmd.AddCommand(getSweepCmd)
+
+	cancelSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to cancel the sweep from")
+	cancelSweepCmd.MarkFlagRequired(sweepProjectKey)
+	cancelSweepCmd.Flags().String(sweepIDKey, "", "The ID of the sweep to cancel.")
+	cancelSweepCmd.Flags().String(sweepNameKey, "", "The name of the sweep to cancel (e.g. rejoicing-aquamarine-starfish).")
+	cancelSweepCmd.MarkFlagsMutuallyExclusive(sweepIDKey, sweepNameKey)
+	sweepCmd.AddCommand(cancelSweepCmd)
 
 	listSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to list the sweeps within")
 	listSweepCmd.MarkFlagRequired(sweepProjectKey)
@@ -271,52 +284,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 func getSweep(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(sweepProjectKey))
-	var sweep *api.ParameterSweep
-	if viper.IsSet(sweepIDKey) {
-		sweepID, err := uuid.Parse(viper.GetString(sweepIDKey))
-		if err != nil {
-			log.Fatal("unable to parse sweep ID: ", err)
-		}
-		response, err := Client.GetParameterSweepWithResponse(context.Background(), projectID, sweepID)
-		if err != nil {
-			log.Fatal("unable to retrieve sweep:", err)
-		}
-		ValidateResponse(http.StatusOK, "unable to retrieve sweep", response.HTTPResponse, response.Body)
-		sweep = response.JSON200
-	} else if viper.IsSet(sweepNameKey) {
-		sweepName := viper.GetString(sweepNameKey)
-		var pageToken *string = nil
-	pageLoop:
-		for {
-			response, err := Client.ListParameterSweepsWithResponse(context.Background(), projectID, &api.ListParameterSweepsParams{
-				PageToken: pageToken,
-				OrderBy:   Ptr("timestamp"),
-			})
-			if err != nil {
-				log.Fatal("unable to list sweeps:", err)
-			}
-			ValidateResponse(http.StatusOK, "unable to list sweeps", response.HTTPResponse, response.Body)
-			if response.JSON200.Sweeps == nil {
-				log.Fatal("unable to find sweep: ", sweepName)
-			}
-			sweeps := *response.JSON200.Sweeps
-
-			for _, b := range sweeps {
-				if b.Name != nil && *b.Name == sweepName {
-					sweep = &b
-					break pageLoop
-				}
-			}
-
-			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
-				pageToken = response.JSON200.NextPageToken
-			} else {
-				log.Fatal("unable to find sweep: ", sweepName)
-			}
-		}
-	} else {
-		log.Fatal("must specify either the sweep ID or the sweep name")
-	}
+	sweep := actualGetSweep(projectID, viper.GetString(sweepIDKey), viper.GetString(sweepNameKey))
 
 	if viper.GetBool(sweepExitStatusKey) {
 		if sweep.Status == nil {
@@ -370,4 +338,65 @@ func listSweeps(ccmd *cobra.Command, args []string) {
 	}
 
 	OutputJson(allSweeps)
+}
+
+func cancelSweep(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(sweepProjectKey))
+	sweep := actualGetSweep(projectID, viper.GetString(sweepIDKey), viper.GetString(sweepNameKey))
+
+	response, err := Client.CancelParameterSweepWithResponse(context.Background(), projectID, *sweep.ParameterSweepID)
+	if err != nil {
+		log.Fatal("failed to cancel sweep:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to cancel sweep", response.HTTPResponse, response.Body)
+	fmt.Println("Sweep cancelled successfully!")
+}
+
+func actualGetSweep(projectID uuid.UUID, sweepIDRaw string, sweepName string) *api.ParameterSweep {
+	var sweep *api.ParameterSweep
+	if sweepIDRaw != "" {
+		sweepID, err := uuid.Parse(sweepIDRaw)
+		if err != nil {
+			log.Fatal("unable to parse sweep ID: ", err)
+		}
+		response, err := Client.GetParameterSweepWithResponse(context.Background(), projectID, sweepID)
+		if err != nil {
+			log.Fatal("unable to retrieve sweep:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to retrieve sweep", response.HTTPResponse, response.Body)
+		sweep = response.JSON200
+		return sweep
+	} else if sweepName != "" {
+		var pageToken *string = nil
+		for {
+			response, err := Client.ListParameterSweepsWithResponse(context.Background(), projectID, &api.ListParameterSweepsParams{
+				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
+			})
+			if err != nil {
+				log.Fatal("unable to list sweeps:", err)
+			}
+			ValidateResponse(http.StatusOK, "unable to list sweeps", response.HTTPResponse, response.Body)
+			if response.JSON200.Sweeps == nil {
+				log.Fatal("unable to find sweep: ", sweepName)
+			}
+			sweeps := *response.JSON200.Sweeps
+
+			for _, b := range sweeps {
+				if b.Name != nil && *b.Name == sweepName {
+					sweep = &b
+					return sweep
+				}
+			}
+
+			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+				pageToken = response.JSON200.NextPageToken
+			} else {
+				log.Fatal("unable to find sweep: ", sweepName)
+			}
+		}
+	} else {
+		log.Fatal("must specify either the sweep ID or the sweep name")
+	}
+	return sweep
 }

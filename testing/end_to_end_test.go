@@ -1438,7 +1438,6 @@ func getBatchJobsByName(projectID uuid.UUID, batchName string) []CommandBuilder 
 }
 
 func cancelBatchByID(projectID uuid.UUID, batchID string) []CommandBuilder {
-	// We build a get batch command with the id flag
 	batchCommand := CommandBuilder{
 		Command: "batches",
 	}

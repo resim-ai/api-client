@@ -188,8 +188,7 @@ const (
 	GithubCreatedSweep            string = "sweep_id="
 	FailedToCreateSweep           string = "failed to create sweep"
 	ConfigParamsMutuallyExclusive string = "if any flags in the group"
-	InvalidSweepName              string = "unable to find sweep"
-	InvalidSweepID                string = "unable to parse sweep ID"
+	InvalidSweepNameOrID          string = "must specify either the sweep ID or the sweep name"
 	InvalidGridSearchFile         string = "failed to parse grid search config file"
 	// Test Suite Messages
 	CreatedTestSuite           string = "Created test suite"
@@ -3670,9 +3669,9 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 
 	// Pass blank name / id to batches get:
 	output = s.runCommand(getSweepByName(projectID, "", ExitStatusFalse), ExpectError)
-	s.Contains(output.StdErr, InvalidSweepName)
+	s.Contains(output.StdErr, InvalidSweepNameOrID)
 	output = s.runCommand(getSweepByID(projectID, "", ExitStatusFalse), ExpectError)
-	s.Contains(output.StdErr, InvalidSweepID)
+	s.Contains(output.StdErr, InvalidSweepNameOrID)
 
 	// Check we can list the sweeps, and our new sweep is in it:
 	output = s.runCommand(listSweeps(projectID), ExpectNoError)

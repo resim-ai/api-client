@@ -4774,6 +4774,112 @@ func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.
 	return complete, exitCode
 }
 
+func (s *EndToEndTestSuite) TestCancelBatch() {
+	// create a project:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// First create an experience:
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString1)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(uuid.MustParse(projectIDString), branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// Now create the build:
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	buildID := uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
+
+	// Create a metrics build:
+	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the build ID as a UUID
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	metricsBuildID := uuid.MustParse(metricsBuildIDString)
+
+	// Create a batch with (only) experience names using the --experiences flag with no parameters
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName}, []string{}, metricsBuildIDString, GithubTrue, map[string]string{}, AssociatedAccount, nil, nil), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	batchID := uuid.MustParse(batchIDStringGH)
+
+	time.Sleep(30 * time.Second) // arbitrary sleep to make sure the scheduler gets the batch and triggers it
+
+	// Cancel the batch
+	output = s.runCommand(cancelBatchByID(projectID, batchIDStringGH), ExpectNoError)
+	s.Contains(output.StdOut, CancelledBatch)
+
+	// Get batch passing the status flag. We need to manually execute and grab the exit code:
+	// Since we have just submitted the batch, we would expect it to be running or submitted
+	// but we check that the exit code is in the acceptable range:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getBatchByID(projectID, batchIDStringGH, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 failed
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status by ID:
+	output = s.runCommand(getBatchByID(projectID, batchIDStringGH, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	var batch api.Batch
+	err := json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(batchID, *batch.BatchID)
+	// Validate that it was cancelled
+	s.Equal(api.BatchStatusCANCELLED, *batch.Status)
+	s.Equal(buildID, *batch.BuildID)
+	s.Equal(metricsBuildID, *batch.MetricsBuildID)
+
+	// Archive the project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
+	s.Empty(output.StdErr)
+}
+
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()
 	viper.SetDefault(Config, Dev)

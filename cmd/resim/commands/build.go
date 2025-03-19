@@ -14,7 +14,6 @@ import (
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -267,17 +266,12 @@ func createBuild(ccmd *cobra.Command, args []string) {
 
 	if inputBuildSpecLocation != "" {
 		// We assume that the build spec is a valid YAML file
-		buildSpecAsYAML, err := os.ReadFile(inputBuildSpecLocation)
+		buildSpecFromFile, err := os.ReadFile(inputBuildSpecLocation)
 		if err != nil {
 			log.Fatal("failed to read the build spec")
 		}
-
-		buildSpecAsJSON, err := yaml.YAMLToJSON(buildSpecAsYAML)
-		if err != nil {
-			log.Fatal("failed to convert the build spec to JSON")
-		}
-
-		buildSpec = Ptr(buildSpecAsJSON)
+		
+		buildSpec = Ptr(buildSpecFromFile)
 	}
 
 	// Check if the project exists, by listing projects:

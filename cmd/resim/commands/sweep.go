@@ -354,7 +354,7 @@ func cancelSweep(ccmd *cobra.Command, args []string) {
 	fmt.Println("Sweep cancelled successfully!")
 }
 
-func actualGetSweep(projectID uuid.UUID, sweepIDRaw string, sweepName string) *api.ParameterSweep {
+func fetchSweep(projectID uuid.UUID, sweepIDRaw string, sweepName string) *api.ParameterSweep {
 	var sweep *api.ParameterSweep
 	if sweepIDRaw != "" {
 		sweepID, err := uuid.Parse(sweepIDRaw)

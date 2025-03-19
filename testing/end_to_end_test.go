@@ -306,6 +306,19 @@ func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder, expectE
 	}
 }
 
+func syncMetrics(verbose bool) []CommandBuilder {
+	metricsCommand := CommandBuilder{Command: "metrics"}
+
+	flags := []Flag{}
+	if verbose {
+		flags = append(flags, Flag{Name: "--verbose"})
+	}
+
+	syncCommand := CommandBuilder{Command: "sync", Flags: flags}
+
+	return []CommandBuilder{metricsCommand, syncCommand}
+}
+
 func createProject(projectName string, description string, github bool) []CommandBuilder {
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
@@ -4981,6 +4994,52 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	err = json.Unmarshal([]byte(output.StdOut), &jobs)
 	s.NoError(err)
 	s.Equal(2, len(jobs))
+}
+
+func (s *EndToEndTestSuite) TestMetricsSync() {
+	s.Run("NoConfigFiles", func() {
+		output := s.runCommand(syncMetrics(true), true)
+
+		s.Contains(output.StdErr, "failed to find ReSim metrics config")
+	})
+
+	s.Run("SyncsMetricsConfig", func() {
+		os.RemoveAll(".resim") // Cleanup old folder just in case
+
+		err := os.Mkdir(".resim", 0755)
+		s.Require().NoError(err)
+		defer os.RemoveAll(".resim")
+		err = os.Mkdir(".resim/metrics", 0755)
+		s.Require().NoError(err)
+		err = os.Mkdir(".resim/metrics/templates", 0755)
+		s.Require().NoError(err)
+
+		// strings.Join is ugly but using backticks `` is a mess with getting indentation correct
+		metricsFile := strings.Join([]string{
+			"version: 1",
+			"topics:",
+			"  ok:",
+			"    schema:",
+			"      speed: float",
+			"metrics:",
+			"  Average Speed:",
+			"    query_string: SELECT AVG(speed) FROM speed WHERE job_id=$job_id",
+			"    template_type: system",
+			"    template: line",
+			"metrics sets:",
+			"  woot:",
+			"    metrics:",
+			"      - Average Speed",
+		}, "\n")
+		err = os.WriteFile(".resim/metrics/config.yml", []byte(metricsFile), 0644)
+		s.Require().NoError(err)
+		err = os.WriteFile(".resim/metrics/templates/bar.json.heex", []byte("{}"), 0644)
+		s.Require().NoError(err)
+
+		output := s.runCommand(syncMetrics(true), false)
+		// Default behavior is exit 0 with no message
+		s.Equal("", output.StdOut)
+	})
 }
 
 func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {

@@ -1328,7 +1328,7 @@ func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, 
 	if len(logsList) > 0 {
 		logsListString := strings.Join(logsList, ",")
 		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
-			Name:  "--logs",
+			Name:  "--log",
 			Value: logsListString,
 		})
 	}
@@ -4895,6 +4895,41 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	output = s.runCommand(createIngestedLog(projectID, nil, nil, &firstVersion, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectError)
 	s.Contains(output.StdErr, "build-id")
 	s.Contains(output.StdErr, "version")
+
+	// Test the `--log` flag:
+	log1Name := fmt.Sprintf("test-log-%v", uuid.New())
+	log1Location := fmt.Sprintf("s3://%v/test-object/", s.Config.E2EBucket)
+	log1 := fmt.Sprintf("%s=%s", log1Name, log1Location)
+	log2Name := fmt.Sprintf("test-log-%v", uuid.New())
+	log2Location := fmt.Sprintf("s3://%v/test-object/", s.Config.E2EBucket)
+	log2 := fmt.Sprintf("%s=%s", log2Name, log2Location)
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, nil, nil, []string{log1, log2}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectNoError)
+	fmt.Println("Output: ", output.StdOut)
+	fmt.Println("Output: ", output.StdErr)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	batchID = uuid.MustParse(batchIDString)
+	s.Eventually(func() bool {
+		complete, exitCode := checkBatchComplete(s, projectID, batchID)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+	// Check there are two jobs:
+	// Get the job ID:
+	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
+	jobs = []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(2, len(jobs))
 }
 
 func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {

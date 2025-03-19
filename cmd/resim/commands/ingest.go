@@ -66,7 +66,7 @@ func init() {
 	ingestLogCmd.Flags().String(ingestLogNameKey, "", "A project-unique name to use in processing this log, often a run id.")
 	// Log Location
 	ingestLogCmd.Flags().String(ingestExperienceLocationKey, "", "An S3 prefix, which ReSim has access to, where the log is stored.")
-	ingestLogCmd.Flags().StringArray(ingestLogKey, []string{}, "Log name and location pairs in the format 'name=s3://location'. Can be specified multiple times.")
+	ingestLogCmd.Flags().StringSlice(ingestLogKey, []string{}, "Log name and location pairs in the format 'name=s3://location'. Can be specified multiple times.")
 	ingestLogCmd.Flags().String(ingestConfigFileKey, "", "Path to YAML file containing log configurations")
 	// Support the old way, a config file, and the --log flag mutually exclusively:
 	ingestLogCmd.MarkFlagsRequiredTogether(ingestLogNameKey, ingestExperienceLocationKey)
@@ -272,7 +272,7 @@ func getOrCreateBuild(client api.ClientWithResponsesInterface, projectID uuid.UU
 }
 
 func parseLogPairs(pairs []string) ([]logPair, error) {
-	var results []logPair
+	results := []logPair{}
 	for _, pair := range pairs {
 		parts := strings.SplitN(pair, "=", 2)
 		if len(parts) != 2 {

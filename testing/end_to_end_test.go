@@ -3777,6 +3777,10 @@ func (s *EndToEndTestSuite) TestCancelSweep() {
 		fmt.Println("About to run command: ", cmd.String())
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
+		fmt.Println("stdout:")
+		fmt.Println(stdout.String())
+		fmt.Println("stderr:")
+		fmt.Println(stderr.String())
 		exitCode := 0
 		if err := cmd.Run(); err != nil {
 			if exitError, ok := err.(*exec.ExitError); ok {

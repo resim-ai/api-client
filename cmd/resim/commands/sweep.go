@@ -299,6 +299,8 @@ func getSweep(ccmd *cobra.Command, args []string) {
 			os.Exit(3)
 		case api.ParameterSweepStatusRUNNING:
 			os.Exit(4)
+		case api.ParameterSweepStatusCANCELLED:
+			os.Exit(5)
 		default:
 			log.Fatal("unknown sweep status: ", sweep.Status)
 		}

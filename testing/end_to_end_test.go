@@ -3803,7 +3803,7 @@ func (s *EndToEndTestSuite) TestCancelSweep() {
 	s.NoError(err)
 	s.Equal(sweepIDStringGH, *sweep.ParameterSweepID)
 	// Validate that it was cancelled:
-	s.Equal(api.ParameterSweepStatusSUCCEEDED, *sweep.Status)
+	s.Equal(api.ParameterSweepStatusCANCELLED, *sweep.Status)
 }
 
 // Test the metrics builds:

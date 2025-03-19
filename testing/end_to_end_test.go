@@ -3805,7 +3805,7 @@ func (s *EndToEndTestSuite) TestCancelSweep() {
 	var sweep api.ParameterSweep
 	err := json.Unmarshal([]byte(output.StdOut), &sweep)
 	s.NoError(err)
-	s.Equal(sweepIDStringGH, *sweep.ParameterSweepID)
+	s.Equal(sweepIDStringGH, sweep.ParameterSweepID.String())
 	// Validate that it was cancelled:
 	s.Equal(api.ParameterSweepStatusCANCELLED, *sweep.Status)
 }

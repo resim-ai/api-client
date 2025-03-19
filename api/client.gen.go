@@ -33,6 +33,12 @@ const (
 	BatchStatusSUCCEEDED           BatchStatus = "SUCCEEDED"
 )
 
+// Defines values for BatchType.
+const (
+	DEBUGEXPERIENCE BatchType = "DEBUG_EXPERIENCE"
+	NORMAL          BatchType = "NORMAL"
+)
+
 // Defines values for BranchType.
 const (
 	CHANGEREQUEST BranchType = "CHANGE_REQUEST"
@@ -95,6 +101,7 @@ const (
 	MP4LOG           LogType = "MP4_LOG"
 	OTHERLOG         LogType = "OTHER_LOG"
 	RERUNIOLOG       LogType = "RERUN_IO_LOG"
+	SERVICELOG       LogType = "SERVICE_LOG"
 )
 
 // Defines values for MetricStatus.
@@ -132,6 +139,7 @@ const (
 
 // Defines values for ParameterSweepStatus.
 const (
+	ParameterSweepStatusCANCELLED ParameterSweepStatus = "CANCELLED"
 	ParameterSweepStatusERROR     ParameterSweepStatus = "ERROR"
 	ParameterSweepStatusRUNNING   ParameterSweepStatus = "RUNNING"
 	ParameterSweepStatusSUBMITTED ParameterSweepStatus = "SUBMITTED"
@@ -140,10 +148,10 @@ const (
 
 // Defines values for ReportStatus.
 const (
-	ERROR     ReportStatus = "ERROR"
-	RUNNING   ReportStatus = "RUNNING"
-	SUBMITTED ReportStatus = "SUBMITTED"
-	SUCCEEDED ReportStatus = "SUCCEEDED"
+	ReportStatusERROR     ReportStatus = "ERROR"
+	ReportStatusRUNNING   ReportStatus = "RUNNING"
+	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
+	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
 // Defines values for TriggeredVia.
@@ -188,7 +196,9 @@ type Batch struct {
 	AdhocTestSuite         *bool                   `json:"adhocTestSuite,omitempty"`
 	AssociatedAccount      AssociatedAccount       `json:"associatedAccount"`
 	BatchID                *BatchID                `json:"batchID,omitempty"`
+	BatchMetricsSetName    *MetricsSetName         `json:"batchMetricsSetName"`
 	BatchMetricsStatus     *MetricStatus           `json:"batchMetricsStatus,omitempty"`
+	BatchType              *BatchType              `json:"batchType,omitempty"`
 	BranchID               *BranchID               `json:"branchID,omitempty"`
 	BuildID                *BuildID                `json:"buildID,omitempty"`
 	CreationTimestamp      *Timestamp              `json:"creationTimestamp,omitempty"`
@@ -196,6 +206,7 @@ type Batch struct {
 	ExecutionError         *ExecutionError         `json:"executionError,omitempty"`
 	ExecutionErrors        *[]ExecutionError       `json:"executionErrors"`
 	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty"`
+	JobMetricsSetName      *MetricsSetName         `json:"jobMetricsSetName"`
 	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
 	JobsMetricsStatus      *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
@@ -222,6 +233,7 @@ type BatchID = openapi_types.UUID
 type BatchInput struct {
 	AllowableFailurePercent *int                    `json:"allowableFailurePercent"`
 	AssociatedAccount       *AssociatedAccount      `json:"associatedAccount,omitempty"`
+	BatchMetricsSetName     *MetricsSetName         `json:"batchMetricsSetName"`
 	BatchName               *Name                   `json:"batchName,omitempty"`
 	BuildID                 *BuildID                `json:"buildID,omitempty"`
 	ExcludedExperienceIDs   *[]ExcludedExperienceID `json:"excludedExperienceIDs"`
@@ -230,6 +242,7 @@ type BatchInput struct {
 	ExperienceTagIDs        *[]ExperienceTagID      `json:"experienceTagIDs"`
 	ExperienceTagNames      *[]ExperienceTagName    `json:"experienceTagNames"`
 	Filters                 *ExperienceFilterInput  `json:"filters,omitempty"`
+	JobMetricsSetName       *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty"`
 	Parameters              *BatchParameters        `json:"parameters,omitempty"`
 	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty"`
@@ -321,6 +334,9 @@ type BatchStatusHistoryType struct {
 
 // BatchTotalJobs defines model for batchTotalJobs.
 type BatchTotalJobs = int
+
+// BatchType defines model for batchType.
+type BatchType string
 
 // Branch defines model for branch.
 type Branch struct {
@@ -468,10 +484,12 @@ type CreateSystemInput struct {
 // CreateTestSuiteInput defines model for createTestSuiteInput.
 type CreateTestSuiteInput struct {
 	AllExperiences        *bool                   `json:"allExperiences,omitempty"`
+	BatchMetricsSetName   *MetricsSetName         `json:"batchMetricsSetName"`
 	Description           TestSuiteDescription    `json:"description"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           []ExperienceID          `json:"experiences"`
 	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
+	JobMetricsSetName     *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
 	Name                  TestSuiteName           `json:"name"`
 	ShowOnSummary         *bool                   `json:"showOnSummary,omitempty"`
@@ -529,6 +547,9 @@ type ExcludedExperienceID = openapi_types.UUID
 type ExecutionError struct {
 	// ErrorCode Standardized error code (e.g., UNKNOWN_ERROR, NONZERO_EXIT_CODE)
 	ErrorCode string `json:"errorCode"`
+
+	// Metadata Error metadata
+	Metadata *map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ExecutionStep defines model for executionStep.
@@ -1077,6 +1098,9 @@ type MetricsDataType string
 // MetricsDataURL defines model for metricsDataURL.
 type MetricsDataURL = string
 
+// MetricsSetName defines model for metricsSetName.
+type MetricsSetName = string
+
 // MutateSystemsToExperienceInput defines model for mutateSystemsToExperienceInput.
 type MutateSystemsToExperienceInput struct {
 	AllExperiences *bool                  `json:"allExperiences,omitempty"`
@@ -1254,10 +1278,12 @@ type RespectRevisionBoundary = bool
 type ReviseTestSuiteInput struct {
 	Adhoc                 *bool                   `json:"adhoc,omitempty"`
 	AllExperiences        *bool                   `json:"allExperiences,omitempty"`
+	BatchMetricsSetName   *MetricsSetName         `json:"batchMetricsSetName"`
 	Description           *TestSuiteDescription   `json:"description,omitempty"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           *[]ExperienceID         `json:"experiences,omitempty"`
 	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
+	JobMetricsSetName     *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
 	Name                  *TestSuiteName          `json:"name,omitempty"`
 	ShowOnSummary         *bool                   `json:"show_on_summary,omitempty"`
@@ -1311,9 +1337,11 @@ type TagID = openapi_types.UUID
 
 // TestSuite defines model for testSuite.
 type TestSuite struct {
+	BatchMetricsSetName  *MetricsSetName      `json:"batchMetricsSetName"`
 	CreationTimestamp    Timestamp            `json:"creationTimestamp"`
 	Description          TestSuiteDescription `json:"description"`
 	Experiences          []ExperienceID       `json:"experiences"`
+	JobMetricsSetName    *MetricsSetName      `json:"jobMetricsSetName"`
 	MetricsBuildID       *MetricsBuildID      `json:"metricsBuildID,omitempty"`
 	Name                 TestSuiteName        `json:"name"`
 	OrgID                OrgID                `json:"orgID"`

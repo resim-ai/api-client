@@ -12,6 +12,8 @@ Changes in this section will be included in the next release.
 
 #### Added
 
+- A new `metrics sync` command has been added, for syncing your metrics configuration with ReSim. This command is for
+  our next version of metrics management, and is currently unused.
 - A `sweeps cancel` command enables the cancellation of parameter sweeps.
 
 #### Changed

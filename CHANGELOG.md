@@ -8,6 +8,10 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+#### Added
+
+- A `sweeps cancel` command enables the cancellation of parameter sweeps.
+
 ### v0.10.0 - March 14 2025
 
 #### Added

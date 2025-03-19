@@ -284,7 +284,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 func getSweep(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(sweepProjectKey))
-	sweep := actualGetSweep(projectID, viper.GetString(sweepIDKey), viper.GetString(sweepNameKey))
+	sweep := fetchSweep(projectID, viper.GetString(sweepIDKey), viper.GetString(sweepNameKey))
 
 	if viper.GetBool(sweepExitStatusKey) {
 		if sweep.Status == nil {
@@ -344,7 +344,7 @@ func listSweeps(ccmd *cobra.Command, args []string) {
 
 func cancelSweep(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(sweepProjectKey))
-	sweep := actualGetSweep(projectID, viper.GetString(sweepIDKey), viper.GetString(sweepNameKey))
+	sweep := fetchSweep(projectID, viper.GetString(sweepIDKey), viper.GetString(sweepNameKey))
 
 	response, err := Client.CancelParameterSweepWithResponse(context.Background(), projectID, *sweep.ParameterSweepID)
 	if err != nil {

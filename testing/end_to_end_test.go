@@ -222,7 +222,7 @@ const (
 )
 
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
-var AcceptableSweepStatusCodes = [...]int{0, 2, 3, 4, 5} // we do not have cancelled for sweeps yet
+var AcceptableSweepStatusCodes = [...]int{0, 2, 3, 4, 5}
 
 func (s *EndToEndTestSuite) TearDownSuite() {
 	os.Remove(fmt.Sprintf("%s/%s", s.CliPath, CliName))

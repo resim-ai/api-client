@@ -148,10 +148,10 @@ const (
 
 // Defines values for ReportStatus.
 const (
-	ReportStatusERROR     ReportStatus = "ERROR"
-	ReportStatusRUNNING   ReportStatus = "RUNNING"
-	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
-	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
+	ERROR     ReportStatus = "ERROR"
+	RUNNING   ReportStatus = "RUNNING"
+	SUBMITTED ReportStatus = "SUBMITTED"
+	SUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
 // Defines values for TriggeredVia.
@@ -357,9 +357,11 @@ type BranchType string
 
 // Build defines model for build.
 type Build struct {
-	AssociatedAccount  AssociatedAccount        `json:"associatedAccount"`
-	BranchID           BranchID                 `json:"branchID"`
-	BuildID            BuildID                  `json:"buildID"`
+	AssociatedAccount AssociatedAccount `json:"associatedAccount"`
+	BranchID          BranchID          `json:"branchID"`
+	BuildID           BuildID           `json:"buildID"`
+
+	// BuildSpecification Build spec in YAML format.
 	BuildSpecification BuildSpecificationOutput `json:"buildSpecification"`
 	CreationTimestamp  Timestamp                `json:"creationTimestamp"`
 	Description        BuildDescription         `json:"description"`
@@ -383,7 +385,7 @@ type BuildImageUri = string
 // BuildSpecificationInput defines model for buildSpecificationInput.
 type BuildSpecificationInput = []byte
 
-// BuildSpecificationOutput defines model for buildSpecificationOutput.
+// BuildSpecificationOutput Build spec in YAML format.
 type BuildSpecificationOutput = string
 
 // BuildVersion defines model for buildVersion.

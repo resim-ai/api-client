@@ -2748,18 +2748,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 	// Validate the image URI is required to be valid and have a tag:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildImage)
-
-	// // Create a sweep with (only) experience tag names using the --experience-tags flag and a config file location
-	// // The config file location is in a subdirectory of the testing directory called 'data' and is called valid_sweep_config.json:
-	// // Find the current working directory:
-	// cwd, err := os.Getwd()
-	// s.NoError(err)
-	// // Create the config location:
-	// configLocation := fmt.Sprintf("%s/data/valid_sweep_config.json", cwd)
-	// output = s.runCommand(createSweep(projectID, buildIDString, []string{}, []string{tagName}, "", "", []string{}, configLocation, GithubFalse, AssociatedAccount), ExpectNoError)
-	// s.Contains(output.StdOut, CreatedSweep)
-	// s.Empty(output.StdErr)
-
+	
 	// Update the branch id:
 	secondBranchName := fmt.Sprintf("updated-branch-%s", uuid.New().String())
 	output = s.runCommand(createBranch(projectID, secondBranchName, "RELEASE", GithubTrue), ExpectNoError)

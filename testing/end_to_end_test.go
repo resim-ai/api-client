@@ -222,7 +222,7 @@ const (
 )
 
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
-var AcceptableSweepStatusCodes = [...]int{0, 2, 3, 4} // we do not have cancelled for sweeps yet
+var AcceptableSweepStatusCodes = [...]int{0, 2, 3, 4, 5} // we do not have cancelled for sweeps yet
 
 func (s *EndToEndTestSuite) TearDownSuite() {
 	os.Remove(fmt.Sprintf("%s/%s", s.CliPath, CliName))
@@ -3787,7 +3787,7 @@ func (s *EndToEndTestSuite) TestCancelSweep() {
 		s.Empty(stderr.String())
 		s.Empty(stdout.String())
 		// Check if the status is 0, complete, 2 failed
-		complete := (exitCode == 0 || exitCode == 2)
+		complete := (exitCode == 0 || exitCode == 2 || exitCode == 5)
 		if !complete {
 			fmt.Println("Waiting for sweep completion, current exitCode:", exitCode)
 		} else {

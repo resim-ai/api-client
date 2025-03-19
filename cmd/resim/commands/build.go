@@ -270,7 +270,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("failed to read the build spec")
 		}
-		
+
 		buildSpec = Ptr(buildSpecFromFile)
 	}
 

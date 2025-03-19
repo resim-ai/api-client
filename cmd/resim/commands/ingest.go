@@ -37,7 +37,7 @@ const (
 	ingestMetricsBuildKey       = "metrics-build-id"
 	ingestBuildKey              = "build-id"
 	ingestLogKey                = "log"
-	ingestConfigFileKey         = "config-file"
+	ingestConfigFileKey         = "log-config"
 	ingestBatchNameKey          = "ingestion-name"
 
 	LogIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"

@@ -11,4 +11,4 @@ import (
 	_ "github.com/deepmap/oapi-codegen/cmd/oapi-codegen"
 )
 
-//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --config=client.cfg.yml https://api.resim.io/v1/openapi.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --config=client.cfg.yml https://api.resim.ai/v1/openapi.yaml

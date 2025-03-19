@@ -5036,9 +5036,17 @@ func (s *EndToEndTestSuite) TestMetricsSync() {
 		err = os.WriteFile(".resim/metrics/templates/bar.json.heex", []byte("{}"), 0644)
 		s.Require().NoError(err)
 
-		output := s.runCommand(syncMetrics(true), false)
-		// Default behavior is exit 0 with no message
+		// Standard behavior is exit 0 with no output
+		output := s.runCommand(syncMetrics(false), false)
 		s.Equal("", output.StdOut)
+		s.Equal("", output.StdErr)
+
+		// Verbose logs a lot of info about what it is doing
+		output = s.runCommand(syncMetrics(true), false)
+		s.Equal("", output.StdErr)
+		s.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
+		s.Contains(output.StdOut, "Found template bar.json.heex")
+		s.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
 	})
 }
 

@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"os"
 	"path"
@@ -54,7 +55,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 
 	configFilePath := path.Join(workDir, ".resim/metrics/config.yml")
 	if verboseMode {
-		log.Println("Looking for metrics config at .resim/metrics/config.yml")
+		fmt.Println("Looking for metrics config at .resim/metrics/config.yml")
 	}
 
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
@@ -64,7 +65,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	configFile := readFile(configFilePath)
 
 	if verboseMode {
-		log.Println("Looking for templates in .resim/metrics/templates/")
+		fmt.Println("Looking for templates in .resim/metrics/templates/")
 	}
 	templates := []bff.MetricsTemplate{}
 	templateDir := path.Join(workDir, ".resim/metrics/templates")
@@ -74,29 +75,29 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	}
 	if len(files) == 0 {
 		if verboseMode {
-			log.Printf("Found 0 template files at %s\n", templateDir)
+			fmt.Printf("Found 0 template files at %s\n", templateDir)
 		}
 	}
 	for _, file := range files {
 		if file.IsDir() {
 			if verboseMode {
-				log.Printf("Skipping directory %s\n", file.Name())
+				fmt.Printf("Skipping directory %s\n", file.Name())
 			}
 			continue
 		}
 		if !strings.HasSuffix(strings.ToLower(file.Name()), ".heex") {
 			if verboseMode {
-				log.Printf("Skipping non .heex file %s\n", file.Name())
+				fmt.Printf("Skipping non .heex file %s\n", file.Name())
 			}
 			continue
 		}
 		if verboseMode {
-			log.Printf("Found template %s", file.Name())
+			fmt.Printf("Found template %s", file.Name())
 		}
 		contents := readFile(path.Join(workDir, ".resim/metrics/templates/", file.Name()))
 		if len(contents) == 0 {
 			if verboseMode {
-				log.Printf("Template %s is empty!\n", file.Name())
+				fmt.Printf("Template %s is empty!\n", file.Name())
 			}
 		} else {
 			templates = append(templates, bff.MetricsTemplate{Name: file.Name(), Contents: contents})
@@ -109,9 +110,9 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	}
 
 	if verboseMode {
-		log.Println("Successfully synced metrics config, and the following templates:")
+		fmt.Println("Successfully synced metrics config, and the following templates:")
 		for _, t := range templates {
-			log.Printf("\t%s\n", t.Name)
+			fmt.Printf("\t%s\n", t.Name)
 		}
 	}
 }

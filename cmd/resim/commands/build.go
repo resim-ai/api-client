@@ -250,10 +250,6 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("either --buildSpec or --image is required")
 	}
 
-	if inputBuildImageURI != "" && inputBuildSpecLocation != "" {
-		log.Fatal("only one of --buildSpec or --image is allowed")
-	}
-
 	if inputBuildImageURI != "" {
 		// Validate that the image URI is valid:
 		_, err := name.ParseReference(inputBuildImageURI, name.StrictValidation)

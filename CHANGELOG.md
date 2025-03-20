@@ -8,9 +8,15 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.11.0 - March 20 2025
+
 #### Added
 
 - A `sweeps cancel` command enables the cancellation of parameter sweeps.
+
+#### Changed
+
+- The `resim ingest` command now supports ingesting multiple logs at the same time, either via a `--log` repeated flag, or `--config-file` using a yaml file. For more information see the [ReSim docs](https://docs.resim.ai/guides/log-ingest)
 
 ### v0.10.0 - March 14 2025
 

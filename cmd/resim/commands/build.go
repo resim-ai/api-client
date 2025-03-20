@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -65,6 +64,7 @@ const (
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
 	buildSpecKey             = "build-spec"
+	buildShowBuildSpecKey    = "show-build-spec-only"
 )
 
 func init() {
@@ -103,6 +103,7 @@ func init() {
 	getBuildCmd.MarkFlagRequired(buildProjectKey)
 	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
 	getBuildCmd.MarkFlagRequired(buildBuildIDKey)
+	getBuildCmd.Flags().Bool(buildShowBuildSpecKey, false, "Print the build spec only.")
 
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
@@ -383,11 +384,15 @@ func getBuild(ccmd *cobra.Command, args []string) {
 	} else {
 		ValidateResponse(http.StatusOK, "unable to retrieve build", response.HTTPResponse, response.Body)
 	}
+
 	build = response.JSON200
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
-	enc.Encode(build)
+
+	if viper.GetBool(buildShowBuildSpecKey) {
+		// Show the build spec only if the flag is set.
+		fmt.Println(build.BuildSpecification)
+	} else {
+		OutputJson(build)
+	}
 }
 
 func getBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, uuidString string) uuid.UUID {

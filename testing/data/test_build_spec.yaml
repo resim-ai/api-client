@@ -1,54 +1,18 @@
 services:
-  virtual_0_0:
-    command: sh -c 'mkdir -p /data/system_config_deltas ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/misuse_check_manager/delta_config_activate_mock.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_config_updater.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_simulate_cameras.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_replay_recorder_config.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/000_delta_vpu0_services.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_vpu1_services.yaml /data/system_config_deltas/ ; /usr/bin/supervisord --config /etc/supervisor/supervisord.conf --nodaemon'
-    container_name: virtual_0_0
-    deploy: &id001
-      resources:
-        reservations:
-          devices:
-          - capabilities:
-            - gpu
-            count: 1
-            driver: nvidia
+  app:
+    extends:
+      file: test_build_spec.base.yaml
+      service: baseapp
+    depends_on:
+      - database
     environment:
-    - SYSTEM_ID=0
-    - SYSTEM_UNIQUE_ID=sim_virtual_0_0
-    - VPU_POSITION=0
-    - ECU_INDEX=0
-    - PRODUCTION_RESTRICTIONS=false
-    - DDS_ALLOW_INTERFACES_LIST=*
-    - SYSTEM_TYPE=virtual
-    - IMPLEMENT=<%IMPLEMENT_THING%>
-    - VEHICLE=<%VEHICLE_THING%>
-    image: bazel/autonomy/jupiter/robotics/halo/virtual_vpu/embedded_image:embedded-image
-    labels:
-      com.docker.compose.rm: 'true'
-    network_mode: host
-    restart: 'no'
+      - APP_ENV=development
+      - DEBUG=true
     volumes:
-    - /tmp/resim/outputs/logs/virtual_0_0:/var/log/supervisor
-    - /tmp/resim/inputs/:/mnt/ssd/inputs/
-    - /tmp/resim/outputs/:/mnt/ssd/recordings
-  virtual_0_1:
-    command: sh -c 'mkdir -p /data/system_config_deltas ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/misuse_check_manager/delta_config_activate_mock.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_config_updater.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_simulate_cameras.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_replay_recorder_config.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/000_delta_vpu0_services.yaml /data/system_config_deltas/ ; ln -s /app/brt/usr/share/brt/system_config_deltas_lib/embedded_image/delta_vpu1_services.yaml /data/system_config_deltas/ ; /usr/bin/supervisord --config /etc/supervisor/supervisord.conf --nodaemon'
-    container_name: virtual_0_1
-    deploy: *id001
+      - ./src:/app/src  # Mount local source code for live development
+    ports:
+      - "3000:8080"  # Override default port
+
+  database:
     environment:
-    - SYSTEM_ID=0
-    - SYSTEM_UNIQUE_ID=sim_virtual_0_1
-    - VPU_POSITION=1
-    - ECU_INDEX=1
-    - PRODUCTION_RESTRICTIONS=false
-    - DDS_ALLOW_INTERFACES_LIST=*
-    - SYSTEM_TYPE=virtual
-    - IMPLEMENT=<%IMPLEMENT_THING%>
-    - VEHICLE=<%VEHICLE_THING%>
-    image: bazel/autonomy/jupiter/robotics/halo/virtual_vpu/embedded_image:embedded-image
-    labels:
-      com.docker.compose.rm: 'true'
-    network_mode: host
-    restart: 'no'
-    volumes:
-    - /tmp/resim/outputs/logs/virtual_0_1:/var/log/supervisor
-    - /tmp/resim/inputs/:/mnt/ssd/inputs/
-    - /tmp/resim/outputs/:/mnt/ssd/recordings
+      - POSTGRES_PASSWORD=supersecurepassword  # Override password for dev

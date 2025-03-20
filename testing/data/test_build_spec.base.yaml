@@ -7,13 +7,9 @@ services:
   database:
     image: "postgres:latest"
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
       POSTGRES_DB: appdb
-    volumes:
-      - "db-data:/var/lib/postgresql/data"
-    networks:
-      - app-network
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
 
 volumes:
   db-data:

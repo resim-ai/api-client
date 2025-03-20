@@ -890,7 +890,7 @@ func updateBuild(projectName string, existingBuildID uuid.UUID, newBranchID *uui
 	return []CommandBuilder{buildCommand, updateCommand}
 }
 
-func getBuild(projectName string, existingBuildID uuid.UUID) []CommandBuilder {
+func getBuild(projectName string, existingBuildID uuid.UUID, showBuildSpec bool) []CommandBuilder {
 	buildCommand := CommandBuilder{
 		Command: "builds",
 	}
@@ -906,6 +906,12 @@ func getBuild(projectName string, existingBuildID uuid.UUID) []CommandBuilder {
 				Value: existingBuildID.String(),
 			},
 		},
+	}
+	if showBuildSpec {
+		getCommand.Flags = append(getCommand.Flags, Flag{
+			Name:  "--show-build-spec-only",
+			Value: "true",
+		})
 	}
 	return []CommandBuilder{buildCommand, getCommand}
 }
@@ -2789,7 +2795,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 	output = s.runCommand(updateBuild(projectIDString, buildID, Ptr(updatedBranchID), nil), ExpectNoError)
 	s.Contains(output.StdOut, UpdatedBuild)
 	// Get the build and check:
-	output = s.runCommand(getBuild(projectIDString, buildID), ExpectNoError)
+	output = s.runCommand(getBuild(projectIDString, buildID, false), ExpectNoError)
 	var build api.Build
 	err := json.Unmarshal([]byte(output.StdOut), &build)
 	s.NoError(err)
@@ -2801,7 +2807,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 	output = s.runCommand(updateBuild(projectIDString, buildID, nil, Ptr(updatedBuildDescription)), ExpectNoError)
 	s.Contains(output.StdOut, UpdatedBuild)
 	// Get the build and check:
-	output = s.runCommand(getBuild(projectIDString, buildID), ExpectNoError)
+	output = s.runCommand(getBuild(projectIDString, buildID, false), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &build)
 	s.NoError(err)
 	s.Equal(updatedBranchID, build.BranchID)
@@ -2858,7 +2864,7 @@ func (s *EndToEndTestSuite) TestBuildCreateWithBuildSpec() {
 	output = s.runCommand(updateBuild(projectIDString, buildID, Ptr(updatedBranchID), nil), ExpectNoError)
 	s.Contains(output.StdOut, UpdatedBuild)
 	// Get the build and check:
-	output = s.runCommand(getBuild(projectIDString, buildID), ExpectNoError)
+	output = s.runCommand(getBuild(projectIDString, buildID, false), ExpectNoError)
 	var build api.Build
 	err := json.Unmarshal([]byte(output.StdOut), &build)
 	s.NoError(err)
@@ -2870,7 +2876,7 @@ func (s *EndToEndTestSuite) TestBuildCreateWithBuildSpec() {
 	output = s.runCommand(updateBuild(projectIDString, buildID, nil, Ptr(updatedBuildDescription)), ExpectNoError)
 	s.Contains(output.StdOut, UpdatedBuild)
 	// Get the build and check:
-	output = s.runCommand(getBuild(projectIDString, buildID), ExpectNoError)
+	output = s.runCommand(getBuild(projectIDString, buildID, false), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &build)
 	s.NoError(err)
 	s.Equal(updatedBranchID, build.BranchID)
@@ -4786,7 +4792,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	err := json.Unmarshal([]byte(output.StdOut), &batch)
 	s.NoError(err)
 	// Get the build and check version:
-	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID, false), ExpectNoError)
 	var build api.Build
 	err = json.Unmarshal([]byte(output.StdOut), &build)
 	s.NoError(err)
@@ -4872,7 +4878,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	s.NoError(err)
 
 	// Get the build and check version:
-	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID, false), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &build)
 	s.NoError(err)
 	s.Equal(defaultVersion, build.Version)
@@ -4947,7 +4953,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	s.Equal(specialBatchName, *batch.FriendlyName)
 
 	// Get the build and check version:
-	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID, false), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &build)
 	s.NoError(err)
 	s.Equal(defaultVersion, build.Version)

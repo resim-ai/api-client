@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -273,31 +272,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	if len(buildSpecLocations) > 0 {
-		// We assume that the build spec is a valid YAML file
-		ctx := context.Background()
-
-		options, err := cli.NewProjectOptions(
-			buildSpecLocations,
-			cli.WithOsEnv,
-			cli.WithDotEnv,
-			cli.WithName(viper.GetString(buildSpecNameKey)),
-		)
+		buildSpecBytes, err := ParseBuildSpec(buildSpecLocations)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("failed to parse build spec:", err)
 		}
-
-		project, err := options.LoadProject(ctx)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		// Use the MarshalYAML method to get YAML representation
-		projectYAML, err := project.MarshalYAML()
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		buildSpec = Ptr(projectYAML)
+		buildSpec = Ptr(buildSpecBytes)
 	}
 
 	// Check if the project exists, by listing projects:

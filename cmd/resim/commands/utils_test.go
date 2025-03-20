@@ -1,7 +1,10 @@
 package commands
 
 import (
+	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseParameterString(t *testing.T) {
@@ -114,4 +117,14 @@ func TestParseParameterString(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParseBuildSpec(t *testing.T) {
+	buildSpecBytes, err := ParseBuildSpec([]string{"../../../testing/data/test_build_spec.base.yaml", "../../../testing/data/test_build_spec.yaml"})
+	assert.NoError(t, err)
+	assert.NotNil(t, buildSpecBytes)
+
+	buildSpecExpected, err := os.ReadFile("../../../testing/data/test_build_spec_combined.yaml")
+	assert.NoError(t, err)
+	assert.YAMLEq(t, string(buildSpecExpected), string(buildSpecBytes))
 }

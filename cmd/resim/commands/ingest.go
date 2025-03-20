@@ -255,7 +255,7 @@ func getOrCreateBuild(client api.ClientWithResponsesInterface, projectID uuid.UU
 	}
 	body := api.CreateBuildForBranchInput{
 		Description: Ptr("A ReSim Log Ingest Build"),
-		ImageUri:    LogIngestURI,
+		ImageUri:    Ptr(LogIngestURI),
 		Version:     viper.GetString(ingestVersionKey),
 		SystemID:    systemID,
 	}

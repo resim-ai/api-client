@@ -1,0 +1,18 @@
+services:
+  baseapp:
+    image: "app-image:latest"
+    networks:
+      - app-network
+
+  database:
+    image: "postgres:latest"
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+
+volumes:
+  db-data:
+
+networks:
+  app-network:

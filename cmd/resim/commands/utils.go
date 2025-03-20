@@ -1,8 +1,13 @@
 package commands
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"strings"
+
+	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/spf13/viper"
 )
 
 // ParseParameterString parses a string in the format "key=value" or "key:value"
@@ -23,4 +28,32 @@ func ParseParameterString(parameterString string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("failed to parse parameter: %s - must be in the format <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>", parameterString)
+}
+
+func ParseBuildSpec(buildSpecLocations []string) ([]byte, error) {
+	// We assume that the build spec is a valid YAML file
+	ctx := context.Background()
+
+	options, err := cli.NewProjectOptions(
+		buildSpecLocations,
+		cli.WithOsEnv,
+		cli.WithDotEnv,
+		cli.WithName(viper.GetString(buildSpecNameKey)),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	project, err := options.LoadProject(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Use the MarshalYAML method to get YAML representation
+	projectYAML, err := project.MarshalYAML()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return projectYAML, nil
 }

@@ -296,13 +296,13 @@ func getReport(ccmd *cobra.Command, args []string) {
 
 	if viper.GetBool(reportExitStatusKey) {
 		switch report.Status {
-		case api.ReportStatusSUCCEEDED:
+		case api.SUCCEEDED:
 			os.Exit(0)
-		case api.ReportStatusERROR:
+		case api.ERROR:
 			os.Exit(2)
-		case api.ReportStatusSUBMITTED:
+		case api.SUBMITTED:
 			os.Exit(3)
-		case api.ReportStatusRUNNING:
+		case api.RUNNING:
 			os.Exit(4)
 		default:
 			log.Fatal("unknown report status: ", report.Status)
@@ -322,11 +322,11 @@ func waitReport(ccmd *cobra.Command, args []string) {
 		report = actualGetReport(projectID, viper.GetString(reportIDKey), viper.GetString(reportNameKey))
 		viper.Set(reportIDKey, report.ReportID.String())
 		switch report.Status {
-		case api.ReportStatusSUCCEEDED:
+		case api.SUCCEEDED:
 			os.Exit(0)
-		case api.ReportStatusERROR:
+		case api.ERROR:
 			os.Exit(2)
-		case api.ReportStatusSUBMITTED, api.ReportStatusRUNNING:
+		case api.SUBMITTED, api.RUNNING:
 		default:
 			log.Fatal("unknown report status: ", report.Status)
 		}

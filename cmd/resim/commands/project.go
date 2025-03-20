@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
@@ -229,10 +228,7 @@ func getProject(ccmd *cobra.Command, args []string) {
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
 	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
-	enc.Encode(project)
+	OutputJson(project)
 }
 
 func archiveProject(ccmd *cobra.Command, args []string) {

@@ -1,0 +1,38 @@
+name: data
+networks:
+    app-network:
+        name: data_app-network
+    default:
+        name: data_default
+services:
+    app:
+        depends_on:
+            database:
+                condition: service_started
+                required: true
+        environment:
+            APP_ENV: development
+            DEBUG: "true"
+        image: app-image:latest
+        networks:
+            app-network: null
+        ports:
+            - mode: ingress
+              protocol: tcp
+              published: "3000"
+              target: 8080
+    baseapp:
+        image: app-image:latest
+        networks:
+            app-network: null
+    database:
+        environment:
+            POSTGRES_DB: appdb
+            POSTGRES_PASSWORD: supersecurepassword
+            POSTGRES_USER: user
+        image: postgres:latest
+        networks:
+            default: null
+volumes:
+    db-data:
+        name: data_db-data

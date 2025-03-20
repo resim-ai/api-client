@@ -2,11 +2,9 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -187,10 +185,7 @@ func getSystem(ccmd *cobra.Command, args []string) {
 		ValidateResponse(http.StatusOK, "unable to retrieve system", response.HTTPResponse, response.Body)
 	}
 	system = response.JSON200
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
-	enc.Encode(system)
+	OutputJson(system)
 }
 
 func archiveSystem(ccmd *cobra.Command, args []string) {

@@ -1,0 +1,16 @@
+services:
+  app:
+    extends:
+      file: test_build_spec.base.yaml
+      service: baseapp
+    depends_on:
+      - database
+    environment:
+      - APP_ENV=development
+      - DEBUG=true
+    ports:
+      - "3000:8080"  # Override default port
+
+  database:
+    environment:
+      POSTGRES_PASSWORD: supersecurepassword  # Override password for dev

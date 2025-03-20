@@ -2,11 +2,9 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/uuid"
@@ -64,13 +62,14 @@ const (
 	buildBuildIDKey          = "build-id"
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
+	buildSpecKey             = "build-spec"
+	buildSpecNameKey         = "build-spec-name"
+	buildShowBuildSpecKey    = "show-build-spec-only"
 )
 
 func init() {
 	createBuildCmd.Flags().String(buildDescriptionKey, "", "The description of the build, often a commit message")
 	createBuildCmd.MarkFlagRequired(buildDescriptionKey)
-	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
-	createBuildCmd.MarkFlagRequired(buildImageURIKey)
 	createBuildCmd.Flags().String(buildVersionKey, "", "The version of the build image, usually a commit ID")
 	createBuildCmd.MarkFlagRequired(buildVersionKey)
 	createBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project to create the build in")
@@ -82,6 +81,10 @@ func init() {
 	createBuildCmd.Flags().Bool(buildAutoCreateBranchKey, false, "Whether to automatically create branch if it doesn't exist")
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
 	createBuildCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
+	createBuildCmd.Flags().StringSlice(buildSpecKey, []string{}, "Paths to files containing build specs")
+	createBuildCmd.Flags().String(buildSpecNameKey, "", "The name of the build spec")
+	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildSpecKey)
 
 	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
 	listBuildsCmd.MarkFlagRequired(buildProjectKey)
@@ -101,6 +104,7 @@ func init() {
 	getBuildCmd.MarkFlagRequired(buildProjectKey)
 	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
 	getBuildCmd.MarkFlagRequired(buildBuildIDKey)
+	getBuildCmd.Flags().Bool(buildShowBuildSpecKey, false, "Print the build spec only.")
 
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
@@ -238,14 +242,41 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty build version")
 	}
 
-	buildImageURI := viper.GetString(buildImageURIKey)
-	if buildImageURI == "" {
-		log.Fatal("empty build image URI")
+	inputBuildImageURI := viper.GetString(buildImageURIKey)
+	var buildImageURI *string = nil
+
+	buildSpecLocations := viper.GetStringSlice(buildSpecKey)
+	var buildSpec *[]byte = nil
+
+	// Check that at least one of image URI or build spec is provided
+	if inputBuildImageURI == "" && len(buildSpecLocations) == 0 {
+		log.Fatal("either --build-spec or --image is required")
 	}
-	// Validate that the image URI is valid:
-	_, err := name.ParseReference(buildImageURI, name.StrictValidation)
-	if err != nil {
-		log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
+
+	// Check that the required flag is present when using build-spec
+	if len(buildSpecLocations) > 0 && inputBuildImageURI == "" {
+		// Replace YOUR_REQUIRED_FLAG with the flag name that should be required
+		if viper.GetString(buildSpecNameKey) == "" {
+			log.Fatal("--build-spec-name is required when using --build-spec")
+		}
+	}
+
+	if inputBuildImageURI != "" {
+		// Validate that the image URI is valid:
+		_, err := name.ParseReference(inputBuildImageURI, name.StrictValidation)
+		if err != nil {
+			log.Fatal("failed to parse the image URI - it must be a valid docker image URI, including tag or digest")
+		}
+
+		buildImageURI = Ptr(inputBuildImageURI)
+	}
+
+	if len(buildSpecLocations) > 0 {
+		buildSpecBytes, err := ParseBuildSpec(buildSpecLocations)
+		if err != nil {
+			log.Fatal("failed to parse build spec:", err)
+		}
+		buildSpec = Ptr(buildSpecBytes)
 	}
 
 	// Check if the project exists, by listing projects:
@@ -286,10 +317,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	body := api.CreateBuildForBranchInput{
-		Description: &buildDescription,
-		ImageUri:    buildImageURI,
-		Version:     buildVersion,
-		SystemID:    systemID,
+		Description:        Ptr(buildDescription),
+		ImageUri:           buildImageURI,
+		BuildSpecification: buildSpec,
+		Version:            buildVersion,
+		SystemID:           systemID,
 	}
 
 	response, err := Client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)
@@ -360,11 +392,15 @@ func getBuild(ccmd *cobra.Command, args []string) {
 	} else {
 		ValidateResponse(http.StatusOK, "unable to retrieve build", response.HTTPResponse, response.Body)
 	}
+
 	build = response.JSON200
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
-	enc.Encode(build)
+
+	if viper.GetBool(buildShowBuildSpecKey) {
+		// Show the build spec only if the flag is set.
+		fmt.Println(build.BuildSpecification)
+	} else {
+		OutputJson(build)
+	}
 }
 
 func getBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, uuidString string) uuid.UUID {

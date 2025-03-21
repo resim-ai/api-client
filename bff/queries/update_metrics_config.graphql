@@ -1,0 +1,3 @@
+mutation UpdateMetricsConfig($config: String!, $templateFiles: [MetricsTemplate!]!) {
+    updateMetricsConfig(config: $config, templateFiles: $templateFiles)
+}

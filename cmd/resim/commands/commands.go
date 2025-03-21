@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -15,6 +16,7 @@ import (
 )
 
 var Client api.ClientWithResponsesInterface
+var BffClient graphql.Client
 
 const ConfigPath = "$HOME/.resim"
 
@@ -47,12 +49,17 @@ func rootCommand(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	var err error
-	var credentialCache *CredentialCache
-	Client, credentialCache, err = GetClient(context.Background())
+	ctx := context.Background()
+	credentialCache, err := Authenticate(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
+	Client, err = GetClient(ctx, *credentialCache)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	BffClient = GetBffClient(ctx, *credentialCache)
 
 	defer credentialCache.SaveCredentialCache()
 }
@@ -97,12 +104,17 @@ func RegisterViperFlags(cmd *cobra.Command, args []string) {
 }
 
 func SetClient(cmd *cobra.Command, args []string) {
-	var err error
-	var credentialCache *CredentialCache
-	Client, credentialCache, err = GetClient(context.Background())
+	ctx := context.Background()
+	credentialCache, err := Authenticate(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
+	Client, err = GetClient(ctx, *credentialCache)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	BffClient = GetBffClient(ctx, *credentialCache)
 
 	defer credentialCache.SaveCredentialCache()
 }

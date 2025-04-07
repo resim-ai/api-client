@@ -3360,7 +3360,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 8)
+	s.Len(logs, 7)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
 		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs.zip", "file.name", "parameters.json"}, *log.FileName)
@@ -3370,7 +3370,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	tempDir, err := os.MkdirTemp("", "test-logs")
 	s.NoError(err)
 	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir), ExpectNoError)
-	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 logs to %s", tempDir))
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 7 logs to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)

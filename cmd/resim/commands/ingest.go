@@ -39,6 +39,7 @@ const (
 	ingestLogKey                = "log"
 	ingestConfigFileKey         = "log-config"
 	ingestBatchNameKey          = "ingestion-name"
+	ingestPoolLabelsKey         = "pool-labels"
 
 	LogIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
 )
@@ -65,7 +66,7 @@ func init() {
 	// Log Name
 	ingestLogCmd.Flags().String(ingestLogNameKey, "", "A project-unique name to use in processing this log, often a run id.")
 	// Log Location
-	ingestLogCmd.Flags().String(ingestExperienceLocationKey, "", "An S3 prefix, which ReSim has access to, where the log is stored.")
+	ingestLogCmd.Flags().String(ingestExperienceLocationKey, "", "An S3 prefix, which ReSim has access to (or local file if using the ReSim Agent), where the log is stored.")
 	ingestLogCmd.Flags().StringSlice(ingestLogKey, []string{}, "Log name and location pairs in the format 'name=s3://location'. Can be specified multiple times.")
 	ingestLogCmd.Flags().String(ingestConfigFileKey, "", "Path to YAML file containing log configurations")
 	// Support the old way, a config file, and the --log flag mutually exclusively:
@@ -78,6 +79,8 @@ func init() {
 	ingestLogCmd.Flags().StringSlice(ingestExperienceTagsKey, []string{}, "Comma-separated list of tags to apply. ReSim will automatically add the `ingested-via-resim` tag.")
 	// Batch Name
 	ingestLogCmd.Flags().String(ingestBatchNameKey, "", "A memorable name for this batch of logs to ingest. If not provided, a default name will be generated.")
+	// Pool Labels
+	ingestLogCmd.Flags().StringSlice(ingestPoolLabelsKey, []string{}, "Comma-separated list of pool labels to apply to the log ingestion. If not provided, a default pool label will be generated.")
 	rootCmd.AddCommand(ingestLogCmd)
 }
 
@@ -221,6 +224,11 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	}
 	if viper.IsSet(ingestBatchNameKey) {
 		batchBody.BatchName = Ptr(viper.GetString(ingestBatchNameKey))
+	}
+
+	poolLabels := getAndValidatePoolLabels(ingestPoolLabelsKey)
+	if len(poolLabels) > 0 {
+		batchBody.PoolLabels = Ptr(poolLabels)
 	}
 
 	batchResponse, err := Client.CreateBatchWithResponse(context.Background(), projectID, batchBody)

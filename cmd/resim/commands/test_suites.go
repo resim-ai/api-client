@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -512,17 +511,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Parse --pool-labels (if any provided)
-	poolLabels := []api.PoolLabel{}
-	if viper.IsSet(testSuitePoolLabelsKey) {
-		poolLabels = viper.GetStringSlice(testSuitePoolLabelsKey)
-	}
-	for i := range poolLabels {
-		poolLabels[i] = strings.TrimSpace(poolLabels[i])
-		if poolLabels[i] == "resim" {
-			log.Fatal("failed to run test suite: resim is a reserved pool label")
-		}
-	}
+	poolLabels := getAndValidatePoolLabels(testSuitePoolLabelsKey)
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".

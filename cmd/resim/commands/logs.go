@@ -23,7 +23,7 @@ import (
 var (
 	logsCmd = &cobra.Command{
 		Use:     "logs",
-		Short:   "logs contains commands for listing and downloading test logs.",
+		Short:   "logs contains commands for listing and downloading logs.",
 		Long:    ``,
 		Aliases: []string{"log"},
 	}
@@ -67,7 +67,7 @@ func init() {
 	downloadLogsCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch the logs are associated with")
 	downloadLogsCmd.MarkFlagRequired(logBatchIDKey)
 	downloadLogsCmd.Flags().String(logTestIDKey, "", "The UUID of the test in the batch to list logs for")
-	downloadLogsCmd.Flags().String(logOutputKey, "", "The directory to download the logs to, must be empty if it already exists")
+	downloadLogsCmd.Flags().String(logOutputKey, "", "The directory to download the logs to")
 	downloadLogsCmd.MarkFlagRequired(logOutputKey)
 	downloadLogsCmd.Flags().Bool(logGithubKey, false, "Whether to output log messages in GitHub Actions friendly format")
 	downloadLogsCmd.Flags().StringSlice(logFilesKey, []string{}, "The files to download from the logs, separated by commas. If not provided, all logs will be downloaded. If files are not all found, the command will exit with an error.")
@@ -335,8 +335,8 @@ func downloadLogs(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(logProjectKey))
 
 	outputDir := viper.GetString(logOutputKey)
-	// if the directory exists and we're downloading everything, we need to check if it is empty
-	// otherwise, we need to create it
+
+	// we need to create the directory if it doesn't exist
 	if _, err := os.ReadDir(outputDir); os.IsNotExist(err) {
 		os.MkdirAll(outputDir, 0755)
 	}

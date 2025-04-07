@@ -10,7 +10,7 @@ Changes in this section will be included in the next release.
 
 ### v0.13.0
 
-- Build creation now requires a `--name` flag instead of using `--description`. `--description` is still accepted when creating or updating a build, but will now populate the build's description rather than its name.
+- Build creation now requires a `--name` flag instead of a `--description`. `--description` is still accepted when creating or updating a build, but will now populate the build's description rather than its name.
 
 ### v0.12.0 - March 25 2025
 

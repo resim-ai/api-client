@@ -266,20 +266,20 @@ func unzipFile(zippedFile os.File) error {
 }
 
 type DownloadableLog struct {
-	FileName string
+	FileName          string
 	LogOutputLocation string
-	FileSize int64
-	LogType api.LogType
+	FileSize          int64
+	LogType           api.LogType
 }
 
 func DownloadableLogsFromJobLogs(jobLogs []api.JobLog) []DownloadableLog {
 	downloadableLogs := []DownloadableLog{}
 	for _, jobLog := range jobLogs {
 		downloadableLogs = append(downloadableLogs, DownloadableLog{
-			FileName: *jobLog.FileName,
+			FileName:          *jobLog.FileName,
 			LogOutputLocation: *jobLog.LogOutputLocation,
-			FileSize: *jobLog.FileSize,
-			LogType: *jobLog.LogType,
+			FileSize:          *jobLog.FileSize,
+			LogType:           *jobLog.LogType,
 		})
 	}
 	return downloadableLogs
@@ -289,10 +289,10 @@ func DownloadableLogsFromBatchLogs(batchLogs []api.BatchLog) []DownloadableLog {
 	downloadableLogs := []DownloadableLog{}
 	for _, batchLog := range batchLogs {
 		downloadableLogs = append(downloadableLogs, DownloadableLog{
-			FileName: *batchLog.FileName,
+			FileName:          *batchLog.FileName,
 			LogOutputLocation: *batchLog.LogOutputLocation,
-			FileSize: *batchLog.FileSize,
-			LogType: *batchLog.LogType,
+			FileSize:          *batchLog.FileSize,
+			LogType:           *batchLog.LogType,
 		})
 	}
 	return downloadableLogs

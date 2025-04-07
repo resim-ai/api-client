@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/google/uuid"
@@ -29,14 +30,14 @@ var (
 
 	listLogsCmd = &cobra.Command{
 		Use:   "list",
-		Short: "list - Lists the logs for a batch",
+		Short: "list - Lists the logs for a batch or test",
 		Long:  ``,
 		Run:   listLogs,
 	}
 
 	downloadLogsCmd = &cobra.Command{
 		Use:     "download",
-		Short:   "download - Downloads the logs for a batch",
+		Short:   "download - Downloads the logs for a batch or test",
 		Long:    ``,
 		Run:     downloadLogs,
 		Aliases: []string{"fetch"},
@@ -49,6 +50,7 @@ const (
 	logTestIDKey  = "test-id" // User-facing is test ID, internal is job id
 	logOutputKey  = "output"
 	logGithubKey  = "github"
+	logFilesKey   = "files"
 )
 
 func init() {
@@ -57,7 +59,6 @@ func init() {
 	listLogsCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch the logs are associated with")
 	listLogsCmd.MarkFlagRequired(logBatchIDKey)
 	listLogsCmd.Flags().String(logTestIDKey, "", "The UUID of the test in the batch to list logs for")
-	listLogsCmd.MarkFlagRequired(logTestIDKey)
 	listLogsCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	logsCmd.AddCommand(listLogsCmd)
 
@@ -66,10 +67,10 @@ func init() {
 	downloadLogsCmd.Flags().String(logBatchIDKey, "", "The UUID of the batch the logs are associated with")
 	downloadLogsCmd.MarkFlagRequired(logBatchIDKey)
 	downloadLogsCmd.Flags().String(logTestIDKey, "", "The UUID of the test in the batch to list logs for")
-	downloadLogsCmd.MarkFlagRequired(logTestIDKey)
 	downloadLogsCmd.Flags().String(logOutputKey, "", "The directory to download the logs to, must be empty if it already exists")
 	downloadLogsCmd.MarkFlagRequired(logOutputKey)
 	downloadLogsCmd.Flags().Bool(logGithubKey, false, "Whether to output log messages in GitHub Actions friendly format")
+	downloadLogsCmd.Flags().StringSlice(logFilesKey, []string{}, "The files to download from the logs, separated by commas. If not provided, all logs will be downloaded. If files are not all found, the command will exit with an error.")
 	downloadLogsCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
 	logsCmd.AddCommand(downloadLogsCmd)
 
@@ -103,6 +104,33 @@ func listJobLogsForJob(projectID uuid.UUID, batchID uuid.UUID, testID uuid.UUID)
 	return logs, nil
 }
 
+func listBatchLogsForBatch(projectID uuid.UUID, batchID uuid.UUID) ([]api.BatchLog, error) {
+	logs := []api.BatchLog{}
+	var pageToken *string = nil
+	for {
+		response, err := Client.ListBatchLogsForBatchWithResponse(context.Background(), projectID, batchID, &api.ListBatchLogsForBatchParams{
+			PageToken: pageToken,
+			PageSize:  Ptr(100),
+		})
+		if err != nil {
+			return nil, err
+		}
+		ValidateResponse(http.StatusOK, "unable to list logs", response.HTTPResponse, response.Body)
+		if response.JSON200.Logs == nil {
+			return nil, errors.New("log list in response is nil")
+		}
+		responseLogs := *response.JSON200.Logs
+		logs = append(logs, responseLogs...)
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+	return logs, nil
+}
+
 func listLogs(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(logProjectKey))
 	batchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
@@ -110,16 +138,23 @@ func listLogs(ccmd *cobra.Command, args []string) {
 		log.Fatal("unable to parse batch ID: ", err)
 	}
 
-	testID, err := uuid.Parse(viper.GetString(logTestIDKey))
-	if err != nil || testID == uuid.Nil {
-		log.Fatal("unable to parse test ID: ", err)
+	if viper.GetString(logTestIDKey) != "" {
+		testID, err := uuid.Parse(viper.GetString(logTestIDKey))
+		if err != nil || testID == uuid.Nil {
+			log.Fatal("unable to parse test ID: ", err)
+		}
+		logs, err := listJobLogsForJob(projectID, batchID, testID)
+		if err != nil {
+			log.Fatal("unable to fetch tests logs: ", err)
+		}
+		OutputJson(logs)
+	} else {
+		logs, err := listBatchLogsForBatch(projectID, batchID)
+		if err != nil {
+			log.Fatal("unable to fetch batch logs: ", err)
+		}
+		OutputJson(logs)
 	}
-
-	logs, err := listJobLogsForJob(projectID, batchID, testID)
-	if err != nil {
-		log.Fatal("unable to fetch logs: ", err)
-	}
-	OutputJson(logs)
 }
 
 func isFileZipped(f os.File) (bool, error) {
@@ -230,8 +265,56 @@ func unzipFile(zippedFile os.File) error {
 	return deferredErr
 }
 
-func downloadLogToFile(jobLog api.JobLog, file *os.File) error {
-	resp, err := http.Get(*jobLog.LogOutputLocation)
+type DownloadableLog struct {
+	FileName string
+	LogOutputLocation string
+	FileSize int64
+	LogType api.LogType
+}
+
+func DownloadableLogsFromJobLogs(jobLogs []api.JobLog) []DownloadableLog {
+	downloadableLogs := []DownloadableLog{}
+	for _, jobLog := range jobLogs {
+		downloadableLogs = append(downloadableLogs, DownloadableLog{
+			FileName: *jobLog.FileName,
+			LogOutputLocation: *jobLog.LogOutputLocation,
+			FileSize: *jobLog.FileSize,
+			LogType: *jobLog.LogType,
+		})
+	}
+	return downloadableLogs
+}
+
+func DownloadableLogsFromBatchLogs(batchLogs []api.BatchLog) []DownloadableLog {
+	downloadableLogs := []DownloadableLog{}
+	for _, batchLog := range batchLogs {
+		downloadableLogs = append(downloadableLogs, DownloadableLog{
+			FileName: *batchLog.FileName,
+			LogOutputLocation: *batchLog.LogOutputLocation,
+			FileSize: *batchLog.FileSize,
+			LogType: *batchLog.LogType,
+		})
+	}
+	return downloadableLogs
+}
+
+func filterLogs(downloadableLogs []DownloadableLog, fileNames []string) ([]DownloadableLog, error) {
+	// filter the logs to only include the ones that match the file names
+	// if not all files are present, return an error
+	filteredLogs := []DownloadableLog{}
+	for _, log := range downloadableLogs {
+		if slices.Contains(fileNames, log.FileName) {
+			filteredLogs = append(filteredLogs, log)
+		}
+	}
+	if len(filteredLogs) != len(fileNames) {
+		return nil, errors.New("not all expected logs were found")
+	}
+	return filteredLogs, nil
+}
+
+func downloadLogToFile(downloadableLog DownloadableLog, file *os.File) error {
+	resp, err := http.Get(downloadableLog.LogOutputLocation)
 
 	if err != nil {
 		return errors.New("unable to download log: " + err.Error())
@@ -242,76 +325,87 @@ func downloadLogToFile(jobLog api.JobLog, file *os.File) error {
 	if err != nil {
 		return errors.New("unable to write log file: " + err.Error())
 	}
-	if bytesWritten != *jobLog.FileSize {
-		return fmt.Errorf("wrote %d bytes to %s but expected %d", bytesWritten, file.Name(), *jobLog.FileSize)
+	if bytesWritten != downloadableLog.FileSize {
+		return fmt.Errorf("wrote %d bytes to %s but expected %d", bytesWritten, file.Name(), downloadableLog.FileSize)
 	}
 	return nil
 }
 
 func downloadLogs(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(logProjectKey))
+
+	outputDir := viper.GetString(logOutputKey)
+	// if the directory exists and we're downloading everything, we need to check if it is empty
+	// otherwise, we need to create it
+	if _, err := os.ReadDir(outputDir); os.IsNotExist(err) {
+		os.MkdirAll(outputDir, 0755)
+	}
+
+	outputDir, err := filepath.Abs(outputDir)
+	if err != nil {
+		log.Fatal("unable to get absolute path for output directory: ", err)
+	}
+
 	batchID, err := uuid.Parse(viper.GetString(logBatchIDKey))
 	if err != nil || batchID == uuid.Nil {
 		log.Fatal("unable to parse batch ID: ", err)
 	}
 
-	testID, err := uuid.Parse(viper.GetString(logTestIDKey))
-	if err != nil || testID == uuid.Nil {
-		log.Fatal("unable to parse test ID: ", err)
-	}
-
-	outputDir := viper.GetString(logOutputKey)
-	// if the directory exists, we need to check if it is empty
-	// otherwise, we need to create it
-	if files, err := os.ReadDir(outputDir); !os.IsNotExist(err) {
-		if err != nil {
-			log.Fatal("unable to read output directory: ", err)
-		}
-		if len(files) > 0 {
-			log.Fatal("output directory is not empty: ", outputDir)
-		}
-	} else {
-		os.MkdirAll(outputDir, 0755)
-	}
-
-	outputDir, err = filepath.Abs(outputDir)
-	if err != nil {
-		log.Fatal("unable to get absolute path for output directory: ", err)
-	}
-
 	s := NewSpinner(ccmd)
 	s.Start("Getting list of logs...")
 
-	logs, err := listJobLogsForJob(projectID, batchID, testID)
-	if err != nil {
-		log.Fatal("unable to fetch logs: ", err)
+	var downloadableLogs []DownloadableLog
+	if viper.GetString(logTestIDKey) != "" {
+		testID, err := uuid.Parse(viper.GetString(logTestIDKey))
+		if err != nil || testID == uuid.Nil {
+			s.Fatal("unable to parse test ID: ", err)
+		}
+		jobLogs, err := listJobLogsForJob(projectID, batchID, testID)
+		if err != nil {
+			s.Fatal("unable to fetch logs: ", err)
+		}
+		downloadableLogs = DownloadableLogsFromJobLogs(jobLogs)
+	} else {
+		batchLogs, err := listBatchLogsForBatch(projectID, batchID)
+		if err != nil {
+			s.Fatal("unable to fetch logs: ", err)
+		}
+		downloadableLogs = DownloadableLogsFromBatchLogs(batchLogs)
 	}
 
-	for _, jobLog := range logs {
-		s.Update(fmt.Sprintf("Downloading %s...", *jobLog.FileName))
+	// if the user provided a list of files to download, we need to filter the logs and make sure all files are found
+	if len(viper.GetStringSlice(logFilesKey)) > 0 {
+		downloadableLogs, err = filterLogs(downloadableLogs, viper.GetStringSlice(logFilesKey))
+		if err != nil {
+			s.Fatal("unable to download logs: ", err)
+		}
+	}
 
-		filePath := filepath.Join(outputDir, *jobLog.FileName)
+	for _, downloadableLog := range downloadableLogs {
+		s.Update(fmt.Sprintf("Downloading %s...", downloadableLog.FileName))
+
+		filePath := filepath.Join(outputDir, downloadableLog.FileName)
 		out, err := os.Create(filePath)
 		if err != nil {
-			log.Fatal("unable to create log file: ", err)
+			s.Fatal("unable to create log file: ", err)
 		}
 
-		err = downloadLogToFile(jobLog, out)
+		err = downloadLogToFile(downloadableLog, out)
 		if err != nil {
-			log.Fatal("unable to download log: ", err)
+			s.Fatal("unable to download log: ", err)
 		}
 
-		if *jobLog.LogType == api.ARCHIVELOG {
+		if downloadableLog.LogType == api.ARCHIVELOG {
 			isZipped, err := isFileZipped(*out)
 			if err != nil {
-				log.Fatal("unable to determine if log file is zipped: ", err)
+				s.Fatal("unable to determine if log file is zipped: ", err)
 			}
 
 			if isZipped {
-				s.Update(fmt.Sprintf("Unzipping %s...", *jobLog.FileName))
+				s.Update(fmt.Sprintf("Unzipping %s...", downloadableLog.FileName))
 				err = unzipFile(*out)
 				if err != nil {
-					log.Fatal("unable to unzip log file: ", err)
+					s.Fatal("unable to unzip log file: ", err)
 				}
 				out.Close()
 				os.Remove(filePath)
@@ -323,5 +417,5 @@ func downloadLogs(ccmd *cobra.Command, args []string) {
 	}
 
 	s.Stop(nil)
-	fmt.Printf("Downloaded %d logs to %s\n", len(logs), outputDir)
+	fmt.Printf("Downloaded %d log(s) to %s\n", len(downloadableLogs), outputDir)
 }

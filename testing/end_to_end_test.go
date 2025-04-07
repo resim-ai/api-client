@@ -1612,7 +1612,7 @@ func listLogs(projectID uuid.UUID, batchID string, testID string) []CommandBuild
 	return []CommandBuilder{logCommand, listCommand}
 }
 
-func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string) []CommandBuilder {
+func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string, files []string) []CommandBuilder {
 	logCommand := CommandBuilder{
 		Command: "log",
 	}
@@ -1636,6 +1636,13 @@ func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir 
 				Value: outputDir,
 			},
 		},
+	}
+	if len(files) > 0 {
+		filesString := strings.Join(files, ",")
+		downloadCommand.Flags = append(downloadCommand.Flags, Flag{
+			Name:  "--files",
+			Value: filesString,
+		})
 	}
 	return []CommandBuilder{logCommand, downloadCommand}
 }
@@ -3366,11 +3373,15 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs.zip", "file.name", "parameters.json"}, *log.FileName)
 	}
 
-	// Download the logs:
+	// Download a single log
 	tempDir, err := os.MkdirTemp("", "test-logs")
 	s.NoError(err)
-	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir), ExpectNoError)
-	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 logs to %s", tempDir))
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{"file.name"}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 1 log(s) to %s", tempDir))
+
+	// Download all logs:
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 log(s) to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)

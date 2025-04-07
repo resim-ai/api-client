@@ -1,12 +1,16 @@
 # Changelog
 
-See also https://docs.resim.ai/changelog/ for all ReSim changes
+See also <https://docs.resim.ai/changelog/> for all ReSim changes
 
 ## ReSim CLI
 
 ### Unreleased
 
 Changes in this section will be included in the next release.
+
+### v0.13.0
+
+- Build creation now requires a `--name` flag instead of using `--description`. `--description` is still accepted when creating or updating a build, but will now populate the build's description rather than its name.
 
 ### v0.12.0 - March 25 2025
 
@@ -46,7 +50,7 @@ Changes in this section will be included in the next release.
 
 #### Changed
 
-- The `suites run` and `batches create`  commands now support using a separate delimiter for parameters: e.g. "key=value" to support cases where a colon is a natural part of the key e.g. `namespace::param=value`
+- The `suites run` and `batches create` commands now support using a separate delimiter for parameters: e.g. "key=value" to support cases where a colon is a natural part of the key e.g. `namespace::param=value`
 
 ### v0.6.0 - February 19 2025
 
@@ -60,7 +64,6 @@ Changes in this section will be included in the next release.
 
 - The ReSim Platform now supports container timeouts, which can be set when creating or updating an experience. The intention is to allow users to specify a timeout for the container that is running the experience. If the container runs longer than this, it will be terminated.
 - The ReSim CLI now supports updating experiences via `experiences update`. An experience can be updated with a new name, description, location, and container timeout.
-
 
 ### v0.4.1 - February 13 2025
 

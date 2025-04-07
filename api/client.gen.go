@@ -93,6 +93,7 @@ const (
 const (
 	ARCHIVELOG       LogType = "ARCHIVE_LOG"
 	CONTAINERLOG     LogType = "CONTAINER_LOG"
+	EMISSIONSLOG     LogType = "EMISSIONS_LOG"
 	ERRORLOG         LogType = "ERROR_LOG"
 	EXECUTIONLOG     LogType = "EXECUTION_LOG"
 	FOXGLOVEMCAPLOG  LogType = "FOXGLOVE_MCAP_LOG"
@@ -148,10 +149,10 @@ const (
 
 // Defines values for ReportStatus.
 const (
-	ReportStatusERROR     ReportStatus = "ERROR"
-	ReportStatusRUNNING   ReportStatus = "RUNNING"
-	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
-	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
+	ERROR     ReportStatus = "ERROR"
+	RUNNING   ReportStatus = "RUNNING"
+	SUBMITTED ReportStatus = "SUBMITTED"
+	SUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
 // Defines values for TriggeredVia.
@@ -360,17 +361,30 @@ type Build struct {
 	AssociatedAccount AssociatedAccount `json:"associatedAccount"`
 	BranchID          BranchID          `json:"branchID"`
 	BuildID           BuildID           `json:"buildID"`
-	CreationTimestamp Timestamp         `json:"creationTimestamp"`
-	Description       BuildDescription  `json:"description"`
-	ImageUri          BuildImageUri     `json:"imageUri"`
-	OrgID             OrgID             `json:"orgID"`
-	ProjectID         ProjectID         `json:"projectID"`
-	SystemID          SystemID          `json:"systemID"`
-	UserID            UserID            `json:"userID"`
-	Version           BuildVersion      `json:"version"`
+
+	// BuildSpecification Build spec in YAML format.
+	BuildSpecification BuildSpecificationOutput `json:"buildSpecification"`
+	CreationTimestamp  Timestamp                `json:"creationTimestamp"`
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description BuildDescription `json:"description"`
+	ImageUri    BuildImageUri    `json:"imageUri"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription BuildLongDescription `json:"longDescription"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name      BuildName    `json:"name"`
+	OrgID     OrgID        `json:"orgID"`
+	ProjectID ProjectID    `json:"projectID"`
+	SystemID  SystemID     `json:"systemID"`
+	UserID    UserID       `json:"userID"`
+	Version   BuildVersion `json:"version"`
 }
 
-// BuildDescription defines model for buildDescription.
+// BuildDescription [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
 type BuildDescription = string
 
 // BuildID defines model for buildID.
@@ -378,6 +392,18 @@ type BuildID = openapi_types.UUID
 
 // BuildImageUri defines model for buildImageUri.
 type BuildImageUri = string
+
+// BuildLongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+type BuildLongDescription = string
+
+// BuildName The name of the build. This replaces the previous usage of 'description'.
+type BuildName = string
+
+// BuildSpecificationInput defines model for buildSpecificationInput.
+type BuildSpecificationInput = []byte
+
+// BuildSpecificationOutput Build spec in YAML format.
+type BuildSpecificationOutput = string
 
 // BuildVersion defines model for buildVersion.
 type BuildVersion = string
@@ -423,22 +449,58 @@ type CreateBranchInput struct {
 
 // CreateBuildForBranchInput defines model for createBuildForBranchInput.
 type CreateBuildForBranchInput struct {
-	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
-	Description       *BuildDescription  `json:"description,omitempty"`
-	ImageUri          BuildImageUri      `json:"imageUri"`
-	SystemID          SystemID           `json:"systemID"`
-	Version           BuildVersion       `json:"version"`
+	AssociatedAccount  *AssociatedAccount       `json:"associatedAccount,omitempty"`
+	BuildSpecification *BuildSpecificationInput `json:"buildSpecification,omitempty"`
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description *BuildDescription `json:"description,omitempty"`
+	ImageUri    *BuildImageUri    `json:"imageUri,omitempty"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name     *BuildName   `json:"name,omitempty"`
+	SystemID SystemID     `json:"systemID"`
+	Version  BuildVersion `json:"version"`
+	union    json.RawMessage
 }
+
+// CreateBuildForBranchInput0 defines model for .
+type CreateBuildForBranchInput0 = interface{}
+
+// CreateBuildForBranchInput1 defines model for .
+type CreateBuildForBranchInput1 = interface{}
 
 // CreateBuildForSystemInput defines model for createBuildForSystemInput.
 type CreateBuildForSystemInput struct {
-	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty"`
-	BranchID          BranchID           `json:"branchID"`
-	Description       *BuildDescription  `json:"description,omitempty"`
-	ImageUri          BuildImageUri      `json:"imageUri"`
-	TriggeredVia      *TriggeredVia      `json:"triggeredVia,omitempty"`
-	Version           BuildVersion       `json:"version"`
+	AssociatedAccount  *AssociatedAccount       `json:"associatedAccount,omitempty"`
+	BranchID           BranchID                 `json:"branchID"`
+	BuildSpecification *BuildSpecificationInput `json:"buildSpecification,omitempty"`
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description *BuildDescription `json:"description,omitempty"`
+	ImageUri    *BuildImageUri    `json:"imageUri,omitempty"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name         *BuildName    `json:"name,omitempty"`
+	TriggeredVia *TriggeredVia `json:"triggeredVia,omitempty"`
+	Version      BuildVersion  `json:"version"`
+	union        json.RawMessage
 }
+
+// CreateBuildForSystemInput0 defines model for .
+type CreateBuildForSystemInput0 = interface{}
+
+// CreateBuildForSystemInput1 defines model for .
+type CreateBuildForSystemInput1 = interface{}
 
 // CreateExperienceInput defines model for createExperienceInput.
 type CreateExperienceInput struct {
@@ -1434,8 +1496,18 @@ type UpdateBatchInput struct {
 
 // UpdateBuildFields defines model for updateBuildFields.
 type UpdateBuildFields struct {
-	BranchID    *openapi_types.UUID `json:"branchID,omitempty"`
-	Description *string             `json:"description,omitempty"`
+	BranchID *openapi_types.UUID `json:"branchID,omitempty"`
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description *BuildDescription `json:"description,omitempty"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name *BuildName `json:"name,omitempty"`
 }
 
 // UpdateBuildInput defines model for updateBuildInput.
@@ -1588,6 +1660,12 @@ type ListAllJobsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListBatchAccountsParams defines parameters for ListBatchAccounts.
+type ListBatchAccountsParams struct {
+	// Name Filter by the account name
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
 }
 
 // CompareBatchesParams defines parameters for CompareBatches.
@@ -1812,7 +1890,10 @@ type GetSystemsForMetricsBuildParams struct {
 // ListReportsParams defines parameters for ListReports.
 type ListReportsParams struct {
 	// Search Filter based on branch_id, test_suite_id, created_at, status, associated_account
-	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+
+	// Text Filter reports by a text string (only supports batch id as of 3/21/2025)
+	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -2033,6 +2114,402 @@ type CreateBuildForSystemJSONRequestBody = CreateBuildForSystemInput
 // ValidateExperienceLocationJSONRequestBody defines body for ValidateExperienceLocation for application/json ContentType.
 type ValidateExperienceLocationJSONRequestBody = ExperienceLocation
 
+// AsCreateBuildForBranchInput0 returns the union data inside the CreateBuildForBranchInput as a CreateBuildForBranchInput0
+func (t CreateBuildForBranchInput) AsCreateBuildForBranchInput0() (CreateBuildForBranchInput0, error) {
+	var body CreateBuildForBranchInput0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateBuildForBranchInput0 overwrites any union data inside the CreateBuildForBranchInput as the provided CreateBuildForBranchInput0
+func (t *CreateBuildForBranchInput) FromCreateBuildForBranchInput0(v CreateBuildForBranchInput0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateBuildForBranchInput0 performs a merge with any union data inside the CreateBuildForBranchInput, using the provided CreateBuildForBranchInput0
+func (t *CreateBuildForBranchInput) MergeCreateBuildForBranchInput0(v CreateBuildForBranchInput0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JsonMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCreateBuildForBranchInput1 returns the union data inside the CreateBuildForBranchInput as a CreateBuildForBranchInput1
+func (t CreateBuildForBranchInput) AsCreateBuildForBranchInput1() (CreateBuildForBranchInput1, error) {
+	var body CreateBuildForBranchInput1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateBuildForBranchInput1 overwrites any union data inside the CreateBuildForBranchInput as the provided CreateBuildForBranchInput1
+func (t *CreateBuildForBranchInput) FromCreateBuildForBranchInput1(v CreateBuildForBranchInput1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateBuildForBranchInput1 performs a merge with any union data inside the CreateBuildForBranchInput, using the provided CreateBuildForBranchInput1
+func (t *CreateBuildForBranchInput) MergeCreateBuildForBranchInput1(v CreateBuildForBranchInput1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JsonMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CreateBuildForBranchInput) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.AssociatedAccount != nil {
+		object["associatedAccount"], err = json.Marshal(t.AssociatedAccount)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'associatedAccount': %w", err)
+		}
+	}
+
+	if t.BuildSpecification != nil {
+		object["buildSpecification"], err = json.Marshal(t.BuildSpecification)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'buildSpecification': %w", err)
+		}
+	}
+
+	if t.Description != nil {
+		object["description"], err = json.Marshal(t.Description)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'description': %w", err)
+		}
+	}
+
+	if t.ImageUri != nil {
+		object["imageUri"], err = json.Marshal(t.ImageUri)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'imageUri': %w", err)
+		}
+	}
+
+	if t.LongDescription != nil {
+		object["longDescription"], err = json.Marshal(t.LongDescription)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'longDescription': %w", err)
+		}
+	}
+
+	if t.Name != nil {
+		object["name"], err = json.Marshal(t.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	object["systemID"], err = json.Marshal(t.SystemID)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'systemID': %w", err)
+	}
+
+	object["version"], err = json.Marshal(t.Version)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'version': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *CreateBuildForBranchInput) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["associatedAccount"]; found {
+		err = json.Unmarshal(raw, &t.AssociatedAccount)
+		if err != nil {
+			return fmt.Errorf("error reading 'associatedAccount': %w", err)
+		}
+	}
+
+	if raw, found := object["buildSpecification"]; found {
+		err = json.Unmarshal(raw, &t.BuildSpecification)
+		if err != nil {
+			return fmt.Errorf("error reading 'buildSpecification': %w", err)
+		}
+	}
+
+	if raw, found := object["description"]; found {
+		err = json.Unmarshal(raw, &t.Description)
+		if err != nil {
+			return fmt.Errorf("error reading 'description': %w", err)
+		}
+	}
+
+	if raw, found := object["imageUri"]; found {
+		err = json.Unmarshal(raw, &t.ImageUri)
+		if err != nil {
+			return fmt.Errorf("error reading 'imageUri': %w", err)
+		}
+	}
+
+	if raw, found := object["longDescription"]; found {
+		err = json.Unmarshal(raw, &t.LongDescription)
+		if err != nil {
+			return fmt.Errorf("error reading 'longDescription': %w", err)
+		}
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &t.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+	}
+
+	if raw, found := object["systemID"]; found {
+		err = json.Unmarshal(raw, &t.SystemID)
+		if err != nil {
+			return fmt.Errorf("error reading 'systemID': %w", err)
+		}
+	}
+
+	if raw, found := object["version"]; found {
+		err = json.Unmarshal(raw, &t.Version)
+		if err != nil {
+			return fmt.Errorf("error reading 'version': %w", err)
+		}
+	}
+
+	return err
+}
+
+// AsCreateBuildForSystemInput0 returns the union data inside the CreateBuildForSystemInput as a CreateBuildForSystemInput0
+func (t CreateBuildForSystemInput) AsCreateBuildForSystemInput0() (CreateBuildForSystemInput0, error) {
+	var body CreateBuildForSystemInput0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateBuildForSystemInput0 overwrites any union data inside the CreateBuildForSystemInput as the provided CreateBuildForSystemInput0
+func (t *CreateBuildForSystemInput) FromCreateBuildForSystemInput0(v CreateBuildForSystemInput0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateBuildForSystemInput0 performs a merge with any union data inside the CreateBuildForSystemInput, using the provided CreateBuildForSystemInput0
+func (t *CreateBuildForSystemInput) MergeCreateBuildForSystemInput0(v CreateBuildForSystemInput0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JsonMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCreateBuildForSystemInput1 returns the union data inside the CreateBuildForSystemInput as a CreateBuildForSystemInput1
+func (t CreateBuildForSystemInput) AsCreateBuildForSystemInput1() (CreateBuildForSystemInput1, error) {
+	var body CreateBuildForSystemInput1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateBuildForSystemInput1 overwrites any union data inside the CreateBuildForSystemInput as the provided CreateBuildForSystemInput1
+func (t *CreateBuildForSystemInput) FromCreateBuildForSystemInput1(v CreateBuildForSystemInput1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateBuildForSystemInput1 performs a merge with any union data inside the CreateBuildForSystemInput, using the provided CreateBuildForSystemInput1
+func (t *CreateBuildForSystemInput) MergeCreateBuildForSystemInput1(v CreateBuildForSystemInput1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JsonMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CreateBuildForSystemInput) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	object := make(map[string]json.RawMessage)
+	if t.union != nil {
+		err = json.Unmarshal(b, &object)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if t.AssociatedAccount != nil {
+		object["associatedAccount"], err = json.Marshal(t.AssociatedAccount)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'associatedAccount': %w", err)
+		}
+	}
+
+	object["branchID"], err = json.Marshal(t.BranchID)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'branchID': %w", err)
+	}
+
+	if t.BuildSpecification != nil {
+		object["buildSpecification"], err = json.Marshal(t.BuildSpecification)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'buildSpecification': %w", err)
+		}
+	}
+
+	if t.Description != nil {
+		object["description"], err = json.Marshal(t.Description)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'description': %w", err)
+		}
+	}
+
+	if t.ImageUri != nil {
+		object["imageUri"], err = json.Marshal(t.ImageUri)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'imageUri': %w", err)
+		}
+	}
+
+	if t.LongDescription != nil {
+		object["longDescription"], err = json.Marshal(t.LongDescription)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'longDescription': %w", err)
+		}
+	}
+
+	if t.Name != nil {
+		object["name"], err = json.Marshal(t.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if t.TriggeredVia != nil {
+		object["triggeredVia"], err = json.Marshal(t.TriggeredVia)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'triggeredVia': %w", err)
+		}
+	}
+
+	object["version"], err = json.Marshal(t.Version)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'version': %w", err)
+	}
+
+	b, err = json.Marshal(object)
+	return b, err
+}
+
+func (t *CreateBuildForSystemInput) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	if err != nil {
+		return err
+	}
+	object := make(map[string]json.RawMessage)
+	err = json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["associatedAccount"]; found {
+		err = json.Unmarshal(raw, &t.AssociatedAccount)
+		if err != nil {
+			return fmt.Errorf("error reading 'associatedAccount': %w", err)
+		}
+	}
+
+	if raw, found := object["branchID"]; found {
+		err = json.Unmarshal(raw, &t.BranchID)
+		if err != nil {
+			return fmt.Errorf("error reading 'branchID': %w", err)
+		}
+	}
+
+	if raw, found := object["buildSpecification"]; found {
+		err = json.Unmarshal(raw, &t.BuildSpecification)
+		if err != nil {
+			return fmt.Errorf("error reading 'buildSpecification': %w", err)
+		}
+	}
+
+	if raw, found := object["description"]; found {
+		err = json.Unmarshal(raw, &t.Description)
+		if err != nil {
+			return fmt.Errorf("error reading 'description': %w", err)
+		}
+	}
+
+	if raw, found := object["imageUri"]; found {
+		err = json.Unmarshal(raw, &t.ImageUri)
+		if err != nil {
+			return fmt.Errorf("error reading 'imageUri': %w", err)
+		}
+	}
+
+	if raw, found := object["longDescription"]; found {
+		err = json.Unmarshal(raw, &t.LongDescription)
+		if err != nil {
+			return fmt.Errorf("error reading 'longDescription': %w", err)
+		}
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &t.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+	}
+
+	if raw, found := object["triggeredVia"]; found {
+		err = json.Unmarshal(raw, &t.TriggeredVia)
+		if err != nil {
+			return fmt.Errorf("error reading 'triggeredVia': %w", err)
+		}
+	}
+
+	if raw, found := object["version"]; found {
+		err = json.Unmarshal(raw, &t.Version)
+		if err != nil {
+			return fmt.Errorf("error reading 'version': %w", err)
+		}
+	}
+
+	return err
+}
+
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
@@ -2140,7 +2617,7 @@ type ClientInterface interface {
 	ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBatchAccounts request
-	ListBatchAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListBatchAccounts(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetBatch request
 	GetBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2685,8 +3162,8 @@ func (c *Client) ListAllJobs(ctx context.Context, projectID ProjectID, params *L
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListBatchAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListBatchAccountsRequest(c.Server, projectID)
+func (c *Client) ListBatchAccounts(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchAccountsRequest(c.Server, projectID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4920,7 +5397,7 @@ func NewListAllJobsRequest(server string, projectID ProjectID, params *ListAllJo
 }
 
 // NewListBatchAccountsRequest generates requests for ListBatchAccounts
-func NewListBatchAccountsRequest(server string, projectID ProjectID) (*http.Request, error) {
+func NewListBatchAccountsRequest(server string, projectID ProjectID, params *ListBatchAccountsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -4943,6 +5420,28 @@ func NewListBatchAccountsRequest(server string, projectID ProjectID) (*http.Requ
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -9334,6 +9833,22 @@ func NewListReportsRequest(server string, projectID ProjectID, params *ListRepor
 
 		}
 
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -12533,7 +13048,7 @@ type ClientWithResponsesInterface interface {
 	ListAllJobsWithResponse(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*ListAllJobsResponse, error)
 
 	// ListBatchAccountsWithResponse request
-	ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error)
+	ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error)
 
 	// GetBatchWithResponse request
 	GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error)
@@ -15747,8 +16262,8 @@ func (c *ClientWithResponses) ListAllJobsWithResponse(ctx context.Context, proje
 }
 
 // ListBatchAccountsWithResponse request returning *ListBatchAccountsResponse
-func (c *ClientWithResponses) ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error) {
-	rsp, err := c.ListBatchAccounts(ctx, projectID, reqEditors...)
+func (c *ClientWithResponses) ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error) {
+	rsp, err := c.ListBatchAccounts(ctx, projectID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}

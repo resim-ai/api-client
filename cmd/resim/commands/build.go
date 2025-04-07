@@ -54,6 +54,7 @@ var (
 )
 
 const (
+	buildNameKey             = "name"
 	buildDescriptionKey      = "description"
 	buildImageURIKey         = "image"
 	buildVersionKey          = "version"
@@ -67,7 +68,9 @@ const (
 )
 
 func init() {
-	createBuildCmd.Flags().String(buildDescriptionKey, "", "The description of the build, often a commit message")
+	createBuildCmd.Flags().String(buildNameKey, "", "The name of the build")
+	createBuildCmd.MarkFlagRequired(buildNameKey)
+	createBuildCmd.Flags().String(buildDescriptionKey, "", "A description of the build")
 	createBuildCmd.MarkFlagRequired(buildDescriptionKey)
 	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
 	createBuildCmd.MarkFlagRequired(buildImageURIKey)
@@ -96,7 +99,6 @@ func init() {
 	createBuildCmd.MarkFlagRequired(buildBuildIDKey)
 	updateBuildCmd.Flags().String(buildBranchIDKey, "", "New value for the build's branch ID")
 	updateBuildCmd.Flags().String(buildDescriptionKey, "", "New value for the description of the build")
-
 	getBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
 	getBuildCmd.MarkFlagRequired(buildProjectKey)
 	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
@@ -227,11 +229,12 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a build...")
 	}
 
-	// Parse the various arguments from command line
-	buildDescription := viper.GetString(buildDescriptionKey)
-	if buildDescription == "" {
-		log.Fatal("empty build description")
+	buildName := viper.GetString(buildNameKey)
+	if buildName == "" {
+		log.Fatal("empty build name")
 	}
+
+	buildDescription := viper.GetString(buildDescriptionKey)
 
 	buildVersion := viper.GetString(buildVersionKey)
 	if buildVersion == "" {
@@ -286,10 +289,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	body := api.CreateBuildForBranchInput{
-		Description: &buildDescription,
-		ImageUri:    buildImageURI,
-		Version:     buildVersion,
-		SystemID:    systemID,
+		Name:            &buildName,
+		LongDescription: &buildDescription,
+		ImageUri:        &buildImageURI,
+		Version:         buildVersion,
+		SystemID:        systemID,
 	}
 
 	response, err := Client.CreateBuildForBranchWithResponse(context.Background(), projectID, branchID, body)
@@ -334,10 +338,17 @@ func updateBuild(ccmd *cobra.Command, args []string) {
 		updateBuildInput.Build.BranchID = Ptr(branchID)
 		updateMask = append(updateMask, "branchID")
 	}
+
+	if viper.IsSet(buildNameKey) {
+		updateBuildInput.Build.Name = Ptr(viper.GetString(buildNameKey))
+		updateMask = append(updateMask, "name")
+	}
+
 	if viper.IsSet(buildDescriptionKey) {
-		updateBuildInput.Build.Description = Ptr(viper.GetString(buildDescriptionKey))
+		updateBuildInput.Build.LongDescription = Ptr(viper.GetString(buildDescriptionKey))
 		updateMask = append(updateMask, "description")
 	}
+
 	updateBuildInput.UpdateMask = Ptr(updateMask)
 	response, err := Client.UpdateBuildWithResponse(context.Background(), projectID, buildID, updateBuildInput)
 	if err != nil {

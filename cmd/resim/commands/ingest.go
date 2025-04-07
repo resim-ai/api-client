@@ -62,7 +62,6 @@ func init() {
 	ingestLogCmd.MarkFlagsMutuallyExclusive(ingestBuildKey, ingestBranchKey)
 	// Metrics Build
 	ingestLogCmd.Flags().String(ingestMetricsBuildKey, "", "The ID of the metrics build to use in processing this log.")
-	ingestLogCmd.MarkFlagRequired(ingestMetricsBuildKey)
 	// Log Name
 	ingestLogCmd.Flags().String(ingestLogNameKey, "", "A project-unique name to use in processing this log, often a run id.")
 	// Log Location
@@ -208,27 +207,30 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		associatedAccount = viper.GetString(batchAccountKey)
 	}
 
-	// Validate the metrics build exists:
-	metricsBuildID, err := uuid.Parse(viper.GetString(ingestMetricsBuildKey))
-	if err != nil || metricsBuildID == uuid.Nil {
-		log.Fatal("Metrics build ID is required")
-	}
-
 	// Finally, create a batch to process the log(s)
 	batchBody := api.BatchInput{
 		ExperienceIDs:     Ptr(experienceIDs),
 		BuildID:           Ptr(buildID),
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
-		MetricsBuildID:    Ptr(metricsBuildID),
 	}
+
+	if viper.IsSet(ingestMetricsBuildKey) {
+		// Validate the metrics build exists:
+		metricsBuildID, err := uuid.Parse(viper.GetString(ingestMetricsBuildKey))
+		if err != nil || metricsBuildID == uuid.Nil {
+			log.Fatal("Metrics build ID is required")
+		}
+		batchBody.MetricsBuildID = &metricsBuildID
+	}
+
 	if viper.IsSet(ingestBatchNameKey) {
 		batchBody.BatchName = Ptr(viper.GetString(ingestBatchNameKey))
 	}
 
 	poolLabels := getAndValidatePoolLabels(ingestPoolLabelsKey)
 	if len(poolLabels) > 0 {
-		batchBody.PoolLabels = Ptr(poolLabels)
+		batchBody.PoolLabels = &poolLabels
 	}
 
 	batchResponse, err := Client.CreateBatchWithResponse(context.Background(), projectID, batchBody)

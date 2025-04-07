@@ -37,7 +37,7 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 	for i := range poolLabels {
 		poolLabels[i] = strings.TrimSpace(poolLabels[i])
 		if poolLabels[i] == "resim" {
-			log.Fatal("failed to ingest log: resim is a reserved pool label")
+			log.Fatal("failed to run command: resim is a reserved pool label")
 		}
 	}
 	return poolLabels

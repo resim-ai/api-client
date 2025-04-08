@@ -6,11 +6,30 @@
 
 Changes in this section will be included in the next release.
 
-### v0.13.0 - April 8, 2025
+### v0.15.0 - April 8, 2025
 
 - Build create/update now allows for a `--name` flag to set the build's name. If `--name` is not provided, `--description` will be used to set the build's name, otherwise it will be used to set the build's description.
 
+### v0.14.0 - April 8 2025
+
+#### Changed
+
+- It is now possible to pass `pool-labels` to the `resim ingest` command to support log ingestion via the ReSim agent.
+
+
+### v0.13.0 - April 7 2025
+
+#### Added
+
+- The `logs download` command now supports downloading a single log by providing the log name.
+
+#### Changed
+
+- The `logs` commands now support batch logs.
+
 ### v0.12.0 - March 25 2025
+
+#### Added
 
 - A new `metrics sync` command has been added, for syncing your metrics configuration with ReSim. This command is for
   our next version of metrics management, and is currently unused.

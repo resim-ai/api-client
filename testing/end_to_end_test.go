@@ -1612,7 +1612,7 @@ func listLogs(projectID uuid.UUID, batchID string, testID string) []CommandBuild
 	return []CommandBuilder{logCommand, listCommand}
 }
 
-func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string) []CommandBuilder {
+func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string, files []string) []CommandBuilder {
 	logCommand := CommandBuilder{
 		Command: "log",
 	}
@@ -1636,6 +1636,13 @@ func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir 
 				Value: outputDir,
 			},
 		},
+	}
+	if len(files) > 0 {
+		filesString := strings.Join(files, ",")
+		downloadCommand.Flags = append(downloadCommand.Flags, Flag{
+			Name:  "--files",
+			Value: filesString,
+		})
 	}
 	return []CommandBuilder{logCommand, downloadCommand}
 }
@@ -3354,30 +3361,34 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	output = s.runCommand(getBatchJobsByName(projectID, "does not exist"), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchName)
 
-	// List logs:
+	// List test logs:
 	output = s.runCommand(listLogs(projectID, batchIDString, testID2.String()), ExpectNoError)
 	// Marshal into a struct:
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 8)
+	s.Len(logs, 7)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs.zip", "file.name", "parameters.json"}, *log.FileName)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name"}, *log.FileName)
 	}
 
-	// Download the logs:
+	// Download a single test log
 	tempDir, err := os.MkdirTemp("", "test-logs")
 	s.NoError(err)
-	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir), ExpectNoError)
-	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 logs to %s", tempDir))
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{"file.name"}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 1 log(s) to %s", tempDir))
+
+	// Download all test logs:
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 7 log(s) to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)
 	s.NoError(err)
-	s.Len(files, 8)
+	s.Len(files, 7)
 	for _, file := range files {
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs", "file.name", "parameters.json"}, file.Name())
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:

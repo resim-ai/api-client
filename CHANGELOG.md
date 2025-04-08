@@ -1,16 +1,14 @@
 # Changelog
 
-See also <https://docs.resim.ai/changelog/> for all ReSim changes
-
 ## ReSim CLI
 
 ### Unreleased
 
 Changes in this section will be included in the next release.
 
-### v0.13.0
+### v0.13.0 - April 8, 2025
 
-- Build create/update now allows for a `--name` flag to set the build's name. `--description` had been used for this purpose previously. If `--name` is not provided, `--description` will be used to set the build's name, otherwise it will be used to set the build's description.
+- Build create/update now allows for a `--name` flag to set the build's name. If `--name` is not provided, `--description` will be used to set the build's name, otherwise it will be used to set the build's description.
 
 ### v0.12.0 - March 25 2025
 

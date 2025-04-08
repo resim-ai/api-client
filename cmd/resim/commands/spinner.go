@@ -2,6 +2,7 @@ package commands
 
 import (
 	"io"
+	"log"
 	"time"
 
 	"github.com/briandowns/spinner"
@@ -38,4 +39,9 @@ func (s *Spinner) Stop(finalMsg *string) {
 
 func (s *Spinner) Update(msg string) {
 	s.spinner.Suffix = " " + msg
+}
+
+func (s *Spinner) Fatal(v ...any) {
+	s.Stop(nil)
+	log.Fatal(v...)
 }

@@ -175,13 +175,13 @@ func GetCIEnvironmentVariableAccount() string {
 // Github CI? or maybe just running locally on a customer's machine? This information
 // is useful downstream, for understanding where a batch was triggered from.
 func DetermineTriggerMethod() *api.TriggeredVia {
+	if _, ok := os.LookupEnv("GITHUB_ACTOR"); ok {
+		return Ptr(api.GITHUB)
+	}
+	if _, ok := os.LookupEnv("GITLAB_USER_LOGIN"); ok {
+		return Ptr(api.GITLAB)
+	}
 	if _, ok := os.LookupEnv("CI"); ok {
-		if _, ok := os.LookupEnv("GITHUB_ACTOR"); ok {
-			return Ptr(api.GITHUB)
-		}
-		if _, ok := os.LookupEnv("GITLAB_USER_LOGIN"); ok {
-			return Ptr(api.GITLAB)
-		}
 		// Unfortunately, we're not sure what ENV we're being executed from
 		return nil
 	}

@@ -287,7 +287,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 
 	body := api.CreateBuildForBranchInput{
 		Description: &buildDescription,
-		ImageUri:    buildImageURI,
+		ImageUri:    &buildImageURI,
 		Version:     buildVersion,
 		SystemID:    systemID,
 	}

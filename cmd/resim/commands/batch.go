@@ -267,17 +267,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	// Parse --pool-labels (if any provided)
-	poolLabels := []api.PoolLabel{}
-	if viper.IsSet(batchPoolLabelsKey) {
-		poolLabels = viper.GetStringSlice(batchPoolLabelsKey)
-	}
-	for i := range poolLabels {
-		poolLabels[i] = strings.TrimSpace(poolLabels[i])
-		if poolLabels[i] == "resim" {
-			log.Fatal("failed to create batch: resim is a reserved pool label")
-		}
-	}
+	poolLabels := getAndValidatePoolLabels(batchPoolLabelsKey)
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".

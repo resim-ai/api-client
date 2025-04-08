@@ -3359,7 +3359,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 
 	// Pass unknown name / id to batches tests:
 	output = s.runCommand(getBatchJobsByName(projectID, "does not exist"), ExpectError)
-	s.Contains(output.StdErr, InvalidBatchName)	
+	s.Contains(output.StdErr, InvalidBatchName)
 
 	// List test logs:
 	output = s.runCommand(listLogs(projectID, batchIDString, testID2.String()), ExpectNoError)
@@ -3370,7 +3370,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.Len(logs, 7)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs.zip", "file.name"}, *log.FileName)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name"}, *log.FileName)
 	}
 
 	// Download a single test log
@@ -3388,7 +3388,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.NoError(err)
 	s.Len(files, 7)
 	for _, file := range files {
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs", "file.name"}, file.Name())
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:

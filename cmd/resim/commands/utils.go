@@ -2,7 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"strings"
+
+	"github.com/resim-ai/api-client/api"
+	"github.com/spf13/viper"
 )
 
 // ParseParameterString parses a string in the format "key=value" or "key:value"
@@ -23,4 +27,18 @@ func ParseParameterString(parameterString string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("failed to parse parameter: %s - must be in the format <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>", parameterString)
+}
+
+func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
+	poolLabels := []api.PoolLabel{}
+	if viper.IsSet(poolLabelsKey) {
+		poolLabels = viper.GetStringSlice(poolLabelsKey)
+	}
+	for i := range poolLabels {
+		poolLabels[i] = strings.TrimSpace(poolLabels[i])
+		if poolLabels[i] == "resim" {
+			log.Fatal("failed to run command: resim is a reserved pool label")
+		}
+	}
+	return poolLabels
 }

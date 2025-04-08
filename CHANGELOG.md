@@ -8,6 +8,13 @@ See also https://docs.resim.ai/changelog/ for all ReSim changes
 
 Changes in this section will be included in the next release.
 
+### v0.14.0 - April 8 2025
+
+#### Changed
+
+- It is now possible to pass `pool-labels` to the `resim ingest` command to support log ingestion via the ReSim agent.
+
+
 ### v0.13.0 - April 7 2025
 
 #### Added
@@ -19,6 +26,8 @@ Changes in this section will be included in the next release.
 - The `logs` commands now support batch logs.
 
 ### v0.12.0 - March 25 2025
+
+#### Added
 
 - A new `metrics sync` command has been added, for syncing your metrics configuration with ReSim. This command is for
   our next version of metrics management, and is currently unused.

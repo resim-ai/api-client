@@ -56,7 +56,6 @@ var (
 const (
 	buildNameKey             = "name"
 	buildDescriptionKey      = "description"
-	buildLongDescriptionKey  = "long-description"
 	buildImageURIKey         = "image"
 	buildVersionKey          = "version"
 	buildProjectKey          = "project"
@@ -70,11 +69,7 @@ const (
 
 func init() {
 	createBuildCmd.Flags().String(buildNameKey, "", "The name of the build")
-	createBuildCmd.MarkFlagRequired(buildNameKey)
 	createBuildCmd.Flags().String(buildDescriptionKey, "", "The name of the build (deprecated)")
-	createBuildCmd.MarkFlagRequired(buildDescriptionKey)
-	createBuildCmd.Flags().String(buildLongDescriptionKey, "", "A description of the build (deprecated)")
-	createBuildCmd.MarkFlagRequired(buildLongDescriptionKey)
 	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
 	createBuildCmd.MarkFlagRequired(buildImageURIKey)
 	createBuildCmd.Flags().String(buildVersionKey, "", "The version of the build image, usually a commit ID")
@@ -101,8 +96,7 @@ func init() {
 	updateBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to update")
 	createBuildCmd.MarkFlagRequired(buildBuildIDKey)
 	updateBuildCmd.Flags().String(buildBranchIDKey, "", "New value for the build's branch ID")
-	updateBuildCmd.Flags().String(buildDescriptionKey, "", "New value for the name of the build (deprecated)")
-	updateBuildCmd.Flags().String(buildLongDescriptionKey, "", "New value for the description of the build (deprecated)")
+	updateBuildCmd.Flags().String(buildDescriptionKey, "", "New value for the description of the build.  (deprecated)")
 	getBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
 	getBuildCmd.MarkFlagRequired(buildProjectKey)
 	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
@@ -233,16 +227,19 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		fmt.Println("Creating a build...")
 	}
 
-	// Prioritize name over description
+	buildDescription := ""
+
+	// Prioritize name over description for setting the build's name
 	buildName := viper.GetString(buildNameKey)
 	if buildName == "" {
 		buildName = viper.GetString(buildDescriptionKey)
 		if buildName == "" {
 			log.Fatal("empty build name")
 		}
+		fmt.Fprintf(os.Stderr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.\n")
+	} else {
+		buildDescription = viper.GetString(buildDescriptionKey)
 	}
-
-	buildDescription := viper.GetString(buildLongDescriptionKey)
 
 	buildVersion := viper.GetString(buildVersionKey)
 	if buildVersion == "" {
@@ -347,19 +344,21 @@ func updateBuild(ccmd *cobra.Command, args []string) {
 		updateMask = append(updateMask, "branchID")
 	}
 
-	// Prioritize name over description
+	// Prioritize name over description for setting the build's name
 	if viper.IsSet(buildNameKey) {
 		updateBuildInput.Build.Name = Ptr(viper.GetString(buildNameKey))
 		updateMask = append(updateMask, "name")
+
+		if viper.IsSet(buildDescriptionKey) {
+			updateBuildInput.Build.Description = Ptr(viper.GetString(buildDescriptionKey))
+			updateMask = append(updateMask, "description")
+		}
 	} else if viper.IsSet(buildDescriptionKey) {
+		fmt.Fprintf(os.Stderr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.\n")
 		updateBuildInput.Build.Name = Ptr(viper.GetString(buildDescriptionKey))
 		updateMask = append(updateMask, "name")
 	}
 
-	if viper.IsSet(buildLongDescriptionKey) {
-		updateBuildInput.Build.Description = Ptr(viper.GetString(buildLongDescriptionKey))
-		updateMask = append(updateMask, "description")
-	}
 	updateBuildInput.UpdateMask = Ptr(updateMask)
 	response, err := Client.UpdateBuildWithResponse(context.Background(), projectID, buildID, updateBuildInput)
 	if err != nil {

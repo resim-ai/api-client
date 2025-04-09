@@ -4046,7 +4046,7 @@ func (s *EndToEndTestSuite) TestAliases() {
 	buildCommand := CommandBuilder{
 		Command: "builds",
 	}
-	createBuildWithNamesCommand := CommandBuilder{
+	createBuildWithNamesFromDescriptionCommand := CommandBuilder{
 		Command: "create",
 		Flags: []Flag{
 			{
@@ -4091,8 +4091,8 @@ func (s *EndToEndTestSuite) TestAliases() {
 				Value: systemName,
 			},
 			{
-				Name:  "--description",
-				Value: "description",
+				Name:  "--name",
+				Value: "build-name",
 			},
 			{
 				Name:  "--image",
@@ -4104,9 +4104,11 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 		},
 	}
-	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesCommand}, ExpectNoError)
-	s.Empty(output.StdErr)
+
+	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesFromDescriptionCommand}, ExpectNoError)
+	s.Contains(output.StdErr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.")
 	s.Contains(output.StdOut, CreatedBuild)
+
 	// Now try to create using the id for projects:
 	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithIDCommand}, ExpectNoError)
 	s.Empty(output.StdErr)

@@ -141,6 +141,7 @@ const (
 	// Build Messages
 	CreatedBuild          string = "Created build"
 	GithubCreatedBuild    string = "build_id="
+	EmptyBuildName        string = "empty build name"
 	EmptyBuildDescription string = "empty build description"
 	EmptyBuildImage       string = "empty build image URI"
 	InvalidBuildImage     string = "failed to parse the image URI"
@@ -2763,7 +2764,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 
 	// Verify that each of the required flags are required:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyBuildDescription)
+	s.Contains(output.StdErr, EmptyBuildName)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildImage)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse, AutoCreateBranchFalse), ExpectError)

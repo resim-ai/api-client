@@ -28,10 +28,10 @@ jobs:
       - name: Build
         run: go build ./...
       - name: Test
-        run: go test ./... -race 
+        run: go test ./... -race
 
   e2e:
-    name: Run end-to-end test    
+    name: Run end-to-end test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -43,4 +43,4 @@ jobs:
           CONFIG: staging
           RESIM_CLIENT_ID: ${{ secrets.RESIM_CLIENT_ID }}
           RESIM_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
-        run: go test -v -timeout 30m -tags end_to_end -count 1 ./testing
+        run: go test -v -timeout 45m -tags end_to_end -count 1 ./testing

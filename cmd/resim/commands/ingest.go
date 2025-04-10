@@ -259,7 +259,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 
 // Index over the imageURI and the version to determine whether or not we want to create a new build:
 func getOrCreateBuild(client api.ClientWithResponsesInterface, projectID uuid.UUID, branchID uuid.UUID, systemID uuid.UUID, imageURI string, version string) uuid.UUID {
-	buildID := getBuildIDFromImageURIAndVersion(client, projectID, systemID, branchID, imageURI, version, false)
+	buildID := getBuildIDFromImageURIAndVersion(client, projectID, branchID, imageURI, version, false)
 	if buildID != uuid.Nil {
 		return buildID
 	}

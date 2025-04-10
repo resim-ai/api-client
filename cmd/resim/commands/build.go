@@ -403,7 +403,7 @@ func getBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, uu
 }
 
 // Attempt to find an existing build for that branch, imageURI, and version
-func getBuildIDFromImageURIAndVersion(client api.ClientWithResponsesInterface, projectID uuid.UUID, _ uuid.UUID, branchID uuid.UUID, imageURI string, version string, shouldFail bool) uuid.UUID {
+func getBuildIDFromImageURIAndVersion(client api.ClientWithResponsesInterface, projectID uuid.UUID, branchID uuid.UUID, imageURI string, version string, shouldFail bool) uuid.UUID {
 	var pageToken *string = nil
 	for {
 		response, err := client.ListBuildsWithResponse(context.Background(), projectID, &api.ListBuildsParams{

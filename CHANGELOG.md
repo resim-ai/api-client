@@ -6,16 +6,15 @@
 
 Changes in this section will be included in the next release.
 
-### v0.15.0 - April 8, 2025
+### v0.15.0 - April 10, 2025
 
-- Build create/update now allows for a `--name` flag to set the build's name. If `--name` is not provided, `--description` will be used to set the build's name, otherwise it will be used to set the build's description.
+- Build create/update now accepts a `--name` flag to set the build's name. If `--name` is not provided but `--description` is, the description value will be used for the build's name (matching current behavior). The `--description` flag is used to set the build's description when provided alongside `--name`. In a future release, `--name` will become a required parameter and `--description` will no longer be used to set the build's name, but will instead only be used to set its description.
 
 ### v0.14.0 - April 8 2025
 
 #### Changed
 
 - It is now possible to pass `pool-labels` to the `resim ingest` command to support log ingestion via the ReSim agent.
-
 
 ### v0.13.0 - April 7 2025
 

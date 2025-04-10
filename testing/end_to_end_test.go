@@ -4047,7 +4047,7 @@ func (s *EndToEndTestSuite) TestAliases() {
 	buildCommand := CommandBuilder{
 		Command: "builds",
 	}
-	createBuildWithNamesFromDescriptionCommand := CommandBuilder{
+	createBuildWithNamesCommand := CommandBuilder{
 		Command: "create",
 		Flags: []Flag{
 			{
@@ -4096,6 +4096,10 @@ func (s *EndToEndTestSuite) TestAliases() {
 				Value: "build-name",
 			},
 			{
+				Name:  "--description",
+				Value: "description",
+			},
+			{
 				Name:  "--image",
 				Value: "public.ecr.aws/docker/library/hello-world:latest",
 			},
@@ -4106,7 +4110,7 @@ func (s *EndToEndTestSuite) TestAliases() {
 		},
 	}
 
-	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesFromDescriptionCommand}, ExpectNoError)
+	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesCommand}, ExpectNoError)
 	s.Contains(output.StdErr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.")
 	s.Contains(output.StdOut, CreatedBuild)
 

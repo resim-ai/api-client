@@ -43,4 +43,6 @@ jobs:
           CONFIG: staging
           RESIM_CLIENT_ID: ${{ secrets.RESIM_CLIENT_ID }}
           RESIM_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
+
+        # FIXME: This is so long. Please make them run in parallel.
         run: go test -v -timeout 45m -tags end_to_end -count 1 ./testing

@@ -21,3 +21,5 @@
 go.work
 
 cmd/resim/resim
+
+.env.local

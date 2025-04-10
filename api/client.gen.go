@@ -149,10 +149,10 @@ const (
 
 // Defines values for ReportStatus.
 const (
-	ReportStatusERROR     ReportStatus = "ERROR"
-	ReportStatusRUNNING   ReportStatus = "RUNNING"
-	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
-	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
+	ERROR     ReportStatus = "ERROR"
+	RUNNING   ReportStatus = "RUNNING"
+	SUBMITTED ReportStatus = "SUBMITTED"
+	SUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
 // Defines values for TriggeredVia.

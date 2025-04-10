@@ -1,19 +1,20 @@
 # Changelog
 
-See also https://docs.resim.ai/changelog/ for all ReSim changes
-
 ## ReSim CLI
 
 ### Unreleased
 
 Changes in this section will be included in the next release.
 
+### v0.15.0 - April 10, 2025
+
+- Build create/update now accepts a `--name` flag to set the build's name. If `--name` is not provided but `--description` is, the description value will be used for the build's name (matching current behavior). The `--description` flag is used to set the build's description when provided alongside `--name`. In a future release, `--name` will become a required parameter and `--description` will no longer be used to set the build's name, but will instead only be used to set its description.
+
 ### v0.14.0 - April 8 2025
 
 #### Changed
 
 - It is now possible to pass `pool-labels` to the `resim ingest` command to support log ingestion via the ReSim agent.
-
 
 ### v0.13.0 - April 7 2025
 
@@ -65,7 +66,7 @@ Changes in this section will be included in the next release.
 
 #### Changed
 
-- The `suites run` and `batches create`  commands now support using a separate delimiter for parameters: e.g. "key=value" to support cases where a colon is a natural part of the key e.g. `namespace::param=value`
+- The `suites run` and `batches create` commands now support using a separate delimiter for parameters: e.g. "key=value" to support cases where a colon is a natural part of the key e.g. `namespace::param=value`
 
 ### v0.6.0 - February 19 2025
 
@@ -79,7 +80,6 @@ Changes in this section will be included in the next release.
 
 - The ReSim Platform now supports container timeouts, which can be set when creating or updating an experience. The intention is to allow users to specify a timeout for the container that is running the experience. If the container runs longer than this, it will be terminated.
 - The ReSim CLI now supports updating experiences via `experiences update`. An experience can be updated with a new name, description, location, and container timeout.
-
 
 ### v0.4.1 - February 13 2025
 

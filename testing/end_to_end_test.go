@@ -141,6 +141,7 @@ const (
 	// Build Messages
 	CreatedBuild          string = "Created build"
 	GithubCreatedBuild    string = "build_id="
+	EmptyBuildName        string = "empty build name"
 	EmptyBuildDescription string = "empty build description"
 	EmptyBuildImage       string = "empty build image URI"
 	InvalidBuildImage     string = "failed to parse the image URI"
@@ -2763,7 +2764,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 
 	// Verify that each of the required flags are required:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyBuildDescription)
+	s.Contains(output.StdErr, EmptyBuildName)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildImage)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse, AutoCreateBranchFalse), ExpectError)
@@ -4091,6 +4092,10 @@ func (s *EndToEndTestSuite) TestAliases() {
 				Value: systemName,
 			},
 			{
+				Name:  "--name",
+				Value: "build-name",
+			},
+			{
 				Name:  "--description",
 				Value: "description",
 			},
@@ -4104,9 +4109,11 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 		},
 	}
+
 	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesCommand}, ExpectNoError)
-	s.Empty(output.StdErr)
+	s.Contains(output.StdErr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.")
 	s.Contains(output.StdOut, CreatedBuild)
+
 	// Now try to create using the id for projects:
 	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithIDCommand}, ExpectNoError)
 	s.Empty(output.StdErr)

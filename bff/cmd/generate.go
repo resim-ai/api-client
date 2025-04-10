@@ -9,11 +9,18 @@ import (
 	"github.com/suessflorian/gqlfetch"
 )
 
-const GRAPHQL_API = "https://bff.resim.ai/graphql"
+var GRAPHQL_API_ENDPOINT string
+
+func init() {
+	GRAPHQL_API_ENDPOINT, _ = os.LookupEnv("GRAPHQL_API_ENDPOINT")
+	if GRAPHQL_API_ENDPOINT == "" {
+		GRAPHQL_API_ENDPOINT = "https://bff.resim.ai/graphql"
+	}
+}
 
 func main() {
-	log.Printf("Downloading GraphQL schema from %s", GRAPHQL_API)
-	schema, err := gqlfetch.BuildClientSchema(context.Background(), GRAPHQL_API, false)
+	log.Printf("Downloading GraphQL schema from %s", GRAPHQL_API_ENDPOINT)
+	schema, err := gqlfetch.BuildClientSchema(context.Background(), GRAPHQL_API_ENDPOINT, false)
 	if err != nil {
 		log.Fatalf("Failed to fetch schema: %s", err)
 	}

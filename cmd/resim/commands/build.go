@@ -69,7 +69,7 @@ const (
 
 func init() {
 	createBuildCmd.Flags().String(buildNameKey, "", "The name of the build")
-	createBuildCmd.Flags().String(buildDescriptionKey, "", "The name of the build (deprecated)")
+	createBuildCmd.Flags().String(buildDescriptionKey, "", "The description of the build, often a commit message (can include markdown). For backwards compatibility reasons, if name is omitted, the description will be used")
 	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
 	createBuildCmd.MarkFlagRequired(buildImageURIKey)
 	createBuildCmd.Flags().String(buildVersionKey, "", "The version of the build image, usually a commit ID")

@@ -237,10 +237,12 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		if buildName == "" {
 			log.Fatal("empty build name")
 		}
-		fmt.Fprintf(os.Stderr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.\n")
-	} else {
-		buildDescription = viper.GetString(buildDescriptionKey)
+		if !buildGithub {
+			fmt.Fprintf(os.Stderr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.\n")
+		}
 	}
+
+	buildDescription = viper.GetString(buildDescriptionKey)
 
 	buildVersion := viper.GetString(buildVersionKey)
 	if buildVersion == "" {
@@ -345,19 +347,14 @@ func updateBuild(ccmd *cobra.Command, args []string) {
 		updateMask = append(updateMask, "branchID")
 	}
 
-	// Prioritize name over description for setting the build's name
 	if viper.IsSet(buildNameKey) {
 		updateBuildInput.Build.Name = Ptr(viper.GetString(buildNameKey))
 		updateMask = append(updateMask, "name")
+	}
 
-		if viper.IsSet(buildDescriptionKey) {
-			updateBuildInput.Build.Description = Ptr(viper.GetString(buildDescriptionKey))
-			updateMask = append(updateMask, "description")
-		}
-	} else if viper.IsSet(buildDescriptionKey) {
-		fmt.Fprintf(os.Stderr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.\n")
-		updateBuildInput.Build.Name = Ptr(viper.GetString(buildDescriptionKey))
-		updateMask = append(updateMask, "name")
+	if viper.IsSet(buildDescriptionKey) {
+		updateBuildInput.Build.Description = Ptr(viper.GetString(buildDescriptionKey))
+		updateMask = append(updateMask, "description")
 	}
 
 	updateBuildInput.UpdateMask = Ptr(updateMask)
@@ -406,7 +403,7 @@ func getBuildID(client api.ClientWithResponsesInterface, projectID uuid.UUID, uu
 }
 
 // Attempt to find an existing build for that branch, imageURI, and version
-func getBuildIDFromImageURIAndVersion(client api.ClientWithResponsesInterface, projectID uuid.UUID, systemID uuid.UUID, branchID uuid.UUID, imageURI string, version string, shouldFail bool) uuid.UUID {
+func getBuildIDFromImageURIAndVersion(client api.ClientWithResponsesInterface, projectID uuid.UUID, _ uuid.UUID, branchID uuid.UUID, imageURI string, version string, shouldFail bool) uuid.UUID {
 	var pageToken *string = nil
 	for {
 		response, err := client.ListBuildsWithResponse(context.Background(), projectID, &api.ListBuildsParams{

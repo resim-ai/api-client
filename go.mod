@@ -10,6 +10,8 @@ retract (
 )
 
 require (
+	github.com/Khan/genqlient v0.8.0
+	github.com/briandowns/spinner v1.23.2
 	github.com/cli/browser v1.3.0
 	github.com/deepmap/oapi-codegen v1.13.4
 	github.com/fatih/color v1.14.1

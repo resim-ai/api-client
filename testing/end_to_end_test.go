@@ -31,6 +31,7 @@ import (
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/yaml.v2"
 )
 
 // Test Environment Variables
@@ -140,6 +141,7 @@ const (
 	// Build Messages
 	CreatedBuild          string = "Created build"
 	GithubCreatedBuild    string = "build_id="
+	EmptyBuildName        string = "empty build name"
 	EmptyBuildDescription string = "empty build description"
 	EmptyBuildImage       string = "empty build image URI"
 	InvalidBuildImage     string = "failed to parse the image URI"
@@ -188,9 +190,9 @@ const (
 	GithubCreatedSweep            string = "sweep_id="
 	FailedToCreateSweep           string = "failed to create sweep"
 	ConfigParamsMutuallyExclusive string = "if any flags in the group"
-	InvalidSweepName              string = "unable to find sweep"
-	InvalidSweepID                string = "unable to parse sweep ID"
+	InvalidSweepNameOrID          string = "must specify either the sweep ID or the sweep name"
 	InvalidGridSearchFile         string = "failed to parse grid search config file"
+	CancelledSweep                string = "Sweep cancelled"
 	// Test Suite Messages
 	CreatedTestSuite           string = "Created test suite"
 	GithubCreatedTestSuite     string = "test_suite_id_revision="
@@ -217,10 +219,12 @@ const (
 	AtLeastOneReport                string = "at least one of the flags in the group"
 	BranchNotFoundReport            string = "not found"
 	FailedToParseMetricsBuildReport string = "failed to parse metrics-build ID"
+	// Log Ingest Messages
+	LogIngested string = "Ingested log successfully!"
 )
 
 var AcceptableBatchStatusCodes = [...]int{0, 2, 3, 4, 5}
-var AcceptableSweepStatusCodes = [...]int{0, 2, 3, 4} // we do not have cancelled for sweeps yet
+var AcceptableSweepStatusCodes = [...]int{0, 2, 3, 4, 5}
 
 func (s *EndToEndTestSuite) TearDownSuite() {
 	os.Remove(fmt.Sprintf("%s/%s", s.CliPath, CliName))
@@ -301,6 +305,19 @@ func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder, expectE
 		StdOut: stdout.String(),
 		StdErr: stderr.String(),
 	}
+}
+
+func syncMetrics(verbose bool) []CommandBuilder {
+	metricsCommand := CommandBuilder{Command: "metrics"}
+
+	flags := []Flag{}
+	if verbose {
+		flags = append(flags, Flag{Name: "--verbose"})
+	}
+
+	syncCommand := CommandBuilder{Command: "sync", Flags: flags}
+
+	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
 func createProject(projectName string, description string, github bool) []CommandBuilder {
@@ -976,7 +993,7 @@ func listMetricsBuilds(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{metricsBuildsCommand, listCommand}
 }
 
-func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, github bool) []CommandBuilder {
+func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, timeout *time.Duration, github bool) []CommandBuilder {
 	// We build a create experience command with the name, description, location flags
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
@@ -1008,6 +1025,12 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 			Value: system,
 		})
 	}
+	if timeout != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--timeout",
+			Value: timeout.String(),
+		})
+	}
 	if github {
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--github",
@@ -1015,6 +1038,70 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 		})
 	}
 	return []CommandBuilder{experienceCommand, createCommand}
+}
+
+func getExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--experience",
+				Value: experienceKey,
+			},
+		},
+	}
+	return []CommandBuilder{experienceCommand, getCommand}
+}
+
+func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, timeout *time.Duration) []CommandBuilder {
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	updateCommand := CommandBuilder{
+		Command: "update",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--experience",
+				Value: experienceKey,
+			},
+		},
+	}
+	if name != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--name",
+			Value: *name,
+		})
+	}
+	if description != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--description",
+			Value: *description,
+		})
+	}
+	if location != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--location",
+			Value: *location,
+		})
+	}
+	if timeout != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--timeout",
+			Value: timeout.String(),
+		})
+	}
+	return []CommandBuilder{experienceCommand, updateCommand}
 }
 
 func createExperienceTag(projectID uuid.UUID, name string, description string) []CommandBuilder {
@@ -1227,6 +1314,93 @@ func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, ex
 	return []CommandBuilder{batchCommand, createCommand}
 }
 
+func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, version *string, metricsBuildID uuid.UUID, logName *string, logLocation *string, logsList []string, configFileLocation *string, experienceTags []string, buildID *uuid.UUID, batchName *string, github bool) []CommandBuilder {
+	ingestCommand := CommandBuilder{
+		Command: "ingest",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--metrics-build-id",
+				Value: metricsBuildID.String(),
+			},
+		},
+	}
+	if logName != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--log-name",
+			Value: *logName,
+		})
+	}
+	if logLocation != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--log-location",
+			Value: *logLocation,
+		})
+	}
+	if len(logsList) > 0 {
+		logsListString := strings.Join(logsList, ",")
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--log",
+			Value: logsListString,
+		})
+	}
+	if configFileLocation != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--log-config",
+			Value: *configFileLocation,
+		})
+	}
+
+	if system != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--system",
+			Value: *system,
+		})
+	}
+
+	if branchname != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--branch",
+			Value: *branchname,
+		})
+	}
+	if version != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--version",
+			Value: *version,
+		})
+	}
+	if len(experienceTags) > 0 {
+		experienceTagsString := strings.Join(experienceTags, ",")
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--tags",
+			Value: experienceTagsString,
+		})
+	}
+	if buildID != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--build-id",
+			Value: buildID.String(),
+		})
+	}
+	if batchName != nil {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--ingestion-name",
+			Value: *batchName,
+		})
+	}
+	if github {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--github",
+			Value: "",
+		})
+	}
+	return []CommandBuilder{ingestCommand}
+}
+
 func getBatchByName(projectID uuid.UUID, batchName string, exitStatus bool) []CommandBuilder {
 	// We build a get batch command with the name flag
 	batchCommand := CommandBuilder{
@@ -1303,7 +1477,6 @@ func getBatchJobsByName(projectID uuid.UUID, batchName string) []CommandBuilder 
 }
 
 func cancelBatchByID(projectID uuid.UUID, batchID string) []CommandBuilder {
-	// We build a get batch command with the id flag
 	batchCommand := CommandBuilder{
 		Command: "batches",
 	}
@@ -1341,6 +1514,26 @@ func cancelBatchByName(projectID uuid.UUID, batchName string) []CommandBuilder {
 		},
 	}
 	return []CommandBuilder{batchCommand, cancelCommand}
+}
+
+func cancelSweep(projectID uuid.UUID, sweepID string) []CommandBuilder {
+	sweepCommand := CommandBuilder{
+		Command: "sweeps",
+	}
+	cancelCommand := CommandBuilder{
+		Command: "cancel",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--sweep-id",
+				Value: sweepID,
+			},
+		},
+	}
+	return []CommandBuilder{sweepCommand, cancelCommand}
 }
 
 func getBatchJobsByID(projectID uuid.UUID, batchID string) []CommandBuilder {
@@ -1418,6 +1611,41 @@ func listLogs(projectID uuid.UUID, batchID string, testID string) []CommandBuild
 		},
 	}
 	return []CommandBuilder{logCommand, listCommand}
+}
+
+func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string, files []string) []CommandBuilder {
+	logCommand := CommandBuilder{
+		Command: "log",
+	}
+	downloadCommand := CommandBuilder{
+		Command: "download",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--batch-id",
+				Value: batchID,
+			},
+			{
+				Name:  "--test-id",
+				Value: testID,
+			},
+			{
+				Name:  "--output",
+				Value: outputDir,
+			},
+		},
+	}
+	if len(files) > 0 {
+		filesString := strings.Join(files, ",")
+		downloadCommand.Flags = append(downloadCommand.Flags, Flag{
+			Name:  "--files",
+			Value: filesString,
+		})
+	}
+	return []CommandBuilder{logCommand, downloadCommand}
 }
 
 func createSweep(projectID uuid.UUID, buildID string, experiences []string, experienceTags []string, metricsBuildID string, parameterName string, parameterValues []string, configFileLocation string, github bool, account string) []CommandBuilder {
@@ -1612,7 +1840,7 @@ func createTestSuite(projectID uuid.UUID, name string, description string, syste
 	return []CommandBuilder{suitesCommand, createCommand}
 }
 
-func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, github bool) []CommandBuilder {
+func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, showOnSummary *bool, github bool) []CommandBuilder {
 	suitesCommand := CommandBuilder{
 		Command: "suites",
 	}
@@ -1645,6 +1873,12 @@ func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, descri
 		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
 			Name:  "--description",
 			Value: *description,
+		})
+	}
+	if showOnSummary != nil {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--show-on-summary",
+			Value: fmt.Sprintf("%t", *showOnSummary),
 		})
 	}
 	if experiences != nil && len(*experiences) > 0 {
@@ -1744,7 +1978,7 @@ func getTestSuiteBatches(projectID uuid.UUID, testSuiteName string, revision *in
 	return []CommandBuilder{testSuitesCommand, batchesCommand}
 }
 
-func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string, allowableFailurePercent *int) []CommandBuilder {
+func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string, allowableFailurePercent *int, metricsBuildID *string) []CommandBuilder {
 	// We build a get batch command with the name flag
 	testSuiteCommand := CommandBuilder{
 		Command: "suites",
@@ -1804,6 +2038,13 @@ func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, bu
 		runCommand.Flags = append(runCommand.Flags, Flag{
 			Name:  "--allowable-failure-percent",
 			Value: fmt.Sprintf("%d", *allowableFailurePercent),
+		})
+	}
+
+	if metricsBuildID != nil {
+		runCommand.Flags = append(runCommand.Flags, Flag{
+			Name:  "--metrics-build-override",
+			Value: *metricsBuildID,
 		})
 	}
 
@@ -2224,13 +2465,13 @@ func (s *EndToEndTestSuite) TestSystems() {
 
 	// Create and tag a couple of experiences:
 	experience1Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experience1Name, "description", "location", EmptySlice, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experience1Name, "description", "location", EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience1IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experience1IDString)
 	experience2Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experience2Name, "description", "location", EmptySlice, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experience2Name, "description", "location", EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience2IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -2523,7 +2764,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 
 	// Verify that each of the required flags are required:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyBuildDescription)
+	s.Contains(output.StdErr, EmptyBuildName)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "", "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildImage)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "", GithubFalse, AutoCreateBranchFalse), ExpectError)
@@ -2686,10 +2927,23 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 
 	systemNames := []string{systemName1, systemName2}
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, GithubFalse), ExpectNoError)
+	timeoutSeconds := int32(200)
+	timeout := time.Duration(timeoutSeconds) * time.Second
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, CreatedExperience)
 	s.Empty(output.StdErr)
 
+	// Now get the experience by name:
+	output = s.runCommand(getExperience(projectID, experienceName), ExpectNoError)
+	s.Contains(output.StdOut, experienceName)
+	s.Empty(output.StdErr)
+	var experience api.Experience
+	err := json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(experienceName, experience.Name)
+	s.Equal("description", experience.Description)
+	s.Equal("location", experience.Location)
+	s.Equal(timeoutSeconds, experience.ContainerTimeoutSeconds)
 	// Validate that the experience is available for each system:
 	for _, systemName := range systemNames {
 		output = s.runCommand(systemExperiences(projectIDString, systemName), ExpectNoError)
@@ -2697,17 +2951,17 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	}
 
 	// Validate we cannot create experiences without values for the required flags:
-	output = s.runCommand(createExperience(projectID, "", "description", "location", EmptySlice, GithubFalse), ExpectError)
+	output = s.runCommand(createExperience(projectID, "", "description", "location", EmptySlice, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceName)
-	output = s.runCommand(createExperience(projectID, experienceName, "", "location", EmptySlice, GithubFalse), ExpectError)
+	output = s.runCommand(createExperience(projectID, experienceName, "", "location", EmptySlice, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceDescription)
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "", EmptySlice, GithubFalse), ExpectError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "", EmptySlice, nil, GithubFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyExperienceLocation)
 	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
 	// Test creating an experience with the launch profile flag:
 	launchProfileID := uuid.New().String()
-	experienceCommand := createExperience(projectID, experienceName, "description", "location", EmptySlice, GithubFalse)
+	experienceCommand := createExperience(projectID, experienceName, "description", "location", EmptySlice, nil, GithubFalse)
 	experienceCommand[1].Flags = append(experienceCommand[1].Flags, Flag{
 		Name:  "--launch-profile",
 		Value: launchProfileID,
@@ -2732,18 +2986,101 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	projectID := uuid.MustParse(projectIDString)
 
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", EmptySlice, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)
+	// Now get the experience by id:
+	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
+	s.Contains(output.StdOut, experienceName)
+	s.Empty(output.StdErr)
+	var experience api.Experience
+	err := json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(experienceName, experience.Name)
+	s.Equal("description", experience.Description)
+	s.Equal("location", experience.Location)
+	s.Equal(int32(3600), experience.ContainerTimeoutSeconds) // default timeout
+
 	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
 	// Archive the project:
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
+}
 
+func (s *EndToEndTestSuite) verifyExperienceUpdate(projectID uuid.UUID, experienceID, expectedName, expectedDescription, expectedLocation string, expectedTimeout int32) {
+	output := s.runCommand(getExperience(projectID, experienceID), ExpectNoError)
+	s.Contains(output.StdOut, expectedName)
+	s.Contains(output.StdOut, expectedDescription)
+	s.Contains(output.StdOut, expectedLocation)
+	s.Contains(output.StdOut, fmt.Sprintf("%d", expectedTimeout))
+}
+
+func (s *EndToEndTestSuite) TestExperienceUpdate() {
+	fmt.Println("Testing experience update command")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Create an experience:
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	originalDescription := "original description"
+	originalLocation := "original location"
+	originalTimeoutSeconds := int32(200)
+	originalTimeout := time.Duration(originalTimeoutSeconds) * time.Second
+	output = s.runCommand(createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, &originalTimeout, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+
+	// 1. Update the experience name alone and verify
+	newName := "updated-experience-name"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), nil, nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, originalDescription, originalLocation, originalTimeoutSeconds)
+
+	// 2. Update the description alone and verify
+	newDescription := "updated description"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, Ptr(newDescription), nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, originalLocation, originalTimeoutSeconds)
+
+	// 3. Update the location alone and verify
+	newLocation := "updated location"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, Ptr(newLocation), nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, originalTimeoutSeconds)
+
+	// 4. Update the timeout alone and verify
+	newTimeoutSeconds := int32(300)
+	newTimeout := time.Duration(newTimeoutSeconds) * time.Second
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, &newTimeout), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+
+	// 5. Update the name and description and verify
+	newName = "final-experience-name"
+	newDescription = "final description"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+
+	// 6. Update the name, description, and location and verify
+	newLocation = "final location"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+
+	// 7. Update the name, description, location, and timeout and verify
+	newTimeoutSeconds = int32(400)
+	newTimeout = time.Duration(newTimeoutSeconds) * time.Second
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), Ptr(newTimeout)), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
+	s.Empty(output.StdErr)
 }
 
 func (s *EndToEndTestSuite) TestBatchAndLogs() {
@@ -2758,8 +3095,8 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	emptyParameterMap := map[string]string{}
 	// First create two experiences:
 	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
+	experienceLocation := fmt.Sprintf("s3://%s/test-object/", s.Config.E2EBucket)
+	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2767,7 +3104,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -2792,7 +3129,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	uuid.MustParse(systemIDString)
 
 	// Now create the build:
-	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/resim/open-builds/log-ingest:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBuild)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
@@ -3025,16 +3362,34 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	output = s.runCommand(getBatchJobsByName(projectID, "does not exist"), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchName)
 
-	// List logs:
+	// List test logs:
 	output = s.runCommand(listLogs(projectID, batchIDString, testID2.String()), ExpectNoError)
 	// Marshal into a struct:
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 5)
+	s.Len(logs, 7)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto"}, *log.FileName)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name"}, *log.FileName)
+	}
+
+	// Download a single test log
+	tempDir, err := os.MkdirTemp("", "test-logs")
+	s.NoError(err)
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{"file.name"}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 1 log(s) to %s", tempDir))
+
+	// Download all test logs:
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 7 log(s) to %s", tempDir))
+
+	// Check that the logs were downloaded and unzipped:
+	files, err := os.ReadDir(tempDir)
+	s.NoError(err)
+	s.Len(files, 7)
+	for _, file := range files {
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:
@@ -3093,7 +3448,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// First create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3193,7 +3548,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// create two experiences:
 	experienceName1 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3201,7 +3556,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3385,9 +3740,9 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 
 	// Pass blank name / id to batches get:
 	output = s.runCommand(getSweepByName(projectID, "", ExitStatusFalse), ExpectError)
-	s.Contains(output.StdErr, InvalidSweepName)
+	s.Contains(output.StdErr, InvalidSweepNameOrID)
 	output = s.runCommand(getSweepByID(projectID, "", ExitStatusFalse), ExpectError)
-	s.Contains(output.StdErr, InvalidSweepID)
+	s.Contains(output.StdErr, InvalidSweepNameOrID)
 
 	// Check we can list the sweeps, and our new sweep is in it:
 	output = s.runCommand(listSweeps(projectID), ExpectNoError)
@@ -3397,6 +3752,112 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
+}
+
+// Test Cancel Sweep::
+func (s *EndToEndTestSuite) TestCancelSweep() {
+	// create a project:
+	projectName := fmt.Sprintf("sweep-test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// create an experience:
+	experienceName := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString)
+	// Now create the branch:
+	branchName := fmt.Sprintf("sweep-test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(uuid.MustParse(projectIDString), branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// Now create the build:
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
+
+	// Create a metrics build:
+	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the build ID as a UUID
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	uuid.MustParse(metricsBuildIDString)
+
+	// Define the parameters:
+	parameterName := "test-parameter"
+	parameterValues := []string{"value1", "value2", "value3"}
+	// Create a sweep with (only) experience names using the --experiences flag and specific parameter name and values (and "" for no config file location)
+	output = s.runCommand(createSweep(projectID, buildIDString, []string{experienceName}, []string{}, metricsBuildIDString, parameterName, parameterValues, "", GithubTrue, AssociatedAccount), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSweep)
+	sweepIDStringGH := output.StdOut[len(GithubCreatedSweep) : len(output.StdOut)-1]
+	uuid.MustParse(sweepIDStringGH)
+
+	time.Sleep(30 * time.Second) // arbitrary sleep to make sure the scheduler gets the batch and triggers it
+
+	// Cancel the sweep:
+	output = s.runCommand(cancelSweep(projectID, sweepIDStringGH), ExpectNoError)
+	s.Contains(output.StdOut, CancelledSweep)
+
+	// Get sweep passing the status flag. We need to manually execute and grab the exit code:
+	// Since we have just submitted the sweep, we would expect it to be running or submitted
+	// but we check that the exit code is in the acceptable range:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getSweepByID(projectID, sweepIDStringGH, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		fmt.Println("stdout:")
+		fmt.Println(stdout.String())
+		fmt.Println("stderr:")
+		fmt.Println(stderr.String())
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableSweepStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 2 failed
+		complete := (exitCode == 0 || exitCode == 2 || exitCode == 5)
+		if !complete {
+			fmt.Println("Waiting for sweep completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Sweep completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the sweep and validate the status, first by name then by ID:
+	output = s.runCommand(getSweepByID(projectID, sweepIDStringGH, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	var sweep api.ParameterSweep
+	err := json.Unmarshal([]byte(output.StdOut), &sweep)
+	s.NoError(err)
+	s.Equal(sweepIDStringGH, sweep.ParameterSweepID.String())
+	// Validate that it was cancelled:
+	s.Equal(api.ParameterSweepStatusCANCELLED, *sweep.Status)
 }
 
 // Test the metrics builds:
@@ -3631,6 +4092,10 @@ func (s *EndToEndTestSuite) TestAliases() {
 				Value: systemName,
 			},
 			{
+				Name:  "--name",
+				Value: "build-name",
+			},
+			{
 				Name:  "--description",
 				Value: "description",
 			},
@@ -3644,9 +4109,11 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 		},
 	}
+
 	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesCommand}, ExpectNoError)
-	s.Empty(output.StdErr)
+	s.Contains(output.StdErr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.")
 	s.Contains(output.StdOut, CreatedBuild)
+
 	// Now try to create using the id for projects:
 	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithIDCommand}, ExpectNoError)
 	s.Empty(output.StdErr)
@@ -3781,7 +4248,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	for i := 0; i < NUM_EXPERIENCES; i++ {
 		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, GithubTrue), ExpectNoError)
+		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, nil, GithubTrue), ExpectNoError)
 		s.Contains(output.StdOut, GithubCreatedExperience)
 		s.Empty(output.StdErr)
 		// We expect to be able to parse the experience ID as a UUID
@@ -3830,10 +4297,10 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 
 	// Revise the test suite:
 	// Now, create a test suite with all our experiences, the system, and a metrics build:
-	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubFalse), ExpectNoError)
+	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, GithubFalse), ExpectNoError)
 	s.Contains(output.StdOut, RevisedTestSuite)
 	// Revise w/ github flag
-	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedTestSuite)
 	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
 	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
@@ -3871,7 +4338,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.Len(testSuite.Experiences, 1)
 	s.ElementsMatch(experienceIDs[0], testSuite.Experiences[0])
 	// Then run.
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, nil), ExpectNoError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, nil, nil), ExpectNoError)
 	s.Contains(output.StdOut, CreatedTestSuiteBatch)
 	// Then list the test suite batches
 	output = s.runCommand(getTestSuiteBatches(projectID, firstTestSuiteName, nil), ExpectNoError)
@@ -3886,7 +4353,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 
 	// Create a new run using github and with a specific batch name:
 	batchName := fmt.Sprintf("test-batch-%s", uuid.New().String())
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName, Ptr(100)), ExpectNoError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName, Ptr(100), nil), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	// Parse the output to get a batch id:
 	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
@@ -3911,10 +4378,31 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.True(found)
 
 	// Try running a test suite with a non-percentage allowable failure percent:
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(101)), ExpectError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(101), nil), ExpectError)
 	s.Contains(output.StdErr, AllowableFailurePercent)
-	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(-1)), ExpectError)
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(-1), nil), ExpectError)
 	s.Contains(output.StdErr, AllowableFailurePercent)
+
+	// Try running a test suite with a metrics build override:
+	output = s.runCommand(runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, nil, nil, Ptr(metricsBuildIDString)), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	// Parse the output to get a batch id:
+	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDString)
+	// Get the batch:
+	output = s.runCommand(getBatchByName(projectID, batchName, ExitStatusFalse), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(metricsBuildIDString, batch.MetricsBuildID.String())
+	s.Equal(buildIDString, batch.BuildID.String())
+	// Get the jobs for the batch:
+	output = s.runCommand(getBatchJobsByName(projectID, batchName), ExpectNoError)
+	jobs := []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Len(jobs, 1)
+	// The job should have the correct experience ID:
+	s.Equal(experienceIDs[0], *jobs[0].ExperienceID)
 }
 
 func (s *EndToEndTestSuite) TestReports() {
@@ -3957,7 +4445,7 @@ func (s *EndToEndTestSuite) TestReports() {
 	for i := 0; i < NUM_EXPERIENCES; i++ {
 		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, GithubTrue), ExpectNoError)
+		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, nil, GithubTrue), ExpectNoError)
 		s.Contains(output.StdOut, GithubCreatedExperience)
 		s.Empty(output.StdErr)
 		// We expect to be able to parse the experience ID as a UUID
@@ -3991,8 +4479,16 @@ func (s *EndToEndTestSuite) TestReports() {
 	revision := testSuiteIDRevision[1]
 	s.Equal("0", revision)
 
+	// Get the test suite and validate the show on summary flag is false:
+	output = s.runCommand(getTestSuite(projectID, testSuiteName, Ptr(int32(0)), false), ExpectNoError)
+	// Parse the output into a test suite:
+	var testSuite api.TestSuite
+	err := json.Unmarshal([]byte(output.StdOut), &testSuite)
+	s.NoError(err)
+	s.False(testSuite.ShowOnSummary)
+
 	// Revise w/ github flag
-	output = s.runCommand(reviseTestSuite(projectID, testSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(reviseTestSuite(projectID, testSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, Ptr(true), GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedTestSuite)
 	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
 	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
@@ -4000,6 +4496,12 @@ func (s *EndToEndTestSuite) TestReports() {
 	uuid.MustParse(testSuiteIDRevision[0])
 	revision = testSuiteIDRevision[1]
 	s.Equal("1", revision)
+	// Get the test suite and validate the show on summary flag is true:
+	output = s.runCommand(getTestSuite(projectID, testSuiteName, Ptr(int32(1)), false), ExpectNoError)
+	// Parse the output into a test suite:
+	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
+	s.NoError(err)
+	s.True(testSuite.ShowOnSummary)
 
 	// 1. Create a report passing in length and have it correct [with name, with respect revision and explicit revision 0]
 	reportName := fmt.Sprintf("test-report-%s", uuid.New().String())
@@ -4018,7 +4520,7 @@ func (s *EndToEndTestSuite) TestReports() {
 	output = s.runCommand(getReportByName(projectID, reportName, false), ExpectNoError)
 	// Parse the output into a report:
 	var report api.Report
-	err := json.Unmarshal([]byte(output.StdOut), &report)
+	err = json.Unmarshal([]byte(output.StdOut), &report)
 	s.NoError(err)
 	s.Equal(reportName, report.Name)
 	// Validate that the start timestamp is 4 weeks before today within a one minute duration
@@ -4091,6 +4593,607 @@ func (s *EndToEndTestSuite) TestReports() {
 
 	//TODO(iain): check the wait and logs commands, once the rest has landed.
 }
+
+func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
+	// Skip this test for now, as it's not working.
+	s.T().Skip("Skipping batch creation with a single experience and 0s timeout")
+	fmt.Println("Testing batch creation with a single experience and 0s timeout")
+
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Create an experience
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, Ptr(0*time.Second), GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString)
+
+	// Now create the branch
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Create the system
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// Now create the build
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+
+	// Attempt to create a batch with a 0s timeout
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{experienceIDString}, []string{}, []string{}, []string{}, []string{}, "", GithubTrue, map[string]string{}, AssociatedAccount, nil, Ptr(0)), ExpectNoError)
+	// Expect the batch to be created successfully
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDString)
+
+	// Now, wait for the batch to complete and validate that it has an error:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getBatchByID(projectID, batchIDString, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 errored
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	s.Contains(output.StdOut, "ERROR")
+
+	// Archive the project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
+	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestLogIngest() {
+	// First create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// Create the system
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+
+	// A metrics build:
+	output = s.runCommand(createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	metricsBuildID := uuid.MustParse(metricsBuildIDString)
+
+	// There are no branches and there are no builds; we use the ingest command to create:
+	firstBranchName := "test-branch"
+	firstVersion := "first-version"
+	logName := fmt.Sprintf("test-log-%s", uuid.New().String())
+
+	logLocation := fmt.Sprintf("s3://%v/test-object/", s.Config.E2EBucket)
+
+	experienceTags := []string{"test-tag"}
+	ingestCommand := createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, Ptr(logName), Ptr(logLocation), []string{}, nil, experienceTags, nil, nil, GithubTrue)
+	output = s.runCommand(ingestCommand, ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	batchID := uuid.MustParse(batchIDString)
+
+	// Await the batch to complete:
+	s.Eventually(func() bool {
+		complete, exitCode := checkBatchComplete(s, projectID, batchID)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, batchID.String(), ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	var batch api.Batch
+	err := json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	// Get the build and check version:
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	var build api.Build
+	err = json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(firstVersion, build.Version)
+	// Get the branch and check the name:
+	output = s.runCommand(listBranches(projectID), ExpectNoError)
+	var branches []api.Branch
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(1, len(branches))
+	s.Equal(firstBranchName, branches[0].Name)
+
+	// Get the job ID:
+	output = s.runCommand(getBatchJobsByID(projectID, batchID.String()), ExpectNoError)
+	var jobs []api.Job
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(1, len(jobs))
+	jobID := jobs[0].JobID
+
+	// Check the logs and ensure the `file.name` file exists:
+	output = s.runCommand(listLogs(projectID, batchID.String(), jobID.String()), ExpectNoError)
+	logs := []api.Log{}
+	err = json.Unmarshal([]byte(output.StdOut), &logs)
+	s.NoError(err)
+	found := false
+	for _, log := range logs {
+		if log.FileName != nil && *log.FileName == "file.name" {
+			found = true
+			break
+		}
+	}
+	s.True(found)
+
+	// Get the experience:
+	output = s.runCommand(getExperience(projectID, jobs[0].ExperienceID.String()), ExpectNoError)
+	var experience api.Experience
+	err = json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(logName, experience.Name)
+	s.Equal(logLocation, experience.Location)
+	// Finally, validate the tags:
+	output = s.runCommand(listExperiencesWithTag(projectID, "ingested-via-resim"), ExpectNoError)
+	var experiencesWithTag []api.Experience
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(logName, experiencesWithTag[0].Name)
+	// And the specificed tag
+	output = s.runCommand(listExperiencesWithTag(projectID, experienceTags[0]), ExpectNoError)
+	experiencesWithTag = []api.Experience{}
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(logName, experiencesWithTag[0].Name)
+
+	// Now, defaults:
+	secondLogName := fmt.Sprintf("test-log-%v", uuid.New())
+	secondLogTags := []string{"test-tag-2"}
+	defaultBranchName := "log-ingest-branch"
+	defaultVersion := "latest"
+	secondLogCommand := createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(secondLogName), Ptr(logLocation), []string{}, nil, secondLogTags, nil, nil, GithubTrue)
+	output = s.runCommand(secondLogCommand, ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	secondBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	secondBatchID := uuid.MustParse(secondBatchIDString)
+
+	// Await the batch to complete:
+	s.Eventually(func() bool {
+		complete, exitCode := checkBatchComplete(s, projectID, secondBatchID)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, secondBatchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+
+	// Get the build and check version:
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(defaultVersion, build.Version)
+	defaultBuildID := build.BuildID
+	// Get the branch and check the name:
+	output = s.runCommand(listBranches(projectID), ExpectNoError)
+	branches = []api.Branch{}
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(2, len(branches))
+	s.Equal(firstBranchName, branches[1].Name)
+	s.Equal(defaultBranchName, branches[0].Name)
+	// Get the job ID:
+	output = s.runCommand(getBatchJobsByID(projectID, secondBatchIDString), ExpectNoError)
+	jobs = []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(1, len(jobs))
+	jobID = jobs[0].JobID
+
+	// Check the logs and ensure the `file.name` file exists:
+	output = s.runCommand(listLogs(projectID, secondBatchIDString, jobID.String()), ExpectNoError)
+	logs = []api.Log{}
+	err = json.Unmarshal([]byte(output.StdOut), &logs)
+	s.NoError(err)
+	found = false
+	for _, log := range logs {
+		if log.FileName != nil && *log.FileName == "file.name" {
+			found = true
+			break
+		}
+	}
+	s.True(found)
+
+	// Get the experience:
+	output = s.runCommand(getExperience(projectID, jobs[0].ExperienceID.String()), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(secondLogName, experience.Name)
+	s.Equal(logLocation, experience.Location)
+	// Finally, validate the tags:
+	output = s.runCommand(listExperiencesWithTag(projectID, "ingested-via-resim"), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(2, len(experiencesWithTag))
+	// And the specificed tag
+	output = s.runCommand(listExperiencesWithTag(projectID, secondLogTags[0]), ExpectNoError)
+	experiencesWithTag = []api.Experience{}
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(secondLogName, experiencesWithTag[0].Name)
+	// And that there is no overflow
+	output = s.runCommand(listExperiencesWithTag(projectID, experienceTags[0]), ExpectNoError)
+	experiencesWithTag = []api.Experience{}
+	err = json.Unmarshal([]byte(output.StdOut), &experiencesWithTag)
+	s.NoError(err)
+	s.Equal(1, len(experiencesWithTag))
+	s.Equal(logName, experiencesWithTag[0].Name)
+
+	// Validate that things are not recreated:
+	thirdLogName := fmt.Sprintf("test-log-%v", uuid.New())
+	specialBatchName := "my-batch-name"
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(thirdLogName), Ptr(logLocation), []string{}, nil, secondLogTags, nil, &specialBatchName, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	thirdBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, thirdBatchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(specialBatchName, *batch.FriendlyName)
+
+	// Get the build and check version:
+	output = s.runCommand(getBuild(projectIDString, *batch.BuildID), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &build)
+	s.NoError(err)
+	s.Equal(defaultVersion, build.Version)
+	s.Equal(defaultBuildID, build.BuildID)
+	// Get the branch and check the name and that no new branches were created:
+	output = s.runCommand(listBranches(projectID), ExpectNoError)
+	branches = []api.Branch{}
+	err = json.Unmarshal([]byte(output.StdOut), &branches)
+	s.NoError(err)
+	s.Equal(2, len(branches))
+	s.Equal(firstBranchName, branches[1].Name)
+	s.Equal(defaultBranchName, branches[0].Name)
+
+	//Create a build:
+	output = s.runCommand(createBuild(projectName, firstBranchName, systemName, "description", commands.LogIngestURI, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	existingBuildID := uuid.MustParse(buildIDString)
+	// Finally, use the existing build ID:
+	fourthLogName := fmt.Sprintf("test-log-%v", uuid.New())
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	fourthBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, fourthBatchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+
+	// Check the MuTex parameters:
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectError)
+	s.Contains(output.StdErr, "build-id")
+	s.Contains(output.StdErr, "system")
+	output = s.runCommand(createIngestedLog(projectID, nil, &firstBranchName, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectError)
+	s.Contains(output.StdErr, "build-id")
+	s.Contains(output.StdErr, "branch")
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, &firstVersion, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectError)
+	s.Contains(output.StdErr, "build-id")
+	s.Contains(output.StdErr, "version")
+
+	// Test the `--log` flag:
+	log1Name := fmt.Sprintf("test-log-%v", uuid.New())
+	log1 := fmt.Sprintf("%s=%s", log1Name, logLocation)
+	log2Name := fmt.Sprintf("test-log-%v", uuid.New())
+	log2 := fmt.Sprintf("%s=%s", log2Name, logLocation)
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, nil, nil, []string{log1, log2}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectNoError)
+	fmt.Println("Output: ", output.StdOut)
+	fmt.Println("Output: ", output.StdErr)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	batchID = uuid.MustParse(batchIDString)
+	s.Eventually(func() bool {
+		complete, exitCode := checkBatchComplete(s, projectID, batchID)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+	// Check there are two jobs:
+	// Get the job ID:
+	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
+	jobs = []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(2, len(jobs))
+
+	// Finally, the config file:
+	configFile := commands.LogsFile{
+		Logs: []commands.LogConfig{
+			{
+				Name:     "log-1",
+				Location: logLocation,
+			},
+			{
+				Name:     "log-2",
+				Location: logLocation,
+			},
+		},
+	}
+	// serialize this:
+	configFileBytes, err := yaml.Marshal(configFile)
+	s.NoError(err)
+	configFileString := string(configFileBytes)
+
+	// Create the config file in the current directory:
+	configFileLocation := filepath.Join(os.TempDir(), "valid_log_file.yaml")
+	err = os.WriteFile(configFileLocation, []byte(configFileString), 0644)
+	s.NoError(err)
+
+	// Run the ingest command with the config file:
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, nil, nil, []string{}, Ptr(configFileLocation), nil, nil, nil, GithubTrue), ExpectNoError)
+	fmt.Println("Output: ", output.StdOut)
+	fmt.Println("Output: ", output.StdErr)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	batchID = uuid.MustParse(batchIDString)
+	s.Eventually(func() bool {
+		complete, exitCode := checkBatchComplete(s, projectID, batchID)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+	// Check there are two jobs:
+	// Get the job ID:
+	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
+	jobs = []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	s.NoError(err)
+	s.Equal(2, len(jobs))
+}
+
+func (s *EndToEndTestSuite) TestMetricsSync() {
+	s.Run("NoConfigFiles", func() {
+		output := s.runCommand(syncMetrics(true), true)
+
+		s.Contains(output.StdErr, "failed to find ReSim metrics config")
+	})
+
+	s.Run("SyncsMetricsConfig", func() {
+		os.RemoveAll(".resim") // Cleanup old folder just in case
+
+		err := os.Mkdir(".resim", 0755)
+		s.Require().NoError(err)
+		defer os.RemoveAll(".resim")
+		err = os.Mkdir(".resim/metrics", 0755)
+		s.Require().NoError(err)
+		err = os.Mkdir(".resim/metrics/templates", 0755)
+		s.Require().NoError(err)
+
+		// strings.Join is ugly but using backticks `` is a mess with getting indentation correct
+		metricsFile := strings.Join([]string{
+			"version: 1",
+			"topics:",
+			"  ok:",
+			"    schema:",
+			"      speed: float",
+			"metrics:",
+			"  Average Speed:",
+			"    query_string: SELECT AVG(speed) FROM speed WHERE job_id=$job_id",
+			"    template_type: system",
+			"    template: line",
+			"metrics sets:",
+			"  woot:",
+			"    metrics:",
+			"      - Average Speed",
+		}, "\n")
+		err = os.WriteFile(".resim/metrics/config.yml", []byte(metricsFile), 0644)
+		s.Require().NoError(err)
+		err = os.WriteFile(".resim/metrics/templates/bar.json.heex", []byte("{}"), 0644)
+		s.Require().NoError(err)
+
+		// Standard behavior is exit 0 with no output
+		output := s.runCommand(syncMetrics(false), false)
+		s.Equal("", output.StdOut)
+		s.Equal("", output.StdErr)
+
+		// Verbose logs a lot of info about what it is doing
+		output = s.runCommand(syncMetrics(true), false)
+		s.Equal("", output.StdErr)
+		s.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
+		s.Contains(output.StdOut, "Found template bar.json.heex")
+		s.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
+	})
+}
+
+func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {
+	cmd := s.buildCommand(getBatchByID(projectID, batchID.String(), ExitStatusTrue))
+	var stdout, stderr bytes.Buffer
+	fmt.Println("About to run command: ", cmd.String())
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	exitCode := 0
+	if err := cmd.Run(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			exitCode = exitError.ExitCode()
+		}
+	}
+	s.Contains(AcceptableBatchStatusCodes, exitCode)
+	s.Empty(stderr.String())
+	s.Empty(stdout.String())
+	// Check if the status is 0, complete, 5 cancelled, 2 failed
+	complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+	return complete, exitCode
+}
+
+func (s *EndToEndTestSuite) TestCancelBatch() {
+	// create a project:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// First create an experience:
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString1)
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(uuid.MustParse(projectIDString), branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// Now create the build:
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	buildID := uuid.MustParse(buildIDString)
+	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
+
+	// Create a metrics build:
+	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the build ID as a UUID
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	metricsBuildID := uuid.MustParse(metricsBuildIDString)
+
+	// Create a batch with (only) experience names using the --experiences flag with no parameters
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceName}, []string{}, metricsBuildIDString, GithubTrue, map[string]string{}, AssociatedAccount, nil, nil), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDStringGH := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	batchID := uuid.MustParse(batchIDStringGH)
+
+	time.Sleep(30 * time.Second) // arbitrary sleep to make sure the scheduler gets the batch and triggers it
+
+	// Cancel the batch
+	output = s.runCommand(cancelBatchByID(projectID, batchIDStringGH), ExpectNoError)
+	s.Contains(output.StdOut, CancelledBatch)
+
+	// Get batch passing the status flag. We need to manually execute and grab the exit code:
+	// Since we have just submitted the batch, we would expect it to be running or submitted
+	// but we check that the exit code is in the acceptable range:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getBatchByID(projectID, batchIDStringGH, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 failed
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status by ID:
+	output = s.runCommand(getBatchByID(projectID, batchIDStringGH, ExitStatusFalse), ExpectNoError)
+	// Marshal into a struct:
+	var batch api.Batch
+	err := json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(batchID, *batch.BatchID)
+	// Validate that it was cancelled
+	s.Equal(api.BatchStatusCANCELLED, *batch.Status)
+	s.Equal(buildID, *batch.BuildID)
+	s.Equal(metricsBuildID, *batch.MetricsBuildID)
+
+	// Archive the project
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
+	s.Empty(output.StdErr)
+}
+
 func TestEndToEndTestSuite(t *testing.T) {
 	viper.AutomaticEnv()
 	viper.SetDefault(Config, Dev)

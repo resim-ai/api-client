@@ -1,6 +1,8 @@
 name: Build and Test
 on:
   pull_request:
+    paths-ignore:
+      - '**.md'
   push:
     branches:
       - main
@@ -13,32 +15,34 @@ permissions:
 jobs:
   build:
     name: Lint and Build
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
       - name: Check Format
         run: if [ "$(go fmt ./... | wc -l)" -gt 0 ]; then exit 1; fi
       - name: Go Vet
-        run: if ["$(go vet ./... | wc -l)" -gt 0]; then exit 1; fi
+        run: if [ "$(go vet ./... | wc -l)" -gt 0 ]; then exit 1; fi
       - name: Build
         run: go build ./...
       - name: Test
-        run: go test ./... -race 
+        run: go test ./... -race
 
   e2e:
-    name: Run end-to-end test    
-    runs-on: ubuntu-20.04
+    name: Run end-to-end test
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
       - name: End-to-end test
         env:
           CONFIG: staging
           RESIM_CLIENT_ID: ${{ secrets.RESIM_CLIENT_ID }}
           RESIM_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
-        run: go test -v -timeout 30m -tags end_to_end -count 1 ./testing
+
+        # FIXME: This is so long. Please make them run in parallel.
+        run: go test -v -timeout 45m -tags end_to_end -count 1 ./testing

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/cli/browser"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/resim-ai/api-client/api"
@@ -33,8 +34,10 @@ const (
 	prodInteractiveClientKey    = "prod-interactive-client"
 	devNonInteractiveClientKey  = "dev-non-interactive-client"
 	prodNonInteractiveClientKey = "prod-non-interactive-client"
+	verboseKey                  = "verbose"
 	prodGovcloudURL             = "https://api-gov.resim.ai/v1/"
 	prodAPIURL                  = "https://api.resim.ai/v1/"
+	stagingAPIURL               = "https://api.resim.io/v1/"
 	prodAuthURL                 = "https://resim.us.auth0.com/"
 	devAuthURL                  = "https://resim-dev.us.auth0.com/"
 )
@@ -79,9 +82,10 @@ func init() {
 	viper.SetDefault(prodNonInteractiveClientKey, "0Ip56H1LLAo6Dc6IfePaNzgpUxbJGyVI")
 	rootCmd.PersistentFlags().String(usernameKey, "", "username for non-interactive login")
 	rootCmd.PersistentFlags().String(passwordKey, "", "password for non-interactive login")
+	rootCmd.PersistentFlags().Bool(verboseKey, false, "Verbose mode")
 }
 
-func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache, error) {
+func Authenticate(ctx context.Context) (*CredentialCache, error) {
 	var cache CredentialCache
 	err := cache.loadCredentialCache()
 	if err != nil {
@@ -167,13 +171,40 @@ func GetClient(ctx context.Context) (*api.ClientWithResponses, *CredentialCache,
 	tokenSource = oauth2.ReuseTokenSource(&token, tokenSource)
 	cache.TokenSource = tokenSource
 
-	oauthClient := oauth2.NewClient(ctx, tokenSource)
+	return &cache, nil
+}
+
+func GetClient(ctx context.Context, cache CredentialCache) (*api.ClientWithResponses, error) {
+	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)
 
 	client, err := api.NewClientWithResponses(viper.GetString(urlKey), api.WithHTTPClient(oauthClient))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return client, &cache, nil
+	return client, nil
+}
+
+func GetBffClient(ctx context.Context, cache CredentialCache) graphql.Client {
+	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)
+	return graphql.NewClient(inferGraphqlAPI(viper.GetString(urlKey)), oauthClient)
+}
+
+// Infer the URL of the BFF's GraphQL, instead of making users
+// awkwardly specify it like `resim --url api.resim.ai/v1 --bff-url bff.resim.ai/graphql projects list`,
+// which is bound to cause mistakes.
+func inferGraphqlAPI(rerunAPIurl string) string {
+	url, err := url.Parse(rerunAPIurl)
+	if err != nil {
+		log.Fatal("error parsing API url: ", err)
+	}
+
+	url.Path = "/graphql"
+	if strings.Contains(url.Host, "localhost") {
+		url.Host = "localhost:4000"
+	} else {
+		url.Host = strings.Replace(url.Host, "api.", "bff.", 1)
+	}
+	return url.String()
 }
 
 func (c *CredentialCache) loadCredentialCache() error {

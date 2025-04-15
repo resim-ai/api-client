@@ -1,12 +1,95 @@
 # Changelog
 
-See also https://docs.resim.ai/changelog/ for all ReSim changes
-
 ## ReSim CLI
 
 ### Unreleased
 
 Changes in this section will be included in the next release.
+
+### v0.15.0 - April 10, 2025
+
+- Build create/update now accepts a `--name` flag to set the build's name. If `--name` is not provided but `--description` is, the description value will be used for the build's name (matching current behavior). The `--description` flag is used to set the build's description when provided alongside `--name`. In a future release, `--name` will become a required parameter and `--description` will no longer be used to set the build's name, but will instead only be used to set its description.
+
+### v0.14.0 - April 8 2025
+
+#### Changed
+
+- It is now possible to pass `pool-labels` to the `resim ingest` command to support log ingestion via the ReSim agent.
+
+### v0.13.0 - April 7 2025
+
+#### Added
+
+- The `logs download` command now supports downloading a single log by providing the log name.
+
+#### Changed
+
+- The `logs` commands now support batch logs.
+
+### v0.12.0 - March 25 2025
+
+#### Added
+
+- A new `metrics sync` command has been added, for syncing your metrics configuration with ReSim. This command is for
+  our next version of metrics management, and is currently unused.
+
+### v0.11.0 - March 20 2025
+
+#### Added
+
+- A `sweeps cancel` command enables the cancellation of parameter sweeps.
+
+#### Changed
+
+- The `resim ingest` command now supports ingesting multiple logs at the same time, either via a `--log` repeated flag, or `--config-file` using a yaml file. For more information see the [ReSim docs](https://docs.resim.ai/guides/log-ingest)
+
+### v0.10.0 - March 14 2025
+
+#### Added
+
+- A new `download` subcommand has been added to the `logs` command. This allows you to download logs for a given job from the ReSim platform to your local machine.
+
+### v0.9.0 - March 13 2025
+
+#### Changed
+
+- The `resim ingest` command now supports using a custom log ingestion build ID, to allow you to preprocess a log. It can be run with `--build-id`. This is mutually exclusive with the `--branch` and `--version` flags.
+
+### v0.8.0 - March 12 2025
+
+#### Added
+
+- A new `ingest` command now supports ingesting existing logs -- from field testing, for example -- into the ReSim platform and running metrics on them. It works by importing a log with a given name and cloud storage location then running metrics on it. For more information see the [ReSim docs](https://docs.resim.ai/guides/log-ingest) for more details.
+- The test suite run command now supports a `--metrics-build-override` flag to allow you to take advantage of the test suite grouping, but test out a new metrics build.
+
+### v0.7.0 - February 26 2025
+
+#### Changed
+
+- The `suites run` and `batches create` commands now support using a separate delimiter for parameters: e.g. "key=value" to support cases where a colon is a natural part of the key e.g. `namespace::param=value`
+
+### v0.6.0 - February 19 2025
+
+#### Added
+
+- The test suite `revise` command now supports the `--show-on-summary` flag, which can be used to specify whether the latest results of a test suite should be displayed on the overview dashboard.
+
+### v0.5.0 - February 18 2025
+
+#### Added
+
+- The ReSim Platform now supports container timeouts, which can be set when creating or updating an experience. The intention is to allow users to specify a timeout for the container that is running the experience. If the container runs longer than this, it will be terminated.
+- The ReSim CLI now supports updating experiences via `experiences update`. An experience can be updated with a new name, description, location, and container timeout.
+
+### v0.4.1 - February 13 2025
+
+#### Added
+
+- The ReSim CLI now shows help when no subcommands are provided.
+
+#### Fixed
+
+- The CLI no longer fails to select a new project if the config file is present.
 
 ### v0.4.0 - January 24 2025
 

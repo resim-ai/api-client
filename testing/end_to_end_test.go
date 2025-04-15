@@ -1214,6 +1214,35 @@ func listExperiencesWithTag(projectID uuid.UUID, tag string) []CommandBuilder {
 	return []CommandBuilder{listExperiencesWithTagCommand, listCommand}
 }
 
+func debugCommand(projectID uuid.UUID, buildID string, experienceName string) []CommandBuilder {
+	debugCommand := CommandBuilder{
+		Command: "debug",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--build",
+				Value: buildID,
+			},
+			{
+				Name:  "--experience",
+				Value: experienceName,
+			},
+			{
+				Name:  "--command",
+				Value: "echo testing",
+			},
+		},
+	}
+
+	// this is used in debug.go to skip setting raw mode
+	os.Setenv("RESIM_TEST", "true")
+
+	return []CommandBuilder{debugCommand}
+}
+
 func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string, experiences []string, experienceTags []string, metricsBuildID string, github bool, parameters map[string]string, account string, batchName *string, allowableFailurePercent *int) []CommandBuilder {
 	// We build a create batch command with the build-id, experience-ids, experience-tag-ids, and experience-tag-names flags
 	// We do not require any specific combination of these flags, and validate in tests that the CLI only allows one of TagIDs or TagNames
@@ -5192,6 +5221,57 @@ func (s *EndToEndTestSuite) TestCancelBatch() {
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestDebug() {
+	// create a project:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// create a system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// create a branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// create a build:
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/ubuntu/ubuntu:24.04_stable", "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	// buildID := uuid.MustParse(buildIDString)
+
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+
+	// create an experience:
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+
+	expectedOutput := "Waiting for debug environment to be ready...\n"
+
+	// run a debug batch:
+	output = s.runCommand(debugCommand(projectID, buildIDString, experienceName), ExpectNoError)
+	s.Contains(output.StdOut, expectedOutput)
+	s.Empty(output.StdErr)
+	s.NotContains(output.StdOut, "error")
+
+	fmt.Println("Output: ", output.StdOut)
 }
 
 func TestEndToEndTestSuite(t *testing.T) {

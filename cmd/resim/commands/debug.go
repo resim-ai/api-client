@@ -30,7 +30,7 @@ import (
 var (
 	debugCmd = &cobra.Command{
 		Use:   "debug",
-		Short: "debug - Launch an interactive debug session. Provide an experience name or ID and a build ID or batch name or ID, and you will be placed into a shell inside a container running the image associated with the build or batch, with the experience data present in /tmp/resim/inputs. Any files you write to /tmp/resim/outputs will be uploaded as log files when you exit the shell.",
+		Short: "Launch an interactive debug session. Provide an experience name or ID and a build ID or batch name or ID, and you will be placed into a shell inside a container running the image associated with the build or batch, with the experience data present in /tmp/resim/inputs. Any files you write to /tmp/resim/outputs will be uploaded as log files when you exit the shell.",
 		Long:  ``,
 		Run:   debug,
 	}
@@ -47,7 +47,7 @@ const (
 func init() {
 	debugCmd.Flags().String(debugProjectKey, "", "The name or ID of the project to associate with the debug session")
 	debugCmd.MarkFlagRequired(debugProjectKey)
-	debugCmd.Flags().String(debugBuildKey, "", "The name or ID of the build to debug")
+	debugCmd.Flags().String(debugBuildKey, "", "The ID of the build to debug")
 	debugCmd.Flags().String(debugBatchKey, "", "The name or ID of the batch to debug")
 	debugCmd.Flags().String(debugExperienceKey, "", "The name or ID of the experience to debug")
 	debugCmd.MarkFlagRequired(debugExperienceKey)
@@ -204,11 +204,14 @@ func debug(ccmd *cobra.Command, args []string) {
 		panic(err)
 	}
 
-	restore, err := enableRawMode(projectID, *debugExperience.BatchID)
-	if err != nil {
-		panic(err)
+	// if we're running in the end-to-end test, we can't enable raw mode
+	if os.Getenv("RESIM_TEST") != "true" {
+		restore, err := enableRawMode(projectID, *debugExperience.BatchID)
+		if err != nil {
+			panic(err)
+		}
+		defer restore()
 	}
-	defer restore()
 
 	stdin, stdout, _ := dockerterm.StdStreams()
 	t.In = stdin

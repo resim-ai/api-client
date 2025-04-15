@@ -8,7 +8,7 @@ Changes in this section will be included in the next release.
 
 ### v0.16.0 - April 16, 2025
 
-- The new `debug` command takes an experience name or ID and a build ID or batch name or ID and launches an interactive session, running your build image with the experience data available in `/tmp/resim/inputs`.
+- The new `debug` command takes an experience name or ID and a build ID or batch name or ID and launches an interactive session, running your build image with the experience data available in `/tmp/resim/inputs`. See the [docs](https://docs.resim.ai/guides/debug) for more information.
 
 ### v0.15.0 - April 10, 2025
 

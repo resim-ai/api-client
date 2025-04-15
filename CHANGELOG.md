@@ -6,6 +6,10 @@
 
 Changes in this section will be included in the next release.
 
+### v0.16.0 - April 16, 2025
+
+- The new `debug` command takes an experience name or ID and a build ID or batch name or ID and launches an interactive session, running your build image with the experience data available in `/tmp/resim/inputs`.
+
 ### v0.15.0 - April 10, 2025
 
 - Build create/update now accepts a `--name` flag to set the build's name. If `--name` is not provided but `--description` is, the description value will be used for the build's name (matching current behavior). The `--description` flag is used to set the build's description when provided alongside `--name`. In a future release, `--name` will become a required parameter and `--description` will no longer be used to set the build's name, but will instead only be used to set its description.

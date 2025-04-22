@@ -197,7 +197,6 @@ type Batch struct {
 	AdhocTestSuite         *bool                   `json:"adhocTestSuite,omitempty"`
 	AssociatedAccount      AssociatedAccount       `json:"associatedAccount"`
 	BatchID                *BatchID                `json:"batchID,omitempty"`
-	BatchMetricsSetName    *MetricsSetName         `json:"batchMetricsSetName"`
 	BatchMetricsStatus     *MetricStatus           `json:"batchMetricsStatus,omitempty"`
 	BatchType              *BatchType              `json:"batchType,omitempty"`
 	BranchID               *BranchID               `json:"branchID,omitempty"`
@@ -207,12 +206,12 @@ type Batch struct {
 	ExecutionError         *ExecutionError         `json:"executionError,omitempty"`
 	ExecutionErrors        *[]ExecutionError       `json:"executionErrors"`
 	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty"`
-	JobMetricsSetName      *MetricsSetName         `json:"jobMetricsSetName"`
 	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
 	JobsMetricsStatus      *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
 	LastUpdatedTimestamp   *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
 	MetricsBuildID         *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName         *MetricsSetName         `json:"metricsSetName"`
 	OrgID                  *OrgID                  `json:"orgID,omitempty"`
 	OverallMetricsStatus   *MetricStatus           `json:"overallMetricsStatus,omitempty"`
 	Parameters             *BatchParameters        `json:"parameters,omitempty"`
@@ -234,7 +233,6 @@ type BatchID = openapi_types.UUID
 type BatchInput struct {
 	AllowableFailurePercent *int                    `json:"allowableFailurePercent"`
 	AssociatedAccount       *AssociatedAccount      `json:"associatedAccount,omitempty"`
-	BatchMetricsSetName     *MetricsSetName         `json:"batchMetricsSetName"`
 	BatchName               *Name                   `json:"batchName,omitempty"`
 	BuildID                 *BuildID                `json:"buildID,omitempty"`
 	ExcludedExperienceIDs   *[]ExcludedExperienceID `json:"excludedExperienceIDs"`
@@ -243,8 +241,8 @@ type BatchInput struct {
 	ExperienceTagIDs        *[]ExperienceTagID      `json:"experienceTagIDs"`
 	ExperienceTagNames      *[]ExperienceTagName    `json:"experienceTagNames"`
 	Filters                 *ExperienceFilterInput  `json:"filters,omitempty"`
-	JobMetricsSetName       *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName          *MetricsSetName         `json:"metricsSetName"`
 	Parameters              *BatchParameters        `json:"parameters,omitempty"`
 	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty"`
 	TriggeredVia            *TriggeredVia           `json:"triggeredVia,omitempty"`
@@ -331,6 +329,14 @@ type BatchStatusHistory = []BatchStatusHistoryType
 type BatchStatusHistoryType struct {
 	Status    *BatchStatus `json:"status,omitempty"`
 	UpdatedAt *Timestamp   `json:"updatedAt,omitempty"`
+}
+
+// BatchSuggestionsOutput defines model for batchSuggestionsOutput.
+type BatchSuggestionsOutput struct {
+	LastPassingOnBranch *Batch `json:"lastPassingOnBranch"`
+	LastPassingOnMain   *Batch `json:"lastPassingOnMain"`
+	LatestOnBranch      *Batch `json:"latestOnBranch"`
+	LatestOnMain        *Batch `json:"latestOnMain"`
 }
 
 // BatchTotalJobs defines model for batchTotalJobs.
@@ -546,13 +552,12 @@ type CreateSystemInput struct {
 // CreateTestSuiteInput defines model for createTestSuiteInput.
 type CreateTestSuiteInput struct {
 	AllExperiences        *bool                   `json:"allExperiences,omitempty"`
-	BatchMetricsSetName   *MetricsSetName         `json:"batchMetricsSetName"`
 	Description           TestSuiteDescription    `json:"description"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           []ExperienceID          `json:"experiences"`
 	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
-	JobMetricsSetName     *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName        *MetricsSetName         `json:"metricsSetName"`
 	Name                  TestSuiteName           `json:"name"`
 	ShowOnSummary         *bool                   `json:"showOnSummary,omitempty"`
 	SummaryReferenceDate  *Timestamp              `json:"summaryReferenceDate,omitempty"`
@@ -905,6 +910,7 @@ type ListJobEventsOutput struct {
 type ListJobLogsOutput struct {
 	Logs          *[]JobLog `json:"logs,omitempty"`
 	NextPageToken *string   `json:"nextPageToken,omitempty"`
+	Total         *int      `json:"total,omitempty"`
 }
 
 // ListJobMetricsDataOutput defines model for listJobMetricsDataOutput.
@@ -1340,13 +1346,12 @@ type RespectRevisionBoundary = bool
 type ReviseTestSuiteInput struct {
 	Adhoc                 *bool                   `json:"adhoc,omitempty"`
 	AllExperiences        *bool                   `json:"allExperiences,omitempty"`
-	BatchMetricsSetName   *MetricsSetName         `json:"batchMetricsSetName"`
 	Description           *TestSuiteDescription   `json:"description,omitempty"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           *[]ExperienceID         `json:"experiences,omitempty"`
 	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
-	JobMetricsSetName     *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName        *MetricsSetName         `json:"metricsSetName"`
 	Name                  *TestSuiteName          `json:"name,omitempty"`
 	ShowOnSummary         *bool                   `json:"show_on_summary,omitempty"`
 	SystemID              *SystemID               `json:"systemID,omitempty"`
@@ -1399,12 +1404,11 @@ type TagID = openapi_types.UUID
 
 // TestSuite defines model for testSuite.
 type TestSuite struct {
-	BatchMetricsSetName  *MetricsSetName      `json:"batchMetricsSetName"`
 	CreationTimestamp    Timestamp            `json:"creationTimestamp"`
 	Description          TestSuiteDescription `json:"description"`
 	Experiences          []ExperienceID       `json:"experiences"`
-	JobMetricsSetName    *MetricsSetName      `json:"jobMetricsSetName"`
 	MetricsBuildID       *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	MetricsSetName       *MetricsSetName      `json:"metricsSetName"`
 	Name                 TestSuiteName        `json:"name"`
 	OrgID                OrgID                `json:"orgID"`
 	ProjectID            ProjectID            `json:"projectID"`
@@ -1708,7 +1712,10 @@ type ListEventsForJobParams struct {
 
 // ListJobLogsForJobParams defines parameters for ListJobLogsForJob.
 type ListJobLogsForJobParams struct {
-	Type      *[]LogType `form:"type,omitempty" json:"type,omitempty"`
+	Type *[]LogType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Name Filter logs by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -2709,6 +2716,9 @@ type ClientInterface interface {
 	// ListBatchMetricsDataForBatchMetricsDataIDs request
 	ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetBatchSuggestions request
+	GetBatchSuggestions(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListBranchesForProject request
 	ListBranchesForProject(ctx context.Context, projectID ProjectID, params *ListBranchesForProjectParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3536,6 +3546,18 @@ func (c *Client) ListBatchMetricsData(ctx context.Context, projectID ProjectID, 
 
 func (c *Client) ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchMetricsDataForBatchMetricsDataIDsRequest(c.Server, projectID, batchID, metricsDataID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBatchSuggestions(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBatchSuggestionsRequest(c.Server, projectID, batchID)
 	if err != nil {
 		return nil, err
 	}
@@ -6258,6 +6280,22 @@ func NewListJobLogsForJobRequest(server string, projectID ProjectID, batchID Bat
 
 		}
 
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -7638,6 +7676,47 @@ func NewListBatchMetricsDataForBatchMetricsDataIDsRequest(server string, project
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBatchSuggestionsRequest generates requests for GetBatchSuggestions
+func NewGetBatchSuggestionsRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/suggestions", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -13140,6 +13219,9 @@ type ClientWithResponsesInterface interface {
 	// ListBatchMetricsDataForBatchMetricsDataIDsWithResponse request
 	ListBatchMetricsDataForBatchMetricsDataIDsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricsDataIDsResponse, error)
 
+	// GetBatchSuggestionsWithResponse request
+	GetBatchSuggestionsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchSuggestionsResponse, error)
+
 	// ListBranchesForProjectWithResponse request
 	ListBranchesForProjectWithResponse(ctx context.Context, projectID ProjectID, params *ListBranchesForProjectParams, reqEditors ...RequestEditorFn) (*ListBranchesForProjectResponse, error)
 
@@ -14274,6 +14356,28 @@ func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBatchSuggestionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BatchSuggestionsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBatchSuggestionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBatchSuggestionsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -16546,6 +16650,15 @@ func (c *ClientWithResponses) ListBatchMetricsDataForBatchMetricsDataIDsWithResp
 	return ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp)
 }
 
+// GetBatchSuggestionsWithResponse request returning *GetBatchSuggestionsResponse
+func (c *ClientWithResponses) GetBatchSuggestionsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchSuggestionsResponse, error) {
+	rsp, err := c.GetBatchSuggestions(ctx, projectID, batchID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBatchSuggestionsResponse(rsp)
+}
+
 // ListBranchesForProjectWithResponse request returning *ListBranchesForProjectResponse
 func (c *ClientWithResponses) ListBranchesForProjectWithResponse(ctx context.Context, projectID ProjectID, params *ListBranchesForProjectParams, reqEditors ...RequestEditorFn) (*ListBranchesForProjectResponse, error) {
 	rsp, err := c.ListBranchesForProject(ctx, projectID, params, reqEditors...)
@@ -18448,6 +18561,32 @@ func ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp *http.Response)
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListBatchMetricsDataOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBatchSuggestionsResponse parses an HTTP response from a GetBatchSuggestionsWithResponse call
+func ParseGetBatchSuggestionsResponse(rsp *http.Response) (*GetBatchSuggestionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBatchSuggestionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BatchSuggestionsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

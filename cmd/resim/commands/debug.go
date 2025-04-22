@@ -63,7 +63,7 @@ func enableRawMode(projectID uuid.UUID, batchID uuid.UUID) (restore func(), err 
 	}
 	return func() {
 		_ = dockerterm.RestoreTerminal(fd, state)
-		fmt.Println("Exiting Debug Session...")
+		fmt.Println("Exiting debug session...")
 		cancelDebugBatch(projectID, batchID)
 	}, nil
 }

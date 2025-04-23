@@ -63,7 +63,7 @@ func enableRawMode(projectID uuid.UUID, batchID uuid.UUID) (restore func(), err 
 	}
 	return func() {
 		_ = dockerterm.RestoreTerminal(fd, state)
-		fmt.Println("Exiting debug session...")
+		fmt.Println("Exiting debug session")
 		cancelDebugBatch(projectID, batchID)
 	}, nil
 }
@@ -233,7 +233,7 @@ func debug(ccmd *cobra.Command, args []string) {
 }
 
 func cancelDebugBatch(projectID uuid.UUID, batchID uuid.UUID) {
-	fmt.Println("Cancelling debug batch...")
+	fmt.Println("Shutting down debug batch")
 	response, err := Client.CancelBatchWithResponse(context.Background(), projectID, batchID)
 	if err != nil {
 		log.Fatal("Unable to cancel batch: ", err)

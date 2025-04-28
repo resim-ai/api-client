@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -120,11 +121,17 @@ func TestParseParameterString(t *testing.T) {
 }
 
 func TestParseBuildSpec(t *testing.T) {
-	buildSpecBytes, err := ParseBuildSpec([]string{"../../../testing/data/test_build_spec.base.yaml", "../../../testing/data/test_build_spec.yaml"})
+	buildSpecBytes, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml")
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpecBytes)
+
+	fmt.Println("First file:")
+	fmt.Println(string(buildSpecBytes))
 
 	buildSpecExpected, err := os.ReadFile("../../../testing/data/test_build_spec_combined.yaml")
 	assert.NoError(t, err)
 	assert.YAMLEq(t, string(buildSpecExpected), string(buildSpecBytes))
+
+	fmt.Println("Expected:")
+	fmt.Println(string(buildSpecExpected))
 }

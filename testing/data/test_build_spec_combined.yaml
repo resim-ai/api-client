@@ -1,38 +1,29 @@
 name: data
-networks:
-    app-network:
-        name: data_app-network
-    default:
-        name: data_default
 services:
-    app:
-        depends_on:
-            database:
-                condition: service_started
-                required: true
-        environment:
-            APP_ENV: development
-            DEBUG: "true"
-        image: app-image:latest
-        networks:
-            app-network: null
-        ports:
-            - mode: ingress
-              protocol: tcp
-              published: "3000"
-              target: 8080
-    baseapp:
-        image: app-image:latest
-        networks:
-            app-network: null
-    database:
-        environment:
-            POSTGRES_DB: appdb
-            POSTGRES_PASSWORD: supersecurepassword
-            POSTGRES_USER: user
-        image: postgres:latest
-        networks:
-            default: null
+  webapp:
+    image: nginx:alpine
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=true   # Merged list example
+    networks:
+      - frontend
+      - backend      # Extended the networks list
+    volumes:
+      - webdata:/usr/share/nginx/html  # Completely replaced original volume mapping
+    ports:
+      - "8080:80"
+
+  worker:
+    image: alpine
+    command: ["sh", "-c", "echo Overridden Worker command"]  # Command completely replaced
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
 volumes:
-    db-data:
-        name: data_db-data
+  webdata:

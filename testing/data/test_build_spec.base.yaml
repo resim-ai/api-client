@@ -1,18 +1,23 @@
 services:
-  baseapp:
-    image: "app-image:latest"
-    networks:
-      - app-network
-
-  database:
-    image: "postgres:latest"
+  webapp:
+    image: nginx:alpine
     environment:
-      POSTGRES_DB: appdb
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: user
+      - ENVIRONMENT=production
+    networks:
+      - frontend
+    volumes:
+      - ./local-html:/usr/share/nginx/html
+    ports:
+      - "8080:80"
 
-volumes:
-  db-data:
+  worker:
+    image: alpine
+    command: ["sh", "-c", "echo Worker running"]
+    networks:
+      - backend
 
 networks:
-  app-network:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge

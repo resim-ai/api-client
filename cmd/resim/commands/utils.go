@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
-	"github.com/spf13/viper"
+	"github.com/compose-spec/compose-go/v2/loader"
 )
 
 // ParseParameterString parses a string in the format "key=value" or "key:value"
@@ -30,15 +30,16 @@ func ParseParameterString(parameterString string) (string, string, error) {
 	return "", "", fmt.Errorf("failed to parse parameter: %s - must be in the format <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>", parameterString)
 }
 
-func ParseBuildSpec(buildSpecLocations []string) ([]byte, error) {
+func ParseBuildSpec(buildSpecLocation string) ([]byte, error) {
 	// We assume that the build spec is a valid YAML file
 	ctx := context.Background()
 
 	options, err := cli.NewProjectOptions(
-		buildSpecLocations,
-		cli.WithOsEnv,
-		cli.WithDotEnv,
-		cli.WithName(viper.GetString(buildSpecNameKey)),
+		[]string{buildSpecLocation},
+		cli.WithLoadOptions(func(options *loader.Options) {
+			options.SkipDefaultValues = true
+		}),
+		cli.WithNormalization(false),
 	)
 	if err != nil {
 		log.Fatal(err)

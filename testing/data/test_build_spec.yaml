@@ -1,16 +1,30 @@
+name: data
 services:
-  app:
+  webapp:
     extends:
-      file: test_build_spec.base.yaml
-      service: baseapp
-    depends_on:
-      - database
+      file: ./test_build_spec.base.yaml
+      service: webapp
     environment:
-      - APP_ENV=development
-      - DEBUG=true
-    ports:
-      - "3000:8080"  # Override default port
+      - DEBUG=true  # This will merge with base environment
+    volumes:
+      - webdata:/usr/share/nginx/html  # Overrides (replaces) the volume mapping from base
+    networks:
+      - frontend
+      - backend  # Extends the network list to add an additional network
 
-  database:
-    environment:
-      POSTGRES_PASSWORD: supersecurepassword  # Override password for dev
+  worker:
+    extends:
+      file: ./test_build_spec.base.yaml
+      service: worker
+    command: ["sh", "-c", "echo Overridden Worker command"]  # This replaces base command entirely
+    networks:
+      - backend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
+
+volumes:
+  webdata:

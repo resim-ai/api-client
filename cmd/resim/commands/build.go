@@ -82,8 +82,7 @@ func init() {
 	createBuildCmd.Flags().Bool(buildGithubKey, false, "Whether to output format in github action friendly format")
 	createBuildCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
-	createBuildCmd.Flags().StringSlice(buildSpecKey, []string{}, "Paths to files containing build specs")
-	createBuildCmd.Flags().String(buildSpecNameKey, "", "The name of the build spec")
+	createBuildCmd.Flags().String(buildSpecKey, "", "Paths to main compose file (may use extends)")
 	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildSpecKey)
 
 	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
@@ -104,8 +103,7 @@ func init() {
 	getBuildCmd.MarkFlagRequired(buildProjectKey)
 	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
 	getBuildCmd.MarkFlagRequired(buildBuildIDKey)
-	getBuildCmd.Flags().Bool(buildShowBuildSpecKey, false, "Print the build spec only.")
-
+	getBuildCmd.Flags().Bool(buildShowBuildSpecKey, false, "Print the build spec only, formatted as YAML.")
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
 	buildCmd.AddCommand(updateBuildCmd)
@@ -245,20 +243,12 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	inputBuildImageURI := viper.GetString(buildImageURIKey)
 	var buildImageURI *string = nil
 
-	buildSpecLocations := viper.GetStringSlice(buildSpecKey)
+	buildSpecLocation := viper.GetString(buildSpecKey)
 	var buildSpec *[]byte = nil
 
 	// Check that at least one of image URI or build spec is provided
-	if inputBuildImageURI == "" && len(buildSpecLocations) == 0 {
+	if inputBuildImageURI == "" && buildSpecLocation != "" {
 		log.Fatal("either --build-spec or --image is required")
-	}
-
-	// Check that the required flag is present when using build-spec
-	if len(buildSpecLocations) > 0 && inputBuildImageURI == "" {
-		// Replace YOUR_REQUIRED_FLAG with the flag name that should be required
-		if viper.GetString(buildSpecNameKey) == "" {
-			log.Fatal("--build-spec-name is required when using --build-spec")
-		}
 	}
 
 	if inputBuildImageURI != "" {
@@ -271,8 +261,8 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		buildImageURI = Ptr(inputBuildImageURI)
 	}
 
-	if len(buildSpecLocations) > 0 {
-		buildSpecBytes, err := ParseBuildSpec(buildSpecLocations)
+	if buildSpecLocation != "" {
+		buildSpecBytes, err := ParseBuildSpec(buildSpecLocation)
 		if err != nil {
 			log.Fatal("failed to parse build spec:", err)
 		}

@@ -120,7 +120,7 @@ func listProjects(ccmd *cobra.Command, args []string) {
 	// This command does not have a project flag, so viper must be injecting it from the config
 	defaultProjectUuid, _ := uuid.Parse(viper.GetString(projectKey))
 	for _, project := range allProjects {
-		var isActive string = ""
+		var isActive string
 		if project.ProjectID == defaultProjectUuid {
 			isActive = "*"
 		} else {

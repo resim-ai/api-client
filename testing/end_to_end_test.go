@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	compose_types "github.com/compose-spec/compose-go/v2/types"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/cmd/resim/commands"
@@ -831,10 +832,6 @@ func createBuild(projectName string, branchName string, systemName string, descr
 				Value: buildSpecLocation,
 			})
 		}
-		createCommand.Flags = append(createCommand.Flags, Flag{
-			Name:  "--build-spec-name",
-			Value: "test-name",
-		})
 	}
 	if image != "" {
 		createCommand.Flags = append(createCommand.Flags, Flag{
@@ -2849,7 +2846,7 @@ func (s *EndToEndTestSuite) TestBuildCreateWithBuildSpec() {
 	// Now create a build using the image URI:
 	originalBuildDescription := "description"
 	// Now create a build using the build spec:
-	output = s.runCommand(createBuild(projectName, branchName, systemName, originalBuildDescription, "", []string{"./data/test_build_spec.yaml", "./data/test_build_spec.base.yaml"}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(createBuild(projectName, branchName, systemName, originalBuildDescription, "", []string{"./data/test_build_spec.yaml"}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	buildID := uuid.MustParse(buildIDString)
 	s.verifyBuild(projectID, branchName, branchID, systemName, systemID, systemIDString, branchIDString, buildIDString, "1.0.0")
@@ -2871,6 +2868,16 @@ func (s *EndToEndTestSuite) TestBuildCreateWithBuildSpec() {
 	s.Equal(updatedBranchID, build.BranchID)
 	s.Equal(originalBuildDescription, build.Description)
 	s.Empty(output.StdErr)
+
+	// Verify some details of the constructed+retrieved build spec:
+	var buildSpec compose_types.Project
+	err = yaml.Unmarshal([]byte(build.BuildSpecification), &buildSpec)
+	s.NoError(err)
+	s.Len(buildSpec.Services, 4)
+	systemService := buildSpec.Services["system"]
+	s.Len(systemService.Environment, 2) // One environment variable comes from the top level file, the other comes from the `extends` definition
+	s.Equal(buildSpec.Services["orchestrator"].Image, buildSpec.Services["command-orchestrator"].Image)
+	s.NotEqual(buildSpec.Services["orchestrator"].Image, buildSpec.Services["system"].Image)
 
 	updatedBuildDescription := "updated description"
 	output = s.runCommand(updateBuild(projectIDString, buildID, nil, Ptr(updatedBuildDescription)), ExpectNoError)

@@ -1,23 +1,22 @@
 services:
-  webapp:
-    image: nginx:alpine
-    environment:
-      - ENVIRONMENT=production
-    networks:
-      - frontend
+  system:
+    image: 909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-system:latest
     volumes:
-      - ./local-html:/usr/share/nginx/html
-    ports:
-      - "8080:80"
+      - target: /tmp
+        source: mcb-tmp
+        type: volume
+    network_mode: host
+    environment:
+      - SERVER_PORT=1234
 
-  worker:
-    image: alpine
-    command: ["sh", "-c", "echo Worker running"]
-    networks:
-      - backend
-
-networks:
-  frontend:
-    driver: bridge
-  backend:
-    driver: bridge
+  orchestrator:
+    image: 909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-orchestrator:latest
+    depends_on:
+      - system
+    volumes:
+      - target: /tmp
+        source: mcb-tmp
+        type: volume
+    network_mode: host
+    environment:
+      - SERVER_PORT=1234

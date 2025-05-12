@@ -50,11 +50,10 @@ func ParseBuildSpec(buildSpecLocation string) ([]byte, error) {
 		log.Fatal(err)
 	}
 
-	// Use the MarshalYAML method to get YAML representation
-	projectYAML, err := project.MarshalYAML()
+	projectJSON, err := project.MarshalJSON()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return projectYAML, nil
+	return projectJSON, nil
 }

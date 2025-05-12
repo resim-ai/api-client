@@ -128,7 +128,7 @@ func TestParseBuildSpec(t *testing.T) {
 	fmt.Println("First file:")
 	fmt.Println(string(buildSpecBytes))
 
-	buildSpecExpected, err := os.ReadFile("../../../testing/data/test_build_spec_combined.yaml")
+	buildSpecExpected, err := os.ReadFile("../../../testing/data/test_build_spec_combined.json")
 	assert.NoError(t, err)
 	assert.YAMLEq(t, string(buildSpecExpected), string(buildSpecBytes))
 

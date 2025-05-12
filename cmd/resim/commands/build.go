@@ -63,7 +63,6 @@ const (
 	buildAutoCreateBranchKey = "auto-create-branch"
 	buildGithubKey           = "github"
 	buildSpecKey             = "build-spec"
-	buildSpecNameKey         = "build-spec-name"
 	buildShowBuildSpecKey    = "show-build-spec-only"
 )
 
@@ -247,7 +246,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	var buildSpec *[]byte = nil
 
 	// Check that at least one of image URI or build spec is provided
-	if inputBuildImageURI == "" && buildSpecLocation != "" {
+	if inputBuildImageURI == "" && buildSpecLocation == "" {
 		log.Fatal("either --build-spec or --image is required")
 	}
 

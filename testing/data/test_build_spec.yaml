@@ -1,30 +1,28 @@
-name: data
 services:
-  webapp:
+  system:
     extends:
       file: ./test_build_spec.base.yaml
-      service: webapp
+      service: system
     environment:
-      - DEBUG=true  # This will merge with base environment
-    volumes:
-      - webdata:/usr/share/nginx/html  # Overrides (replaces) the volume mapping from base
-    networks:
-      - frontend
-      - backend  # Extends the network list to add an additional network
+      - DEBUG=true
 
-  worker:
+  orchestrator:
     extends:
       file: ./test_build_spec.base.yaml
-      service: worker
-    command: ["sh", "-c", "echo Overridden Worker command"]  # This replaces base command entirely
-    networks:
-      - backend
+      service: orchestrator
 
-networks:
-  frontend:
-    driver: bridge
-  backend:
-    driver: bridge
+  command-orchestrator:
+    extends:
+      file: ./test_build_spec.base.yaml
+      service: orchestrator
+    command: [/run_orchestrator, --client-type, socket]
+
+  entrypoint-orchestrator:
+    extends:
+      file: ./test_build_spec.base.yaml
+      service: orchestrator
+    entrypoint: [/run_orchestrator, --client-type, none]
 
 volumes:
-  webdata:
+  mcb-tmp:
+    name: mcb-tmp

@@ -8,6 +8,8 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/loader"
+	"github.com/resim-ai/api-client/api"
+	"github.com/spf13/viper"
 )
 
 // ParseParameterString parses a string in the format "key=value" or "key:value"
@@ -56,4 +58,18 @@ func ParseBuildSpec(buildSpecLocation string) ([]byte, error) {
 	}
 
 	return projectJSON, nil
+}
+
+func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
+	poolLabels := []api.PoolLabel{}
+	if viper.IsSet(poolLabelsKey) {
+		poolLabels = viper.GetStringSlice(poolLabelsKey)
+	}
+	for i := range poolLabels {
+		poolLabels[i] = strings.TrimSpace(poolLabels[i])
+		if poolLabels[i] == "resim" {
+			log.Fatal("failed to run command: resim is a reserved pool label")
+		}
+	}
+	return poolLabels
 }

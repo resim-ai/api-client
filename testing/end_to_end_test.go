@@ -140,16 +140,17 @@ const (
 	SystemAlreadyRegistered   string = "it may already be registered"
 	SystemAlreadyDeregistered string = "it may not be registered"
 	// Build Messages
-	CreatedBuild          string = "Created build"
-	GithubCreatedBuild    string = "build_id="
-	EmptyBuildDescription string = "empty build description"
+	CreatedBuild                string = "Created build"
+	GithubCreatedBuild          string = "build_id="
+	EmptyBuildName              string = "empty build name"
+	EmptyBuildDescription       string = "empty build description"
 	EmptyBuildSpecAndBuildImage string = "either --build-spec or --image is required"
-	InvalidBuildImage     string = "failed to parse the image URI"
-	EmptyBuildVersion     string = "empty build version"
-	EmptySystem           string = "system not supplied"
-	SystemDoesNotExist    string = "failed to find system"
-	BranchNotExist        string = "Branch does not exist"
-	UpdatedBuild          string = "Updated build"
+	InvalidBuildImage           string = "failed to parse the image URI"
+	EmptyBuildVersion           string = "empty build version"
+	EmptySystem                 string = "system not supplied"
+	SystemDoesNotExist          string = "failed to find system"
+	BranchNotExist              string = "Branch does not exist"
+	UpdatedBuild                string = "Updated build"
 	// Metrics Build Messages
 	CreatedMetricsBuild       string = "Created metrics build"
 	GithubCreatedMetricsBuild string = "metrics_build_id="
@@ -305,6 +306,19 @@ func (s *EndToEndTestSuite) runCommand(commandBuilders []CommandBuilder, expectE
 		StdOut: stdout.String(),
 		StdErr: stderr.String(),
 	}
+}
+
+func syncMetrics(verbose bool) []CommandBuilder {
+	metricsCommand := CommandBuilder{Command: "metrics"}
+
+	flags := []Flag{}
+	if verbose {
+		flags = append(flags, Flag{Name: "--verbose"})
+	}
+
+	syncCommand := CommandBuilder{Command: "sync", Flags: flags}
+
+	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
 func createProject(projectName string, description string, github bool) []CommandBuilder {
@@ -1219,6 +1233,35 @@ func listExperiencesWithTag(projectID uuid.UUID, tag string) []CommandBuilder {
 	return []CommandBuilder{listExperiencesWithTagCommand, listCommand}
 }
 
+func debugCommand(projectID uuid.UUID, buildID string, experienceName string) []CommandBuilder {
+	debugCommand := CommandBuilder{
+		Command: "debug",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--build",
+				Value: buildID,
+			},
+			{
+				Name:  "--experience",
+				Value: experienceName,
+			},
+			{
+				Name:  "--command",
+				Value: "echo testing",
+			},
+		},
+	}
+
+	// this is used in debug.go to skip setting raw mode
+	os.Setenv("RESIM_TEST", "true")
+
+	return []CommandBuilder{debugCommand}
+}
+
 func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, experienceTagIDs []string, experienceTagNames []string, experiences []string, experienceTags []string, metricsBuildID string, github bool, parameters map[string]string, account string, batchName *string, allowableFailurePercent *int) []CommandBuilder {
 	// We build a create batch command with the build-id, experience-ids, experience-tag-ids, and experience-tag-names flags
 	// We do not require any specific combination of these flags, and validate in tests that the CLI only allows one of TagIDs or TagNames
@@ -1618,7 +1661,7 @@ func listLogs(projectID uuid.UUID, batchID string, testID string) []CommandBuild
 	return []CommandBuilder{logCommand, listCommand}
 }
 
-func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string) []CommandBuilder {
+func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir string, files []string) []CommandBuilder {
 	logCommand := CommandBuilder{
 		Command: "log",
 	}
@@ -1642,6 +1685,13 @@ func downloadLogs(projectID uuid.UUID, batchID string, testID string, outputDir 
 				Value: outputDir,
 			},
 		},
+	}
+	if len(files) > 0 {
+		filesString := strings.Join(files, ",")
+		downloadCommand.Flags = append(downloadCommand.Flags, Flag{
+			Name:  "--files",
+			Value: filesString,
+		})
 	}
 	return []CommandBuilder{logCommand, downloadCommand}
 }
@@ -2765,7 +2815,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 
 	// Verify that each of the required flags are required:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "", "public.ecr.aws/docker/library/hello-world:latest", []string{}, "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyBuildDescription)
+	s.Contains(output.StdErr, EmptyBuildName)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "", []string{}, "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, EmptyBuildSpecAndBuildImage)
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "blah", []string{"./data/test_build_spec.yaml"}, "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
@@ -2781,7 +2831,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 	// Validate the image URI is required to be valid and have a tag:
 	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world", []string{}, "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectError)
 	s.Contains(output.StdErr, InvalidBuildImage)
-	
+
 	// Update the branch id:
 	secondBranchName := fmt.Sprintf("updated-branch-%s", uuid.New().String())
 	output = s.runCommand(createBranch(projectID, secondBranchName, "RELEASE", GithubTrue), ExpectNoError)
@@ -3445,30 +3495,34 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	output = s.runCommand(getBatchJobsByName(projectID, "does not exist"), ExpectError)
 	s.Contains(output.StdErr, InvalidBatchName)
 
-	// List logs:
+	// List test logs:
 	output = s.runCommand(listLogs(projectID, batchIDString, testID2.String()), ExpectNoError)
 	// Marshal into a struct:
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 8)
+	s.Len(logs, 7)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs.zip", "file.name", "parameters.json"}, *log.FileName)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name"}, *log.FileName)
 	}
 
-	// Download the logs:
+	// Download a single test log
 	tempDir, err := os.MkdirTemp("", "test-logs")
 	s.NoError(err)
-	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir), ExpectNoError)
-	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 logs to %s", tempDir))
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{"file.name"}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 1 log(s) to %s", tempDir))
+
+	// Download all test logs:
+	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 7 log(s) to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)
 	s.NoError(err)
-	s.Len(files, 8)
+	s.Len(files, 7)
 	for _, file := range files {
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "metrics.binproto", "logs", "file.name", "parameters.json"}, file.Name())
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:
@@ -4171,6 +4225,10 @@ func (s *EndToEndTestSuite) TestAliases() {
 				Value: systemName,
 			},
 			{
+				Name:  "--name",
+				Value: "build-name",
+			},
+			{
 				Name:  "--description",
 				Value: "description",
 			},
@@ -4184,9 +4242,11 @@ func (s *EndToEndTestSuite) TestAliases() {
 			},
 		},
 	}
+
 	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithNamesCommand}, ExpectNoError)
-	s.Empty(output.StdErr)
+	s.Contains(output.StdErr, "Warning: Using 'description' to set the build name is deprecated. In the future, 'description' will only set the build's description. Please use --name instead.")
 	s.Contains(output.StdOut, CreatedBuild)
+
 	// Now try to create using the id for projects:
 	output = s.runCommand([]CommandBuilder{buildCommand, createBuildWithIDCommand}, ExpectNoError)
 	s.Empty(output.StdErr)
@@ -5087,6 +5147,60 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	s.Equal(2, len(jobs))
 }
 
+func (s *EndToEndTestSuite) TestMetricsSync() {
+	s.Run("NoConfigFiles", func() {
+		output := s.runCommand(syncMetrics(true), true)
+
+		s.Contains(output.StdErr, "failed to find ReSim metrics config")
+	})
+
+	s.Run("SyncsMetricsConfig", func() {
+		os.RemoveAll(".resim") // Cleanup old folder just in case
+
+		err := os.Mkdir(".resim", 0755)
+		s.Require().NoError(err)
+		defer os.RemoveAll(".resim")
+		err = os.Mkdir(".resim/metrics", 0755)
+		s.Require().NoError(err)
+		err = os.Mkdir(".resim/metrics/templates", 0755)
+		s.Require().NoError(err)
+
+		// strings.Join is ugly but using backticks `` is a mess with getting indentation correct
+		metricsFile := strings.Join([]string{
+			"version: 1",
+			"topics:",
+			"  ok:",
+			"    schema:",
+			"      speed: float",
+			"metrics:",
+			"  Average Speed:",
+			"    query_string: SELECT AVG(speed) FROM speed WHERE job_id=$job_id",
+			"    template_type: system",
+			"    template: line",
+			"metrics sets:",
+			"  woot:",
+			"    metrics:",
+			"      - Average Speed",
+		}, "\n")
+		err = os.WriteFile(".resim/metrics/config.yml", []byte(metricsFile), 0644)
+		s.Require().NoError(err)
+		err = os.WriteFile(".resim/metrics/templates/bar.json.heex", []byte("{}"), 0644)
+		s.Require().NoError(err)
+
+		// Standard behavior is exit 0 with no output
+		output := s.runCommand(syncMetrics(false), false)
+		s.Equal("", output.StdOut)
+		s.Equal("", output.StdErr)
+
+		// Verbose logs a lot of info about what it is doing
+		output = s.runCommand(syncMetrics(true), false)
+		s.Equal("", output.StdErr)
+		s.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
+		s.Contains(output.StdOut, "Found template bar.json.heex")
+		s.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
+	})
+}
+
 func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {
 	cmd := s.buildCommand(getBatchByID(projectID, batchID.String(), ExitStatusTrue))
 	var stdout, stderr bytes.Buffer
@@ -5211,6 +5325,57 @@ func (s *EndToEndTestSuite) TestCancelBatch() {
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestDebug() {
+	// create a project:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// create a system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// create a branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// create a build:
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/ubuntu/ubuntu:24.04_stable", []string{}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	// buildID := uuid.MustParse(buildIDString)
+
+	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+
+	// create an experience:
+	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+
+	expectedOutput := "Waiting for debug environment to be ready...\n"
+
+	// run a debug batch:
+	output = s.runCommand(debugCommand(projectID, buildIDString, experienceName), ExpectNoError)
+	s.Contains(output.StdOut, expectedOutput)
+	s.Empty(output.StdErr)
+	s.NotContains(output.StdOut, "error")
+
+	fmt.Println("Output: ", output.StdOut)
 }
 
 func TestEndToEndTestSuite(t *testing.T) {

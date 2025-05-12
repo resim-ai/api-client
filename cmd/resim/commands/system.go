@@ -112,6 +112,7 @@ func init() {
 	updateSystemCmd.Flags().String(systemProjectKey, "", "The name or ID of the project the system belongs to")
 	updateSystemCmd.MarkFlagRequired(systemProjectKey)
 	updateSystemCmd.Flags().String(systemKey, "", "The name or ID of the system to update")
+	updateSystemCmd.MarkFlagRequired(systemKey)
 	updateSystemCmd.Flags().String(systemNameKey, "", "New value for the system name")
 	updateSystemCmd.Flags().String(systemDescriptionKey, "", "New value for the description of the system")
 	updateSystemCmd.Flags().Int(systemBuildVCPUsKey, DefaultCPUs, "New value for the number of vCPUs required to execute the build")

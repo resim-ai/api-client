@@ -93,6 +93,7 @@ const (
 const (
 	ARCHIVELOG       LogType = "ARCHIVE_LOG"
 	CONTAINERLOG     LogType = "CONTAINER_LOG"
+	EMISSIONSLOG     LogType = "EMISSIONS_LOG"
 	ERRORLOG         LogType = "ERROR_LOG"
 	EXECUTIONLOG     LogType = "EXECUTION_LOG"
 	FOXGLOVEMCAPLOG  LogType = "FOXGLOVE_MCAP_LOG"
@@ -169,6 +170,12 @@ const (
 	ListExperienceTagsParamsOrderByTimestamp ListExperienceTagsParamsOrderBy = "timestamp"
 )
 
+// Defines values for ListExperiencesWithExperienceTagParamsArchived.
+const (
+	False ListExperiencesWithExperienceTagParamsArchived = "false"
+	True  ListExperiencesWithExperienceTagParamsArchived = "true"
+)
+
 // AddSuitesToExperiencesInput defines model for addSuitesToExperiencesInput.
 type AddSuitesToExperiencesInput struct {
 	AllExperiences *bool                  `json:"allExperiences,omitempty"`
@@ -193,37 +200,37 @@ type AssociatedAccount = string
 
 // Batch defines model for batch.
 type Batch struct {
-	AdhocTestSuite         *bool                   `json:"adhocTestSuite,omitempty"`
-	AssociatedAccount      AssociatedAccount       `json:"associatedAccount"`
-	BatchID                *BatchID                `json:"batchID,omitempty"`
-	BatchMetricsSetName    *MetricsSetName         `json:"batchMetricsSetName"`
-	BatchMetricsStatus     *MetricStatus           `json:"batchMetricsStatus,omitempty"`
-	BatchType              *BatchType              `json:"batchType,omitempty"`
-	BranchID               *BranchID               `json:"branchID,omitempty"`
-	BuildID                *BuildID                `json:"buildID,omitempty"`
-	CreationTimestamp      *Timestamp              `json:"creationTimestamp,omitempty"`
-	Description            *string                 `json:"description,omitempty"`
-	ExecutionError         *ExecutionError         `json:"executionError,omitempty"`
-	ExecutionErrors        *[]ExecutionError       `json:"executionErrors"`
-	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty"`
-	JobMetricsSetName      *MetricsSetName         `json:"jobMetricsSetName"`
-	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
-	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
-	JobsMetricsStatus      *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
-	LastUpdatedTimestamp   *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
-	MetricsBuildID         *MetricsBuildID         `json:"metricsBuildID,omitempty"`
-	OrgID                  *OrgID                  `json:"orgID,omitempty"`
-	OverallMetricsStatus   *MetricStatus           `json:"overallMetricsStatus,omitempty"`
-	Parameters             *BatchParameters        `json:"parameters,omitempty"`
-	PoolLabels             *PoolLabels             `json:"poolLabels,omitempty"`
-	ProjectID              *ProjectID              `json:"projectID,omitempty"`
-	Status                 *BatchStatus            `json:"status,omitempty"`
-	StatusHistory          *BatchStatusHistory     `json:"statusHistory,omitempty"`
-	SystemID               *SystemID               `json:"systemID,omitempty"`
-	TestSuiteID            *TestSuiteID            `json:"testSuiteID,omitempty"`
-	TestSuiteRevision      *TestSuiteRevision      `json:"testSuiteRevision,omitempty"`
-	TotalJobs              *BatchTotalJobs         `json:"totalJobs,omitempty"`
-	UserID                 *UserID                 `json:"userID,omitempty"`
+	AdhocTestSuite          *bool                   `json:"adhocTestSuite,omitempty"`
+	AllowableFailurePercent *int                    `json:"allowable_failure_percent,omitempty"`
+	AssociatedAccount       AssociatedAccount       `json:"associatedAccount"`
+	BatchID                 *BatchID                `json:"batchID,omitempty"`
+	BatchMetricsStatus      *MetricStatus           `json:"batchMetricsStatus,omitempty"`
+	BatchType               *BatchType              `json:"batchType,omitempty"`
+	BranchID                *BranchID               `json:"branchID,omitempty"`
+	BuildID                 *BuildID                `json:"buildID,omitempty"`
+	CreationTimestamp       *Timestamp              `json:"creationTimestamp,omitempty"`
+	Description             *string                 `json:"description,omitempty"`
+	ExecutionError          *ExecutionError         `json:"executionError,omitempty"`
+	ExecutionErrors         *[]ExecutionError       `json:"executionErrors"`
+	FriendlyName            *FriendlyName           `json:"friendlyName,omitempty"`
+	JobMetricsStatusCounts  *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
+	JobStatusCounts         *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
+	JobsMetricsStatus       *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
+	LastUpdatedTimestamp    *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
+	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName          *MetricsSetName         `json:"metricsSetName"`
+	OrgID                   *OrgID                  `json:"orgID,omitempty"`
+	OverallMetricsStatus    *MetricStatus           `json:"overallMetricsStatus,omitempty"`
+	Parameters              *BatchParameters        `json:"parameters,omitempty"`
+	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty"`
+	ProjectID               *ProjectID              `json:"projectID,omitempty"`
+	Status                  *BatchStatus            `json:"status,omitempty"`
+	StatusHistory           *BatchStatusHistory     `json:"statusHistory,omitempty"`
+	SystemID                *SystemID               `json:"systemID,omitempty"`
+	TestSuiteID             *TestSuiteID            `json:"testSuiteID,omitempty"`
+	TestSuiteRevision       *TestSuiteRevision      `json:"testSuiteRevision,omitempty"`
+	TotalJobs               *BatchTotalJobs         `json:"totalJobs,omitempty"`
+	UserID                  *UserID                 `json:"userID,omitempty"`
 }
 
 // BatchID defines model for batchID.
@@ -233,7 +240,6 @@ type BatchID = openapi_types.UUID
 type BatchInput struct {
 	AllowableFailurePercent *int                    `json:"allowableFailurePercent"`
 	AssociatedAccount       *AssociatedAccount      `json:"associatedAccount,omitempty"`
-	BatchMetricsSetName     *MetricsSetName         `json:"batchMetricsSetName"`
 	BatchName               *Name                   `json:"batchName,omitempty"`
 	BuildID                 *BuildID                `json:"buildID,omitempty"`
 	ExcludedExperienceIDs   *[]ExcludedExperienceID `json:"excludedExperienceIDs"`
@@ -242,8 +248,8 @@ type BatchInput struct {
 	ExperienceTagIDs        *[]ExperienceTagID      `json:"experienceTagIDs"`
 	ExperienceTagNames      *[]ExperienceTagName    `json:"experienceTagNames"`
 	Filters                 *ExperienceFilterInput  `json:"filters,omitempty"`
-	JobMetricsSetName       *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName          *MetricsSetName         `json:"metricsSetName"`
 	Parameters              *BatchParameters        `json:"parameters,omitempty"`
 	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty"`
 	TriggeredVia            *TriggeredVia           `json:"triggeredVia,omitempty"`
@@ -332,6 +338,14 @@ type BatchStatusHistoryType struct {
 	UpdatedAt *Timestamp   `json:"updatedAt,omitempty"`
 }
 
+// BatchSuggestionsOutput defines model for batchSuggestionsOutput.
+type BatchSuggestionsOutput struct {
+	LastPassingOnBranch *Batch `json:"lastPassingOnBranch"`
+	LastPassingOnMain   *Batch `json:"lastPassingOnMain"`
+	LatestOnBranch      *Batch `json:"latestOnBranch"`
+	LatestOnMain        *Batch `json:"latestOnMain"`
+}
+
 // BatchTotalJobs defines model for batchTotalJobs.
 type BatchTotalJobs = int
 
@@ -364,16 +378,26 @@ type Build struct {
 	// BuildSpecification Build spec in YAML format.
 	BuildSpecification BuildSpecificationOutput `json:"buildSpecification"`
 	CreationTimestamp  Timestamp                `json:"creationTimestamp"`
-	Description        BuildDescription         `json:"description"`
-	ImageUri           BuildImageUri            `json:"imageUri"`
-	OrgID              OrgID                    `json:"orgID"`
-	ProjectID          ProjectID                `json:"projectID"`
-	SystemID           SystemID                 `json:"systemID"`
-	UserID             UserID                   `json:"userID"`
-	Version            BuildVersion             `json:"version"`
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description BuildDescription `json:"description"`
+	ImageUri    BuildImageUri    `json:"imageUri"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription BuildLongDescription `json:"longDescription"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name      BuildName    `json:"name"`
+	OrgID     OrgID        `json:"orgID"`
+	ProjectID ProjectID    `json:"projectID"`
+	SystemID  SystemID     `json:"systemID"`
+	UserID    UserID       `json:"userID"`
+	Version   BuildVersion `json:"version"`
 }
 
-// BuildDescription defines model for buildDescription.
+// BuildDescription [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
 type BuildDescription = string
 
 // BuildID defines model for buildID.
@@ -381,6 +405,12 @@ type BuildID = openapi_types.UUID
 
 // BuildImageUri defines model for buildImageUri.
 type BuildImageUri = string
+
+// BuildLongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+type BuildLongDescription = string
+
+// BuildName The name of the build. This replaces the previous usage of 'description'.
+type BuildName = string
 
 // BuildSpecificationInput defines model for buildSpecificationInput.
 type BuildSpecificationInput = []byte
@@ -434,11 +464,21 @@ type CreateBranchInput struct {
 type CreateBuildForBranchInput struct {
 	AssociatedAccount  *AssociatedAccount       `json:"associatedAccount,omitempty"`
 	BuildSpecification *BuildSpecificationInput `json:"buildSpecification,omitempty"`
-	Description        *BuildDescription        `json:"description,omitempty"`
-	ImageUri           *BuildImageUri           `json:"imageUri,omitempty"`
-	SystemID           SystemID                 `json:"systemID"`
-	Version            BuildVersion             `json:"version"`
-	union              json.RawMessage
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description *BuildDescription `json:"description,omitempty"`
+	ImageUri    *BuildImageUri    `json:"imageUri,omitempty"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name     *BuildName   `json:"name,omitempty"`
+	SystemID SystemID     `json:"systemID"`
+	Version  BuildVersion `json:"version"`
+	union    json.RawMessage
 }
 
 // CreateBuildForBranchInput0 defines model for .
@@ -452,11 +492,21 @@ type CreateBuildForSystemInput struct {
 	AssociatedAccount  *AssociatedAccount       `json:"associatedAccount,omitempty"`
 	BranchID           BranchID                 `json:"branchID"`
 	BuildSpecification *BuildSpecificationInput `json:"buildSpecification,omitempty"`
-	Description        *BuildDescription        `json:"description,omitempty"`
-	ImageUri           *BuildImageUri           `json:"imageUri,omitempty"`
-	TriggeredVia       *TriggeredVia            `json:"triggeredVia,omitempty"`
-	Version            BuildVersion             `json:"version"`
-	union              json.RawMessage
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description *BuildDescription `json:"description,omitempty"`
+	ImageUri    *BuildImageUri    `json:"imageUri,omitempty"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name         *BuildName    `json:"name,omitempty"`
+	TriggeredVia *TriggeredVia `json:"triggeredVia,omitempty"`
+	Version      BuildVersion  `json:"version"`
+	union        json.RawMessage
 }
 
 // CreateBuildForSystemInput0 defines model for .
@@ -509,13 +559,12 @@ type CreateSystemInput struct {
 // CreateTestSuiteInput defines model for createTestSuiteInput.
 type CreateTestSuiteInput struct {
 	AllExperiences        *bool                   `json:"allExperiences,omitempty"`
-	BatchMetricsSetName   *MetricsSetName         `json:"batchMetricsSetName"`
 	Description           TestSuiteDescription    `json:"description"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           []ExperienceID          `json:"experiences"`
 	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
-	JobMetricsSetName     *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName        *MetricsSetName         `json:"metricsSetName"`
 	Name                  TestSuiteName           `json:"name"`
 	ShowOnSummary         *bool                   `json:"showOnSummary,omitempty"`
 	SummaryReferenceDate  *Timestamp              `json:"summaryReferenceDate,omitempty"`
@@ -554,13 +603,16 @@ type Event struct {
 	MetricsIDs        []MetricID         `json:"metricsIDs"`
 	Name              string             `json:"name"`
 	Status            MetricStatus       `json:"status"`
-	Tags              []string           `json:"tags"`
+	Tags              EventTags          `json:"tags"`
 	Timestamp         Timestamp          `json:"timestamp"`
 	TimestampType     EventTimestampType `json:"timestampType"`
 }
 
 // EventID defines model for eventID.
 type EventID = openapi_types.UUID
+
+// EventTags defines model for eventTags.
+type EventTags = []string
 
 // EventTimestampType defines model for eventTimestampType.
 type EventTimestampType string
@@ -582,6 +634,7 @@ type ExecutionStep string
 
 // Experience defines model for experience.
 type Experience struct {
+	Archived                bool           `json:"archived"`
 	ContainerTimeoutSeconds int32          `json:"containerTimeoutSeconds"`
 	CreationTimestamp       Timestamp      `json:"creationTimestamp"`
 	Description             string         `json:"description"`
@@ -858,6 +911,12 @@ type ListExperiencesOutput struct {
 	Total         *int          `json:"total,omitempty"`
 }
 
+// ListJobEventTagsOutput defines model for listJobEventTagsOutput.
+type ListJobEventTagsOutput struct {
+	EventTags     *[]string `json:"eventTags,omitempty"`
+	NextPageToken *string   `json:"nextPageToken,omitempty"`
+}
+
 // ListJobEventsOutput defines model for listJobEventsOutput.
 type ListJobEventsOutput struct {
 	Events        *[]Event `json:"events,omitempty"`
@@ -868,6 +927,7 @@ type ListJobEventsOutput struct {
 type ListJobLogsOutput struct {
 	Logs          *[]JobLog `json:"logs,omitempty"`
 	NextPageToken *string   `json:"nextPageToken,omitempty"`
+	Total         *int      `json:"total,omitempty"`
 }
 
 // ListJobMetricsDataOutput defines model for listJobMetricsDataOutput.
@@ -1303,13 +1363,12 @@ type RespectRevisionBoundary = bool
 type ReviseTestSuiteInput struct {
 	Adhoc                 *bool                   `json:"adhoc,omitempty"`
 	AllExperiences        *bool                   `json:"allExperiences,omitempty"`
-	BatchMetricsSetName   *MetricsSetName         `json:"batchMetricsSetName"`
 	Description           *TestSuiteDescription   `json:"description,omitempty"`
 	ExcludedExperienceIDs *[]ExcludedExperienceID `json:"excludedExperienceIDs,omitempty"`
 	Experiences           *[]ExperienceID         `json:"experiences,omitempty"`
 	Filters               *ExperienceFilterInput  `json:"filters,omitempty"`
-	JobMetricsSetName     *MetricsSetName         `json:"jobMetricsSetName"`
 	MetricsBuildID        *MetricsBuildID         `json:"metricsBuildID,omitempty"`
+	MetricsSetName        *MetricsSetName         `json:"metricsSetName"`
 	Name                  *TestSuiteName          `json:"name,omitempty"`
 	ShowOnSummary         *bool                   `json:"show_on_summary,omitempty"`
 	SystemID              *SystemID               `json:"systemID,omitempty"`
@@ -1362,12 +1421,12 @@ type TagID = openapi_types.UUID
 
 // TestSuite defines model for testSuite.
 type TestSuite struct {
-	BatchMetricsSetName  *MetricsSetName      `json:"batchMetricsSetName"`
+	Archived             bool                 `json:"archived"`
 	CreationTimestamp    Timestamp            `json:"creationTimestamp"`
 	Description          TestSuiteDescription `json:"description"`
 	Experiences          []ExperienceID       `json:"experiences"`
-	JobMetricsSetName    *MetricsSetName      `json:"jobMetricsSetName"`
 	MetricsBuildID       *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	MetricsSetName       *MetricsSetName      `json:"metricsSetName"`
 	Name                 TestSuiteName        `json:"name"`
 	OrgID                OrgID                `json:"orgID"`
 	ProjectID            ProjectID            `json:"projectID"`
@@ -1459,8 +1518,18 @@ type UpdateBatchInput struct {
 
 // UpdateBuildFields defines model for updateBuildFields.
 type UpdateBuildFields struct {
-	BranchID    *openapi_types.UUID `json:"branchID,omitempty"`
-	Description *string             `json:"description,omitempty"`
+	BranchID *openapi_types.UUID `json:"branchID,omitempty"`
+
+	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Deprecated:
+	Description *BuildDescription `json:"description,omitempty"`
+
+	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
+	// Deprecated:
+	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
+
+	// Name The name of the build. This replaces the previous usage of 'description'.
+	Name *BuildName `json:"name,omitempty"`
 }
 
 // UpdateBuildInput defines model for updateBuildInput.
@@ -1615,6 +1684,12 @@ type ListAllJobsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
+// ListBatchAccountsParams defines parameters for ListBatchAccounts.
+type ListBatchAccountsParams struct {
+	// Name Filter by the account name
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
+}
+
 // CompareBatchesParams defines parameters for CompareBatches.
 type CompareBatchesParams struct {
 	// Status filter tests by their status
@@ -1647,15 +1722,28 @@ type ListJobsParams struct {
 	OrderBy          *OrderBy              `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
+// ListEventTagsForJobParams defines parameters for ListEventTagsForJob.
+type ListEventTagsForJobParams struct {
+	// Name Filter event tags by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+}
+
 // ListEventsForJobParams defines parameters for ListEventsForJob.
 type ListEventsForJobParams struct {
+	// EventTags Tags on which to filter the events
+	EventTags *EventTags `form:"eventTags,omitempty" json:"eventTags,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
 // ListJobLogsForJobParams defines parameters for ListJobLogsForJob.
 type ListJobLogsForJobParams struct {
-	Type      *[]LogType `form:"type,omitempty" json:"type,omitempty"`
+	Type *[]LogType `form:"type,omitempty" json:"type,omitempty"`
+
+	// Name Filter logs by name
+	Name      *string    `form:"name,omitempty" json:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -1788,9 +1876,14 @@ type ListExperienceTagsParamsOrderBy string
 
 // ListExperiencesWithExperienceTagParams defines parameters for ListExperiencesWithExperienceTag.
 type ListExperiencesWithExperienceTagParams struct {
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	// Archived Filter by archived status.
+	Archived  *ListExperiencesWithExperienceTagParamsArchived `form:"archived,omitempty" json:"archived,omitempty"`
+	PageSize  *PageSize                                       `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken                                      `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
+
+// ListExperiencesWithExperienceTagParamsArchived defines parameters for ListExperiencesWithExperienceTag.
+type ListExperiencesWithExperienceTagParamsArchived string
 
 // ListExperiencesParams defines parameters for ListExperiences.
 type ListExperiencesParams struct {
@@ -1800,8 +1893,9 @@ type ListExperiencesParams struct {
 	// Text Filter experiences by a text string on experience name, experience description, or experience tag name
 	Text *string `form:"text,omitempty" json:"text,omitempty"`
 
-	// Search A search query. Supports searching by tag_id, test_suite_id and system_id
+	// Search A search query. Supports searching by tag_id, test_suite_id, archived, and system_id
 	Search    *string            `form:"search,omitempty" json:"search,omitempty"`
+	Archived  *bool              `form:"archived,omitempty" json:"archived,omitempty"`
 	PageSize  *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken         `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy           `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1837,7 +1931,10 @@ type GetSystemsForMetricsBuildParams struct {
 // ListReportsParams defines parameters for ListReports.
 type ListReportsParams struct {
 	// Search Filter based on branch_id, test_suite_id, created_at, status, associated_account
-	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+
+	// Text Filter reports by a text string (only supports batch id as of 3/21/2025)
+	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1894,7 +1991,8 @@ type ListTestSuitesParams struct {
 	SystemID *openapi_types.UUID `form:"systemID,omitempty" json:"systemID,omitempty"`
 
 	// Name Filter test suites by name
-	Name *string `form:"name,omitempty" json:"name,omitempty"`
+	Name     *string `form:"name,omitempty" json:"name,omitempty"`
+	Archived *bool   `form:"archived,omitempty" json:"archived,omitempty"`
 
 	// Text Filter test suites by a text string on name and description
 	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
@@ -1954,6 +2052,8 @@ type ListBuildsForSystemParams struct {
 
 // ListExperiencesForSystemParams defines parameters for ListExperiencesForSystem.
 type ListExperiencesForSystemParams struct {
+	// Archived Filter experiences by archived status
+	Archived  *bool      `form:"archived,omitempty" json:"archived,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
@@ -2151,6 +2251,20 @@ func (t CreateBuildForBranchInput) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if t.LongDescription != nil {
+		object["longDescription"], err = json.Marshal(t.LongDescription)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'longDescription': %w", err)
+		}
+	}
+
+	if t.Name != nil {
+		object["name"], err = json.Marshal(t.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
 	object["systemID"], err = json.Marshal(t.SystemID)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling 'systemID': %w", err)
@@ -2201,6 +2315,20 @@ func (t *CreateBuildForBranchInput) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.ImageUri)
 		if err != nil {
 			return fmt.Errorf("error reading 'imageUri': %w", err)
+		}
+	}
+
+	if raw, found := object["longDescription"]; found {
+		err = json.Unmarshal(raw, &t.LongDescription)
+		if err != nil {
+			return fmt.Errorf("error reading 'longDescription': %w", err)
+		}
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &t.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
 		}
 	}
 
@@ -2319,6 +2447,20 @@ func (t CreateBuildForSystemInput) MarshalJSON() ([]byte, error) {
 		}
 	}
 
+	if t.LongDescription != nil {
+		object["longDescription"], err = json.Marshal(t.LongDescription)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'longDescription': %w", err)
+		}
+	}
+
+	if t.Name != nil {
+		object["name"], err = json.Marshal(t.Name)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
 	if t.TriggeredVia != nil {
 		object["triggeredVia"], err = json.Marshal(t.TriggeredVia)
 		if err != nil {
@@ -2378,6 +2520,20 @@ func (t *CreateBuildForSystemInput) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.ImageUri)
 		if err != nil {
 			return fmt.Errorf("error reading 'imageUri': %w", err)
+		}
+	}
+
+	if raw, found := object["longDescription"]; found {
+		err = json.Unmarshal(raw, &t.LongDescription)
+		if err != nil {
+			return fmt.Errorf("error reading 'longDescription': %w", err)
+		}
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &t.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
 		}
 	}
 
@@ -2505,7 +2661,7 @@ type ClientInterface interface {
 	ListAllJobs(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBatchAccounts request
-	ListBatchAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListBatchAccounts(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetBatch request
 	GetBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2531,6 +2687,9 @@ type ClientInterface interface {
 	UpdateJobWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListEventTagsForJob request
+	ListEventTagsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListEventsForJob request
 	ListEventsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2596,6 +2755,9 @@ type ClientInterface interface {
 
 	// ListBatchMetricsDataForBatchMetricsDataIDs request
 	ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBatchSuggestions request
+	GetBatchSuggestions(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBranchesForProject request
 	ListBranchesForProject(ctx context.Context, projectID ProjectID, params *ListBranchesForProjectParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2683,8 +2845,8 @@ type ClientInterface interface {
 
 	CreateExperience(ctx context.Context, projectID ProjectID, body CreateExperienceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteExperience request
-	DeleteExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// ArchiveExperience request
+	ArchiveExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetExperience request
 	GetExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2701,6 +2863,9 @@ type ClientInterface interface {
 
 	// ListExperienceTagsForExperience request
 	ListExperienceTagsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceTagsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RestoreExperience request
+	RestoreExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetSystemsForExperience request
 	GetSystemsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -2773,6 +2938,9 @@ type ClientInterface interface {
 	// GetTestSuiteSummary request
 	GetTestSuiteSummary(ctx context.Context, projectID ProjectID, params *GetTestSuiteSummaryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ArchiveTestSuite request
+	ArchiveTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetTestSuite request
 	GetTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -2798,6 +2966,9 @@ type ClientInterface interface {
 	RemoveExperiencesFromTestSuiteWithBody(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	RemoveExperiencesFromTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body RemoveExperiencesFromTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RestoreTestSuite request
+	RestoreTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTestSuiteRevisions request
 	ListTestSuiteRevisions(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, params *ListTestSuiteRevisionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3050,8 +3221,8 @@ func (c *Client) ListAllJobs(ctx context.Context, projectID ProjectID, params *L
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListBatchAccounts(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListBatchAccountsRequest(c.Server, projectID)
+func (c *Client) ListBatchAccounts(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchAccountsRequest(c.Server, projectID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3160,6 +3331,18 @@ func (c *Client) UpdateJobWithBody(ctx context.Context, projectID ProjectID, bat
 
 func (c *Client) UpdateJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateJobRequest(c.Server, projectID, batchID, jobID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListEventTagsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListEventTagsForJobRequest(c.Server, projectID, batchID, jobID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -3424,6 +3607,18 @@ func (c *Client) ListBatchMetricsData(ctx context.Context, projectID ProjectID, 
 
 func (c *Client) ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchMetricsDataForBatchMetricsDataIDsRequest(c.Server, projectID, batchID, metricsDataID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBatchSuggestions(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBatchSuggestionsRequest(c.Server, projectID, batchID)
 	if err != nil {
 		return nil, err
 	}
@@ -3806,8 +4001,8 @@ func (c *Client) CreateExperience(ctx context.Context, projectID ProjectID, body
 	return c.Client.Do(req)
 }
 
-func (c *Client) DeleteExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteExperienceRequest(c.Server, projectID, experienceID)
+func (c *Client) ArchiveExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveExperienceRequest(c.Server, projectID, experienceID)
 	if err != nil {
 		return nil, err
 	}
@@ -3880,6 +4075,18 @@ func (c *Client) DebugExperience(ctx context.Context, projectID ProjectID, exper
 
 func (c *Client) ListExperienceTagsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceTagsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListExperienceTagsForExperienceRequest(c.Server, projectID, experienceID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RestoreExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRestoreExperienceRequest(c.Server, projectID, experienceID)
 	if err != nil {
 		return nil, err
 	}
@@ -4190,6 +4397,18 @@ func (c *Client) GetTestSuiteSummary(ctx context.Context, projectID ProjectID, p
 	return c.Client.Do(req)
 }
 
+func (c *Client) ArchiveTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveTestSuiteRequest(c.Server, projectID, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetTestSuiteRequest(c.Server, projectID, testSuiteID)
 	if err != nil {
@@ -4300,6 +4519,18 @@ func (c *Client) RemoveExperiencesFromTestSuiteWithBody(ctx context.Context, pro
 
 func (c *Client) RemoveExperiencesFromTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body RemoveExperiencesFromTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewRemoveExperiencesFromTestSuiteRequest(c.Server, projectID, testSuiteID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RestoreTestSuite(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRestoreTestSuiteRequest(c.Server, projectID, testSuiteID)
 	if err != nil {
 		return nil, err
 	}
@@ -5285,7 +5516,7 @@ func NewListAllJobsRequest(server string, projectID ProjectID, params *ListAllJo
 }
 
 // NewListBatchAccountsRequest generates requests for ListBatchAccounts
-func NewListBatchAccountsRequest(server string, projectID ProjectID) (*http.Request, error) {
+func NewListBatchAccountsRequest(server string, projectID ProjectID, params *ListBatchAccountsParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -5308,6 +5539,28 @@ func NewListBatchAccountsRequest(server string, projectID ProjectID) (*http.Requ
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -5856,6 +6109,108 @@ func NewUpdateJobRequestWithBody(server string, projectID ProjectID, batchID Bat
 	return req, nil
 }
 
+// NewListEventTagsForJobRequest generates requests for ListEventTagsForJob
+func NewListEventTagsForJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/eventTags", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListEventsForJobRequest generates requests for ListEventsForJob
 func NewListEventsForJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventsForJobParams) (*http.Request, error) {
 	var err error
@@ -5898,6 +6253,22 @@ func NewListEventsForJobRequest(server string, projectID ProjectID, batchID Batc
 
 	if params != nil {
 		queryValues := queryURL.Query()
+
+		if params.EventTags != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "eventTags", runtime.ParamLocationQuery, *params.EventTags); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
 
 		if params.PageSize != nil {
 
@@ -6111,6 +6482,22 @@ func NewListJobLogsForJobRequest(server string, projectID ProjectID, batchID Bat
 		if params.Type != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -7514,6 +7901,47 @@ func NewListBatchMetricsDataForBatchMetricsDataIDsRequest(server string, project
 	return req, nil
 }
 
+// NewGetBatchSuggestionsRequest generates requests for GetBatchSuggestions
+func NewGetBatchSuggestionsRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/suggestions", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListBranchesForProjectRequest generates requests for ListBranchesForProject
 func NewListBranchesForProjectRequest(server string, projectID ProjectID, params *ListBranchesForProjectParams) (*http.Request, error) {
 	var err error
@@ -8713,6 +9141,22 @@ func NewListExperiencesWithExperienceTagRequest(server string, projectID Project
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Archived != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -8929,6 +9373,22 @@ func NewListExperiencesRequest(server string, projectID ProjectID, params *ListE
 
 		}
 
+		if params.Archived != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -9035,8 +9495,8 @@ func NewCreateExperienceRequestWithBody(server string, projectID ProjectID, cont
 	return req, nil
 }
 
-// NewDeleteExperienceRequest generates requests for DeleteExperience
-func NewDeleteExperienceRequest(server string, projectID ProjectID, experienceID ExperienceID) (*http.Request, error) {
+// NewArchiveExperienceRequest generates requests for ArchiveExperience
+func NewArchiveExperienceRequest(server string, projectID ProjectID, experienceID ExperienceID) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -9297,6 +9757,47 @@ func NewListExperienceTagsForExperienceRequest(server string, projectID ProjectI
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRestoreExperienceRequest generates requests for RestoreExperience
+func NewRestoreExperienceRequest(server string, projectID ProjectID, experienceID ExperienceID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "experienceID", runtime.ParamLocationPath, experienceID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/experiences/%s/restore", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -9686,6 +10187,22 @@ func NewListReportsRequest(server string, projectID ProjectID, params *ListRepor
 		if params.Search != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -10586,6 +11103,22 @@ func NewListTestSuitesRequest(server string, projectID ProjectID, params *ListTe
 
 		}
 
+		if params.Archived != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.Text != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
@@ -10820,6 +11353,47 @@ func NewGetTestSuiteSummaryRequest(server string, projectID ProjectID, params *G
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewArchiveTestSuiteRequest generates requests for ArchiveTestSuite
+func NewArchiveTestSuiteRequest(server string, projectID ProjectID, testSuiteID TestSuiteID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -11175,6 +11749,47 @@ func NewRemoveExperiencesFromTestSuiteRequestWithBody(server string, projectID P
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewRestoreTestSuiteRequest generates requests for RestoreTestSuite
+func NewRestoreTestSuiteRequest(server string, projectID ProjectID, testSuiteID TestSuiteID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "testSuiteID", runtime.ParamLocationPath, testSuiteID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/suites/%s/restore", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -12334,6 +12949,22 @@ func NewListExperiencesForSystemRequest(server string, projectID ProjectID, syst
 	if params != nil {
 		queryValues := queryURL.Query()
 
+		if params.Archived != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -12898,7 +13529,7 @@ type ClientWithResponsesInterface interface {
 	ListAllJobsWithResponse(ctx context.Context, projectID ProjectID, params *ListAllJobsParams, reqEditors ...RequestEditorFn) (*ListAllJobsResponse, error)
 
 	// ListBatchAccountsWithResponse request
-	ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error)
+	ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error)
 
 	// GetBatchWithResponse request
 	GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error)
@@ -12924,6 +13555,9 @@ type ClientWithResponsesInterface interface {
 	UpdateJobWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateJobResponse, error)
 
 	UpdateJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateJobResponse, error)
+
+	// ListEventTagsForJobWithResponse request
+	ListEventTagsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*ListEventTagsForJobResponse, error)
 
 	// ListEventsForJobWithResponse request
 	ListEventsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventsForJobParams, reqEditors ...RequestEditorFn) (*ListEventsForJobResponse, error)
@@ -12989,6 +13623,9 @@ type ClientWithResponsesInterface interface {
 
 	// ListBatchMetricsDataForBatchMetricsDataIDsWithResponse request
 	ListBatchMetricsDataForBatchMetricsDataIDsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricsDataIDsResponse, error)
+
+	// GetBatchSuggestionsWithResponse request
+	GetBatchSuggestionsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchSuggestionsResponse, error)
 
 	// ListBranchesForProjectWithResponse request
 	ListBranchesForProjectWithResponse(ctx context.Context, projectID ProjectID, params *ListBranchesForProjectParams, reqEditors ...RequestEditorFn) (*ListBranchesForProjectResponse, error)
@@ -13076,8 +13713,8 @@ type ClientWithResponsesInterface interface {
 
 	CreateExperienceWithResponse(ctx context.Context, projectID ProjectID, body CreateExperienceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateExperienceResponse, error)
 
-	// DeleteExperienceWithResponse request
-	DeleteExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*DeleteExperienceResponse, error)
+	// ArchiveExperienceWithResponse request
+	ArchiveExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*ArchiveExperienceResponse, error)
 
 	// GetExperienceWithResponse request
 	GetExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*GetExperienceResponse, error)
@@ -13094,6 +13731,9 @@ type ClientWithResponsesInterface interface {
 
 	// ListExperienceTagsForExperienceWithResponse request
 	ListExperienceTagsForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceTagsForExperienceParams, reqEditors ...RequestEditorFn) (*ListExperienceTagsForExperienceResponse, error)
+
+	// RestoreExperienceWithResponse request
+	RestoreExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*RestoreExperienceResponse, error)
 
 	// GetSystemsForExperienceWithResponse request
 	GetSystemsForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*GetSystemsForExperienceResponse, error)
@@ -13166,6 +13806,9 @@ type ClientWithResponsesInterface interface {
 	// GetTestSuiteSummaryWithResponse request
 	GetTestSuiteSummaryWithResponse(ctx context.Context, projectID ProjectID, params *GetTestSuiteSummaryParams, reqEditors ...RequestEditorFn) (*GetTestSuiteSummaryResponse, error)
 
+	// ArchiveTestSuiteWithResponse request
+	ArchiveTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*ArchiveTestSuiteResponse, error)
+
 	// GetTestSuiteWithResponse request
 	GetTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*GetTestSuiteResponse, error)
 
@@ -13191,6 +13834,9 @@ type ClientWithResponsesInterface interface {
 	RemoveExperiencesFromTestSuiteWithBodyWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveExperiencesFromTestSuiteResponse, error)
 
 	RemoveExperiencesFromTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, body RemoveExperiencesFromTestSuiteJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveExperiencesFromTestSuiteResponse, error)
+
+	// RestoreTestSuiteWithResponse request
+	RestoreTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*RestoreTestSuiteResponse, error)
 
 	// ListTestSuiteRevisionsWithResponse request
 	ListTestSuiteRevisionsWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, params *ListTestSuiteRevisionsParams, reqEditors ...RequestEditorFn) (*ListTestSuiteRevisionsResponse, error)
@@ -13670,6 +14316,28 @@ func (r UpdateJobResponse) StatusCode() int {
 	return 0
 }
 
+type ListEventTagsForJobResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListJobEventTagsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListEventTagsForJobResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListEventTagsForJobResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListEventsForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -14124,6 +14792,28 @@ func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBatchSuggestionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BatchSuggestionsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBatchSuggestionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBatchSuggestionsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -14652,13 +15342,13 @@ func (r CreateExperienceResponse) StatusCode() int {
 	return 0
 }
 
-type DeleteExperienceResponse struct {
+type ArchiveExperienceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r DeleteExperienceResponse) Status() string {
+func (r ArchiveExperienceResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -14666,7 +15356,7 @@ func (r DeleteExperienceResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r DeleteExperienceResponse) StatusCode() int {
+func (r ArchiveExperienceResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -14755,6 +15445,27 @@ func (r ListExperienceTagsForExperienceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListExperienceTagsForExperienceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RestoreExperienceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RestoreExperienceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RestoreExperienceResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -15222,6 +15933,27 @@ func (r GetTestSuiteSummaryResponse) StatusCode() int {
 	return 0
 }
 
+type ArchiveTestSuiteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ArchiveTestSuiteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ArchiveTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetTestSuiteResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -15348,6 +16080,27 @@ func (r RemoveExperiencesFromTestSuiteResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r RemoveExperiencesFromTestSuiteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RestoreTestSuiteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RestoreTestSuiteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RestoreTestSuiteResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -16112,8 +16865,8 @@ func (c *ClientWithResponses) ListAllJobsWithResponse(ctx context.Context, proje
 }
 
 // ListBatchAccountsWithResponse request returning *ListBatchAccountsResponse
-func (c *ClientWithResponses) ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error) {
-	rsp, err := c.ListBatchAccounts(ctx, projectID, reqEditors...)
+func (c *ClientWithResponses) ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error) {
+	rsp, err := c.ListBatchAccounts(ctx, projectID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -16197,6 +16950,15 @@ func (c *ClientWithResponses) UpdateJobWithResponse(ctx context.Context, project
 		return nil, err
 	}
 	return ParseUpdateJobResponse(rsp)
+}
+
+// ListEventTagsForJobWithResponse request returning *ListEventTagsForJobResponse
+func (c *ClientWithResponses) ListEventTagsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*ListEventTagsForJobResponse, error) {
+	rsp, err := c.ListEventTagsForJob(ctx, projectID, batchID, jobID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListEventTagsForJobResponse(rsp)
 }
 
 // ListEventsForJobWithResponse request returning *ListEventsForJobResponse
@@ -16394,6 +17156,15 @@ func (c *ClientWithResponses) ListBatchMetricsDataForBatchMetricsDataIDsWithResp
 		return nil, err
 	}
 	return ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp)
+}
+
+// GetBatchSuggestionsWithResponse request returning *GetBatchSuggestionsResponse
+func (c *ClientWithResponses) GetBatchSuggestionsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchSuggestionsResponse, error) {
+	rsp, err := c.GetBatchSuggestions(ctx, projectID, batchID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBatchSuggestionsResponse(rsp)
 }
 
 // ListBranchesForProjectWithResponse request returning *ListBranchesForProjectResponse
@@ -16668,13 +17439,13 @@ func (c *ClientWithResponses) CreateExperienceWithResponse(ctx context.Context, 
 	return ParseCreateExperienceResponse(rsp)
 }
 
-// DeleteExperienceWithResponse request returning *DeleteExperienceResponse
-func (c *ClientWithResponses) DeleteExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*DeleteExperienceResponse, error) {
-	rsp, err := c.DeleteExperience(ctx, projectID, experienceID, reqEditors...)
+// ArchiveExperienceWithResponse request returning *ArchiveExperienceResponse
+func (c *ClientWithResponses) ArchiveExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*ArchiveExperienceResponse, error) {
+	rsp, err := c.ArchiveExperience(ctx, projectID, experienceID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseDeleteExperienceResponse(rsp)
+	return ParseArchiveExperienceResponse(rsp)
 }
 
 // GetExperienceWithResponse request returning *GetExperienceResponse
@@ -16727,6 +17498,15 @@ func (c *ClientWithResponses) ListExperienceTagsForExperienceWithResponse(ctx co
 		return nil, err
 	}
 	return ParseListExperienceTagsForExperienceResponse(rsp)
+}
+
+// RestoreExperienceWithResponse request returning *RestoreExperienceResponse
+func (c *ClientWithResponses) RestoreExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*RestoreExperienceResponse, error) {
+	rsp, err := c.RestoreExperience(ctx, projectID, experienceID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestoreExperienceResponse(rsp)
 }
 
 // GetSystemsForExperienceWithResponse request returning *GetSystemsForExperienceResponse
@@ -16950,6 +17730,15 @@ func (c *ClientWithResponses) GetTestSuiteSummaryWithResponse(ctx context.Contex
 	return ParseGetTestSuiteSummaryResponse(rsp)
 }
 
+// ArchiveTestSuiteWithResponse request returning *ArchiveTestSuiteResponse
+func (c *ClientWithResponses) ArchiveTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*ArchiveTestSuiteResponse, error) {
+	rsp, err := c.ArchiveTestSuite(ctx, projectID, testSuiteID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseArchiveTestSuiteResponse(rsp)
+}
+
 // GetTestSuiteWithResponse request returning *GetTestSuiteResponse
 func (c *ClientWithResponses) GetTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*GetTestSuiteResponse, error) {
 	rsp, err := c.GetTestSuite(ctx, projectID, testSuiteID, reqEditors...)
@@ -17034,6 +17823,15 @@ func (c *ClientWithResponses) RemoveExperiencesFromTestSuiteWithResponse(ctx con
 		return nil, err
 	}
 	return ParseRemoveExperiencesFromTestSuiteResponse(rsp)
+}
+
+// RestoreTestSuiteWithResponse request returning *RestoreTestSuiteResponse
+func (c *ClientWithResponses) RestoreTestSuiteWithResponse(ctx context.Context, projectID ProjectID, testSuiteID TestSuiteID, reqEditors ...RequestEditorFn) (*RestoreTestSuiteResponse, error) {
+	rsp, err := c.RestoreTestSuite(ctx, projectID, testSuiteID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestoreTestSuiteResponse(rsp)
 }
 
 // ListTestSuiteRevisionsWithResponse request returning *ListTestSuiteRevisionsResponse
@@ -17782,6 +18580,32 @@ func ParseUpdateJobResponse(rsp *http.Response) (*UpdateJobResponse, error) {
 	return response, nil
 }
 
+// ParseListEventTagsForJobResponse parses an HTTP response from a ListEventTagsForJobWithResponse call
+func ParseListEventTagsForJobResponse(rsp *http.Response) (*ListEventTagsForJobResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListEventTagsForJobResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListJobEventTagsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListEventsForJobResponse parses an HTTP response from a ListEventsForJobWithResponse call
 func ParseListEventsForJobResponse(rsp *http.Response) (*ListEventsForJobResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -18298,6 +19122,32 @@ func ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp *http.Response)
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListBatchMetricsDataOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBatchSuggestionsResponse parses an HTTP response from a GetBatchSuggestionsWithResponse call
+func ParseGetBatchSuggestionsResponse(rsp *http.Response) (*GetBatchSuggestionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBatchSuggestionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BatchSuggestionsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -18872,15 +19722,15 @@ func ParseCreateExperienceResponse(rsp *http.Response) (*CreateExperienceRespons
 	return response, nil
 }
 
-// ParseDeleteExperienceResponse parses an HTTP response from a DeleteExperienceWithResponse call
-func ParseDeleteExperienceResponse(rsp *http.Response) (*DeleteExperienceResponse, error) {
+// ParseArchiveExperienceResponse parses an HTTP response from a ArchiveExperienceWithResponse call
+func ParseArchiveExperienceResponse(rsp *http.Response) (*ArchiveExperienceResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &DeleteExperienceResponse{
+	response := &ArchiveExperienceResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -18987,6 +19837,22 @@ func ParseListExperienceTagsForExperienceResponse(rsp *http.Response) (*ListExpe
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseRestoreExperienceResponse parses an HTTP response from a RestoreExperienceWithResponse call
+func ParseRestoreExperienceResponse(rsp *http.Response) (*RestoreExperienceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RestoreExperienceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -19528,6 +20394,22 @@ func ParseGetTestSuiteSummaryResponse(rsp *http.Response) (*GetTestSuiteSummaryR
 	return response, nil
 }
 
+// ParseArchiveTestSuiteResponse parses an HTTP response from a ArchiveTestSuiteWithResponse call
+func ParseArchiveTestSuiteResponse(rsp *http.Response) (*ArchiveTestSuiteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ArchiveTestSuiteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseGetTestSuiteResponse parses an HTTP response from a GetTestSuiteWithResponse call
 func ParseGetTestSuiteResponse(rsp *http.Response) (*GetTestSuiteResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -19679,6 +20561,22 @@ func ParseRemoveExperiencesFromTestSuiteResponse(rsp *http.Response) (*RemoveExp
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseRestoreTestSuiteResponse parses an HTTP response from a RestoreTestSuiteWithResponse call
+func ParseRestoreTestSuiteResponse(rsp *http.Response) (*RestoreTestSuiteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RestoreTestSuiteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

@@ -1,10 +1,13 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
 
+	"github.com/compose-spec/compose-go/v2/cli"
+	"github.com/compose-spec/compose-go/v2/loader"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/viper"
 )
@@ -27,6 +30,34 @@ func ParseParameterString(parameterString string) (string, string, error) {
 	}
 
 	return "", "", fmt.Errorf("failed to parse parameter: %s - must be in the format <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>", parameterString)
+}
+
+func ParseBuildSpec(buildSpecLocation string) ([]byte, error) {
+	// We assume that the build spec is a valid YAML file
+	ctx := context.Background()
+
+	options, err := cli.NewProjectOptions(
+		[]string{buildSpecLocation},
+		cli.WithLoadOptions(func(options *loader.Options) {
+			options.SkipDefaultValues = true
+		}),
+		cli.WithNormalization(false),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	project, err := options.LoadProject(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	projectJSON, err := project.MarshalJSON()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return projectJSON, nil
 }
 
 func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {

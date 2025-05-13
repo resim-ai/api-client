@@ -1,0 +1,28 @@
+services:
+  system:
+    extends:
+      file: ./test_build_spec.base.yaml
+      service: system
+    environment:
+      - DEBUG=true
+
+  orchestrator:
+    extends:
+      file: ./test_build_spec.base.yaml
+      service: orchestrator
+
+  command-orchestrator:
+    extends:
+      file: ./test_build_spec.base.yaml
+      service: orchestrator
+    command: [/run_orchestrator, --client-type, socket]
+
+  entrypoint-orchestrator:
+    extends:
+      file: ./test_build_spec.base.yaml
+      service: orchestrator
+    entrypoint: [/run_orchestrator, --client-type, none]
+
+volumes:
+  mcb-tmp:
+    name: mcb-tmp

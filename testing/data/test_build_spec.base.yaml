@@ -1,0 +1,22 @@
+services:
+  system:
+    image: 909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-system:latest
+    volumes:
+      - target: /tmp
+        source: mcb-tmp
+        type: volume
+    network_mode: host
+    environment:
+      - SERVER_PORT=1234
+
+  orchestrator:
+    image: 909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-orchestrator:latest
+    depends_on:
+      - system
+    volumes:
+      - target: /tmp
+        source: mcb-tmp
+        type: volume
+    network_mode: host
+    environment:
+      - SERVER_PORT=1234

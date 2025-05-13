@@ -1,0 +1,101 @@
+{
+  "name": "data",
+  "services": {
+    "command-orchestrator": {
+      "command": [
+        "/run_orchestrator",
+        "--client-type",
+        "socket"
+      ],
+      "depends_on": {
+        "system": {
+          "condition": "service_started",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "environment": {
+        "SERVER_PORT": "1234"
+      },
+      "image": "909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-orchestrator:latest",
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "mcb-tmp",
+          "target": "/tmp"
+        }
+      ]
+    },
+    "entrypoint-orchestrator": {
+      "command": null,
+      "depends_on": {
+        "system": {
+          "condition": "service_started",
+          "required": true
+        }
+      },
+      "entrypoint": [
+        "/run_orchestrator",
+        "--client-type",
+        "none"
+      ],
+      "environment": {
+        "SERVER_PORT": "1234"
+      },
+      "image": "909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-orchestrator:latest",
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "mcb-tmp",
+          "target": "/tmp"
+        }
+      ]
+    },
+    "orchestrator": {
+      "command": null,
+      "depends_on": {
+        "system": {
+          "condition": "service_started",
+          "required": true
+        }
+      },
+      "entrypoint": null,
+      "environment": {
+        "SERVER_PORT": "1234"
+      },
+      "image": "909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-orchestrator:latest",
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "mcb-tmp",
+          "target": "/tmp"
+        }
+      ]
+    },
+    "system": {
+      "command": null,
+      "entrypoint": null,
+      "environment": {
+        "DEBUG": "true",
+        "SERVER_PORT": "1234"
+      },
+      "image": "909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-system:latest",
+      "network_mode": "host",
+      "volumes": [
+        {
+          "type": "volume",
+          "source": "mcb-tmp",
+          "target": "/tmp"
+        }
+      ]
+    }
+  },
+  "volumes": {
+    "mcb-tmp": {
+      "name": "mcb-tmp"
+    }
+  }
+}

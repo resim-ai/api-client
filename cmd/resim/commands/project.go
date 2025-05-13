@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
@@ -121,7 +120,7 @@ func listProjects(ccmd *cobra.Command, args []string) {
 	// This command does not have a project flag, so viper must be injecting it from the config
 	defaultProjectUuid, _ := uuid.Parse(viper.GetString(projectKey))
 	for _, project := range allProjects {
-		var isActive string = ""
+		var isActive string
 		if project.ProjectID == defaultProjectUuid {
 			isActive = "*"
 		} else {
@@ -229,10 +228,7 @@ func getProject(ccmd *cobra.Command, args []string) {
 	} else {
 		log.Fatal("must specify either the project ID or the project name")
 	}
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", " ")
-	enc.Encode(project)
+	OutputJson(project)
 }
 
 func archiveProject(ccmd *cobra.Command, args []string) {

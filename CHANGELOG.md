@@ -6,6 +6,8 @@
 
 Changes in this section will be included in the next release.
 
+- Add support for defining an experience build as [compose files](https://docs.docker.com/reference/compose-file/) instead of by image URI. This feature is currently highly experimental.
+
 ### v0.16.1 - April 23, 2025
 
 - Tweaks to the messages printed during debug mode operation

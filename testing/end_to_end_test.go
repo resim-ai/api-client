@@ -5152,6 +5152,11 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
 	jobs = []api.Job{}
 	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	// collect the experience IDs
+	configFileExperienceIDs := []uuid.UUID{}
+	for _, job := range jobs {
+		configFileExperienceIDs = append(configFileExperienceIDs, *job.ExperienceID)
+	}
 	s.NoError(err)
 	s.Equal(2, len(jobs))
 
@@ -5162,8 +5167,18 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	reIngestBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	// Do not wait for batch to complete; just cancel it
 	output = s.runCommand(cancelBatchByID(projectID, reIngestBatchIDString), ExpectNoError)
-	// Check that the cancel command succeeded
-	s.Contains(output.StdOut, "CANCELLED")
+	s.Contains(output.StdOut, CancelledBatch)
+
+	// Check that batch used the same experiences as the config file batch
+	output = s.runCommand(getBatchJobsByID(projectID, reIngestBatchIDString), ExpectNoError)
+	jobs = []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	// collect the experience IDs
+	for _, job := range jobs {
+		s.Assert().Contains(configFileExperienceIDs, *job.ExperienceID)
+	}
+	s.NoError(err)
+	s.Equal(2, len(jobs))
 }
 
 func (s *EndToEndTestSuite) TestMetricsSync() {

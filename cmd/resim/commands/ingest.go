@@ -40,6 +40,7 @@ const (
 	ingestConfigFileKey         = "log-config"
 	ingestBatchNameKey          = "ingestion-name"
 	ingestPoolLabelsKey         = "pool-labels"
+	ingestReingestKey           = "reingest"
 
 	LogIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
 )
@@ -81,6 +82,8 @@ func init() {
 	// Pool Labels
 	ingestLogCmd.Flags().StringSlice(ingestPoolLabelsKey, []string{}, "Comma-separated list of pool labels to apply to the log ingestion. If not provided, a default pool label will be generated.")
 	rootCmd.AddCommand(ingestLogCmd)
+	// Re-ingestion
+	ingestLogCmd.Flags().Bool(ingestReingestKey, false, "Whether to re-ingest the logs if its experiences already exist. If not provided, the log will not be ingested again.")
 }
 
 type logPair struct {
@@ -170,6 +173,37 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	for _, logConfig := range logsToProcess {
 		if !logIngestGithub {
 			fmt.Printf("Processing log: %s\n", logConfig.Name)
+		}
+
+		// Re-ingest logic: check for existing experience with same name and location
+		reIngest := viper.GetBool(ingestReingestKey)
+		existingExperienceID := uuid.Nil
+		if reIngest {
+			// List experiences by name
+			resp, err := Client.ListExperiencesWithResponse(context.Background(), projectID, &api.ListExperiencesParams{
+				Name:     &logConfig.Name,
+				PageSize: Ptr(100),
+			})
+			if err != nil {
+				log.Fatalf("failed to list experiences for re-ingest check: %v", err)
+			}
+			if resp.JSON200 != nil && resp.JSON200.Experiences != nil {
+				experiences := *resp.JSON200.Experiences
+				for _, exp := range experiences {
+					if exp.Name == logConfig.Name && exp.Location == logConfig.Location {
+						existingExperienceID = exp.ExperienceID
+						break
+					}
+				}
+			}
+		}
+
+		if existingExperienceID != uuid.Nil {
+			if !logIngestGithub {
+				fmt.Printf("Skipping log '%s' at '%s' (already ingested)\n", logConfig.Name, logConfig.Location)
+			}
+			experienceIDs = append(experienceIDs, existingExperienceID)
+			continue
 		}
 
 		// Create the experience

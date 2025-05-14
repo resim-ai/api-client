@@ -1362,7 +1362,7 @@ func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, ex
 	return []CommandBuilder{batchCommand, createCommand}
 }
 
-func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, version *string, metricsBuildID uuid.UUID, logName *string, logLocation *string, logsList []string, configFileLocation *string, experienceTags []string, buildID *uuid.UUID, batchName *string, github bool) []CommandBuilder {
+func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, version *string, metricsBuildID uuid.UUID, logName *string, logLocation *string, logsList []string, configFileLocation *string, experienceTags []string, buildID *uuid.UUID, batchName *string, github bool, reingest bool) []CommandBuilder {
 	ingestCommand := CommandBuilder{
 		Command: "ingest",
 		Flags: []Flag{
@@ -1443,6 +1443,12 @@ func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, 
 	if github {
 		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
 			Name:  "--github",
+			Value: "",
+		})
+	}
+	if reingest {
+		ingestCommand.Flags = append(ingestCommand.Flags, Flag{
+			Name:  "--reingest",
 			Value: "",
 		})
 	}
@@ -4810,6 +4816,9 @@ func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
 }
 
 func (s *EndToEndTestSuite) TestLogIngest() {
+	const ReIngestTrue = true
+	const ReIngestFalse = false
+
 	// First create a project
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -4836,7 +4845,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	logLocation := fmt.Sprintf("s3://%v/test-object/", s.Config.E2EBucket)
 
 	experienceTags := []string{"test-tag"}
-	ingestCommand := createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, Ptr(logName), Ptr(logLocation), []string{}, nil, experienceTags, nil, nil, GithubTrue)
+	ingestCommand := createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, Ptr(logName), Ptr(logLocation), []string{}, nil, experienceTags, nil, nil, GithubTrue, ReIngestFalse)
 	output = s.runCommand(ingestCommand, ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
@@ -4921,7 +4930,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	secondLogTags := []string{"test-tag-2"}
 	defaultBranchName := "log-ingest-branch"
 	defaultVersion := "latest"
-	secondLogCommand := createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(secondLogName), Ptr(logLocation), []string{}, nil, secondLogTags, nil, nil, GithubTrue)
+	secondLogCommand := createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(secondLogName), Ptr(logLocation), []string{}, nil, secondLogTags, nil, nil, GithubTrue, ReIngestFalse)
 	output = s.runCommand(secondLogCommand, ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	secondBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
@@ -5009,7 +5018,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	// Validate that things are not recreated:
 	thirdLogName := fmt.Sprintf("test-log-%v", uuid.New())
 	specialBatchName := "my-batch-name"
-	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(thirdLogName), Ptr(logLocation), []string{}, nil, secondLogTags, nil, &specialBatchName, GithubTrue), ExpectNoError)
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(thirdLogName), Ptr(logLocation), []string{}, nil, secondLogTags, nil, &specialBatchName, GithubTrue, ReIngestFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	thirdBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	// Grab the batch and validate the status, first by name then by ID:
@@ -5041,7 +5050,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	existingBuildID := uuid.MustParse(buildIDString)
 	// Finally, use the existing build ID:
 	fourthLogName := fmt.Sprintf("test-log-%v", uuid.New())
-	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue, ReIngestFalse), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
 	fourthBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	// Grab the batch and validate the status, first by name then by ID:
@@ -5051,13 +5060,13 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	s.NoError(err)
 
 	// Check the MuTex parameters:
-	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectError)
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, nil, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue, ReIngestFalse), ExpectError)
 	s.Contains(output.StdErr, "build-id")
 	s.Contains(output.StdErr, "system")
-	output = s.runCommand(createIngestedLog(projectID, nil, &firstBranchName, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectError)
+	output = s.runCommand(createIngestedLog(projectID, nil, &firstBranchName, nil, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue, ReIngestFalse), ExpectError)
 	s.Contains(output.StdErr, "build-id")
 	s.Contains(output.StdErr, "branch")
-	output = s.runCommand(createIngestedLog(projectID, nil, nil, &firstVersion, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectError)
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, &firstVersion, metricsBuildID, Ptr(fourthLogName), Ptr(logLocation), []string{}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue, ReIngestFalse), ExpectError)
 	s.Contains(output.StdErr, "build-id")
 	s.Contains(output.StdErr, "version")
 
@@ -5066,7 +5075,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	log1 := fmt.Sprintf("%s=%s", log1Name, logLocation)
 	log2Name := fmt.Sprintf("test-log-%v", uuid.New())
 	log2 := fmt.Sprintf("%s=%s", log2Name, logLocation)
-	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, nil, nil, []string{log1, log2}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createIngestedLog(projectID, nil, nil, nil, metricsBuildID, nil, nil, []string{log1, log2}, nil, secondLogTags, Ptr(existingBuildID), nil, GithubTrue, ReIngestFalse), ExpectNoError)
 	fmt.Println("Output: ", output.StdOut)
 	fmt.Println("Output: ", output.StdErr)
 	s.Contains(output.StdOut, GithubCreatedBatch)
@@ -5118,7 +5127,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	s.NoError(err)
 
 	// Run the ingest command with the config file:
-	output = s.runCommand(createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, nil, nil, []string{}, Ptr(configFileLocation), nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, nil, nil, []string{}, Ptr(configFileLocation), nil, nil, nil, GithubTrue, ReIngestFalse), ExpectNoError)
 	fmt.Println("Output: ", output.StdOut)
 	fmt.Println("Output: ", output.StdErr)
 	s.Contains(output.StdOut, GithubCreatedBatch)
@@ -5143,6 +5152,31 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
 	jobs = []api.Job{}
 	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	// collect the experience IDs
+	configFileExperienceIDs := []uuid.UUID{}
+	for _, job := range jobs {
+		configFileExperienceIDs = append(configFileExperienceIDs, *job.ExperienceID)
+	}
+	s.NoError(err)
+	s.Equal(2, len(jobs))
+
+	// Re-ingest the config file with the --reingest flag; should not create duplicate experiences
+	output = s.runCommand(createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, nil, nil, []string{}, Ptr(configFileLocation), nil, nil, nil, GithubTrue, ReIngestTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	
+	reIngestBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	// Do not wait for batch to complete; just cancel it
+	output = s.runCommand(cancelBatchByID(projectID, reIngestBatchIDString), ExpectNoError)
+	s.Contains(output.StdOut, CancelledBatch)
+
+	// Check that batch used the same experiences as the config file batch
+	output = s.runCommand(getBatchJobsByID(projectID, reIngestBatchIDString), ExpectNoError)
+	jobs = []api.Job{}
+	err = json.Unmarshal([]byte(output.StdOut), &jobs)
+	// collect the experience IDs
+	for _, job := range jobs {
+		s.Assert().Contains(configFileExperienceIDs, *job.ExperienceID)
+	}
 	s.NoError(err)
 	s.Equal(2, len(jobs))
 }

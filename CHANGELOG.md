@@ -6,6 +6,9 @@
 
 Changes in this section will be included in the next release.
 
+### v0.17.0 - May 14, 2025
+
+- Add support for re-ingesting existing logs with the `--reingest` flag.
 - Add support for defining an experience build as [compose files](https://docs.docker.com/reference/compose-file/) instead of by image URI. This feature is currently highly experimental.
 
 ### v0.16.1 - April 23, 2025

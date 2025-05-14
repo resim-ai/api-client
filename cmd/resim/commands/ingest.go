@@ -41,7 +41,7 @@ const (
 	ingestBatchNameKey          = "ingestion-name"
 	ingestPoolLabelsKey         = "pool-labels"
 	ingestReingestKey           = "reingest"
-	
+
 	LogIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
 )
 
@@ -181,7 +181,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		if reIngest {
 			// List experiences by name
 			resp, err := Client.ListExperiencesWithResponse(context.Background(), projectID, &api.ListExperiencesParams{
-				Name: &logConfig.Name,
+				Name:     &logConfig.Name,
 				PageSize: Ptr(100),
 			})
 			if err != nil {

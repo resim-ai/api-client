@@ -3151,22 +3151,19 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	timeout := time.Duration(timeoutSeconds) * time.Second
 	profile := "test-profile"
 	envVars := []string{"ENV_VAR1=value1", "ENV_VAR2=value2"}
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, &profile, envVars, GithubFalse), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, &profile, envVars, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, CreatedExperience)
 	s.Empty(output.StdErr)
-
 	// Get the experience ID from the create output
-	var createdExperience api.Experience
-	err := json.Unmarshal([]byte(output.StdOut), &createdExperience)
-	s.NoError(err)
-	experienceID := createdExperience.ExperienceID.String()
+	experienceIDString := output.StdOut[len(CreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString)
 
 	// List experiences and check it's there
 	output = s.runCommand(listExperiences(projectID), ExpectNoError)
 	s.Contains(output.StdOut, experienceName)
 
 	// Archive the experience
-	output = s.runCommand(archiveExperience(projectID, experienceID), ExpectNoError)
+	output = s.runCommand(archiveExperience(projectID, experienceIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedExperience)
 
 	// List experiences again and check it's not there
@@ -3174,7 +3171,7 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	s.NotContains(output.StdOut, experienceName)
 
 	// Get the experience by ID and check it's still retrievable
-	output = s.runCommand(getExperience(projectID, experienceID), ExpectNoError)
+	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
 	s.Contains(output.StdOut, experienceName)
 
 	// Get the experience by Name and check it's still retrievable
@@ -3611,10 +3608,10 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 7)
+	s.Len(logs, 8)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name"}, *log.FileName)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto"}, *log.FileName)
 	}
 
 	// Download a single test log
@@ -3625,7 +3622,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 
 	// Download all test logs:
 	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
-	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 7 log(s) to %s", tempDir))
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 log(s) to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)

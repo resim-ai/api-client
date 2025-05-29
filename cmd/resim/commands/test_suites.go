@@ -42,6 +42,13 @@ var (
 		Run:   getTestSuite,
 	}
 
+	archiveTestSuiteCmd = &cobra.Command{
+		Use:   "archive",
+		Short: "archive - Archive a test suite",
+		Long:  ``,
+		Run:   archiveTestSuite,
+	}
+
 	reviseTestSuiteCmd = &cobra.Command{
 		Use:   "revise",
 		Short: "revise - Revise a test suite, updating the name, metrics, or experiences",
@@ -120,6 +127,13 @@ func init() {
 	getTestSuiteCmd.Flags().Int32(testSuiteRevisionKey, -1, "The specific revision of a test suite to retrieve.")
 	getTestSuiteCmd.Flags().Bool(testSuiteAllRevisionKey, false, "Supply this flag to list all revisions of the test suite.")
 	testSuiteCmd.AddCommand(getTestSuiteCmd)
+
+	// Archive Test Suite
+	archiveTestSuiteCmd.Flags().String(testSuiteProjectKey, "", "The name or ID of the project the test suite is associated with.")
+	archiveTestSuiteCmd.MarkFlagRequired(testSuiteProjectKey)
+	archiveTestSuiteCmd.Flags().String(testSuiteKey, "", "The name or ID of the test suite to archive.")
+	archiveTestSuiteCmd.MarkFlagRequired(testSuiteKey)
+	testSuiteCmd.AddCommand(archiveTestSuiteCmd)
 
 	// Revise Test Suite
 	reviseTestSuiteCmd.Flags().Bool(testSuiteGithubKey, false, "Whether to output format in github action friendly format.")
@@ -483,6 +497,19 @@ func getTestSuite(ccmd *cobra.Command, args []string) {
 	} else {
 		OutputJson(testSuite)
 	}
+}
+
+func archiveTestSuite(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(testSuiteProjectKey))
+	var revision *int32
+	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
+
+	response, err := Client.ArchiveTestSuiteWithResponse(context.Background(), projectID, testSuite.TestSuiteID)
+	if err != nil {
+		log.Fatal("failed to archive test suite:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to archive test suite", response.HTTPResponse, response.Body)
+	fmt.Printf("Archived test suite %s successfully!\n", viper.GetString(testSuiteKey))
 }
 
 func runTestSuite(ccmd *cobra.Command, args []string) {

@@ -170,12 +170,6 @@ const (
 	ListExperienceTagsParamsOrderByTimestamp ListExperienceTagsParamsOrderBy = "timestamp"
 )
 
-// Defines values for ListExperiencesWithExperienceTagParamsArchived.
-const (
-	False ListExperiencesWithExperienceTagParamsArchived = "false"
-	True  ListExperiencesWithExperienceTagParamsArchived = "true"
-)
-
 // AddSuitesToExperiencesInput defines model for addSuitesToExperiencesInput.
 type AddSuitesToExperiencesInput struct {
 	AllExperiences *bool                  `json:"allExperiences,omitempty"`
@@ -517,10 +511,12 @@ type CreateBuildForSystemInput1 = interface{}
 
 // CreateExperienceInput defines model for createExperienceInput.
 type CreateExperienceInput struct {
-	ContainerTimeoutSeconds *int32         `json:"containerTimeoutSeconds,omitempty"`
-	Description             string         `json:"description"`
-	Location                string         `json:"location"`
-	Name                    ExperienceName `json:"name"`
+	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty"`
+	Description             string                 `json:"description"`
+	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
+	Location                string                 `json:"location"`
+	Name                    ExperienceName         `json:"name"`
+	Profile                 *Profile               `json:"profile,omitempty"`
 }
 
 // CreateExperienceTagInput defines model for createExperienceTagInput.
@@ -595,6 +591,12 @@ type DebugExperienceOutput struct {
 	Namespace       *string  `json:"namespace,omitempty"`
 }
 
+// EnvironmentVariable defines model for environmentVariable.
+type EnvironmentVariable struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
 // Event defines model for event.
 type Event struct {
 	CreationTimestamp Timestamp          `json:"creationTimestamp"`
@@ -634,16 +636,18 @@ type ExecutionStep string
 
 // Experience defines model for experience.
 type Experience struct {
-	Archived                bool           `json:"archived"`
-	ContainerTimeoutSeconds int32          `json:"containerTimeoutSeconds"`
-	CreationTimestamp       Timestamp      `json:"creationTimestamp"`
-	Description             string         `json:"description"`
-	ExperienceID            ExperienceID   `json:"experienceID"`
-	Location                string         `json:"location"`
-	Name                    ExperienceName `json:"name"`
-	OrgID                   OrgID          `json:"orgID"`
-	ProjectID               ProjectID      `json:"projectID"`
-	UserID                  UserID         `json:"userID"`
+	Archived                bool                  `json:"archived"`
+	ContainerTimeoutSeconds int32                 `json:"containerTimeoutSeconds"`
+	CreationTimestamp       Timestamp             `json:"creationTimestamp"`
+	Description             string                `json:"description"`
+	EnvironmentVariables    []EnvironmentVariable `json:"environmentVariables"`
+	ExperienceID            ExperienceID          `json:"experienceID"`
+	Location                string                `json:"location"`
+	Name                    ExperienceName        `json:"name"`
+	OrgID                   OrgID                 `json:"orgID"`
+	Profile                 Profile               `json:"profile"`
+	ProjectID               ProjectID             `json:"projectID"`
+	UserID                  UserID                `json:"userID"`
 }
 
 // ExperienceFilterInput defines model for experienceFilterInput.
@@ -1261,6 +1265,9 @@ type PoolLabel = string
 // PoolLabels defines model for poolLabels.
 type PoolLabels = []PoolLabel
 
+// Profile defines model for profile.
+type Profile = string
+
 // Project defines model for project.
 type Project struct {
 	Archived          Archived  `json:"archived"`
@@ -1545,10 +1552,12 @@ type UpdateEventInput struct {
 
 // UpdateExperienceFields defines model for updateExperienceFields.
 type UpdateExperienceFields struct {
-	ContainerTimeoutSeconds *int32          `json:"containerTimeoutSeconds,omitempty"`
-	Description             *string         `json:"description,omitempty"`
-	Location                *string         `json:"location,omitempty"`
-	Name                    *ExperienceName `json:"name,omitempty"`
+	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty"`
+	Description             *string                `json:"description,omitempty"`
+	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
+	Location                *string                `json:"location,omitempty"`
+	Name                    *ExperienceName        `json:"name,omitempty"`
+	Profile                 *Profile               `json:"profile,omitempty"`
 }
 
 // UpdateExperienceInput defines model for updateExperienceInput.
@@ -1877,13 +1886,10 @@ type ListExperienceTagsParamsOrderBy string
 // ListExperiencesWithExperienceTagParams defines parameters for ListExperiencesWithExperienceTag.
 type ListExperiencesWithExperienceTagParams struct {
 	// Archived Filter by archived status.
-	Archived  *ListExperiencesWithExperienceTagParamsArchived `form:"archived,omitempty" json:"archived,omitempty"`
-	PageSize  *PageSize                                       `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken                                      `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	Archived  *bool      `form:"archived,omitempty" json:"archived,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
-
-// ListExperiencesWithExperienceTagParamsArchived defines parameters for ListExperiencesWithExperienceTag.
-type ListExperiencesWithExperienceTagParamsArchived string
 
 // ListExperiencesParams defines parameters for ListExperiences.
 type ListExperiencesParams struct {

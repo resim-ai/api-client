@@ -390,7 +390,7 @@ func listTestSuites(ccmd *cobra.Command, args []string) {
 
 	var pageToken *string = nil
 
-	var allTestSuites []api.TestSuite
+	allTestSuites := []api.TestSuite{}
 
 	for {
 		response, err := Client.ListTestSuitesWithResponse(
@@ -406,12 +406,17 @@ func listTestSuites(ccmd *cobra.Command, args []string) {
 
 		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.TestSuites == nil {
-			log.Fatal("no test suites")
+			break
 		}
 		allTestSuites = append(allTestSuites, response.JSON200.TestSuites...)
 		if *pageToken == "" {
 			break
 		}
+	}
+
+	if len(allTestSuites) == 0 {
+		fmt.Println("no test suites")
+		return
 	}
 
 	OutputJson(allTestSuites)
@@ -508,7 +513,7 @@ func archiveTestSuite(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to archive test suite:", err)
 	}
-	ValidateResponse(http.StatusOK, "failed to archive test suite", response.HTTPResponse, response.Body)
+	ValidateResponse(http.StatusNoContent, "failed to archive test suite", response.HTTPResponse, response.Body)
 	fmt.Printf("Archived test suite %s successfully!\n", viper.GetString(testSuiteKey))
 }
 

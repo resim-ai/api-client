@@ -323,7 +323,7 @@ func archiveExperience(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to archive experience:", err)
 	}
-	ValidateResponse(http.StatusOK, "failed to archive experience", response.HTTPResponse, response.Body)
+	ValidateResponse(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
 	fmt.Printf("Archived experience %s successfully!\n", viper.GetString(experienceKey))
 }
 
@@ -376,6 +376,7 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 			})
 		}
 		updateExperienceInput.Experience.EnvironmentVariables = &apiEnvironmentVariables
+		updateMask = append(updateMask, "environmentVariables")
 	}
 	updateExperienceInput.UpdateMask = Ptr(updateMask)
 	response, err := Client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, updateExperienceInput)
@@ -388,7 +389,7 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 
 func listExperiences(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	var allExperiences []api.Experience
+	allExperiences := []api.Experience{}
 	var pageToken *string = nil
 
 	for {
@@ -405,7 +406,7 @@ func listExperiences(ccmd *cobra.Command, args []string) {
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
-			log.Fatal("no experiences")
+			break // Either no experiences or we've reached the end of the list matching the page length
 		}
 		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
 		if pageToken == nil || *pageToken == "" {
@@ -413,6 +414,10 @@ func listExperiences(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	if len(allExperiences) == 0 {
+		fmt.Println("no experiences")
+		return
+	}
 	OutputJson(allExperiences)
 }
 

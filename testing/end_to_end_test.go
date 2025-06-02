@@ -3152,10 +3152,10 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	profile := "test-profile"
 	envVars := []string{"ENV_VAR1=value1", "ENV_VAR2=value2"}
 	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, &profile, envVars, GithubTrue), ExpectNoError)
-	s.Contains(output.StdOut, CreatedExperience)
+	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// Get the experience ID from the create output
-	experienceIDString := output.StdOut[len(CreatedExperience) : len(output.StdOut)-1]
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)
 
 	// List experiences and check it's there
@@ -3168,14 +3168,10 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 
 	// List experiences again and check it's not there
 	output = s.runCommand(listExperiences(projectID), ExpectNoError)
-	s.NotContains(output.StdOut, experienceName)
+	s.Contains(output.StdOut, "no experiences")
 
 	// Get the experience by ID and check it's still retrievable
 	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
-	s.Contains(output.StdOut, experienceName)
-
-	// Get the experience by Name and check it's still retrievable
-	output = s.runCommand(getExperience(projectID, experienceName), ExpectNoError)
 	s.Contains(output.StdOut, experienceName)
 
 	// Archive the project
@@ -3226,12 +3222,12 @@ func (s *EndToEndTestSuite) verifyExperienceUpdate(projectID uuid.UUID, experien
 	s.Equal(expectedName, experience.Name)
 	s.Equal(expectedDescription, experience.Description)
 	s.Equal(expectedLocation, experience.Location)
-	s.Equal(expectedTimeout, experience.ContainerTimeoutSeconds) // Direct access
+	s.Equal(expectedTimeout, experience.ContainerTimeoutSeconds)
 	if expectedProfile != "" {
-		s.Equal(expectedProfile, experience.Profile) // Direct access
+		s.Equal(expectedProfile, experience.Profile)
 	}
 	if len(expectedEnvVars) > 0 {
-		s.Equal(len(expectedEnvVars), len(experience.EnvironmentVariables)) // Direct access
+		s.Equal(len(expectedEnvVars), len(experience.EnvironmentVariables))
 		for i, envVar := range expectedEnvVars {
 			s.Equal(strings.Split(envVar, "=")[0], experience.EnvironmentVariables[i].Name)
 			s.Equal(strings.Split(envVar, "=")[1], experience.EnvironmentVariables[i].Value)

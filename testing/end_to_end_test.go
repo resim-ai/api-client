@@ -3625,7 +3625,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	s.NoError(err)
 	s.Len(files, 7)
 	for _, file := range files {
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name"}, file.Name())
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:

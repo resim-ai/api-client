@@ -3623,7 +3623,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)
 	s.NoError(err)
-	s.Len(files, 7)
+	s.Len(files, 8)
 	for _, file := range files {
 		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto"}, file.Name())
 	}

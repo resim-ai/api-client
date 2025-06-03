@@ -41,6 +41,13 @@ var (
 		Long:  ``,
 		Run:   archiveExperience,
 	}
+	restoreExperienceCmd = &cobra.Command{
+		Use:   "restore",
+		Short: "restore - Restore an archived experience",
+		Long:  ``,
+		Run:   restoreExperience,
+	}
+
 	updateExperienceCmd = &cobra.Command{
 		Use:   "update",
 		Short: "update - Update an existing experience",
@@ -123,12 +130,19 @@ func init() {
 	getExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(getExperienceCmd)
 
-	archiveExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
+	archiveExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to archive the experience within")
 	archiveExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	archiveExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to archive")
 	archiveExperienceCmd.MarkFlagRequired(experienceKey)
 	archiveExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(archiveExperienceCmd)
+
+	restoreExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to restore the experience within")
+	restoreExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	restoreExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to restore")
+	restoreExperienceCmd.MarkFlagRequired(experienceKey)
+	restoreExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+	experienceCmd.AddCommand(restoreExperienceCmd)
 
 	updateExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
 	updateExperienceCmd.MarkFlagRequired(experienceProjectKey)
@@ -301,7 +315,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 
 func getExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 
 	response, err := Client.GetExperienceWithResponse(context.Background(), projectID, experienceID)
 	if err != nil {
@@ -317,7 +331,7 @@ func getExperience(ccmd *cobra.Command, args []string) {
 
 func archiveExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 
 	response, err := Client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
 	if err != nil {
@@ -327,9 +341,21 @@ func archiveExperience(ccmd *cobra.Command, args []string) {
 	fmt.Printf("Archived experience %s successfully!\n", viper.GetString(experienceKey))
 }
 
+func restoreExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, true)
+
+	response, err := Client.RestoreExperienceWithResponse(context.Background(), projectID, experienceID)
+	if err != nil {
+		log.Fatal("failed to restore experience:", err)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to restore experience", response.HTTPResponse, response.Body)
+	fmt.Printf("Restored archived experience %s successfully!\n", viper.GetString(experienceKey))
+}
+
 func updateExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 	updateExperienceInput := api.UpdateExperienceInput{
 		Experience: &api.UpdateExperienceFields{},
 	}
@@ -491,7 +517,7 @@ func addSystemToExperience(ccmd *cobra.Command, args []string) {
 	if viper.GetString(experienceKey) == "" {
 		log.Fatal("empty experience name")
 	}
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 
 	response, err := Client.AddSystemToExperienceWithResponse(
 		context.Background(), projectID,
@@ -518,7 +544,7 @@ func removeSystemFromExperience(ccmd *cobra.Command, args []string) {
 	if viper.GetString(experienceKey) == "" {
 		log.Fatal("empty experience name")
 	}
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 
 	response, err := Client.RemoveSystemFromExperienceWithResponse(
 		context.Background(), projectID,
@@ -535,7 +561,7 @@ func removeSystemFromExperience(ccmd *cobra.Command, args []string) {
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func checkExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string) uuid.UUID {
+func checkExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, expectArchived bool) uuid.UUID {
 	// Page through experiences until we find the one with either a name or an ID
 	// that matches the identifier string.
 	experienceID := uuid.Nil
@@ -560,6 +586,7 @@ pageLoop:
 			context.Background(), projectID, &api.ListExperiencesParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				Archived:  Ptr(expectArchived),
 			})
 		if err != nil {
 			log.Fatal("failed to list experiences:", err)
@@ -589,10 +616,14 @@ pageLoop:
 	return experienceID
 }
 
-func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool) uuid.UUID {
-	experienceID := checkExperienceID(client, projectID, identifier)
+func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool, expectArchived bool) uuid.UUID {
+	experienceID := checkExperienceID(client, projectID, identifier, expectArchived)
 	if experienceID == uuid.Nil && failWhenNotFound {
-		log.Fatal("failed to find experience with name or ID: ", identifier)
+		if expectArchived {
+			log.Fatal("failed to find archived experience with name or ID: ", identifier)
+		} else {
+			log.Fatal("failed to find experience with name or ID: ", identifier)
+		}
 	}
 	return experienceID
 }

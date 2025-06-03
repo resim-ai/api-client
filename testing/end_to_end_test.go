@@ -1092,6 +1092,26 @@ func archiveExperience(projectID uuid.UUID, experienceKey string) []CommandBuild
 	return []CommandBuilder{experienceCommand, archiveCommand}
 }
 
+func restoreExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	restoreCommand := CommandBuilder{
+		Command: "restore",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--experience",
+				Value: experienceKey,
+			},
+		},
+	}
+	return []CommandBuilder{experienceCommand, restoreCommand}
+}
+
 func getExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
@@ -2084,6 +2104,26 @@ func archiveTestSuite(projectID uuid.UUID, testSuiteKey string) []CommandBuilder
 		},
 	}
 	return []CommandBuilder{suitesCommand, archiveCommand}
+}
+
+func restoreTestSuite(projectID uuid.UUID, testSuiteKey string) []CommandBuilder {
+	suitesCommand := CommandBuilder{
+		Command: "test-suites",
+	}
+	restoreCommand := CommandBuilder{
+		Command: "restore",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--test-suite",
+				Value: testSuiteKey,
+			},
+		},
+	}
+	return []CommandBuilder{suitesCommand, restoreCommand}
 }
 
 func getTestSuiteBatches(projectID uuid.UUID, testSuiteName string, revision *int32) []CommandBuilder {
@@ -3156,7 +3196,7 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	s.Empty(output.StdErr)
 	// Get the experience ID from the create output
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
-	uuid.MustParse(experienceIDString)
+	experienceID := uuid.MustParse(experienceIDString)
 
 	// List experiences and check it's there
 	output = s.runCommand(listExperiences(projectID), ExpectNoError)
@@ -3173,6 +3213,27 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	// Get the experience by ID and check it's still retrievable
 	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
 	s.Contains(output.StdOut, experienceName)
+
+	// Restore the experience
+	output = s.runCommand(restoreExperience(projectID, experienceIDString), ExpectNoError)
+	s.Empty(output.StdErr)
+
+	// List experiences again and verify it's back
+	output = s.runCommand(listExperiences(projectID), ExpectNoError)
+	s.Contains(output.StdOut, experienceName)
+
+	// Get the experience and verify its properties
+	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
+	var experience api.Experience
+	err := json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(experienceID, experience.ExperienceID)
+	s.Equal(experienceName, experience.Name)
+	s.Equal("description", experience.Description)
+	s.Equal("location", experience.Location)
+	s.Equal(timeoutSeconds, experience.ContainerTimeoutSeconds)
+	s.Equal(profile, experience.Profile)
+	s.Equal(len(envVars), len(experience.EnvironmentVariables))
 
 	// Archive the project
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
@@ -4639,6 +4700,19 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.Len(jobs, 1)
 	// The job should have the correct experience ID:
 	s.Equal(experienceIDs[0], *jobs[0].ExperienceID)
+
+	// Archive the test suite
+	output = s.runCommand(archiveTestSuite(projectID, firstTestSuiteName), false)
+	s.Require().Contains(output.StdOut, "Archived test suite "+firstTestSuiteName+" successfully!")
+
+	// Restore the test suite
+	output = s.runCommand(restoreTestSuite(projectID, firstTestSuiteName), false)
+	s.Require().Contains(output.StdOut, "Restored archived test suite "+firstTestSuiteName+" successfully!")
+
+	// Get the test suite again to verify it's restored
+	output = s.runCommand(getTestSuite(projectID, firstTestSuiteName, nil, false), false)
+	s.Require().Contains(output.StdOut, firstTestSuiteName)
+	s.Require().Contains(output.StdOut, testSuiteDescription)
 }
 
 func (s *EndToEndTestSuite) TestReports() {

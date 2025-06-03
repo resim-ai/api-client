@@ -49,6 +49,13 @@ var (
 		Run:   archiveTestSuite,
 	}
 
+	restoreTestSuiteCmd = &cobra.Command{
+		Use:   "restore",
+		Short: "restore - Restore an archived test suite",
+		Long:  ``,
+		Run:   restoreTestSuite,
+	}
+
 	reviseTestSuiteCmd = &cobra.Command{
 		Use:   "revise",
 		Short: "revise - Revise a test suite, updating the name, metrics, or experiences",
@@ -134,6 +141,12 @@ func init() {
 	archiveTestSuiteCmd.Flags().String(testSuiteKey, "", "The name or ID of the test suite to archive.")
 	archiveTestSuiteCmd.MarkFlagRequired(testSuiteKey)
 	testSuiteCmd.AddCommand(archiveTestSuiteCmd)
+
+	restoreTestSuiteCmd.Flags().String(testSuiteProjectKey, "", "The name or ID of the project to restore the test suite within")
+	restoreTestSuiteCmd.MarkFlagRequired(testSuiteProjectKey)
+	restoreTestSuiteCmd.Flags().String(testSuiteKey, "", "The name or ID of the test suite to restore")
+	restoreTestSuiteCmd.MarkFlagRequired(testSuiteKey)
+	testSuiteCmd.AddCommand(restoreTestSuiteCmd)
 
 	// Revise Test Suite
 	reviseTestSuiteCmd.Flags().Bool(testSuiteGithubKey, false, "Whether to output format in github action friendly format.")
@@ -240,7 +253,7 @@ func createTestSuite(ccmd *cobra.Command, args []string) {
 	}
 
 	for _, experienceName := range allExperienceNames {
-		experienceID := getExperienceID(Client, projectID, experienceName, true)
+		experienceID := getExperienceID(Client, projectID, experienceName, true, false)
 		allExperienceIDs = append(allExperienceIDs, experienceID)
 	}
 
@@ -304,7 +317,7 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 	}
 
 	// Get the existing test suite name:
-	existingTestSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), nil)
+	existingTestSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), nil, false)
 	if existingTestSuite == nil {
 		log.Fatal("unable to find test suite")
 	}
@@ -351,7 +364,7 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 		allExperienceIDs = append(allExperienceIDs, experienceIDs...)
 		allExperienceNames = append(allExperienceNames, experienceNames...)
 		for _, experienceName := range allExperienceNames {
-			experienceID := getExperienceID(Client, projectID, experienceName, true)
+			experienceID := getExperienceID(Client, projectID, experienceName, true, false)
 			allExperienceIDs = append(allExperienceIDs, experienceID)
 		}
 
@@ -422,7 +435,7 @@ func listTestSuites(ccmd *cobra.Command, args []string) {
 	OutputJson(allTestSuites)
 }
 
-func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *int32) *api.TestSuite {
+func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *int32, expectArchived bool) *api.TestSuite {
 	var testSuite *api.TestSuite
 	if testSuiteKeyRaw == "" {
 		log.Fatal("must specify the test suite name or ID")
@@ -443,6 +456,7 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 			response, err := Client.ListTestSuitesWithResponse(context.Background(), projectID, &api.ListTestSuitesParams{
 				PageToken: pageToken,
 				OrderBy:   Ptr("timestamp"),
+				Archived:  Ptr(expectArchived),
 			})
 			if err != nil {
 				log.Fatal("unable to list test suites:", err)
@@ -463,7 +477,11 @@ func actualGetTestSuite(projectID uuid.UUID, testSuiteKeyRaw string, revision *i
 			if response.JSON200.NextPageToken != "" {
 				pageToken = &response.JSON200.NextPageToken
 			} else {
-				log.Fatal("unable to find test suite: ", testSuiteKeyRaw)
+				if expectArchived {
+					log.Fatal("unable to find archived test suite: ", testSuiteKeyRaw)
+				} else {
+					log.Fatal("unable to find test suite: ", testSuiteKeyRaw)
+				}
 			}
 		}
 	}
@@ -485,7 +503,7 @@ func getTestSuite(ccmd *cobra.Command, args []string) {
 	if viper.IsSet(testSuiteRevisionKey) {
 		revision = Ptr(viper.GetInt32(testSuiteRevisionKey))
 	}
-	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
+	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision, false)
 
 	if viper.GetBool(testSuiteAllRevisionKey) {
 		response, err := Client.ListTestSuiteRevisionsWithResponse(context.Background(), projectID, testSuite.TestSuiteID, &api.ListTestSuiteRevisionsParams{
@@ -507,7 +525,7 @@ func getTestSuite(ccmd *cobra.Command, args []string) {
 func archiveTestSuite(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(testSuiteProjectKey))
 	var revision *int32
-	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
+	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision, false)
 
 	response, err := Client.ArchiveTestSuiteWithResponse(context.Background(), projectID, testSuite.TestSuiteID)
 	if err != nil {
@@ -517,6 +535,19 @@ func archiveTestSuite(ccmd *cobra.Command, args []string) {
 	fmt.Printf("Archived test suite %s successfully!\n", viper.GetString(testSuiteKey))
 }
 
+func restoreTestSuite(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(testSuiteProjectKey))
+	var revision *int32
+	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision, true)
+
+	response, err := Client.RestoreTestSuiteWithResponse(context.Background(), projectID, testSuite.TestSuiteID)
+	if err != nil {
+		log.Fatal("failed to restore test suite:", err)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to restore test suite", response.HTTPResponse, response.Body)
+	fmt.Printf("Restored archived test suite %s successfully!\n", viper.GetString(testSuiteKey))
+}
+
 func runTestSuite(ccmd *cobra.Command, args []string) {
 	testSuiteGithub := viper.GetBool(testSuiteGithubKey)
 	projectID := getProjectID(Client, viper.GetString(testSuiteProjectKey))
@@ -524,7 +555,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	if viper.IsSet(testSuiteRevisionKey) {
 		revision = Ptr(viper.GetInt32(testSuiteRevisionKey))
 	}
-	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
+	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision, false)
 	buildID, err := uuid.Parse(viper.GetString(testSuiteBuildIDKey))
 	if err != nil {
 		log.Fatal("failed to parse build ID: ", err)
@@ -670,7 +701,7 @@ func batchesTestSuite(ccmd *cobra.Command, args []string) {
 		revision = Ptr(viper.GetInt32(testSuiteRevisionKey))
 	}
 
-	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision)
+	testSuite := actualGetTestSuite(projectID, viper.GetString(testSuiteKey), revision, false)
 	testSuiteID := testSuite.TestSuiteID
 
 	batches := []api.Batch{}

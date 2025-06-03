@@ -6,6 +6,11 @@
 
 Changes in this section will be included in the next release.
 
+### v0.18.0 - June 3, 2025
+
+- Add support for archiving and restoring experiences and test suites
+- Add support for profiles and environment variables for experiences. See [our docs](https://docs.resim.ai/core-concepts/#experience) for more details
+
 ### v0.17.0 - May 14, 2025
 
 - Add support for re-ingesting existing logs with the `--reingest` flag.

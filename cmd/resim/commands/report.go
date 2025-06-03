@@ -143,7 +143,7 @@ func createReport(ccmd *cobra.Command, args []string) {
 	if viper.IsSet(reportTestSuiteRevisionKey) {
 		revision = Ptr(viper.GetInt32(reportTestSuiteRevisionKey))
 	}
-	testSuite := actualGetTestSuite(projectID, viper.GetString(reportTestSuiteKey), revision)
+	testSuite := actualGetTestSuite(projectID, viper.GetString(reportTestSuiteKey), revision, false)
 	// Get the branch:
 	branchID := getBranchID(Client, projectID, viper.GetString(reportBranchKey), true)
 	// Get the metrics build:

@@ -165,6 +165,7 @@ const (
 	EmptyExperienceDescription string = "empty experience description"
 	EmptyExperienceLocation    string = "empty experience location"
 	DeprecatedLaunchProfile    string = "launch profiles are deprecated"
+	ArchivedExperience         string = "Archived experience"
 	// Batch Messages
 	CreatedBatch               string = "Created batch"
 	GithubCreatedBatch         string = "batch_id="
@@ -1012,7 +1013,7 @@ func listMetricsBuilds(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{metricsBuildsCommand, listCommand}
 }
 
-func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, timeout *time.Duration, github bool) []CommandBuilder {
+func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, timeout *time.Duration, profile *string, envVars []string, github bool) []CommandBuilder {
 	// We build a create experience command with the name, description, location flags
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
@@ -1050,6 +1051,18 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 			Value: timeout.String(),
 		})
 	}
+	if profile != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--profile",
+			Value: *profile,
+		})
+	}
+	for _, envVar := range envVars {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--environment-variable",
+			Value: envVar,
+		})
+	}
 	if github {
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--github",
@@ -1057,6 +1070,46 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 		})
 	}
 	return []CommandBuilder{experienceCommand, createCommand}
+}
+
+func archiveExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	archiveCommand := CommandBuilder{
+		Command: "archive",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--experience",
+				Value: experienceKey,
+			},
+		},
+	}
+	return []CommandBuilder{experienceCommand, archiveCommand}
+}
+
+func restoreExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	restoreCommand := CommandBuilder{
+		Command: "restore",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--experience",
+				Value: experienceKey,
+			},
+		},
+	}
+	return []CommandBuilder{experienceCommand, restoreCommand}
 }
 
 func getExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
@@ -1079,7 +1132,23 @@ func getExperience(projectID uuid.UUID, experienceKey string) []CommandBuilder {
 	return []CommandBuilder{experienceCommand, getCommand}
 }
 
-func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, timeout *time.Duration) []CommandBuilder {
+func listExperiences(projectID uuid.UUID) []CommandBuilder {
+	experienceCommand := CommandBuilder{
+		Command: "experiences",
+	}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+		},
+	}
+	return []CommandBuilder{experienceCommand, listCommand}
+}
+
+func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, timeout *time.Duration, profile *string, envVars []string) []CommandBuilder {
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
 	}
@@ -1118,6 +1187,18 @@ func updateExperience(projectID uuid.UUID, experienceKey string, name *string, d
 		updateCommand.Flags = append(updateCommand.Flags, Flag{
 			Name:  "--timeout",
 			Value: timeout.String(),
+		})
+	}
+	if profile != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--profile",
+			Value: *profile,
+		})
+	}
+	for _, envVar := range envVars {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--environment-variable",
+			Value: envVar,
 		})
 	}
 	return []CommandBuilder{experienceCommand, updateCommand}
@@ -2005,6 +2086,46 @@ func listTestSuites(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{suitesCommand, listCommand}
 }
 
+func archiveTestSuite(projectID uuid.UUID, testSuiteKey string) []CommandBuilder {
+	suitesCommand := CommandBuilder{
+		Command: "test-suites",
+	}
+	archiveCommand := CommandBuilder{
+		Command: "archive",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--test-suite",
+				Value: testSuiteKey,
+			},
+		},
+	}
+	return []CommandBuilder{suitesCommand, archiveCommand}
+}
+
+func restoreTestSuite(projectID uuid.UUID, testSuiteKey string) []CommandBuilder {
+	suitesCommand := CommandBuilder{
+		Command: "test-suites",
+	}
+	restoreCommand := CommandBuilder{
+		Command: "restore",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--test-suite",
+				Value: testSuiteKey,
+			},
+		},
+	}
+	return []CommandBuilder{suitesCommand, restoreCommand}
+}
+
 func getTestSuiteBatches(projectID uuid.UUID, testSuiteName string, revision *int32) []CommandBuilder {
 	// We build a get batch command with the name flag
 	testSuitesCommand := CommandBuilder{
@@ -2519,13 +2640,13 @@ func (s *EndToEndTestSuite) TestSystems() {
 
 	// Create and tag a couple of experiences:
 	experience1Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experience1Name, "description", "location", EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experience1Name, "description", "location", EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience1IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experience1IDString)
 	experience2Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experience2Name, "description", "location", EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experience2Name, "description", "location", EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience2IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -3068,47 +3189,53 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	timeoutSeconds := int32(200)
 	timeout := time.Duration(timeoutSeconds) * time.Second
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, GithubFalse), ExpectNoError)
-	s.Contains(output.StdOut, CreatedExperience)
+	profile := "test-profile"
+	envVars := []string{"ENV_VAR1=value1", "ENV_VAR2=value2"}
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, &profile, envVars, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// Get the experience ID from the create output
+	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	experienceID := uuid.MustParse(experienceIDString)
+
+	// List experiences and check it's there
+	output = s.runCommand(listExperiences(projectID), ExpectNoError)
+	s.Contains(output.StdOut, experienceName)
+
+	// Archive the experience
+	output = s.runCommand(archiveExperience(projectID, experienceIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedExperience)
+
+	// List experiences again and check it's not there
+	output = s.runCommand(listExperiences(projectID), ExpectNoError)
+	s.Contains(output.StdOut, "no experiences")
+
+	// Get the experience by ID and check it's still retrievable
+	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
+	s.Contains(output.StdOut, experienceName)
+
+	// Restore the experience
+	output = s.runCommand(restoreExperience(projectID, experienceIDString), ExpectNoError)
 	s.Empty(output.StdErr)
 
-	// Now get the experience by name:
-	output = s.runCommand(getExperience(projectID, experienceName), ExpectNoError)
+	// List experiences again and verify it's back
+	output = s.runCommand(listExperiences(projectID), ExpectNoError)
 	s.Contains(output.StdOut, experienceName)
-	s.Empty(output.StdErr)
+
+	// Get the experience and verify its properties
+	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
 	var experience api.Experience
 	err := json.Unmarshal([]byte(output.StdOut), &experience)
 	s.NoError(err)
+	s.Equal(experienceID, experience.ExperienceID)
 	s.Equal(experienceName, experience.Name)
 	s.Equal("description", experience.Description)
 	s.Equal("location", experience.Location)
 	s.Equal(timeoutSeconds, experience.ContainerTimeoutSeconds)
-	// Validate that the experience is available for each system:
-	for _, systemName := range systemNames {
-		output = s.runCommand(systemExperiences(projectIDString, systemName), ExpectNoError)
-		s.Contains(output.StdOut, experienceName)
-	}
+	s.Equal(profile, experience.Profile)
+	s.Equal(len(envVars), len(experience.EnvironmentVariables))
 
-	// Validate we cannot create experiences without values for the required flags:
-	output = s.runCommand(createExperience(projectID, "", "description", "location", EmptySlice, nil, GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyExperienceName)
-	output = s.runCommand(createExperience(projectID, experienceName, "", "location", EmptySlice, nil, GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyExperienceDescription)
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "", EmptySlice, nil, GithubFalse), ExpectError)
-	s.Contains(output.StdErr, EmptyExperienceLocation)
-	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
-
-	// Test creating an experience with the launch profile flag:
-	launchProfileID := uuid.New().String()
-	experienceCommand := createExperience(projectID, experienceName, "description", "location", EmptySlice, nil, GithubFalse)
-	experienceCommand[1].Flags = append(experienceCommand[1].Flags, Flag{
-		Name:  "--launch-profile",
-		Value: launchProfileID,
-	})
-	output = s.runCommand(experienceCommand, ExpectError)
-	s.Contains(output.StdErr, DeprecatedLaunchProfile)
-
-	// Archive the project:
+	// Archive the project
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
@@ -3125,7 +3252,7 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	projectID := uuid.MustParse(projectIDString)
 
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -3142,20 +3269,31 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	s.Equal("location", experience.Location)
 	s.Equal(int32(3600), experience.ContainerTimeoutSeconds) // default timeout
 
-	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
-
 	// Archive the project:
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestSuite) verifyExperienceUpdate(projectID uuid.UUID, experienceID, expectedName, expectedDescription, expectedLocation string, expectedTimeout int32) {
+func (s *EndToEndTestSuite) verifyExperienceUpdate(projectID uuid.UUID, experienceID, expectedName, expectedDescription, expectedLocation string, expectedTimeout int32, expectedProfile string, expectedEnvVars []string) {
 	output := s.runCommand(getExperience(projectID, experienceID), ExpectNoError)
-	s.Contains(output.StdOut, expectedName)
-	s.Contains(output.StdOut, expectedDescription)
-	s.Contains(output.StdOut, expectedLocation)
-	s.Contains(output.StdOut, fmt.Sprintf("%d", expectedTimeout))
+	var experience api.Experience
+	err := json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(expectedName, experience.Name)
+	s.Equal(expectedDescription, experience.Description)
+	s.Equal(expectedLocation, experience.Location)
+	s.Equal(expectedTimeout, experience.ContainerTimeoutSeconds)
+	if expectedProfile != "" {
+		s.Equal(expectedProfile, experience.Profile)
+	}
+	if len(expectedEnvVars) > 0 {
+		s.Equal(len(expectedEnvVars), len(experience.EnvironmentVariables))
+		for i, envVar := range expectedEnvVars {
+			s.Equal(strings.Split(envVar, "=")[0], experience.EnvironmentVariables[i].Name)
+			s.Equal(strings.Split(envVar, "=")[1], experience.EnvironmentVariables[i].Value)
+		}
+	}
 }
 
 func (s *EndToEndTestSuite) TestExperienceUpdate() {
@@ -3174,47 +3312,69 @@ func (s *EndToEndTestSuite) TestExperienceUpdate() {
 	originalLocation := "original location"
 	originalTimeoutSeconds := int32(200)
 	originalTimeout := time.Duration(originalTimeoutSeconds) * time.Second
-	output = s.runCommand(createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, &originalTimeout, GithubTrue), ExpectNoError)
+	originalProfile := "original-profile"
+	originalEnvVars := []string{"ORIGINAL_ENV_VAR1=value1", "ORIGINAL_ENV_VAR2=value2"}
+	output = s.runCommand(createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, &originalTimeout, &originalProfile, originalEnvVars, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 
+	// Verify the created experience has the correct values
+	output = s.runCommand(getExperience(projectID, experienceIDString), ExpectNoError)
+	var experience api.Experience
+	err := json.Unmarshal([]byte(output.StdOut), &experience)
+	s.NoError(err)
+	s.Equal(experienceName, experience.Name)
+	s.Equal(originalDescription, experience.Description)
+	s.Equal(originalLocation, experience.Location)
+	s.Equal(originalTimeoutSeconds, experience.ContainerTimeoutSeconds)
+	s.Equal(originalProfile, experience.Profile)
+	s.Equal(len(originalEnvVars), len(experience.EnvironmentVariables))
+	for i, envVar := range originalEnvVars {
+		s.Equal(strings.Split(envVar, "=")[0], experience.EnvironmentVariables[i].Name)
+		s.Equal(strings.Split(envVar, "=")[1], experience.EnvironmentVariables[i].Value)
+	}
+
 	// 1. Update the experience name alone and verify
 	newName := "updated-experience-name"
-	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), nil, nil, nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, originalDescription, originalLocation, originalTimeoutSeconds)
+	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), nil, nil, nil, nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, originalDescription, originalLocation, originalTimeoutSeconds, originalProfile, originalEnvVars)
 
 	// 2. Update the description alone and verify
 	newDescription := "updated description"
-	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, Ptr(newDescription), nil, nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, originalLocation, originalTimeoutSeconds)
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, Ptr(newDescription), nil, nil, nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, originalLocation, originalTimeoutSeconds, originalProfile, originalEnvVars)
 
 	// 3. Update the location alone and verify
 	newLocation := "updated location"
-	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, Ptr(newLocation), nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, originalTimeoutSeconds)
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, Ptr(newLocation), nil, nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, originalTimeoutSeconds, originalProfile, originalEnvVars)
 
 	// 4. Update the timeout alone and verify
 	newTimeoutSeconds := int32(300)
 	newTimeout := time.Duration(newTimeoutSeconds) * time.Second
-	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, &newTimeout), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, &newTimeout, nil, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds, originalProfile, originalEnvVars)
 
-	// 5. Update the name and description and verify
-	newName = "final-experience-name"
-	newDescription = "final description"
-	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), nil, nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+	// 5. Update the profile alone and verify
+	newProfile := "updated-profile"
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, nil, &newProfile, nil), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds, newProfile, originalEnvVars)
 
-	// 6. Update the name, description, and location and verify
-	newLocation = "final location"
-	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), nil), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+	// 6. Update the environment variables alone and verify
+	newEnvVars := []string{"UPDATED_ENV_VAR1=value1", "UPDATED_ENV_VAR2=value2"}
+	output = s.runCommand(updateExperience(projectID, experienceIDString, nil, nil, nil, nil, nil, newEnvVars), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds, newProfile, newEnvVars)
 
-	// 7. Update the name, description, location, and timeout and verify
-	newTimeoutSeconds = int32(400)
-	newTimeout = time.Duration(newTimeoutSeconds) * time.Second
-	output = s.runCommand(updateExperience(projectID, experienceIDString, Ptr(newName), Ptr(newDescription), Ptr(newLocation), Ptr(newTimeout)), ExpectNoError)
-	s.verifyExperienceUpdate(projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds)
+	// 7. Update the name, description, location, timeout, profile, and environment variables and verify
+	finalName := "final-experience-name"
+	finalDescription := "final description"
+	finalLocation := "final location"
+	finalTimeoutSeconds := int32(400)
+	finalTimeout := time.Duration(finalTimeoutSeconds) * time.Second
+	finalProfile := "final-profile"
+	finalEnvVars := []string{"FINAL_ENV_VAR1=value1", "FINAL_ENV_VAR2=value2"}
+	output = s.runCommand(updateExperience(projectID, experienceIDString, &finalName, &finalDescription, &finalLocation, &finalTimeout, &finalProfile, finalEnvVars), ExpectNoError)
+	s.verifyExperienceUpdate(projectID, experienceIDString, finalName, finalDescription, finalLocation, finalTimeoutSeconds, finalProfile, finalEnvVars)
 
 	// Archive the project:
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
@@ -3235,7 +3395,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// First create two experiences:
 	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/test-object/", s.Config.E2EBucket)
-	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3243,13 +3403,12 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	experienceID2 := uuid.MustParse(experienceIDString2)
-	//TODO(https://app.asana.com/0/1205272835002601/1205376807361744/f): Archive the experiences when possible
 
 	// Now create the branch:
 	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
@@ -3273,7 +3432,6 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	buildID := uuid.MustParse(buildIDString)
-	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 
 	// Create a metrics build:
 	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
@@ -3507,10 +3665,10 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	s.NoError(err)
-	s.Len(logs, 7)
+	s.Len(logs, 8)
 	for _, log := range logs {
 		s.Equal(testID2, *log.JobID)
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name"}, *log.FileName)
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto"}, *log.FileName)
 	}
 
 	// Download a single test log
@@ -3521,14 +3679,14 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 
 	// Download all test logs:
 	output = s.runCommand(downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
-	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 7 log(s) to %s", tempDir))
+	s.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 log(s) to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)
 	s.NoError(err)
-	s.Len(files, 7)
+	s.Len(files, 8)
 	for _, file := range files {
-		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name"}, file.Name())
+		s.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:
@@ -3587,7 +3745,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// First create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3687,7 +3845,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	// create two experiences:
 	experienceName1 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3695,7 +3853,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3905,7 +4063,7 @@ func (s *EndToEndTestSuite) TestCancelSweep() {
 	// create an experience:
 	experienceName := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -4387,7 +4545,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	for i := 0; i < NUM_EXPERIENCES; i++ {
 		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, nil, GithubTrue), ExpectNoError)
+		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, nil, nil, []string{}, GithubTrue), ExpectNoError)
 		s.Contains(output.StdOut, GithubCreatedExperience)
 		s.Empty(output.StdErr)
 		// We expect to be able to parse the experience ID as a UUID
@@ -4542,6 +4700,19 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 	s.Len(jobs, 1)
 	// The job should have the correct experience ID:
 	s.Equal(experienceIDs[0], *jobs[0].ExperienceID)
+
+	// Archive the test suite
+	output = s.runCommand(archiveTestSuite(projectID, firstTestSuiteName), false)
+	s.Require().Contains(output.StdOut, "Archived test suite "+firstTestSuiteName+" successfully!")
+
+	// Restore the test suite
+	output = s.runCommand(restoreTestSuite(projectID, firstTestSuiteName), false)
+	s.Require().Contains(output.StdOut, "Restored archived test suite "+firstTestSuiteName+" successfully!")
+
+	// Get the test suite again to verify it's restored
+	output = s.runCommand(getTestSuite(projectID, firstTestSuiteName, nil, false), false)
+	s.Require().Contains(output.StdOut, firstTestSuiteName)
+	s.Require().Contains(output.StdOut, testSuiteDescription)
 }
 
 func (s *EndToEndTestSuite) TestReports() {
@@ -4584,7 +4755,7 @@ func (s *EndToEndTestSuite) TestReports() {
 	for i := 0; i < NUM_EXPERIENCES; i++ {
 		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, nil, GithubTrue), ExpectNoError)
+		output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, nil, nil, []string{}, GithubTrue), ExpectNoError)
 		s.Contains(output.StdOut, GithubCreatedExperience)
 		s.Empty(output.StdErr)
 		// We expect to be able to parse the experience ID as a UUID
@@ -4748,7 +4919,7 @@ func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
 	// Create an experience
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, Ptr(0*time.Second), GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, Ptr(0*time.Second), nil, []string{}, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)
@@ -5163,7 +5334,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 	// Re-ingest the config file with the --reingest flag; should not create duplicate experiences
 	output = s.runCommand(createIngestedLog(projectID, &systemIDString, &firstBranchName, &firstVersion, metricsBuildID, nil, nil, []string{}, Ptr(configFileLocation), nil, nil, nil, GithubTrue, ReIngestTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedBatch)
-	
+
 	reIngestBatchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	// Do not wait for batch to complete; just cancel it
 	output = s.runCommand(cancelBatchByID(projectID, reIngestBatchIDString), ExpectNoError)
@@ -5266,7 +5437,7 @@ func (s *EndToEndTestSuite) TestCancelBatch() {
 	// First create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, nil, []string{}, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -5397,7 +5568,7 @@ func (s *EndToEndTestSuite) TestDebug() {
 
 	// create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, nil, nil, []string{}, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 

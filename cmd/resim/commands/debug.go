@@ -103,7 +103,7 @@ func debug(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	experienceID := getExperienceID(Client, projectID, viper.GetString(debugExperienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(debugExperienceKey), true, false)
 
 	response, err := Client.DebugExperienceWithResponse(ctx, projectID, experienceID, body)
 	if err != nil {

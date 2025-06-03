@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,6 +35,19 @@ var (
 		Long:  ``,
 		Run:   getExperience,
 	}
+	archiveExperienceCmd = &cobra.Command{
+		Use:   "archive",
+		Short: "archive - Archive an experience",
+		Long:  ``,
+		Run:   archiveExperience,
+	}
+	restoreExperienceCmd = &cobra.Command{
+		Use:   "restore",
+		Short: "restore - Restore an archived experience",
+		Long:  ``,
+		Run:   restoreExperience,
+	}
+
 	updateExperienceCmd = &cobra.Command{
 		Use:   "update",
 		Short: "update - Update an existing experience",
@@ -74,18 +88,20 @@ var (
 )
 
 const (
-	experienceProjectKey       = "project"
-	experienceSystemKey        = "system"
-	experienceSystemsKey       = "systems"
-	experienceNameKey          = "name"
-	experienceKey              = "experience"
-	experienceIDKey            = "id"
-	experienceDescriptionKey   = "description"
-	experienceLocationKey      = "location"
-	experienceLaunchProfileKey = "launch-profile"
-	experienceGithubKey        = "github"
-	experienceTagKey           = "tag"
-	experienceTimeoutKey       = "timeout"
+	experienceProjectKey              = "project"
+	experienceSystemKey               = "system"
+	experienceSystemsKey              = "systems"
+	experienceNameKey                 = "name"
+	experienceKey                     = "experience"
+	experienceIDKey                   = "id"
+	experienceDescriptionKey          = "description"
+	experienceLocationKey             = "location"
+	experienceLaunchProfileKey        = "launch-profile"
+	experienceGithubKey               = "github"
+	experienceTagKey                  = "tag"
+	experienceTimeoutKey              = "timeout"
+	experienceProfileKey              = "profile"
+	experienceEnvironnmentVariableKey = "environment-variable"
 )
 
 func init() {
@@ -102,6 +118,8 @@ func init() {
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	createExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
 	createExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
+	createExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
+	createExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables to set in the build container for this experience")
 	createExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(createExperienceCmd)
 
@@ -112,6 +130,20 @@ func init() {
 	getExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(getExperienceCmd)
 
+	archiveExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to archive the experience within")
+	archiveExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	archiveExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to archive")
+	archiveExperienceCmd.MarkFlagRequired(experienceKey)
+	archiveExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+	experienceCmd.AddCommand(archiveExperienceCmd)
+
+	restoreExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to restore the experience within")
+	restoreExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	restoreExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to restore")
+	restoreExperienceCmd.MarkFlagRequired(experienceKey)
+	restoreExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
+	experienceCmd.AddCommand(restoreExperienceCmd)
+
 	updateExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to list the experiences within")
 	updateExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	updateExperienceCmd.Flags().String(experienceKey, "", "The name or ID of the experience to update")
@@ -120,6 +152,8 @@ func init() {
 	updateExperienceCmd.Flags().String(experienceDescriptionKey, "", "New value for the description of the experience")
 	updateExperienceCmd.Flags().String(experienceLocationKey, "", "New value for the location of the experience, e.g. an S3 URI for the experience folder")
 	updateExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
+	updateExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
+	updateExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables of the form NAME=VALUE to set in the build container for this experience. To remove all environment variables, set the flag to an string.")
 	updateExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	experienceCmd.AddCommand(updateExperienceCmd)
@@ -199,6 +233,27 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		fmt.Println("Launch profiles are deprecated in favor of systems to define resource requirements, parameter will be ignored.")
 	}
 
+	if viper.IsSet(experienceProfileKey) {
+		profile := viper.GetString(experienceProfileKey)
+		body.Profile = &profile
+	}
+
+	if viper.IsSet(experienceEnvironnmentVariableKey) {
+		environmentVariablesString := viper.GetStringSlice(experienceEnvironnmentVariableKey)
+		apiEnvironmentVariables := make([]api.EnvironmentVariable, 0, len(environmentVariablesString))
+		for _, environmentVariable := range environmentVariablesString {
+			parts := strings.SplitN(environmentVariable, "=", 2)
+			if len(parts) != 2 {
+				log.Fatal("invalid environment variable format: ", environmentVariable)
+			}
+			apiEnvironmentVariables = append(apiEnvironmentVariables, api.EnvironmentVariable{
+				Name:  parts[0],
+				Value: parts[1],
+			})
+		}
+		body.EnvironmentVariables = &apiEnvironmentVariables
+	}
+
 	response, err := Client.CreateExperienceWithResponse(context.Background(), projectID, body)
 	if err != nil {
 		log.Fatal("failed to create experience: ", err)
@@ -260,7 +315,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 
 func getExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 
 	response, err := Client.GetExperienceWithResponse(context.Background(), projectID, experienceID)
 	if err != nil {
@@ -274,9 +329,33 @@ func getExperience(ccmd *cobra.Command, args []string) {
 	OutputJson(experience)
 }
 
+func archiveExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
+
+	response, err := Client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
+	if err != nil {
+		log.Fatal("failed to archive experience:", err)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
+	fmt.Printf("Archived experience %s successfully!\n", viper.GetString(experienceKey))
+}
+
+func restoreExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, true)
+
+	response, err := Client.RestoreExperienceWithResponse(context.Background(), projectID, experienceID)
+	if err != nil {
+		log.Fatal("failed to restore experience:", err)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to restore experience", response.HTTPResponse, response.Body)
+	fmt.Printf("Restored archived experience %s successfully!\n", viper.GetString(experienceKey))
+}
+
 func updateExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 	updateExperienceInput := api.UpdateExperienceInput{
 		Experience: &api.UpdateExperienceFields{},
 	}
@@ -300,6 +379,31 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 		updateExperienceInput.Experience.ContainerTimeoutSeconds = &containerTimeoutSeconds
 		updateMask = append(updateMask, "containerTimeoutSeconds")
 	}
+	if viper.IsSet(experienceProfileKey) {
+		profile := viper.GetString(experienceProfileKey)
+		updateExperienceInput.Experience.Profile = &profile
+		updateMask = append(updateMask, "profile")
+	}
+	if viper.IsSet(experienceEnvironnmentVariableKey) {
+		environmentVariablesString := viper.GetStringSlice(experienceEnvironnmentVariableKey)
+		apiEnvironmentVariables := make([]api.EnvironmentVariable, 0, len(environmentVariablesString))
+		for _, environmentVariable := range environmentVariablesString {
+			// Skip empty environment variables - they are being reset
+			if environmentVariable == "" {
+				continue
+			}
+			parts := strings.SplitN(environmentVariable, "=", 2)
+			if len(parts) != 2 {
+				log.Fatal("invalid environment variable format: ", environmentVariable)
+			}
+			apiEnvironmentVariables = append(apiEnvironmentVariables, api.EnvironmentVariable{
+				Name:  parts[0],
+				Value: parts[1],
+			})
+		}
+		updateExperienceInput.Experience.EnvironmentVariables = &apiEnvironmentVariables
+		updateMask = append(updateMask, "environmentVariables")
+	}
 	updateExperienceInput.UpdateMask = Ptr(updateMask)
 	response, err := Client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, updateExperienceInput)
 	if err != nil {
@@ -311,7 +415,7 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 
 func listExperiences(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	var allExperiences []api.Experience
+	allExperiences := []api.Experience{}
 	var pageToken *string = nil
 
 	for {
@@ -328,7 +432,7 @@ func listExperiences(ccmd *cobra.Command, args []string) {
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
-			log.Fatal("no experiences")
+			break // Either no experiences or we've reached the end of the list matching the page length
 		}
 		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
 		if pageToken == nil || *pageToken == "" {
@@ -336,6 +440,10 @@ func listExperiences(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	if len(allExperiences) == 0 {
+		fmt.Println("no experiences")
+		return
+	}
 	OutputJson(allExperiences)
 }
 
@@ -409,7 +517,7 @@ func addSystemToExperience(ccmd *cobra.Command, args []string) {
 	if viper.GetString(experienceKey) == "" {
 		log.Fatal("empty experience name")
 	}
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 
 	response, err := Client.AddSystemToExperienceWithResponse(
 		context.Background(), projectID,
@@ -436,7 +544,7 @@ func removeSystemFromExperience(ccmd *cobra.Command, args []string) {
 	if viper.GetString(experienceKey) == "" {
 		log.Fatal("empty experience name")
 	}
-	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true)
+	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 
 	response, err := Client.RemoveSystemFromExperienceWithResponse(
 		context.Background(), projectID,
@@ -453,7 +561,7 @@ func removeSystemFromExperience(ccmd *cobra.Command, args []string) {
 }
 
 // TODO(https://app.asana.com/0/1205228215063249/1205227572053894/f): we should have first class support in API for this
-func checkExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string) uuid.UUID {
+func checkExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, expectArchived bool) uuid.UUID {
 	// Page through experiences until we find the one with either a name or an ID
 	// that matches the identifier string.
 	experienceID := uuid.Nil
@@ -478,6 +586,7 @@ pageLoop:
 			context.Background(), projectID, &api.ListExperiencesParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
+				Archived:  Ptr(expectArchived),
 			})
 		if err != nil {
 			log.Fatal("failed to list experiences:", err)
@@ -507,10 +616,14 @@ pageLoop:
 	return experienceID
 }
 
-func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool) uuid.UUID {
-	experienceID := checkExperienceID(client, projectID, identifier)
+func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool, expectArchived bool) uuid.UUID {
+	experienceID := checkExperienceID(client, projectID, identifier, expectArchived)
 	if experienceID == uuid.Nil && failWhenNotFound {
-		log.Fatal("failed to find experience with name or ID: ", identifier)
+		if expectArchived {
+			log.Fatal("failed to find archived experience with name or ID: ", identifier)
+		} else {
+			log.Fatal("failed to find experience with name or ID: ", identifier)
+		}
 	}
 	return experienceID
 }

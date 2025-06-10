@@ -3052,7 +3052,7 @@ func (s *EndToEndTestSuite) TestBuildCreateWithBuildSpec() {
 	s.NoError(err)
 	s.Len(buildSpec.Services, 4)
 	systemService := buildSpec.Services["system"]
-	s.Len(systemService.Environment, 2) // One environment variable comes from the top level file, the other comes from the `extends` definition
+	s.Len(systemService.Environment, 3) // Two environment variables come from the top level file, the other comes from the `extends` definition
 	s.Equal(buildSpec.Services["orchestrator"].Image, buildSpec.Services["command-orchestrator"].Image)
 	s.NotEqual(buildSpec.Services["orchestrator"].Image, buildSpec.Services["system"].Image)
 

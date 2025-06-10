@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-Changes in this section will be included in the next release.
+- Add support for populating environment variables in docker compose files (builds) via .env files and/or current environment
 
 ### v0.18.0 - June 3, 2025
 

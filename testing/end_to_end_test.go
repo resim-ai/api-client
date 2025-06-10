@@ -1013,7 +1013,7 @@ func listMetricsBuilds(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{metricsBuildsCommand, listCommand}
 }
 
-func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, timeout *time.Duration, profile *string, envVars []string, github bool) []CommandBuilder {
+func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, tags []string, timeout *time.Duration, profile *string, envVars []string, github bool) []CommandBuilder {
 	// We build a create experience command with the name, description, location flags
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
@@ -1043,6 +1043,12 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--systems",
 			Value: system,
+		})
+	}
+	for _, tag := range tags {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--tags",
+			Value: tag,
 		})
 	}
 	if timeout != nil {
@@ -1148,7 +1154,7 @@ func listExperiences(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{experienceCommand, listCommand}
 }
 
-func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, timeout *time.Duration, profile *string, envVars []string) []CommandBuilder {
+func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, systems []string, tags []string, timeout *time.Duration, profile *string, envVars []string) []CommandBuilder {
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
 	}
@@ -1181,6 +1187,18 @@ func updateExperience(projectID uuid.UUID, experienceKey string, name *string, d
 		updateCommand.Flags = append(updateCommand.Flags, Flag{
 			Name:  "--location",
 			Value: *location,
+		})
+	}
+	for _, system := range systems {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--systems",
+			Value: system,
+		})
+	}
+	for _, tag := range tags {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--tags",
+			Value: tag,
 		})
 	}
 	if timeout != nil {
@@ -2640,13 +2658,13 @@ func (s *EndToEndTestSuite) TestSystems() {
 
 	// Create and tag a couple of experiences:
 	experience1Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experience1Name, "description", "location", EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experience1Name, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience1IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experience1IDString)
 	experience2Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experience2Name, "description", "location", EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experience2Name, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience2IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -3191,7 +3209,7 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	timeout := time.Duration(timeoutSeconds) * time.Second
 	profile := "test-profile"
 	envVars := []string{"ENV_VAR1=value1", "ENV_VAR2=value2"}
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, &timeout, &profile, envVars, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", systemNames, EmptySlice, &timeout, &profile, envVars, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	s.Empty(output.StdErr)
 	// Get the experience ID from the create output
@@ -3252,7 +3270,7 @@ func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
 	projectID := uuid.MustParse(projectIDString)
 
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -3314,7 +3332,7 @@ func (s *EndToEndTestSuite) TestExperienceUpdate() {
 	originalTimeout := time.Duration(originalTimeoutSeconds) * time.Second
 	originalProfile := "original-profile"
 	originalEnvVars := []string{"ORIGINAL_ENV_VAR1=value1", "ORIGINAL_ENV_VAR2=value2"}
-	output = s.runCommand(createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, &originalTimeout, &originalProfile, originalEnvVars, GithubTrue), ExpectNoError)
+	output = s.runCommand(createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, EmptySlice, &originalTimeout, &originalProfile, originalEnvVars, GithubTrue), ExpectNoError)
 	s.Contains(output.StdOut, GithubCreatedExperience)
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 

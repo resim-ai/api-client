@@ -99,6 +99,7 @@ const (
 	experienceLaunchProfileKey        = "launch-profile"
 	experienceGithubKey               = "github"
 	experienceTagKey                  = "tag"
+	experienceTagsKey                 = "tags"
 	experienceTimeoutKey              = "timeout"
 	experienceProfileKey              = "profile"
 	experienceEnvironnmentVariableKey = "environment-variable"
@@ -117,6 +118,7 @@ func init() {
 	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
 	createExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
+	createExperienceCmd.Flags().StringSlice(experienceTagsKey, []string{}, "A list of experience tag names or IDs to apply to the experience")
 	createExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
 	createExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	createExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables to set in the build container for this experience")
@@ -151,6 +153,8 @@ func init() {
 	updateExperienceCmd.Flags().String(experienceNameKey, "", "New value for the name of the experience")
 	updateExperienceCmd.Flags().String(experienceDescriptionKey, "", "New value for the description of the experience")
 	updateExperienceCmd.Flags().String(experienceLocationKey, "", "New value for the location of the experience, e.g. an S3 URI for the experience folder")
+	updateExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
+	updateExperienceCmd.Flags().StringSlice(experienceTagsKey, []string{}, "A list of experience tag names or IDs to apply to the experience")
 	updateExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
 	updateExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	updateExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables of the form NAME=VALUE to set in the build container for this experience. To remove all environment variables, set the flag to an string.")
@@ -254,6 +258,26 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		body.EnvironmentVariables = &apiEnvironmentVariables
 	}
 
+	if viper.IsSet(experienceSystemsKey) {
+		systemNames := viper.GetStringSlice(experienceSystemsKey)
+		systemIDs := make([]api.SystemID, 0, len(systemNames))
+		for _, systemName := range systemNames {
+			systemID := getSystemID(Client, projectID, systemName, true)
+			systemIDs = append(systemIDs, systemID)
+		}
+		body.SystemIDs = &systemIDs
+	}
+
+	if viper.IsSet(experienceTagsKey) {
+		tagNames := viper.GetStringSlice(experienceTagsKey)
+		experienceTagIDs := make([]api.ExperienceTagID, 0, len(tagNames))
+		for _, tagName := range tagNames {
+			experienceTagID := getExperienceTagIDForName(Client, projectID, tagName, true)
+			experienceTagIDs = append(experienceTagIDs, experienceTagID)
+		}
+		body.ExperienceTagIDs = &experienceTagIDs
+	}
+
 	response, err := Client.CreateExperienceWithResponse(context.Background(), projectID, body)
 	if err != nil {
 		log.Fatal("failed to create experience: ", err)
@@ -265,20 +289,6 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	experience := response.JSON201
 	if experience.ExperienceID == uuid.Nil {
 		log.Fatal("no experience ID")
-	}
-
-	// For each system, add that system to the experience:
-	systems := viper.GetStringSlice(experienceSystemsKey)
-	for _, systemName := range systems {
-		systemID := getSystemID(Client, projectID, systemName, true)
-		_, err := Client.AddSystemToExperienceWithResponse(
-			context.Background(), projectID,
-			systemID,
-			experience.ExperienceID,
-		)
-		if err != nil {
-			log.Fatal("failed to register experience with system", err)
-		}
 	}
 
 	validationResponse, err := Client.ValidateExperienceLocationWithResponse(context.Background(), api.ExperienceLocation{
@@ -404,6 +414,29 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 		updateExperienceInput.Experience.EnvironmentVariables = &apiEnvironmentVariables
 		updateMask = append(updateMask, "environmentVariables")
 	}
+
+	if viper.IsSet(experienceSystemsKey) {
+		systemNames := viper.GetStringSlice(experienceSystemsKey)
+		systemIDs := make([]api.SystemID, 0, len(systemNames))
+		for _, systemName := range systemNames {
+			systemID := getSystemID(Client, projectID, systemName, true)
+			systemIDs = append(systemIDs, systemID)
+		}
+		updateExperienceInput.Experience.SystemIDs = &systemIDs
+		updateMask = append(updateMask, "systemIDs")
+	}
+
+	if viper.IsSet(experienceTagsKey) {
+		tagNames := viper.GetStringSlice(experienceTagsKey)
+		experienceTagIDs := make([]api.ExperienceTagID, 0, len(tagNames))
+		for _, tagName := range tagNames {
+			experienceTagID := getExperienceTagIDForName(Client, projectID, tagName, true)
+			experienceTagIDs = append(experienceTagIDs, experienceTagID)
+		}
+		updateExperienceInput.Experience.ExperienceTagIDs = &experienceTagIDs
+		updateMask = append(updateMask, "experienceTagIDs")
+	}
+
 	updateExperienceInput.UpdateMask = Ptr(updateMask)
 	response, err := Client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, updateExperienceInput)
 	if err != nil {

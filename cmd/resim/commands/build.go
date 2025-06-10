@@ -66,6 +66,8 @@ const (
 	buildGithubKey           = "github"
 	buildSpecKey             = "build-spec"
 	buildShowBuildSpecKey    = "show-build-spec-only"
+	buildEnvFilesKey         = "env-files"
+	buildUseOsEnvKey         = "use-os-env"
 )
 
 func init() {
@@ -86,6 +88,12 @@ func init() {
 	createBuildCmd.Flags().String(buildImageURIKey, "", "The URI of the docker image")
 	createBuildCmd.Flags().String(buildSpecKey, "", "Paths to main compose file (may use extends)")
 	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildSpecKey)
+	createBuildCmd.Flags().Bool(buildShowBuildSpecKey, false, "Print the build spec only, formatted as YAML.")
+	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildShowBuildSpecKey)
+	createBuildCmd.Flags().Bool(buildUseOsEnvKey, false, "Whether to use the OS environment variables when parsing the build spec")
+	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildUseOsEnvKey)
+	createBuildCmd.Flags().StringSlice(buildEnvFilesKey, []string{}, "Paths to env files to use when parsing the build spec")
+	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildEnvFilesKey)
 
 	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
 	listBuildsCmd.MarkFlagRequired(buildProjectKey)
@@ -273,11 +281,16 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	if buildSpecLocation != "" {
-		buildSpecBytes, err := ParseBuildSpec(buildSpecLocation)
+		buildSpecBytes, err := ParseBuildSpec(buildSpecLocation, viper.GetBool(buildUseOsEnvKey), viper.GetStringSlice(buildEnvFilesKey))
 		if err != nil {
 			log.Fatal("failed to parse build spec:", err)
 		}
 		buildSpec = Ptr(buildSpecBytes)
+		if viper.GetBool(buildShowBuildSpecKey) {
+			// Show the build spec only if the flag is set.
+			fmt.Println(string(buildSpecBytes))
+			os.Exit(1)
+		}
 	}
 
 	// Check if the project exists, by listing projects:

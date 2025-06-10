@@ -80,7 +80,8 @@
       "entrypoint": null,
       "environment": {
         "DEBUG": "true",
-        "SERVER_PORT": "1234"
+        "SERVER_PORT": "1234",
+	"SET_BY_OUTSIDE_ENV": ""
       },
       "image": "909785973729.dkr.ecr.us-east-1.amazonaws.com/rerun-multi-container-builds-system:latest",
       "network_mode": "host",

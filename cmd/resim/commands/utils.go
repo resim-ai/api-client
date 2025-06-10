@@ -32,7 +32,7 @@ func ParseParameterString(parameterString string) (string, string, error) {
 	return "", "", fmt.Errorf("failed to parse parameter: %s - must be in the format <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>", parameterString)
 }
 
-func ParseBuildSpec(buildSpecLocation string) ([]byte, error) {
+func ParseBuildSpec(buildSpecLocation string, withOsEnv bool, withEnvFiles []string) ([]byte, error) {
 	// We assume that the build spec is a valid YAML file
 	ctx := context.Background()
 
@@ -46,7 +46,23 @@ func ParseBuildSpec(buildSpecLocation string) ([]byte, error) {
 	if err != nil {
 		log.Fatal(err)
 	}
-
+	if withOsEnv {
+		err = cli.WithOsEnv(options)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	if len(withEnvFiles) > 0 {
+		fmt.Println("withEnvFiles", withEnvFiles)
+		err = cli.WithEnvFiles(withEnvFiles...)(options)
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = cli.WithDotEnv(options)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	project, err := options.LoadProject(ctx)
 	if err != nil {
 		log.Fatal(err)

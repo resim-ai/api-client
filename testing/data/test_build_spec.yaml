@@ -5,6 +5,7 @@ services:
       service: system
     environment:
       - DEBUG=true
+      - SET_BY_OUTSIDE_ENV=${SET_BY_OUTSIDE_ENV}
 
   orchestrator:
     extends:

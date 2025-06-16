@@ -149,10 +149,10 @@ const (
 
 // Defines values for ReportStatus.
 const (
-	ERROR     ReportStatus = "ERROR"
-	RUNNING   ReportStatus = "RUNNING"
-	SUBMITTED ReportStatus = "SUBMITTED"
-	SUCCEEDED ReportStatus = "SUCCEEDED"
+	ReportStatusERROR     ReportStatus = "ERROR"
+	ReportStatusRUNNING   ReportStatus = "RUNNING"
+	ReportStatusSUBMITTED ReportStatus = "SUBMITTED"
+	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
 // Defines values for TriggeredVia.
@@ -514,9 +514,11 @@ type CreateExperienceInput struct {
 	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty"`
 	Description             string                 `json:"description"`
 	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
+	ExperienceTagIDs        *[]ExperienceTagID     `json:"experienceTagIDs,omitempty"`
 	Location                string                 `json:"location"`
 	Name                    ExperienceName         `json:"name"`
 	Profile                 *Profile               `json:"profile,omitempty"`
+	SystemIDs               *[]SystemID            `json:"systemIDs,omitempty"`
 }
 
 // CreateExperienceTagInput defines model for createExperienceTagInput.
@@ -1555,9 +1557,11 @@ type UpdateExperienceFields struct {
 	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty"`
 	Description             *string                `json:"description,omitempty"`
 	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
+	ExperienceTagIDs        *[]ExperienceTagID     `json:"experienceTagIDs,omitempty"`
 	Location                *string                `json:"location,omitempty"`
 	Name                    *ExperienceName        `json:"name,omitempty"`
 	Profile                 *Profile               `json:"profile,omitempty"`
+	SystemIDs               *[]SystemID            `json:"systemIDs,omitempty"`
 }
 
 // UpdateExperienceInput defines model for updateExperienceInput.

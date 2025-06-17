@@ -4,6 +4,9 @@
 
 ### Unreleased
 
+### v0.19.0 - June 17, 2025
+
+- Add support for rerunning a subset of tests within a batch via `resim batches rerun --batch-id <> --test-ids <>...`
 - Add support for populating environment variables in docker compose files (builds) via .env files and/or current environment
 
 ### v0.18.0 - June 3, 2025

@@ -98,7 +98,7 @@ const (
 	batchWaitPollKey                = "poll-every"
 	batchSlackOutputKey             = "slack"
 	batchAllowableFailurePercentKey = "allowable-failure-percent"
-	batchJobIDsKey                  = "job-ids"
+	batchTestIDsKey                 = "test-ids"
 )
 
 func init() {
@@ -168,8 +168,8 @@ func init() {
 	rerunBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to rerun tests for.")
 	rerunBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to rerun tests for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this reruns the most recent batch with that name.")
 	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	rerunBatchCmd.Flags().StringSlice(batchJobIDsKey, []string{}, "Comma-separated list of job IDs to rerun.")
-	rerunBatchCmd.MarkFlagRequired(batchJobIDsKey)
+	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun.")
+	rerunBatchCmd.MarkFlagRequired(batchTestIDsKey)
 	batchCmd.AddCommand(rerunBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
@@ -667,7 +667,7 @@ func rerunBatch(ccmd *cobra.Command, args []string) {
 	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
 
 	jobIDs := []uuid.UUID{}
-	for _, jobID := range viper.GetStringSlice(batchJobIDsKey) {
+	for _, jobID := range viper.GetStringSlice(batchTestIDsKey) {
 		jobID, err := uuid.Parse(jobID)
 		if err != nil {
 			log.Fatal("unable to parse job ID: ", err)

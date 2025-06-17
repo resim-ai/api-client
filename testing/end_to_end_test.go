@@ -2424,7 +2424,7 @@ func rerunBatch(projectID uuid.UUID, batchID string, jobIDs []string) []CommandB
 				Value: batchID,
 			},
 			{
-				Name:  "--job-ids",
+				Name:  "--test-ids",
 				Value: strings.Join(jobIDs, ","),
 			},
 		},

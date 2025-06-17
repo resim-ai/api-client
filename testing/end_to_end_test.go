@@ -2408,6 +2408,30 @@ func listReportLogs(projectID uuid.UUID, reportID, reportName string) []CommandB
 	return []CommandBuilder{reportCommand, listLogsCommand}
 }
 
+func rerunBatch(projectID uuid.UUID, batchName string, jobIDs []string) []CommandBuilder {
+	batchCommand := CommandBuilder{
+		Command: "batches",
+	}
+	rerunCommand := CommandBuilder{
+		Command: "rerun",
+		Flags: []Flag{
+			{
+				Name:  "--project",
+				Value: projectID.String(),
+			},
+			{
+				Name:  "--batch-name",
+				Value: batchName,
+			},
+			{
+				Name:  "--job-ids",
+				Value: strings.Join(jobIDs, ","),
+			},
+		},
+	}
+	return []CommandBuilder{batchCommand, rerunCommand}
+}
+
 // As a first test, we expect the help command to run successfully
 func (s *EndToEndTestSuite) TestHelp() {
 	fmt.Println("Testing help command")
@@ -3742,6 +3766,145 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 		}
 		return allComplete
 	}, 10*time.Minute, 10*time.Second)
+	// Archive the project:
+	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
+	s.Contains(output.StdOut, ArchivedProject)
+	s.Empty(output.StdErr)
+}
+
+func (s *EndToEndTestSuite) TestRerunBatch() {
+	// create a project:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+	// This test does not use parameters, so we create an empty parameter map:
+	emptyParameterMap := map[string]string{}
+	// First create two experiences:
+	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	experienceLocation := fmt.Sprintf("s3://%s/test-object/", s.Config.E2EBucket)
+	output = s.runCommand(createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+
+	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output = s.runCommand(createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	// We expect to be able to parse the experience ID as a UUID
+	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+
+	// Now create the branch:
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(createBranch(uuid.MustParse(projectIDString), branchName, "RELEASE", GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBranch)
+	// We expect to be able to parse the branch ID as a UUID
+	branchIDString := output.StdOut[len(GithubCreatedBranch) : len(output.StdOut)-1]
+	uuid.MustParse(branchIDString)
+
+	// Create the system:
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedSystem)
+	// We expect to be able to parse the system ID as a UUID
+	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
+	uuid.MustParse(systemIDString)
+
+	// Now create the build:
+	output = s.runCommand(createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/resim/open-builds/log-ingest:latest", []string{}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBuild)
+	// We expect to be able to parse the build ID as a UUID
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+
+	// Create a metrics build:
+	output = s.runCommand(createMetricsBuild(projectID, "test-metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "version", EmptySlice, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	// We expect to be able to parse the build ID as a UUID
+	metricsBuildIDString := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+
+	// Create a batch with an ID in the --experiences flag and a tag name in the --experience-tags flag (experience 1 is in the tag)
+	output = s.runCommand(createBatch(projectID, buildIDString, []string{}, []string{}, []string{}, []string{experienceIDString2, experienceIDString1}, []string{}, metricsBuildIDString, GithubTrue, emptyParameterMap, AssociatedAccount, nil, nil), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedBatch)
+	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
+	uuid.MustParse(batchIDString)
+
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getBatchByID(projectID, batchIDString, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 failed
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+	// Grab the batch and validate the status, first by name then by ID:
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	var batch api.Batch
+	err := json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(batchIDString, *batch.BatchID)
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+	// Get the job IDs:
+	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
+	var tests []api.Job
+	err = json.Unmarshal([]byte(output.StdOut), &tests)
+	s.NoError(err)
+	s.Len(tests, 2)
+	// Now rerun the batch:
+	output = s.runCommand(rerunBatch(projectID, batchIDString, []string{tests[0].JobID.String()}), ExpectNoError)
+	s.Contains(output.StdOut, "Batch rerun successfully!")
+
+	// Await it finishing:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getBatchByID(projectID, batchIDString, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 failed
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+
+	// Assert the status is SUCCEEDED:
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+
 	// Archive the project:
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)
 	s.Contains(output.StdOut, ArchivedProject)

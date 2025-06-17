@@ -69,6 +69,13 @@ var (
 		Long:  ``,
 		Run:   listBatchLogs,
 	}
+
+	rerunBatchCmd = &cobra.Command{
+		Use:   "rerun",
+		Short: "rerun - Reruns a subset of tests in a batch",
+		Long:  ``,
+		Run:   rerunBatch,
+	}
 )
 
 const (
@@ -91,6 +98,7 @@ const (
 	batchWaitPollKey                = "poll-every"
 	batchSlackOutputKey             = "slack"
 	batchAllowableFailurePercentKey = "allowable-failure-percent"
+	batchJobIDsKey                  = "job-ids"
 )
 
 func init() {
@@ -154,6 +162,15 @@ func init() {
 	logsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	logsBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(logsBatchCmd)
+
+	rerunBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	rerunBatchCmd.MarkFlagRequired(batchProjectKey)
+	rerunBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to rerun tests for.")
+	rerunBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to rerun tests for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this reruns the most recent batch with that name.")
+	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	rerunBatchCmd.Flags().StringSlice(batchJobIDsKey, []string{}, "Comma-separated list of job IDs to rerun.")
+	rerunBatchCmd.MarkFlagRequired(batchJobIDsKey)
+	batchCmd.AddCommand(rerunBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
 }
@@ -643,4 +660,27 @@ func cancelBatch(ccmd *cobra.Command, args []string) {
 	}
 	ValidateResponse(http.StatusOK, "failed to cancel batch", response.HTTPResponse, response.Body)
 	fmt.Println("Batch cancelled successfully!")
+}
+
+func rerunBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+
+	jobIDs := []uuid.UUID{}
+	for _, jobID := range viper.GetStringSlice(batchJobIDsKey) {
+		jobID, err := uuid.Parse(jobID)
+		if err != nil {
+			log.Fatal("unable to parse job ID: ", err)
+		}
+		jobIDs = append(jobIDs, jobID)
+	}
+	rerunInput := api.RerunBatchInput{
+		JobIDs: &jobIDs,
+	}
+	response, err := Client.RerunBatchWithResponse(context.Background(), projectID, *batch.BatchID, rerunInput)
+	if err != nil {
+		log.Fatal("failed to rerun batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
+	fmt.Println("Batch rerun successfully!")
 }

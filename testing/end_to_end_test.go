@@ -3870,7 +3870,7 @@ func (s *EndToEndTestSuite) TestRerunBatch() {
 	s.NoError(err)
 	s.Len(tests, 2)
 	// Now rerun the batch:
-	// Sleep for 60 seconds to ensure the batch is cleaned up::
+	// Sleep for 60 seconds to ensure the batch is cleaned up:
 	time.Sleep(60 * time.Second)
 	output = s.runCommand(rerunBatch(projectID, batchIDString, []string{tests[0].JobID.String()}), ExpectNoError)
 	fmt.Println("Output: ", output.StdOut)

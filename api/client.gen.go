@@ -725,27 +725,29 @@ type GetQuotaOutput struct {
 
 // Job defines model for job.
 type Job struct {
-	BatchID              *BatchID            `json:"batchID,omitempty"`
-	BranchID             *BranchID           `json:"branchID,omitempty"`
-	BuildID              *BuildID            `json:"buildID,omitempty"`
-	ConflatedStatus      *ConflatedJobStatus `json:"conflatedStatus,omitempty"`
-	CreationTimestamp    *Timestamp          `json:"creationTimestamp,omitempty"`
-	Description          *string             `json:"description,omitempty"`
-	ExecutionError       *ExecutionError     `json:"executionError,omitempty"`
-	ExecutionErrors      *[]ExecutionError   `json:"executionErrors"`
-	ExperienceID         *ExperienceID       `json:"experienceID,omitempty"`
-	ExperienceName       *ExperienceName     `json:"experienceName,omitempty"`
-	JobID                *JobID              `json:"jobID,omitempty"`
-	JobMetricsStatus     *MetricStatus       `json:"jobMetricsStatus,omitempty"`
-	JobStatus            *JobStatus          `json:"jobStatus,omitempty"`
-	LastUpdatedTimestamp *Timestamp          `json:"lastUpdatedTimestamp,omitempty"`
-	OrgID                *OrgID              `json:"orgID,omitempty"`
-	OutputLocation       *string             `json:"outputLocation,omitempty"`
-	Parameters           *BatchParameters    `json:"parameters,omitempty"`
-	ProjectID            *ProjectID          `json:"projectID,omitempty"`
-	StatusHistory        *JobStatusHistory   `json:"statusHistory,omitempty"`
-	SystemID             *SystemID           `json:"systemID,omitempty"`
-	UserID               *UserID             `json:"userID,omitempty"`
+	BatchID                        *BatchID               `json:"batchID,omitempty"`
+	BranchID                       *BranchID              `json:"branchID,omitempty"`
+	BuildID                        *BuildID               `json:"buildID,omitempty"`
+	ConflatedStatus                *ConflatedJobStatus    `json:"conflatedStatus,omitempty"`
+	CreationTimestamp              *Timestamp             `json:"creationTimestamp,omitempty"`
+	Description                    *string                `json:"description,omitempty"`
+	ExecutionError                 *ExecutionError        `json:"executionError,omitempty"`
+	ExecutionErrors                *[]ExecutionError      `json:"executionErrors"`
+	ExperienceEnvironmentVariables *[]EnvironmentVariable `json:"experienceEnvironmentVariables,omitempty"`
+	ExperienceID                   *ExperienceID          `json:"experienceID,omitempty"`
+	ExperienceName                 *ExperienceName        `json:"experienceName,omitempty"`
+	ExperienceProfile              *string                `json:"experienceProfile,omitempty"`
+	JobID                          *JobID                 `json:"jobID,omitempty"`
+	JobMetricsStatus               *MetricStatus          `json:"jobMetricsStatus,omitempty"`
+	JobStatus                      *JobStatus             `json:"jobStatus,omitempty"`
+	LastUpdatedTimestamp           *Timestamp             `json:"lastUpdatedTimestamp,omitempty"`
+	OrgID                          *OrgID                 `json:"orgID,omitempty"`
+	OutputLocation                 *string                `json:"outputLocation,omitempty"`
+	Parameters                     *BatchParameters       `json:"parameters,omitempty"`
+	ProjectID                      *ProjectID             `json:"projectID,omitempty"`
+	StatusHistory                  *JobStatusHistory      `json:"statusHistory,omitempty"`
+	SystemID                       *SystemID              `json:"systemID,omitempty"`
+	UserID                         *UserID                `json:"userID,omitempty"`
 }
 
 // JobID defines model for jobID.
@@ -1365,6 +1367,18 @@ type ReportStatusHistoryType struct {
 	UpdatedAt *Timestamp    `json:"updatedAt,omitempty"`
 }
 
+// RerunBatchInput defines model for rerunBatchInput.
+type RerunBatchInput struct {
+	JobIDs *[]JobID `json:"jobIDs,omitempty"`
+}
+
+// RerunBatchOutput defines model for rerunBatchOutput.
+type RerunBatchOutput struct {
+	BatchID    *BatchID    `json:"batchID,omitempty"`
+	JobIDs     *[]JobID    `json:"jobIDs,omitempty"`
+	RunCounter *RunCounter `json:"runCounter,omitempty"`
+}
+
 // RespectRevisionBoundary defines model for respectRevisionBoundary.
 type RespectRevisionBoundary = bool
 
@@ -1383,6 +1397,9 @@ type ReviseTestSuiteInput struct {
 	SystemID              *SystemID               `json:"systemID,omitempty"`
 	UpdateMetricsBuild    bool                    `json:"updateMetricsBuild"`
 }
+
+// RunCounter defines model for runCounter.
+type RunCounter = int
 
 // SelectExperiencesInput defines model for selectExperiencesInput.
 type SelectExperiencesInput struct {
@@ -2093,6 +2110,9 @@ type UpdateJobJSONRequestBody = UpdateJobInput
 // UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
 type UpdateEventJSONRequestBody = UpdateEventInput
 
+// RerunBatchJSONRequestBody defines body for RerunBatch for application/json ContentType.
+type RerunBatchJSONRequestBody = RerunBatchInput
+
 // CreateBranchForProjectJSONRequestBody defines body for CreateBranchForProject for application/json ContentType.
 type CreateBranchForProjectJSONRequestBody = CreateBranchInput
 
@@ -2765,6 +2785,11 @@ type ClientInterface interface {
 
 	// ListBatchMetricsDataForBatchMetricsDataIDs request
 	ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RerunBatchWithBody request with any body
+	RerunBatchWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RerunBatch(ctx context.Context, projectID ProjectID, batchID BatchID, body RerunBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetBatchSuggestions request
 	GetBatchSuggestions(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3617,6 +3642,30 @@ func (c *Client) ListBatchMetricsData(ctx context.Context, projectID ProjectID, 
 
 func (c *Client) ListBatchMetricsDataForBatchMetricsDataIDs(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchMetricsDataForBatchMetricsDataIDsRequest(c.Server, projectID, batchID, metricsDataID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RerunBatchWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRerunBatchRequestWithBody(c.Server, projectID, batchID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RerunBatch(ctx context.Context, projectID ProjectID, batchID BatchID, body RerunBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRerunBatchRequest(c.Server, projectID, batchID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -7907,6 +7956,60 @@ func NewListBatchMetricsDataForBatchMetricsDataIDsRequest(server string, project
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewRerunBatchRequest calls the generic RerunBatch builder with application/json body
+func NewRerunBatchRequest(server string, projectID ProjectID, batchID BatchID, body RerunBatchJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRerunBatchRequestWithBody(server, projectID, batchID, "application/json", bodyReader)
+}
+
+// NewRerunBatchRequestWithBody generates requests for RerunBatch with any type of body
+func NewRerunBatchRequestWithBody(server string, projectID ProjectID, batchID BatchID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/rerun", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -13634,6 +13737,11 @@ type ClientWithResponsesInterface interface {
 	// ListBatchMetricsDataForBatchMetricsDataIDsWithResponse request
 	ListBatchMetricsDataForBatchMetricsDataIDsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, metricsDataID []MetricsDataID, params *ListBatchMetricsDataForBatchMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListBatchMetricsDataForBatchMetricsDataIDsResponse, error)
 
+	// RerunBatchWithBodyWithResponse request with any body
+	RerunBatchWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RerunBatchResponse, error)
+
+	RerunBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, body RerunBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*RerunBatchResponse, error)
+
 	// GetBatchSuggestionsWithResponse request
 	GetBatchSuggestionsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchSuggestionsResponse, error)
 
@@ -14802,6 +14910,28 @@ func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListBatchMetricsDataForBatchMetricsDataIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RerunBatchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *RerunBatchOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r RerunBatchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RerunBatchResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17168,6 +17298,23 @@ func (c *ClientWithResponses) ListBatchMetricsDataForBatchMetricsDataIDsWithResp
 	return ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp)
 }
 
+// RerunBatchWithBodyWithResponse request with arbitrary body returning *RerunBatchResponse
+func (c *ClientWithResponses) RerunBatchWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RerunBatchResponse, error) {
+	rsp, err := c.RerunBatchWithBody(ctx, projectID, batchID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRerunBatchResponse(rsp)
+}
+
+func (c *ClientWithResponses) RerunBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, body RerunBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*RerunBatchResponse, error) {
+	rsp, err := c.RerunBatch(ctx, projectID, batchID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRerunBatchResponse(rsp)
+}
+
 // GetBatchSuggestionsWithResponse request returning *GetBatchSuggestionsResponse
 func (c *ClientWithResponses) GetBatchSuggestionsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchSuggestionsResponse, error) {
 	rsp, err := c.GetBatchSuggestions(ctx, projectID, batchID, reqEditors...)
@@ -19132,6 +19279,32 @@ func ParseListBatchMetricsDataForBatchMetricsDataIDsResponse(rsp *http.Response)
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListBatchMetricsDataOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRerunBatchResponse parses an HTTP response from a RerunBatchWithResponse call
+func ParseRerunBatchResponse(rsp *http.Response) (*RerunBatchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RerunBatchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest RerunBatchOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

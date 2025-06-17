@@ -2408,7 +2408,7 @@ func listReportLogs(projectID uuid.UUID, reportID, reportName string) []CommandB
 	return []CommandBuilder{reportCommand, listLogsCommand}
 }
 
-func rerunBatch(projectID uuid.UUID, batchName string, jobIDs []string) []CommandBuilder {
+func rerunBatch(projectID uuid.UUID, batchID string, jobIDs []string) []CommandBuilder {
 	batchCommand := CommandBuilder{
 		Command: "batches",
 	}
@@ -2420,8 +2420,8 @@ func rerunBatch(projectID uuid.UUID, batchName string, jobIDs []string) []Comman
 				Value: projectID.String(),
 			},
 			{
-				Name:  "--batch-name",
-				Value: batchName,
+				Name:  "--batch-id",
+				Value: batchID,
 			},
 			{
 				Name:  "--job-ids",
@@ -3861,7 +3861,7 @@ func (s *EndToEndTestSuite) TestRerunBatch() {
 	var batch api.Batch
 	err := json.Unmarshal([]byte(output.StdOut), &batch)
 	s.NoError(err)
-	s.Equal(batchIDString, *batch.BatchID)
+	s.Equal(batchIDString, batch.BatchID.String())
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
 	// Get the job IDs:
 	output = s.runCommand(getBatchJobsByID(projectID, batchIDString), ExpectNoError)
@@ -3870,7 +3870,11 @@ func (s *EndToEndTestSuite) TestRerunBatch() {
 	s.NoError(err)
 	s.Len(tests, 2)
 	// Now rerun the batch:
+	// Sleep for 60 seconds to ensure the batch is cleaned up::
+	time.Sleep(60 * time.Second)
 	output = s.runCommand(rerunBatch(projectID, batchIDString, []string{tests[0].JobID.String()}), ExpectNoError)
+	fmt.Println("Output: ", output.StdOut)
+	fmt.Println("Error: ", output.StdErr)
 	s.Contains(output.StdOut, "Batch rerun successfully!")
 
 	// Await it finishing:
@@ -3910,7 +3914,6 @@ func (s *EndToEndTestSuite) TestRerunBatch() {
 	s.Contains(output.StdOut, ArchivedProject)
 	s.Empty(output.StdErr)
 }
-
 func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())

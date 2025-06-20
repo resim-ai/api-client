@@ -209,7 +209,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		// Create the experience
 		experienceBody := api.CreateExperienceInput{
 			Name:        logConfig.Name,
-			Location:    logConfig.Location,
+			Locations:   &[]string{logConfig.Location},
 			Description: "Ingested into ReSim via the CLI",
 		}
 		experienceResponse, err := Client.CreateExperienceWithResponse(context.Background(), projectID, experienceBody)

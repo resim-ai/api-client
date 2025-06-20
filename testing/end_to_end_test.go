@@ -1034,7 +1034,7 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 				Value: description,
 			},
 			{
-				Name:  "--location",
+				Name:  "--locations",
 				Value: location,
 			},
 		},
@@ -3276,6 +3276,21 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 	s.Equal(timeoutSeconds, experience.ContainerTimeoutSeconds)
 	s.Equal(profile, experience.Profile)
 	s.Equal(len(envVars), len(experience.EnvironmentVariables))
+
+	// Create an experience with multiple locations
+	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	output = s.runCommand(createExperience(projectID, experienceName2, "description", "location1,location2", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	s.Contains(output.StdOut, GithubCreatedExperience)
+	s.Empty(output.StdErr)
+	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
+	uuid.MustParse(experienceIDString2)
+	// Get the experience and verify there are two locations:
+	output = s.runCommand(getExperience(projectID, experienceIDString2), ExpectNoError)
+	var experience2 api.Experience
+	err = json.Unmarshal([]byte(output.StdOut), &experience2)
+	s.NoError(err)
+	s.Equal(2, len(experience2.Locations))
+	s.ElementsMatch([]string{"location1", "location2"}, experience2.Locations)
 
 	// Archive the project
 	output = s.runCommand(archiveProject(projectIDString), ExpectNoError)

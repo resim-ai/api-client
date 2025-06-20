@@ -515,10 +515,14 @@ type CreateExperienceInput struct {
 	Description             string                 `json:"description"`
 	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
 	ExperienceTagIDs        *[]ExperienceTagID     `json:"experienceTagIDs,omitempty"`
-	Location                string                 `json:"location"`
-	Name                    ExperienceName         `json:"name"`
-	Profile                 *Profile               `json:"profile,omitempty"`
-	SystemIDs               *[]SystemID            `json:"systemIDs,omitempty"`
+
+	// Location [DEPRECATED] This field was previously used to define an experience's location. Experiences can now be defined with multiple locations, using the locations field. This field will be removed in a later release.
+	// Deprecated:
+	Location  *string        `json:"location,omitempty"`
+	Locations *[]string      `json:"locations,omitempty"`
+	Name      ExperienceName `json:"name"`
+	Profile   *Profile       `json:"profile,omitempty"`
+	SystemIDs *[]SystemID    `json:"systemIDs,omitempty"`
 }
 
 // CreateExperienceTagInput defines model for createExperienceTagInput.
@@ -644,12 +648,16 @@ type Experience struct {
 	Description             string                `json:"description"`
 	EnvironmentVariables    []EnvironmentVariable `json:"environmentVariables"`
 	ExperienceID            ExperienceID          `json:"experienceID"`
-	Location                string                `json:"location"`
-	Name                    ExperienceName        `json:"name"`
-	OrgID                   OrgID                 `json:"orgID"`
-	Profile                 Profile               `json:"profile"`
-	ProjectID               ProjectID             `json:"projectID"`
-	UserID                  UserID                `json:"userID"`
+
+	// Location [DEPRECATED] This field was previously used to report an experience's location. Experiences can now be defined with multiple locations, this field will display the first location; this field will be removed in a future version.
+	// Deprecated:
+	Location  string         `json:"location"`
+	Locations []string       `json:"locations"`
+	Name      ExperienceName `json:"name"`
+	OrgID     OrgID          `json:"orgID"`
+	Profile   Profile        `json:"profile"`
+	ProjectID ProjectID      `json:"projectID"`
+	UserID    UserID         `json:"userID"`
 }
 
 // ExperienceFilterInput defines model for experienceFilterInput.
@@ -1246,6 +1254,7 @@ type ParameterSweepInput struct {
 	ExperienceTagIDs        *[]ExperienceTagID   `json:"experienceTagIDs"`
 	ExperienceTagNames      *[]ExperienceTagName `json:"experienceTagNames"`
 	MetricsBuildID          *MetricsBuildID      `json:"metricsBuildID,omitempty"`
+	MetricsSetName          *MetricsSetName      `json:"metricsSetName"`
 	Parameters              *[]SweepParameter    `json:"parameters,omitempty"`
 	PoolLabels              *PoolLabels          `json:"poolLabels,omitempty"`
 	TriggeredVia            *TriggeredVia        `json:"triggeredVia,omitempty"`
@@ -1575,10 +1584,14 @@ type UpdateExperienceFields struct {
 	Description             *string                `json:"description,omitempty"`
 	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
 	ExperienceTagIDs        *[]ExperienceTagID     `json:"experienceTagIDs,omitempty"`
-	Location                *string                `json:"location,omitempty"`
-	Name                    *ExperienceName        `json:"name,omitempty"`
-	Profile                 *Profile               `json:"profile,omitempty"`
-	SystemIDs               *[]SystemID            `json:"systemIDs,omitempty"`
+
+	// Location [DEPRECATED] This field was previously used to define an experience's location. Experiences can now be defined with multiple locations, using the locations field. This field will be removed in a future version.
+	// Deprecated:
+	Location  *string         `json:"location,omitempty"`
+	Locations *[]string       `json:"locations,omitempty"`
+	Name      *ExperienceName `json:"name,omitempty"`
+	Profile   *Profile        `json:"profile,omitempty"`
+	SystemIDs *[]SystemID     `json:"systemIDs,omitempty"`
 }
 
 // UpdateExperienceInput defines model for updateExperienceInput.

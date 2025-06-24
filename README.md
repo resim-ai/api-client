@@ -29,18 +29,31 @@ Or you can install using `go install`:
 
 When you run any command, if you don't have a cached authentication token, the CLI will prompt you to log in using a web browser.
 
+
 ### Non-Interactive Auth
 
-If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using client credentials (a client ID and a client secret). These are obtained by contacting ReSim.  
+If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using a username and password or client credentials (a client ID and a client secret). These credentials are obtained by contacting ReSim. We will provide the most appropriate type for your environment.
+
+The username and password can be specified using the `--username` and `--password` flags, or in the environment as `RESIM_USERNAME` and `RESIM_PASSWORD`.
 
 Client credentials can be specified on the commandline with the `--client-id` and `--client-secret` flags, or in the environment as
 `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET`.
 
-If you would like to store your client ID and secret in a config file, the CLI will load them from `~/.resim/resim.yaml`.  The file
-is formatted as follows:
+If you would like to store your credentials in a config file, the CLI will load them from `~/.resim/resim.yaml`. Make sure this file is reasonably secure - only readable by the user that will run the CLI, for example. The file is formatted as follows:
 
+    ## Set ONE of the below pairs
+    
+    # Client Credentials
     client-id: <client ID>
     client-secret: <client secret>
+
+    # Password
+    username: <username>
+    password: <password>
+
+### Token Caching
+
+Authentication tokens will be cached in `~/.resim/cache.json` if the user running the CLI has permission to create that directory and file.
 
 ## Usage
 

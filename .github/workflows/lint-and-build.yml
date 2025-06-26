@@ -32,7 +32,7 @@ jobs:
 
   e2e:
     name: Run end-to-end test
-    runs-on: ubuntu-latest
+    runs-on: go-go-gadget-runner
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -44,5 +44,4 @@ jobs:
           RESIM_CLIENT_ID: ${{ secrets.RESIM_CLIENT_ID }}
           RESIM_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
 
-        # FIXME: This is so long. Please make them run in parallel.
-        run: go test -v -timeout 45m -tags end_to_end -count 1 ./testing
+        run: go test -v -parallel=12 -timeout 50m -tags end_to_end -count 1 ./testing

@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.20.0 - June 24, 2025
+
+- Add support for multiple locations being assigned to each experience, via `resim experiences create ... --locations "<s3://...>,<s3://...>,..."`
+
 ### v0.19.0 - June 17, 2025
 
 - Add support for rerunning a subset of tests within a batch via `resim batches rerun --batch-id <> --test-ids <>...`

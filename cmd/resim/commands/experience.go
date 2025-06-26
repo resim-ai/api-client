@@ -112,7 +112,7 @@ func init() {
 	createExperienceCmd.MarkFlagRequired(experienceNameKey)
 	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
 	createExperienceCmd.MarkFlagRequired(experienceDescriptionKey)
-	createExperienceCmd.Flags().String(experienceLocationKey, "", "The location of the experience, e.g. an S3 URI for the experience folder")
+	createExperienceCmd.Flags().StringSlice(experienceLocationKey, []string{}, "The location(s) of the experience, comma separated if more than one. e.g. an S3 URI for the experience folder")
 	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
 	createExperienceCmd.Flags().String(experienceLaunchProfileKey, "", "The UUID of the launch profile for this experience")
 	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
@@ -218,9 +218,9 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience description")
 	}
 
-	experienceLocation := viper.GetString(experienceLocationKey)
-	if experienceLocation == "" {
-		log.Fatal("empty experience location")
+	experienceLocations := viper.GetStringSlice(experienceLocationKey)
+	if len(experienceLocations) == 0 {
+		log.Fatal("empty experience locations")
 	}
 
 	containerTimeout := viper.GetDuration(experienceTimeoutKey)
@@ -229,7 +229,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	body := api.CreateExperienceInput{
 		Name:                    experienceName,
 		Description:             experienceDescription,
-		Location:                experienceLocation,
+		Locations:               &experienceLocations,
 		ContainerTimeoutSeconds: &containerTimeoutSeconds,
 	}
 

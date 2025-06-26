@@ -45,4 +45,4 @@ jobs:
           RESIM_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
 
         # FIXME: This is so long. Please make them run in parallel.
-        run: go test -v --parallel=12 timeout 1h -tags end_to_end -count 1 ./testing
+        run: go test -v --parallel=12 timeout 50m -tags end_to_end -count 1 ./testing

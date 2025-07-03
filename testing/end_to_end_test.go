@@ -233,6 +233,10 @@ func (s *EndToEndTestSuite) TearDownSuite() {
 	os.Remove(s.CliPath)
 }
 
+func (s *EndToEndTestSuite) SetupTest() {
+	s.CliPath = s.buildCLI()
+}
+
 func (s *EndToEndTestSuite) SetupSuite() {
 	switch viper.GetString(Config) {
 	case Dev:
@@ -253,7 +257,6 @@ func (s *EndToEndTestSuite) SetupSuite() {
 		os.Exit(1)
 	}
 
-	s.CliPath = s.buildCLI()
 }
 
 func (s *EndToEndTestSuite) buildCLI() string {

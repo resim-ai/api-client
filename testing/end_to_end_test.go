@@ -2436,6 +2436,7 @@ func rerunBatch(projectID uuid.UUID, batchID string, jobIDs []string) []CommandB
 
 // As a first test, we expect the help command to run successfully
 func (s *EndToEndTestSuite) TestHelp() {
+	s.T().Parallel()
 	fmt.Println("Testing help command")
 	runCommand := CommandBuilder{
 		Command: "help",
@@ -2445,6 +2446,7 @@ func (s *EndToEndTestSuite) TestHelp() {
 }
 
 func (s *EndToEndTestSuite) TestProjectCommands() {
+	s.T().Parallel()
 	fmt.Println("Testing project create command")
 	// Check we can successfully create a project with a unique name
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -2509,6 +2511,7 @@ func (s *EndToEndTestSuite) TestProjectCommands() {
 }
 
 func (s *EndToEndTestSuite) TestProjectCreateGithub() {
+	s.T().Parallel()
 	fmt.Println("Testing project create command, with --github flag")
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -2531,6 +2534,7 @@ func (s *EndToEndTestSuite) TestProjectCreateGithub() {
 
 // Test branch creation:
 func (s *EndToEndTestSuite) TestBranchCreate() {
+	s.T().Parallel()
 	fmt.Println("Testing branch creation")
 
 	// First create a project
@@ -2564,6 +2568,7 @@ func (s *EndToEndTestSuite) TestBranchCreate() {
 }
 
 func (s *EndToEndTestSuite) TestBranchCreateGithub() {
+	s.T().Parallel()
 	fmt.Println("Testing branch creation, with --github flag")
 
 	// First create a project
@@ -2589,6 +2594,7 @@ func (s *EndToEndTestSuite) TestBranchCreateGithub() {
 }
 
 func (s *EndToEndTestSuite) TestSystems() {
+	s.T().Parallel()
 	fmt.Println("Testing system creation")
 
 	// First create a project
@@ -2877,6 +2883,7 @@ func (s *EndToEndTestSuite) TestSystems() {
 }
 
 func (s *EndToEndTestSuite) TestSystemCreateGithub() {
+	s.T().Parallel()
 	fmt.Println("Testing system creation, with github flag")
 
 	// First create a project
@@ -2953,6 +2960,7 @@ func (s *EndToEndTestSuite) verifyBuild(projectID uuid.UUID, branchName string, 
 
 // Test the build creation:
 func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
+	s.T().Parallel()
 	fmt.Println("Testing build creation")
 	// First create a project
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -3040,6 +3048,7 @@ func (s *EndToEndTestSuite) TestBuildCreateUpdate() {
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateWithBuildSpec() {
+	s.T().Parallel()
 	fmt.Println("Testing build creation")
 	// First create a project
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -3119,6 +3128,7 @@ func (s *EndToEndTestSuite) TestBuildCreateWithBuildSpec() {
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateGithub() {
+	s.T().Parallel()
 	fmt.Println("Testing build creation, with --github flag")
 	// First create a project
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -3159,6 +3169,7 @@ func (s *EndToEndTestSuite) TestBuildCreateGithub() {
 }
 
 func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
+	s.T().Parallel()
 	fmt.Println("Testing build creation with the auto-create-branch flag")
 
 	// First create a project
@@ -3205,6 +3216,7 @@ func (s *EndToEndTestSuite) TestBuildCreateAutoCreateBranch() {
 }
 
 func (s *EndToEndTestSuite) TestExperienceCreate() {
+	s.T().Parallel()
 	fmt.Println("Testing experience creation command")
 
 	// First create a project
@@ -3301,6 +3313,7 @@ func (s *EndToEndTestSuite) TestExperienceCreate() {
 }
 
 func (s *EndToEndTestSuite) TestExperienceCreateGithub() {
+	s.T().Parallel()
 	fmt.Println("Testing experience creation command, with --github flag")
 	// First create a project
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -3356,6 +3369,7 @@ func (s *EndToEndTestSuite) verifyExperienceUpdate(projectID uuid.UUID, experien
 }
 
 func (s *EndToEndTestSuite) TestExperienceUpdate() {
+	s.T().Parallel()
 	fmt.Println("Testing experience update command")
 
 	// First create a project
@@ -3442,6 +3456,7 @@ func (s *EndToEndTestSuite) TestExperienceUpdate() {
 }
 
 func (s *EndToEndTestSuite) TestBatchAndLogs() {
+	s.T().Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -3790,6 +3805,7 @@ func (s *EndToEndTestSuite) TestBatchAndLogs() {
 }
 
 func (s *EndToEndTestSuite) TestRerunBatch() {
+	s.T().Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -3968,6 +3984,7 @@ func (s *EndToEndTestSuite) TestRerunBatch() {
 	s.Empty(output.StdErr)
 }
 func (s *EndToEndTestSuite) TestParameterizedBatch() {
+	s.T().Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -4072,6 +4089,7 @@ func (s *EndToEndTestSuite) TestParameterizedBatch() {
 	s.Empty(output.StdErr)
 }
 func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
+	s.T().Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("sweep-test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -4290,6 +4308,7 @@ func (s *EndToEndTestSuite) TestCreateSweepParameterNameAndValues() {
 
 // Test Cancel Sweep::
 func (s *EndToEndTestSuite) TestCancelSweep() {
+	s.T().Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("sweep-test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -4396,6 +4415,7 @@ func (s *EndToEndTestSuite) TestCancelSweep() {
 
 // Test the metrics builds:
 func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
+	s.T().Parallel()
 	fmt.Println("Testing metrics build creation")
 	// create a project:
 	projectName := fmt.Sprintf("sweep-test-project-%s", uuid.New().String())
@@ -4446,6 +4466,7 @@ func (s *EndToEndTestSuite) TestCreateMetricsBuild() {
 }
 
 func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
+	s.T().Parallel()
 	fmt.Println("Testing metrics build creation, with --github flag")
 	// create a project:
 	projectName := fmt.Sprintf("sweep-test-project-%s", uuid.New().String())
@@ -4470,6 +4491,7 @@ func (s *EndToEndTestSuite) TestMetricsBuildGithub() {
 }
 
 func (s *EndToEndTestSuite) TestAliases() {
+	s.T().Parallel()
 	fmt.Println("Testing project and branch aliases")
 	// First create a project, manually:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -4737,6 +4759,7 @@ func (s *EndToEndTestSuite) TestAliases() {
 }
 
 func (s *EndToEndTestSuite) TestTestSuites() {
+	s.T().Parallel()
 	fmt.Println("Testing test suites")
 
 	// First create a project
@@ -4953,6 +4976,7 @@ func (s *EndToEndTestSuite) TestTestSuites() {
 }
 
 func (s *EndToEndTestSuite) TestReports() {
+	s.T().Parallel()
 	fmt.Println("Testing reports")
 
 	// First create a project
@@ -5142,6 +5166,7 @@ func (s *EndToEndTestSuite) TestReports() {
 }
 
 func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
+	s.T().Parallel()
 	// Skip this test for now, as it's not working.
 	s.T().Skip("Skipping batch creation with a single experience and 0s timeout")
 	fmt.Println("Testing batch creation with a single experience and 0s timeout")
@@ -5224,6 +5249,7 @@ func (s *EndToEndTestSuite) TestBatchWithZeroTimeout() {
 }
 
 func (s *EndToEndTestSuite) TestLogIngest() {
+	s.T().Parallel()
 	const ReIngestTrue = true
 	const ReIngestFalse = false
 
@@ -5590,6 +5616,7 @@ func (s *EndToEndTestSuite) TestLogIngest() {
 }
 
 func (s *EndToEndTestSuite) TestMetricsSync() {
+	s.T().Parallel()
 	s.Run("NoConfigFiles", func() {
 		output := s.runCommand(syncMetrics(true), true)
 
@@ -5664,6 +5691,7 @@ func checkBatchComplete(s *EndToEndTestSuite, projectID uuid.UUID, batchID uuid.
 }
 
 func (s *EndToEndTestSuite) TestCancelBatch() {
+	s.T().Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)
@@ -5770,6 +5798,7 @@ func (s *EndToEndTestSuite) TestCancelBatch() {
 }
 
 func (s *EndToEndTestSuite) TestDebug() {
+	s.T().Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
 	output := s.runCommand(createProject(projectName, "description", GithubTrue), ExpectNoError)

@@ -2423,11 +2423,13 @@ func rerunBatch(projectID uuid.UUID, batchID string, jobIDs []string) []CommandB
 				Name:  "--batch-id",
 				Value: batchID,
 			},
-			{
-				Name:  "--test-ids",
-				Value: strings.Join(jobIDs, ","),
-			},
 		},
+	}
+	if len(jobIDs) > 0 {
+		rerunCommand.Flags = append(rerunCommand.Flags, Flag{
+			Name:  "--test-ids",
+			Value: strings.Join(jobIDs, ","),
+		})
 	}
 	return []CommandBuilder{batchCommand, rerunCommand}
 }
@@ -3887,9 +3889,45 @@ func (s *EndToEndTestSuite) TestRerunBatch() {
 	// Now rerun the batch:
 	// Sleep for 60 seconds to ensure the batch is cleaned up:
 	time.Sleep(60 * time.Second)
+	output = s.runCommand(rerunBatch(projectID, batchIDString, []string{}), ExpectNoError)
+	s.Contains(output.StdOut, "Batch rerun successfully!")
+
+	// Await it finishing:
+	s.Eventually(func() bool {
+		cmd := s.buildCommand(getBatchByID(projectID, batchIDString, ExitStatusTrue))
+		var stdout, stderr bytes.Buffer
+		fmt.Println("About to run command: ", cmd.String())
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		exitCode := 0
+		if err := cmd.Run(); err != nil {
+			if exitError, ok := err.(*exec.ExitError); ok {
+				exitCode = exitError.ExitCode()
+			}
+		}
+		s.Contains(AcceptableBatchStatusCodes, exitCode)
+		s.Empty(stderr.String())
+		s.Empty(stdout.String())
+		// Check if the status is 0, complete, 5 cancelled, 2 failed
+		complete := (exitCode == 0 || exitCode == 5 || exitCode == 2)
+		if !complete {
+			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
+		} else {
+			fmt.Println("Batch completed, with exitCode:", exitCode)
+		}
+		return complete
+	}, 10*time.Minute, 10*time.Second)
+
+	// Assert the status is SUCCEEDED:
+	output = s.runCommand(getBatchByID(projectID, batchIDString, ExitStatusFalse), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	s.NoError(err)
+	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+
+	// Now rerun the batch:
+	// Sleep for 60 seconds to ensure the batch is cleaned up:
+	time.Sleep(60 * time.Second)
 	output = s.runCommand(rerunBatch(projectID, batchIDString, []string{tests[0].JobID.String()}), ExpectNoError)
-	fmt.Println("Output: ", output.StdOut)
-	fmt.Println("Error: ", output.StdErr)
 	s.Contains(output.StdOut, "Batch rerun successfully!")
 
 	// Await it finishing:

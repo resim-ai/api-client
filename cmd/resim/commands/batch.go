@@ -168,8 +168,7 @@ func init() {
 	rerunBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to rerun tests for.")
 	rerunBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to rerun tests for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this reruns the most recent batch with that name.")
 	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun.")
-	rerunBatchCmd.MarkFlagRequired(batchTestIDsKey)
+	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided, only the batch-metrics phase will be rerun.")
 	batchCmd.AddCommand(rerunBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
@@ -674,8 +673,9 @@ func rerunBatch(ccmd *cobra.Command, args []string) {
 		}
 		jobIDs = append(jobIDs, jobID)
 	}
-	rerunInput := api.RerunBatchInput{
-		JobIDs: &jobIDs,
+	rerunInput := api.RerunBatchInput{}
+	if len(jobIDs) > 0 {
+		rerunInput.JobIDs = &jobIDs
 	}
 	response, err := Client.RerunBatchWithResponse(context.Background(), projectID, *batch.BatchID, rerunInput)
 	if err != nil {

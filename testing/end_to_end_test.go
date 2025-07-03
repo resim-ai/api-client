@@ -2441,7 +2441,7 @@ func rerunBatch(projectID uuid.UUID, batchID string, jobIDs []string) []CommandB
 }
 
 // As a first test, we expect the help command to run successfully
-func (s *EndToEndTestHelper) TestHelp(t *testing.T) {
+func TestHelp(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing help command")
@@ -2452,7 +2452,7 @@ func (s *EndToEndTestHelper) TestHelp(t *testing.T) {
 	ts.Contains(output.StdOut, "USAGE")
 }
 
-func (s *EndToEndTestHelper) TestProjectCommands(t *testing.T) {
+func TestProjectCommands(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing project create command")
@@ -2518,7 +2518,7 @@ func (s *EndToEndTestHelper) TestProjectCommands(t *testing.T) {
 	ts.Contains(output.StdErr, FailedToFindProject)
 }
 
-func (s *EndToEndTestHelper) TestProjectCreateGithub(t *testing.T) {
+func TestProjectCreateGithub(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing project create command, with --github flag")
@@ -2542,7 +2542,7 @@ func (s *EndToEndTestHelper) TestProjectCreateGithub(t *testing.T) {
 }
 
 // Test branch creation:
-func (s *EndToEndTestHelper) TestBranchCreate(t *testing.T) {
+func TestBranchCreate(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing branch creation")
@@ -2577,7 +2577,7 @@ func (s *EndToEndTestHelper) TestBranchCreate(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestBranchCreateGithub(t *testing.T) {
+func TestBranchCreateGithub(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing branch creation, with --github flag")
@@ -2604,7 +2604,7 @@ func (s *EndToEndTestHelper) TestBranchCreateGithub(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestSystems(t *testing.T) {
+func TestSystems(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing system creation")
@@ -2894,7 +2894,7 @@ func (s *EndToEndTestHelper) TestSystems(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestSystemCreateGithub(t *testing.T) {
+func TestSystemCreateGithub(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing system creation, with github flag")
@@ -2972,7 +2972,7 @@ func (s *EndToEndTestHelper) verifyBuild(ts *assert.Assertions, projectID uuid.U
 }
 
 // Test the build creation:
-func (s *EndToEndTestHelper) TestBuildCreateUpdate(t *testing.T) {
+func TestBuildCreateUpdate(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing build creation")
@@ -3061,7 +3061,7 @@ func (s *EndToEndTestHelper) TestBuildCreateUpdate(t *testing.T) {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 }
 
-func (s *EndToEndTestHelper) TestBuildCreateWithBuildSpec(t *testing.T) {
+func TestBuildCreateWithBuildSpec(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing build creation")
@@ -3142,7 +3142,7 @@ func (s *EndToEndTestHelper) TestBuildCreateWithBuildSpec(t *testing.T) {
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 }
 
-func (s *EndToEndTestHelper) TestBuildCreateGithub(t *testing.T) {
+func TestBuildCreateGithub(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing build creation, with --github flag")
@@ -3184,7 +3184,7 @@ func (s *EndToEndTestHelper) TestBuildCreateGithub(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestBuildCreateAutoCreateBranch(t *testing.T) {
+func TestBuildCreateAutoCreateBranch(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing build creation with the auto-create-branch flag")
@@ -3232,7 +3232,7 @@ func (s *EndToEndTestHelper) TestBuildCreateAutoCreateBranch(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestExperienceCreate(t *testing.T) {
+func TestExperienceCreate(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing experience creation command")
@@ -3330,7 +3330,7 @@ func (s *EndToEndTestHelper) TestExperienceCreate(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestExperienceCreateGithub(t *testing.T) {
+func TestExperienceCreateGithub(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing experience creation command, with --github flag")
@@ -3387,7 +3387,7 @@ func (s *EndToEndTestHelper) verifyExperienceUpdate(ts *assert.Assertions, proje
 	}
 }
 
-func (s *EndToEndTestHelper) TestExperienceUpdate(t *testing.T) {
+func TestExperienceUpdate(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing experience update command")
@@ -3475,7 +3475,7 @@ func (s *EndToEndTestHelper) TestExperienceUpdate(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestBatchAndLogs(t *testing.T) {
+func TestBatchAndLogs(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// create a project:
@@ -3825,7 +3825,7 @@ func (s *EndToEndTestHelper) TestBatchAndLogs(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestRerunBatch(t *testing.T) {
+func TestRerunBatch(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// create a project:
@@ -4005,7 +4005,7 @@ func (s *EndToEndTestHelper) TestRerunBatch(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
-func (s *EndToEndTestHelper) TestParameterizedBatch(t *testing.T) {
+func TestParameterizedBatch(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// create a project:
@@ -4111,7 +4111,7 @@ func (s *EndToEndTestHelper) TestParameterizedBatch(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
-func (s *EndToEndTestHelper) TestCreateSweepParameterNameAndValues(t *testing.T) {
+func TestCreateSweepParameterNameAndValues(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// create a project:
@@ -4331,7 +4331,7 @@ func (s *EndToEndTestHelper) TestCreateSweepParameterNameAndValues(t *testing.T)
 }
 
 // Test Cancel Sweep::
-func (s *EndToEndTestHelper) TestCancelSweep(t *testing.T) {
+func TestCancelSweep(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// create a project:
@@ -4439,7 +4439,7 @@ func (s *EndToEndTestHelper) TestCancelSweep(t *testing.T) {
 }
 
 // Test the metrics builds:
-func (s *EndToEndTestHelper) TestCreateMetricsBuild(t *testing.T) {
+func TestCreateMetricsBuild(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing metrics build creation")
@@ -4491,7 +4491,7 @@ func (s *EndToEndTestHelper) TestCreateMetricsBuild(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestMetricsBuildGithub(t *testing.T) {
+func TestMetricsBuildGithub(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing metrics build creation, with --github flag")
@@ -4517,7 +4517,7 @@ func (s *EndToEndTestHelper) TestMetricsBuildGithub(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestAliases(t *testing.T) {
+func TestAliases(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing project and branch aliases")
@@ -4786,7 +4786,7 @@ func (s *EndToEndTestHelper) TestAliases(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestTestSuites(t *testing.T) {
+func TestTestSuites(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing test suites")
@@ -5004,7 +5004,7 @@ func (s *EndToEndTestHelper) TestTestSuites(t *testing.T) {
 	ts.Contains(output.StdOut, testSuiteDescription)
 }
 
-func (s *EndToEndTestHelper) TestReports(t *testing.T) {
+func TestReports(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	fmt.Println("Testing reports")
@@ -5195,7 +5195,7 @@ func (s *EndToEndTestHelper) TestReports(t *testing.T) {
 	//TODO(iain): check the wait and logs commands, once the rest has landed.
 }
 
-func (s *EndToEndTestHelper) TestBatchWithZeroTimeout(t *testing.T) {
+func TestBatchWithZeroTimeout(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// Skip this test for now, as it's not working.
@@ -5279,7 +5279,7 @@ func (s *EndToEndTestHelper) TestBatchWithZeroTimeout(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestLogIngest(t *testing.T) {
+func TestLogIngest(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	const ReIngestTrue = true
@@ -5319,7 +5319,7 @@ func (s *EndToEndTestHelper) TestLogIngest(t *testing.T) {
 
 	// Await the batch to complete:
 	ts.Eventually(func() bool {
-		complete, exitCode := checkBatchComplete(ts, s, projectID, batchID)
+		complete, exitCode := checkBatchComplete(ts, projectID, batchID)
 		if !complete {
 			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
 		} else {
@@ -5404,7 +5404,7 @@ func (s *EndToEndTestHelper) TestLogIngest(t *testing.T) {
 
 	// Await the batch to complete:
 	ts.Eventually(func() bool {
-		complete, exitCode := checkBatchComplete(ts, s, projectID, secondBatchID)
+		complete, exitCode := checkBatchComplete(ts, projectID, secondBatchID)
 		if !complete {
 			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
 		} else {
@@ -5548,7 +5548,7 @@ func (s *EndToEndTestHelper) TestLogIngest(t *testing.T) {
 	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	batchID = uuid.MustParse(batchIDString)
 	ts.Eventually(func() bool {
-		complete, exitCode := checkBatchComplete(ts, s, projectID, batchID)
+		complete, exitCode := checkBatchComplete(ts, projectID, batchID)
 		if !complete {
 			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
 		} else {
@@ -5600,7 +5600,7 @@ func (s *EndToEndTestHelper) TestLogIngest(t *testing.T) {
 	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
 	batchID = uuid.MustParse(batchIDString)
 	ts.Eventually(func() bool {
-		complete, exitCode := checkBatchComplete(ts, s, projectID, batchID)
+		complete, exitCode := checkBatchComplete(ts, projectID, batchID)
 		if !complete {
 			fmt.Println("Waiting for batch completion, current exitCode:", exitCode)
 		} else {
@@ -5647,7 +5647,7 @@ func (s *EndToEndTestHelper) TestLogIngest(t *testing.T) {
 	ts.Equal(2, len(jobs))
 }
 
-func (s *EndToEndTestHelper) TestMetricsSync(t *testing.T) {
+func TestMetricsSync(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	t.Run("NoConfigFiles", func(t *testing.T) {
@@ -5704,7 +5704,7 @@ func (s *EndToEndTestHelper) TestMetricsSync(t *testing.T) {
 	})
 }
 
-func checkBatchComplete(ts *assert.Assertions, s *EndToEndTestHelper, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {
+func checkBatchComplete(ts *assert.Assertions, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {
 	cmd := s.buildCommand(getBatchByID(projectID, batchID.String(), ExitStatusTrue))
 	var stdout, stderr bytes.Buffer
 	fmt.Println("About to run command: ", cmd.String())
@@ -5724,7 +5724,7 @@ func checkBatchComplete(ts *assert.Assertions, s *EndToEndTestHelper, projectID 
 	return complete, exitCode
 }
 
-func (s *EndToEndTestHelper) TestCancelBatch(t *testing.T) {
+func TestCancelBatch(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// create a project:
@@ -5832,7 +5832,7 @@ func (s *EndToEndTestHelper) TestCancelBatch(t *testing.T) {
 	ts.Empty(output.StdErr)
 }
 
-func (s *EndToEndTestHelper) TestDebug(t *testing.T) {
+func TestDebug(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
 	// create a project:
@@ -5894,7 +5894,6 @@ func TestMain(m *testing.M) {
 		AssociatedAccount = maybeCIAccount
 	}
 	fmt.Printf("Running the end to end test with %s account", AssociatedAccount)
-
 	s.SetupHelper()
 	os.Exit(m.Run())
 }

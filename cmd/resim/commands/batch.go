@@ -673,7 +673,7 @@ func rerunBatch(ccmd *cobra.Command, args []string) {
 		}
 		jobIDs = append(jobIDs, jobID)
 	}
-	// Start with an empty
+	// Start with an empty list of job IDs
 	rerunInput := api.RerunBatchInput{
 		JobIDs: &[]uuid.UUID{},
 	}

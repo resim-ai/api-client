@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-### v0.21.0 - July 3, 2025
+### v0.21.0 - July 4, 2025
 
 - Add support for rerunning only the batch metrics phase of a test batch via `resim batches rerun --batch-id <> `
 

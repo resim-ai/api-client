@@ -1310,7 +1310,6 @@ type Report struct {
 	EndTimestamp            Timestamp               `json:"endTimestamp"`
 	LastUpdatedTimestamp    Timestamp               `json:"lastUpdatedTimestamp"`
 	MetricsBuildID          MetricsBuildID          `json:"metricsBuildID"`
-	MetricsSetName          *MetricsSetName         `json:"metricsSetName"`
 	MetricsStatus           MetricStatus            `json:"metricsStatus"`
 	Name                    Name                    `json:"name"`
 	OrgID                   OrgID                   `json:"orgID"`
@@ -1336,7 +1335,6 @@ type ReportInput struct {
 	BranchID                BranchID                 `json:"branchID"`
 	EndTimestamp            *Timestamp               `json:"endTimestamp,omitempty"`
 	MetricsBuildID          MetricsBuildID           `json:"metricsBuildID"`
-	MetricsSetName          *MetricsSetName          `json:"metricsSetName"`
 	Name                    *Name                    `json:"name,omitempty"`
 	PoolLabels              *PoolLabels              `json:"poolLabels,omitempty"`
 	RespectRevisionBoundary *RespectRevisionBoundary `json:"respectRevisionBoundary,omitempty"`
@@ -1935,7 +1933,7 @@ type ListExperiencesParams struct {
 	// Text Filter experiences by a text string on experience name, experience description, or experience tag name
 	Text *string `form:"text,omitempty" json:"text,omitempty"`
 
-	// Search A search query. Supports searching by tag_id, test_suite_id, archived, profile, and system_id
+	// Search A search query. Supports searching by tag_id, test_suite_id, archived, and system_id
 	Search    *string            `form:"search,omitempty" json:"search,omitempty"`
 	Archived  *bool              `form:"archived,omitempty" json:"archived,omitempty"`
 	PageSize  *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -2933,9 +2931,6 @@ type ClientInterface interface {
 
 	// GetSystemsForMetricsBuild request
 	GetSystemsForMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListServiceProfiles request
-	ListServiceProfiles(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListReports request
 	ListReports(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4236,18 +4231,6 @@ func (c *Client) GetMetricsBuild(ctx context.Context, projectID ProjectID, metri
 
 func (c *Client) GetSystemsForMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetSystemsForMetricsBuildRequest(c.Server, projectID, metricsBuildID, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-func (c *Client) ListServiceProfiles(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListServiceProfilesRequest(c.Server, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -10298,40 +10281,6 @@ func NewGetSystemsForMetricsBuildRequest(server string, projectID ProjectID, met
 	return req, nil
 }
 
-// NewListServiceProfilesRequest generates requests for ListServiceProfiles
-func NewListServiceProfilesRequest(server string, projectID ProjectID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s/profiles", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewListReportsRequest generates requests for ListReports
 func NewListReportsRequest(server string, projectID ProjectID, params *ListReportsParams) (*http.Request, error) {
 	var err error
@@ -13934,9 +13883,6 @@ type ClientWithResponsesInterface interface {
 	// GetSystemsForMetricsBuildWithResponse request
 	GetSystemsForMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*GetSystemsForMetricsBuildResponse, error)
 
-	// ListServiceProfilesWithResponse request
-	ListServiceProfilesWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListServiceProfilesResponse, error)
-
 	// ListReportsWithResponse request
 	ListReportsWithResponse(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*ListReportsResponse, error)
 
@@ -15783,28 +15729,6 @@ func (r GetSystemsForMetricsBuildResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetSystemsForMetricsBuildResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-type ListServiceProfilesResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *[]string
-}
-
-// Status returns HTTPResponse.Status
-func (r ListServiceProfilesResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListServiceProfilesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17806,15 +17730,6 @@ func (c *ClientWithResponses) GetSystemsForMetricsBuildWithResponse(ctx context.
 		return nil, err
 	}
 	return ParseGetSystemsForMetricsBuildResponse(rsp)
-}
-
-// ListServiceProfilesWithResponse request returning *ListServiceProfilesResponse
-func (c *ClientWithResponses) ListServiceProfilesWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListServiceProfilesResponse, error) {
-	rsp, err := c.ListServiceProfiles(ctx, projectID, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListServiceProfilesResponse(rsp)
 }
 
 // ListReportsWithResponse request returning *ListReportsResponse
@@ -20259,32 +20174,6 @@ func ParseGetSystemsForMetricsBuildResponse(rsp *http.Response) (*GetSystemsForM
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListSystemsOutput
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListServiceProfilesResponse parses an HTTP response from a ListServiceProfilesWithResponse call
-func ParseListServiceProfilesResponse(rsp *http.Response) (*ListServiceProfilesResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListServiceProfilesResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []string
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

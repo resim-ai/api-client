@@ -5677,6 +5677,7 @@ func TestMetricsSync(t *testing.T) {
 			"      speed: float",
 			"metrics:",
 			"  Average Speed:",
+			"    type: test",
 			"    query_string: SELECT AVG(speed) FROM speed WHERE job_id=$job_id",
 			"    template_type: system",
 			"    template: line",

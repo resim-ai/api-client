@@ -304,14 +304,15 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
+	stdErrString := stderr.String()
 	if expectError {
 		ts.Error(err)
 	} else {
-		ts.NoError(err)
+		ts.NoError(err, fmt.Sprintf("Unexpected error: %v", stdErrString))
 	}
 	return Output{
 		StdOut: stdout.String(),
-		StdErr: stderr.String(),
+		StdErr: stdErrString,
 	}
 }
 

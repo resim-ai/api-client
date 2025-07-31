@@ -5862,7 +5862,7 @@ func TestDebug(t *testing.T) {
 
 	// create a build:
 	output = s.runCommand(ts, createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/ubuntu/ubuntu:24.04_stable", []string{}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
-	ts.Contains(output.StdOut, GithubCreatedBuild)
+	ts.Contains(output.StdOut, GithubCreatedBuild, output.StdErr)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	// buildID := uuid.MustParse(buildIDString)

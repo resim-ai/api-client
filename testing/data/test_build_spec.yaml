@@ -11,12 +11,16 @@ services:
     extends:
       file: ./test_build_spec.base.yaml
       service: orchestrator
+    profiles:
+      - profile2
 
   command-orchestrator:
     extends:
       file: ./test_build_spec.base.yaml
       service: orchestrator
     command: [/run_orchestrator, --client-type, socket]
+    profiles:
+      - profile1
 
   entrypoint-orchestrator:
     extends:

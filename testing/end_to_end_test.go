@@ -304,14 +304,15 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
+	stdErrString := stderr.String()
 	if expectError {
 		ts.Error(err)
 	} else {
-		ts.NoError(err)
+		ts.NoError(err, fmt.Sprintf("Unexpected error: %v", stdErrString))
 	}
 	return Output{
 		StdOut: stdout.String(),
-		StdErr: stderr.String(),
+		StdErr: stdErrString,
 	}
 }
 
@@ -5862,7 +5863,7 @@ func TestDebug(t *testing.T) {
 
 	// create a build:
 	output = s.runCommand(ts, createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/ubuntu/ubuntu:24.04_stable", []string{}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
-	ts.Contains(output.StdOut, GithubCreatedBuild)
+	ts.Contains(output.StdOut, GithubCreatedBuild, output.StdErr)
 	// We expect to be able to parse the build ID as a UUID
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	// buildID := uuid.MustParse(buildIDString)

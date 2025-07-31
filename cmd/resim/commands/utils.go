@@ -8,6 +8,7 @@ import (
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/loader"
+	compose_types "github.com/compose-spec/compose-go/v2/types"
 	"github.com/resim-ai/api-client/api"
 	"github.com/spf13/viper"
 )
@@ -32,7 +33,7 @@ func ParseParameterString(parameterString string) (string, string, error) {
 	return "", "", fmt.Errorf("failed to parse parameter: %s - must be in the format <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>", parameterString)
 }
 
-func ParseBuildSpec(buildSpecLocation string, withOsEnv bool, withEnvFiles []string) ([]byte, error) {
+func ParseBuildSpec(buildSpecLocation string, withOsEnv bool, withEnvFiles []string, profiles []string) (*compose_types.Project, error) {
 	// We assume that the build spec is a valid YAML file
 	ctx := context.Background()
 
@@ -42,6 +43,7 @@ func ParseBuildSpec(buildSpecLocation string, withOsEnv bool, withEnvFiles []str
 			options.SkipDefaultValues = true
 		}),
 		cli.WithNormalization(false),
+		cli.WithProfiles(profiles),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -68,12 +70,7 @@ func ParseBuildSpec(buildSpecLocation string, withOsEnv bool, withEnvFiles []str
 		log.Fatal(err)
 	}
 
-	projectJSON, err := project.MarshalJSON()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return projectJSON, nil
+	return project, nil
 }
 
 func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {

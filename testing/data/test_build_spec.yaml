@@ -11,12 +11,18 @@ services:
     extends:
       file: ./test_build_spec.base.yaml
       service: orchestrator
+    profiles:
+      - profile2
+    labels:
+      resim.ai/isTestOrchestrator: "true"
 
   command-orchestrator:
     extends:
       file: ./test_build_spec.base.yaml
       service: orchestrator
     command: [/run_orchestrator, --client-type, socket]
+    profiles:
+      - profile1
 
   entrypoint-orchestrator:
     extends:

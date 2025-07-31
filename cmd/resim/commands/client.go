@@ -87,10 +87,7 @@ func init() {
 
 func Authenticate(ctx context.Context) (*CredentialCache, error) {
 	var cache CredentialCache
-	err := cache.loadCredentialCache()
-	if err != nil {
-		log.Println("Initializing credential cache")
-	}
+	cache.loadCredentialCache()
 
 	authMode := determineAuthMode()
 
@@ -208,11 +205,14 @@ func inferGraphqlAPI(rerunAPIurl string) string {
 }
 
 func (c *CredentialCache) loadCredentialCache() error {
+	if c.Tokens == nil {
+		c.Tokens = map[string]oauth2.Token{}
+	}
 	homedir, _ := os.UserHomeDir()
 	path := strings.ReplaceAll(filepath.Join(ConfigPath, CredentialCacheFilename), "$HOME", homedir)
 	data, err := os.ReadFile(path)
+
 	if err != nil {
-		c.Tokens = map[string]oauth2.Token{}
 		return err
 	}
 

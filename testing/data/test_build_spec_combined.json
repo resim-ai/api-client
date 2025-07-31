@@ -25,6 +25,9 @@
           "source": "mcb-tmp",
           "target": "/tmp"
         }
+      ],
+      "profiles": [
+        "profile1"
       ]
     },
     "entrypoint-orchestrator": {
@@ -73,6 +76,12 @@
           "source": "mcb-tmp",
           "target": "/tmp"
         }
+      ],
+      "labels": {
+        "resim.ai/isTestOrchestrator": "true"
+      },
+      "profiles": [
+        "profile2"
       ]
     },
     "system": {

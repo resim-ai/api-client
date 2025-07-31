@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.22.0 - July 31, 2025
+
+- Creating builds via build spec now uploads services for all profiles by default. Previously only services without a profile were selected. A limited selection of profiles can be uploaded with `resim builds create ... --build-spec <path> --compose-profiles profile1,...` if desired.
+
 ### v0.21.0 - July 4, 2025
 
 - Add support for rerunning only the batch metrics phase of a test batch via `resim batches rerun --batch-id <> `

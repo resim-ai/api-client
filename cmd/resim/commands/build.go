@@ -68,6 +68,7 @@ const (
 	buildShowBuildSpecKey    = "show-build-spec-only"
 	buildEnvFilesKey         = "env-files"
 	buildUseOsEnvKey         = "use-os-env"
+	composeProfilesKey       = "compose-profiles"
 )
 
 func init() {
@@ -94,6 +95,8 @@ func init() {
 	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildUseOsEnvKey)
 	createBuildCmd.Flags().StringSlice(buildEnvFilesKey, []string{}, "Paths to env files to use when parsing the build spec")
 	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, buildEnvFilesKey)
+	createBuildCmd.Flags().StringSlice(composeProfilesKey, []string{}, "Profiles to use when parsing the build spec")
+	createBuildCmd.MarkFlagsMutuallyExclusive(buildImageURIKey, composeProfilesKey)
 
 	listBuildsCmd.Flags().String(buildProjectKey, "", "List builds associated with this project")
 	listBuildsCmd.MarkFlagRequired(buildProjectKey)
@@ -263,7 +266,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	var buildImageURI *string = nil
 
 	buildSpecLocation := viper.GetString(buildSpecKey)
-	var buildSpec *[]byte = nil
+	var buildSpecBytes *[]byte = nil
 
 	// Check that at least one of image URI or build spec is provided
 	if inputBuildImageURI == "" && buildSpecLocation == "" {
@@ -281,14 +284,33 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	}
 
 	if buildSpecLocation != "" {
-		buildSpecBytes, err := ParseBuildSpec(buildSpecLocation, viper.GetBool(buildUseOsEnvKey), viper.GetStringSlice(buildEnvFilesKey))
+		composeProfiles := viper.GetStringSlice(composeProfilesKey)
+		if len(composeProfiles) == 0 {
+			composeProfiles = []string{"*"}
+		}
+		buildSpec, err := ParseBuildSpec(
+			buildSpecLocation,
+			viper.GetBool(buildUseOsEnvKey),
+			viper.GetStringSlice(buildEnvFilesKey),
+			composeProfiles,
+		)
 		if err != nil {
 			log.Fatal("failed to parse build spec:", err)
 		}
-		buildSpec = Ptr(buildSpecBytes)
+
+		if buildSpec.Services == nil || len(buildSpec.Services) == 0 {
+			log.Fatal("no services found in build spec")
+		}
+
+		parsedJSON, err := buildSpec.MarshalJSON()
+		if err != nil {
+			log.Fatal(err)
+		}
+		buildSpecBytes = &parsedJSON
+
 		if viper.GetBool(buildShowBuildSpecKey) {
 			// Show the build spec only if the flag is set.
-			fmt.Println(string(buildSpecBytes))
+			fmt.Println(string(*buildSpecBytes))
 			os.Exit(1)
 		}
 	}
@@ -334,7 +356,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		Name:               &buildName,
 		Description:        &buildDescription,
 		ImageUri:           buildImageURI,
-		BuildSpecification: buildSpec,
+		BuildSpecification: buildSpecBytes,
 		Version:            buildVersion,
 		SystemID:           systemID,
 	}

@@ -1,12 +1,10 @@
 package commands
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"testing"
 
-	compose_types "github.com/compose-spec/compose-go/v2/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -123,32 +121,36 @@ func TestParseParameterString(t *testing.T) {
 }
 
 func TestParseBuildSpec(t *testing.T) {
-	buildSpecBytes, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{})
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{}, []string{"*"})
+	assert.NoError(t, err)
+	assert.NotNil(t, buildSpec)
+
+	buildSpecBytes, err := buildSpec.MarshalJSON()
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpecBytes)
-
-	fmt.Println("First file:")
-	fmt.Println(string(buildSpecBytes))
 
 	buildSpecExpected, err := os.ReadFile("../../../testing/data/test_build_spec_combined.json")
 	assert.NoError(t, err)
 	assert.YAMLEq(t, string(buildSpecExpected), string(buildSpecBytes))
 
-	fmt.Println("Expected:")
-	fmt.Println(string(buildSpecExpected))
+	assert.Contains(t, buildSpec.Services, "system")
+	assert.Contains(t, buildSpec.Services, "orchestrator")
+	assert.Contains(t, buildSpec.Services, "command-orchestrator")
+	assert.Contains(t, buildSpec.Services, "entrypoint-orchestrator")
 }
 
 func TestParseBuildSpecWithOsEnv(t *testing.T) {
 	os.Setenv("SET_BY_OUTSIDE_ENV", "test_value")
 	defer os.Unsetenv("SET_BY_OUTSIDE_ENV")
 
-	buildSpecBytes, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", true, []string{})
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", true, []string{}, []string{"*"})
+	assert.NoError(t, err)
+	assert.NotNil(t, buildSpec)
+
+	buildSpecBytes, err := buildSpec.MarshalJSON()
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpecBytes)
 
-	var buildSpec compose_types.Project
-	err = json.Unmarshal(buildSpecBytes, &buildSpec)
-	assert.NoError(t, err)
 	assert.Equal(t, "test_value", *buildSpec.Services["system"].Environment["SET_BY_OUTSIDE_ENV"])
 }
 
@@ -161,12 +163,24 @@ func TestParseBuildSpecWithEnvFiles(t *testing.T) {
 	envFile.WriteString(fmt.Sprintf("%s=%s\n", envName, envValue))
 	envFile.Close()
 
-	buildSpecBytes, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{envFile.Name()})
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{envFile.Name()}, []string{"*"})
+	assert.NoError(t, err)
+	assert.NotNil(t, buildSpec)
+
+	buildSpecBytes, err := buildSpec.MarshalJSON()
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpecBytes)
 
-	var buildSpec compose_types.Project
-	err = json.Unmarshal(buildSpecBytes, &buildSpec)
-	assert.NoError(t, err)
 	assert.Equal(t, envValue, *buildSpec.Services["system"].Environment[envName])
+}
+
+func TestParseBuildSpecWithProfiles(t *testing.T) {
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{}, []string{"profile2"})
+	assert.NoError(t, err)
+	assert.NotNil(t, buildSpec)
+
+	assert.Contains(t, buildSpec.Services, "system")                  // no profile
+	assert.Contains(t, buildSpec.Services, "orchestrator")            // profile2
+	assert.NotContains(t, buildSpec.Services, "command-orchestrator") // profile1
+	assert.Contains(t, buildSpec.Services, "entrypoint-orchestrator") // no profile
 }

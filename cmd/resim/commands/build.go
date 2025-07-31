@@ -266,7 +266,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 	var buildImageURI *string = nil
 
 	buildSpecLocation := viper.GetString(buildSpecKey)
-	var buildSpecBytes []byte
+	var buildSpecBytes *[]byte = nil
 
 	// Check that at least one of image URI or build spec is provided
 	if inputBuildImageURI == "" && buildSpecLocation == "" {
@@ -302,14 +302,14 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			log.Fatal("no services found in build spec")
 		}
 
-		buildSpecBytes, err = buildSpec.MarshalJSON()
+		*buildSpecBytes, err = buildSpec.MarshalJSON()
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		if viper.GetBool(buildShowBuildSpecKey) {
 			// Show the build spec only if the flag is set.
-			fmt.Println(string(buildSpecBytes))
+			fmt.Println(string(*buildSpecBytes))
 			os.Exit(1)
 		}
 	}
@@ -355,7 +355,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		Name:               &buildName,
 		Description:        &buildDescription,
 		ImageUri:           buildImageURI,
-		BuildSpecification: Ptr(buildSpecBytes),
+		BuildSpecification: buildSpecBytes,
 		Version:            buildVersion,
 		SystemID:           systemID,
 	}

@@ -208,11 +208,14 @@ func inferGraphqlAPI(rerunAPIurl string) string {
 }
 
 func (c *CredentialCache) loadCredentialCache() error {
+	if c.Tokens == nil {
+		c.Tokens = map[string]oauth2.Token{}
+	}
 	homedir, _ := os.UserHomeDir()
 	path := strings.ReplaceAll(filepath.Join(ConfigPath, CredentialCacheFilename), "$HOME", homedir)
 	data, err := os.ReadFile(path)
+
 	if err != nil {
-		c.Tokens = map[string]oauth2.Token{}
 		return err
 	}
 

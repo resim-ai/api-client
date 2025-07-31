@@ -13,6 +13,8 @@ services:
       service: orchestrator
     profiles:
       - profile2
+    labels:
+      resim.ai/isTestOrchestrator: "true"
 
   command-orchestrator:
     extends:

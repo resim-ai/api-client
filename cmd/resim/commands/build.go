@@ -302,10 +302,11 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			log.Fatal("no services found in build spec")
 		}
 
-		*buildSpecBytes, err = buildSpec.MarshalJSON()
+		parsedJSON, err := buildSpec.MarshalJSON()
 		if err != nil {
 			log.Fatal(err)
 		}
+		buildSpecBytes = &parsedJSON
 
 		if viper.GetBool(buildShowBuildSpecKey) {
 			// Show the build spec only if the flag is set.

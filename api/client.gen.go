@@ -373,16 +373,12 @@ type Build struct {
 	BuildSpecification BuildSpecificationOutput `json:"buildSpecification"`
 	CreationTimestamp  Timestamp                `json:"creationTimestamp"`
 
-	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Description The description of the build. May be a SHA or commit message.
 	// Deprecated:
 	Description BuildDescription `json:"description"`
 	ImageUri    BuildImageUri    `json:"imageUri"`
 
-	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
-	// Deprecated:
-	LongDescription BuildLongDescription `json:"longDescription"`
-
-	// Name The name of the build. This replaces the previous usage of 'description'.
+	// Name The name of the build.
 	Name      BuildName    `json:"name"`
 	OrgID     OrgID        `json:"orgID"`
 	ProjectID ProjectID    `json:"projectID"`
@@ -391,7 +387,7 @@ type Build struct {
 	Version   BuildVersion `json:"version"`
 }
 
-// BuildDescription [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+// BuildDescription The description of the build. May be a SHA or commit message.
 type BuildDescription = string
 
 // BuildID defines model for buildID.
@@ -400,10 +396,7 @@ type BuildID = openapi_types.UUID
 // BuildImageUri defines model for buildImageUri.
 type BuildImageUri = string
 
-// BuildLongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
-type BuildLongDescription = string
-
-// BuildName The name of the build. This replaces the previous usage of 'description'.
+// BuildName The name of the build.
 type BuildName = string
 
 // BuildSpecificationInput defines model for buildSpecificationInput.
@@ -459,16 +452,12 @@ type CreateBuildForBranchInput struct {
 	AssociatedAccount  *AssociatedAccount       `json:"associatedAccount,omitempty"`
 	BuildSpecification *BuildSpecificationInput `json:"buildSpecification,omitempty"`
 
-	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Description The description of the build. May be a SHA or commit message.
 	// Deprecated:
 	Description *BuildDescription `json:"description,omitempty"`
 	ImageUri    *BuildImageUri    `json:"imageUri,omitempty"`
 
-	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
-	// Deprecated:
-	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
-
-	// Name The name of the build. This replaces the previous usage of 'description'.
+	// Name The name of the build.
 	Name     *BuildName   `json:"name,omitempty"`
 	SystemID SystemID     `json:"systemID"`
 	Version  BuildVersion `json:"version"`
@@ -487,16 +476,12 @@ type CreateBuildForSystemInput struct {
 	BranchID           BranchID                 `json:"branchID"`
 	BuildSpecification *BuildSpecificationInput `json:"buildSpecification,omitempty"`
 
-	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Description The description of the build. May be a SHA or commit message.
 	// Deprecated:
 	Description *BuildDescription `json:"description,omitempty"`
 	ImageUri    *BuildImageUri    `json:"imageUri,omitempty"`
 
-	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
-	// Deprecated:
-	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
-
-	// Name The name of the build. This replaces the previous usage of 'description'.
+	// Name The name of the build.
 	Name         *BuildName    `json:"name,omitempty"`
 	TriggeredVia *TriggeredVia `json:"triggeredVia,omitempty"`
 	Version      BuildVersion  `json:"version"`
@@ -511,6 +496,8 @@ type CreateBuildForSystemInput1 = interface{}
 
 // CreateExperienceInput defines model for createExperienceInput.
 type CreateExperienceInput struct {
+	// CacheExempt If true, the experience will not be cached.
+	CacheExempt             *bool                  `json:"cacheExempt,omitempty"`
 	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty"`
 	Description             string                 `json:"description"`
 	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
@@ -643,6 +630,7 @@ type ExecutionStep string
 // Experience defines model for experience.
 type Experience struct {
 	Archived                bool                  `json:"archived"`
+	CacheExempt             bool                  `json:"cacheExempt"`
 	ContainerTimeoutSeconds int32                 `json:"containerTimeoutSeconds"`
 	CreationTimestamp       Timestamp             `json:"creationTimestamp"`
 	Description             string                `json:"description"`
@@ -1310,6 +1298,7 @@ type Report struct {
 	EndTimestamp            Timestamp               `json:"endTimestamp"`
 	LastUpdatedTimestamp    Timestamp               `json:"lastUpdatedTimestamp"`
 	MetricsBuildID          MetricsBuildID          `json:"metricsBuildID"`
+	MetricsSetName          *MetricsSetName         `json:"metricsSetName"`
 	MetricsStatus           MetricStatus            `json:"metricsStatus"`
 	Name                    Name                    `json:"name"`
 	OrgID                   OrgID                   `json:"orgID"`
@@ -1335,6 +1324,7 @@ type ReportInput struct {
 	BranchID                BranchID                 `json:"branchID"`
 	EndTimestamp            *Timestamp               `json:"endTimestamp,omitempty"`
 	MetricsBuildID          MetricsBuildID           `json:"metricsBuildID"`
+	MetricsSetName          *MetricsSetName          `json:"metricsSetName"`
 	Name                    *Name                    `json:"name,omitempty"`
 	PoolLabels              *PoolLabels              `json:"poolLabels,omitempty"`
 	RespectRevisionBoundary *RespectRevisionBoundary `json:"respectRevisionBoundary,omitempty"`
@@ -1555,15 +1545,11 @@ type UpdateBatchInput struct {
 type UpdateBuildFields struct {
 	BranchID *openapi_types.UUID `json:"branchID,omitempty"`
 
-	// Description [DEPRECATED] This field was previously used to set the build's name. If both 'description' and 'name' are provided, 'name' will take precedence. In a future version, this field will be repurposed to store the build's description.
+	// Description The description of the build. May be a SHA or commit message.
 	// Deprecated:
 	Description *BuildDescription `json:"description,omitempty"`
 
-	// LongDescription [DEPRECATED] This field is temporarily being used to set the build's description. In a future version, the `description` field will be used instead.
-	// Deprecated:
-	LongDescription *BuildLongDescription `json:"longDescription,omitempty"`
-
-	// Name The name of the build. This replaces the previous usage of 'description'.
+	// Name The name of the build.
 	Name *BuildName `json:"name,omitempty"`
 }
 
@@ -1580,6 +1566,8 @@ type UpdateEventInput struct {
 
 // UpdateExperienceFields defines model for updateExperienceFields.
 type UpdateExperienceFields struct {
+	// CacheExempt If true, the experience will not be cached.
+	CacheExempt             *bool                  `json:"cacheExempt,omitempty"`
 	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty"`
 	Description             *string                `json:"description,omitempty"`
 	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty"`
@@ -1712,7 +1700,10 @@ type ListProjectsParams struct {
 // ListBatchesParams defines parameters for ListBatches.
 type ListBatchesParams struct {
 	// Search Filter based on branch_id, build_id, system_id, created_at, status, metrics_status, batch_id
-	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+
+	// Text Filter batches by a text string on batch name
+	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1899,7 +1890,10 @@ type ListBatchesForBuildsParams struct {
 // ListBuildsParams defines parameters for ListBuilds.
 type ListBuildsParams struct {
 	// Search A search query. Supports searching by branch_id, system_id
-	Search    *string    `form:"search,omitempty" json:"search,omitempty"`
+	Search *string `form:"search,omitempty" json:"search,omitempty"`
+
+	// Text Filter builds by their name or description
+	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
@@ -1933,7 +1927,7 @@ type ListExperiencesParams struct {
 	// Text Filter experiences by a text string on experience name, experience description, or experience tag name
 	Text *string `form:"text,omitempty" json:"text,omitempty"`
 
-	// Search A search query. Supports searching by tag_id, test_suite_id, archived, and system_id
+	// Search A search query. Supports searching by tag_id, test_suite_id, archived, profile, and system_id
 	Search    *string            `form:"search,omitempty" json:"search,omitempty"`
 	Archived  *bool              `form:"archived,omitempty" json:"archived,omitempty"`
 	PageSize  *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -1956,10 +1950,13 @@ type GetSystemsForExperienceParams struct {
 // ListMetricsBuildsParams defines parameters for ListMetricsBuilds.
 type ListMetricsBuildsParams struct {
 	// SystemID A search query. Supports searching by system_id
-	SystemID  *openapi_types.UUID `form:"systemID,omitempty" json:"systemID,omitempty"`
-	PageSize  *PageSize           `form:"pageSize,omitempty" json:"pageSize,omitempty"`
-	PageToken *PageToken          `form:"pageToken,omitempty" json:"pageToken,omitempty"`
-	OrderBy   *OrderBy            `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+	SystemID *openapi_types.UUID `form:"systemID,omitempty" json:"systemID,omitempty"`
+
+	// Text Free text filter on the metrics build name.
+	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
 }
 
 // GetSystemsForMetricsBuildParams defines parameters for GetSystemsForMetricsBuild.
@@ -2029,10 +2026,10 @@ type ListTestSuitesParams struct {
 
 	// SystemID Only return test suites that contain the given system id
 	SystemID *openapi_types.UUID `form:"systemID,omitempty" json:"systemID,omitempty"`
+	Archived *bool               `form:"archived,omitempty" json:"archived,omitempty"`
 
 	// Name Filter test suites by name
-	Name     *string `form:"name,omitempty" json:"name,omitempty"`
-	Archived *bool   `form:"archived,omitempty" json:"archived,omitempty"`
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
 
 	// Text Filter test suites by a text string on name and description
 	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
@@ -2294,13 +2291,6 @@ func (t CreateBuildForBranchInput) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	if t.LongDescription != nil {
-		object["longDescription"], err = json.Marshal(t.LongDescription)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'longDescription': %w", err)
-		}
-	}
-
 	if t.Name != nil {
 		object["name"], err = json.Marshal(t.Name)
 		if err != nil {
@@ -2358,13 +2348,6 @@ func (t *CreateBuildForBranchInput) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.ImageUri)
 		if err != nil {
 			return fmt.Errorf("error reading 'imageUri': %w", err)
-		}
-	}
-
-	if raw, found := object["longDescription"]; found {
-		err = json.Unmarshal(raw, &t.LongDescription)
-		if err != nil {
-			return fmt.Errorf("error reading 'longDescription': %w", err)
 		}
 	}
 
@@ -2490,13 +2473,6 @@ func (t CreateBuildForSystemInput) MarshalJSON() ([]byte, error) {
 		}
 	}
 
-	if t.LongDescription != nil {
-		object["longDescription"], err = json.Marshal(t.LongDescription)
-		if err != nil {
-			return nil, fmt.Errorf("error marshaling 'longDescription': %w", err)
-		}
-	}
-
 	if t.Name != nil {
 		object["name"], err = json.Marshal(t.Name)
 		if err != nil {
@@ -2563,13 +2539,6 @@ func (t *CreateBuildForSystemInput) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.ImageUri)
 		if err != nil {
 			return fmt.Errorf("error reading 'imageUri': %w", err)
-		}
-	}
-
-	if raw, found := object["longDescription"]; found {
-		err = json.Unmarshal(raw, &t.LongDescription)
-		if err != nil {
-			return fmt.Errorf("error reading 'longDescription': %w", err)
 		}
 	}
 
@@ -2931,6 +2900,9 @@ type ClientInterface interface {
 
 	// GetSystemsForMetricsBuild request
 	GetSystemsForMetricsBuild(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListServiceProfiles request
+	ListServiceProfiles(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListReports request
 	ListReports(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4241,6 +4213,18 @@ func (c *Client) GetSystemsForMetricsBuild(ctx context.Context, projectID Projec
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListServiceProfiles(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListServiceProfilesRequest(c.Server, projectID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListReports(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListReportsRequest(c.Server, projectID, params)
 	if err != nil {
@@ -5364,6 +5348,22 @@ func NewListBatchesRequest(server string, projectID ProjectID, params *ListBatch
 		if params.Search != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "search", runtime.ParamLocationQuery, *params.Search); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -8709,6 +8709,22 @@ func NewListBuildsRequest(server string, projectID ProjectID, params *ListBuilds
 
 		}
 
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -10055,6 +10071,22 @@ func NewListMetricsBuildsRequest(server string, projectID ProjectID, params *Lis
 
 		}
 
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -10271,6 +10303,40 @@ func NewGetSystemsForMetricsBuildRequest(server string, projectID ProjectID, met
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListServiceProfilesRequest generates requests for ListServiceProfiles
+func NewListServiceProfilesRequest(server string, projectID ProjectID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/profiles", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -11213,9 +11279,9 @@ func NewListTestSuitesRequest(server string, projectID ProjectID, params *ListTe
 
 		}
 
-		if params.Name != nil {
+		if params.Archived != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -11229,9 +11295,9 @@ func NewListTestSuitesRequest(server string, projectID ProjectID, params *ListTe
 
 		}
 
-		if params.Archived != nil {
+		if params.Name != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -13883,6 +13949,9 @@ type ClientWithResponsesInterface interface {
 	// GetSystemsForMetricsBuildWithResponse request
 	GetSystemsForMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, metricsBuildID MetricsBuildID, params *GetSystemsForMetricsBuildParams, reqEditors ...RequestEditorFn) (*GetSystemsForMetricsBuildResponse, error)
 
+	// ListServiceProfilesWithResponse request
+	ListServiceProfilesWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListServiceProfilesResponse, error)
+
 	// ListReportsWithResponse request
 	ListReportsWithResponse(ctx context.Context, projectID ProjectID, params *ListReportsParams, reqEditors ...RequestEditorFn) (*ListReportsResponse, error)
 
@@ -15729,6 +15798,28 @@ func (r GetSystemsForMetricsBuildResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetSystemsForMetricsBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListServiceProfilesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]string
+}
+
+// Status returns HTTPResponse.Status
+func (r ListServiceProfilesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListServiceProfilesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17730,6 +17821,15 @@ func (c *ClientWithResponses) GetSystemsForMetricsBuildWithResponse(ctx context.
 		return nil, err
 	}
 	return ParseGetSystemsForMetricsBuildResponse(rsp)
+}
+
+// ListServiceProfilesWithResponse request returning *ListServiceProfilesResponse
+func (c *ClientWithResponses) ListServiceProfilesWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListServiceProfilesResponse, error) {
+	rsp, err := c.ListServiceProfiles(ctx, projectID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListServiceProfilesResponse(rsp)
 }
 
 // ListReportsWithResponse request returning *ListReportsResponse
@@ -20174,6 +20274,32 @@ func ParseGetSystemsForMetricsBuildResponse(rsp *http.Response) (*GetSystemsForM
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListSystemsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListServiceProfilesResponse parses an HTTP response from a ListServiceProfilesWithResponse call
+func ParseListServiceProfilesResponse(rsp *http.Response) (*ListServiceProfilesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListServiceProfilesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []string
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -28,7 +28,13 @@ var (
 	}
 )
 
+const (
+	metricsProjectKey = "project"
+)
+
 func init() {
+	syncMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project to sync metrics to")
+	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
 	rootCmd.AddCommand(metricsCmd)
 }
@@ -47,6 +53,8 @@ func readFile(path string) string {
 func syncMetrics(cmd *cobra.Command, args []string) {
 
 	verboseMode := viper.GetBool(verboseKey)
+
+	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
 
 	workDir, err := os.Getwd()
 	if err != nil {
@@ -104,7 +112,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, configFile, templates)
+	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID, configFile, templates)
 	if err != nil {
 		log.Fatalf("Failed to sync metrics config: %s", err)
 	}

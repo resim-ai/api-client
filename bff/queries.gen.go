@@ -30,9 +30,13 @@ func (v *UpdateMetricsConfigResponse) GetUpdateMetricsConfig() string { return v
 
 // __UpdateMetricsConfigInput is used internally by genqlient
 type __UpdateMetricsConfigInput struct {
+	ProjectId     string            `json:"projectId"`
 	Config        string            `json:"config"`
 	TemplateFiles []MetricsTemplate `json:"templateFiles"`
 }
+
+// GetProjectId returns __UpdateMetricsConfigInput.ProjectId, and is useful for accessing the field via an interface.
+func (v *__UpdateMetricsConfigInput) GetProjectId() string { return v.ProjectId }
 
 // GetConfig returns __UpdateMetricsConfigInput.Config, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetConfig() string { return v.Config }
@@ -42,14 +46,15 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // The mutation executed by UpdateMetricsConfig.
 const UpdateMetricsConfig_Operation = `
-mutation UpdateMetricsConfig ($config: String!, $templateFiles: [MetricsTemplate!]!) {
-	updateMetricsConfig(config: $config, templateFiles: $templateFiles)
+mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!) {
+	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles)
 }
 `
 
 func UpdateMetricsConfig(
 	ctx_ context.Context,
 	client_ graphql.Client,
+	projectId string,
 	config string,
 	templateFiles []MetricsTemplate,
 ) (data_ *UpdateMetricsConfigResponse, err_ error) {
@@ -57,6 +62,7 @@ func UpdateMetricsConfig(
 		OpName: "UpdateMetricsConfig",
 		Query:  UpdateMetricsConfig_Operation,
 		Variables: &__UpdateMetricsConfigInput{
+			ProjectId:     projectId,
 			Config:        config,
 			TemplateFiles: templateFiles,
 		},

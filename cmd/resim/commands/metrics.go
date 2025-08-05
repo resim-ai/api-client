@@ -93,9 +93,9 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 			}
 			continue
 		}
-		if !strings.HasSuffix(strings.ToLower(file.Name()), ".heex") {
+		if !strings.HasSuffix(strings.ToLower(file.Name()), ".liquid") {
 			if verboseMode {
-				fmt.Printf("Skipping non .heex file %s\n", file.Name())
+				fmt.Printf("Skipping non .liquid file %s\n", file.Name())
 			}
 			continue
 		}
@@ -112,7 +112,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID, configFile, templates)
+	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID.String(), configFile, templates)
 	if err != nil {
 		log.Fatalf("Failed to sync metrics config: %s", err)
 	}

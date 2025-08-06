@@ -6,7 +6,7 @@
 
 ### v0.22.1 - August 7, 2025
 
-- Don't print env files when creating a multicontainer build in `--github` mode. Previously, if you passed an env file via --env-files when running `resim builds create`, the cli would list the env files in addition to the github output of the form `build_id=<build-id>`. Having these env files printed would interfere with communicating the build id between jobs.
+- Don't print env files when creating a multi-container build in `--github` mode. Previously, if you passed an env file via `--env-files` when running `resim builds create`, the client would list the env files in addition to the github output of the form `build_id=<build-id>`. Having these env files printed would interfere with communicating the build id between jobs.
 
 ### v0.22.0 - July 31, 2025
 

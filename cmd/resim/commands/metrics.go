@@ -100,7 +100,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 			continue
 		}
 		if verboseMode {
-			fmt.Printf("Found template %s", file.Name())
+			fmt.Printf("Found template %s\n", file.Name())
 		}
 		contents := readFile(path.Join(workDir, ".resim/metrics/templates/", file.Name()))
 		if len(contents) == 0 {

@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.23.0 - August 7, 2025
+
+- The `resim metrics sync` command now requires the `--project` flag.
+
 ### v0.22.0 - July 31, 2025
 
 - Creating builds via build spec now uploads services for all profiles by default. Previously only services without a profile were selected. A limited selection of profiles can be uploaded with `resim builds create ... --build-spec <path> --compose-profiles profile1,...` if desired.

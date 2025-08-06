@@ -121,7 +121,7 @@ func TestParseParameterString(t *testing.T) {
 }
 
 func TestParseBuildSpec(t *testing.T) {
-	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{}, []string{"*"})
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{}, []string{"*"}, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpec)
 
@@ -143,7 +143,7 @@ func TestParseBuildSpecWithOsEnv(t *testing.T) {
 	os.Setenv("SET_BY_OUTSIDE_ENV", "test_value")
 	defer os.Unsetenv("SET_BY_OUTSIDE_ENV")
 
-	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", true, []string{}, []string{"*"})
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", true, []string{}, []string{"*"}, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpec)
 
@@ -163,7 +163,7 @@ func TestParseBuildSpecWithEnvFiles(t *testing.T) {
 	envFile.WriteString(fmt.Sprintf("%s=%s\n", envName, envValue))
 	envFile.Close()
 
-	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{envFile.Name()}, []string{"*"})
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{envFile.Name()}, []string{"*"}, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpec)
 
@@ -175,7 +175,7 @@ func TestParseBuildSpecWithEnvFiles(t *testing.T) {
 }
 
 func TestParseBuildSpecWithProfiles(t *testing.T) {
-	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{}, []string{"profile2"})
+	buildSpec, err := ParseBuildSpec("../../../testing/data/test_build_spec.yaml", false, []string{}, []string{"profile2"}, false)
 	assert.NoError(t, err)
 	assert.NotNil(t, buildSpec)
 

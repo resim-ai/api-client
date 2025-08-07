@@ -293,6 +293,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			viper.GetBool(buildUseOsEnvKey),
 			viper.GetStringSlice(buildEnvFilesKey),
 			composeProfiles,
+			buildGithub,
 		)
 		if err != nil {
 			log.Fatal("failed to parse build spec:", err)

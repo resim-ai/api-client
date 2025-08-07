@@ -32,6 +32,7 @@ import (
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
 )
 
@@ -316,10 +317,12 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	}
 }
 
-func syncMetrics(verbose bool) []CommandBuilder {
+func syncMetrics(projectName string, verbose bool) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
-	flags := []Flag{}
+	flags := []Flag{
+		{Name: "project", Value: projectName},
+	}
 	if verbose {
 		flags = append(flags, Flag{Name: "--verbose"})
 	}
@@ -5650,9 +5653,20 @@ func TestLogIngest(t *testing.T) {
 
 func TestMetricsSync(t *testing.T) {
 	ts := assert.New(t)
+	req := require.New(t)
 	t.Parallel()
+
+	// create a project:
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedProject)
+	// We expect to be able to parse the project ID as a UUID
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	_, err := uuid.Parse(projectIDString)
+	req.NoError(err)
+
 	t.Run("NoConfigFiles", func(t *testing.T) {
-		output := s.runCommand(ts, syncMetrics(true), true)
+		output := s.runCommand(ts, syncMetrics(projectIDString, true), true)
 
 		ts.Contains(output.StdErr, "failed to find ReSim metrics config")
 	})
@@ -5693,12 +5707,12 @@ func TestMetricsSync(t *testing.T) {
 		ts.NoError(err)
 
 		// Standard behavior is exit 0 with no output
-		output := s.runCommand(ts, syncMetrics(false), false)
+		output := s.runCommand(ts, syncMetrics(projectIDString, false), false)
 		ts.Equal("", output.StdOut)
 		ts.Equal("", output.StdErr)
 
 		// Verbose logs a lot of info about what it is doing
-		output = s.runCommand(ts, syncMetrics(true), false)
+		output = s.runCommand(ts, syncMetrics(projectIDString, true), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
 		ts.Contains(output.StdOut, "Found template bar.json.heex")

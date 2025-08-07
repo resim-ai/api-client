@@ -28,7 +28,13 @@ var (
 	}
 )
 
+const (
+	metricsProjectKey = "project"
+)
+
 func init() {
+	syncMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project to sync metrics to")
+	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
 	rootCmd.AddCommand(metricsCmd)
 }
@@ -47,6 +53,8 @@ func readFile(path string) string {
 func syncMetrics(cmd *cobra.Command, args []string) {
 
 	verboseMode := viper.GetBool(verboseKey)
+
+	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
 
 	workDir, err := os.Getwd()
 	if err != nil {
@@ -85,14 +93,14 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 			}
 			continue
 		}
-		if !strings.HasSuffix(strings.ToLower(file.Name()), ".heex") {
+		if !strings.HasSuffix(strings.ToLower(file.Name()), ".liquid") {
 			if verboseMode {
-				fmt.Printf("Skipping non .heex file %s\n", file.Name())
+				fmt.Printf("Skipping non .liquid file %s\n", file.Name())
 			}
 			continue
 		}
 		if verboseMode {
-			fmt.Printf("Found template %s", file.Name())
+			fmt.Printf("Found template %s\n", file.Name())
 		}
 		contents := readFile(path.Join(workDir, ".resim/metrics/templates/", file.Name()))
 		if len(contents) == 0 {
@@ -104,7 +112,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, configFile, templates)
+	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID.String(), configFile, templates)
 	if err != nil {
 		log.Fatalf("Failed to sync metrics config: %s", err)
 	}

@@ -321,7 +321,7 @@ func syncMetrics(projectName string, verbose bool) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
 	flags := []Flag{
-		{Name: "project", Value: projectName},
+		{Name: "--project", Value: projectName},
 	}
 	if verbose {
 		flags = append(flags, Flag{Name: "--verbose"})

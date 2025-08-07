@@ -5703,7 +5703,7 @@ func TestMetricsSync(t *testing.T) {
 		}, "\n")
 		err = os.WriteFile(".resim/metrics/config.yml", []byte(metricsFile), 0644)
 		ts.NoError(err)
-		err = os.WriteFile(".resim/metrics/templates/bar.json.heex", []byte("{}"), 0644)
+		err = os.WriteFile(".resim/metrics/templates/bar.liquid", []byte("{}"), 0644)
 		ts.NoError(err)
 
 		// Standard behavior is exit 0 with no output
@@ -5715,7 +5715,7 @@ func TestMetricsSync(t *testing.T) {
 		output = s.runCommand(ts, syncMetrics(projectIDString, true), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
-		ts.Contains(output.StdOut, "Found template bar.json.heex")
+		ts.Contains(output.StdOut, "Found template bar.liquid")
 		ts.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
 	})
 }

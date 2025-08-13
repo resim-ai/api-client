@@ -76,6 +76,13 @@ var (
 		Long:  ``,
 		Run:   rerunBatch,
 	}
+
+	superviseBatchCmd = &cobra.Command{
+		Use:   "supervise",
+		Short: "supervise - Supervises batch operations",
+		Long:  ``,
+		Run:   superviseBatch,
+	}
 )
 
 const (
@@ -171,6 +178,8 @@ func init() {
 	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided, only the batch-metrics phase will be rerun.")
 	batchCmd.AddCommand(rerunBatchCmd)
 
+	batchCmd.AddCommand(superviseBatchCmd)
+
 	rootCmd.AddCommand(batchCmd)
 }
 
@@ -207,6 +216,10 @@ func DetermineTriggerMethod() *api.TriggeredVia {
 		return nil
 	}
 	return Ptr(api.LOCAL)
+}
+
+func superviseBatch(ccmd *cobra.Command, args []string) {
+	fmt.Println("I am Supervisor")
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {

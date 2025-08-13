@@ -72,7 +72,12 @@ var (
 		Long:  ``,
 		Run:   untagExperience,
 	}
-
+	syncExperienceCmd = &cobra.Command{
+		Use:   "sync",
+		Short: "sync - Sync experiences using a config",
+		Long:  ``,
+		Run:   syncExperience,
+	}
 	addSystemExperienceCmd = &cobra.Command{
 		Use:   "add-system",
 		Short: "add-system - Add a system as compatible with an experience",
@@ -93,6 +98,7 @@ const (
 	experienceSystemsKey              = "systems"
 	experienceNameKey                 = "name"
 	experienceKey                     = "experience"
+	experiencesConfigKey              = "experiences-config"	
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
 	experienceLocationKey             = "location"
@@ -181,6 +187,14 @@ func init() {
 	untagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to untag")
 	untagExperienceCmd.MarkFlagRequired(experienceNameKey)
 	experienceCmd.AddCommand(untagExperienceCmd)
+
+	// Sync command
+	syncExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to update the experiences within")
+	syncExperienceCmd.MarkFlagRequired(experienceProjectKey)	
+	syncExperienceCmd.Flags().String(experiencesConfigKey, "", "The path of the experiences config file to sync")
+	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
+	experienceCmd.AddCommand(syncExperienceCmd)
+
 	// Systems-related sub-commands:
 	addSystemExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
 	addSystemExperienceCmd.MarkFlagRequired(experienceProjectKey)
@@ -446,7 +460,7 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 	fmt.Println("Updated experience successfully!")
 }
 
-func listExperiences(ccmd *cobra.Command, args []string) {
+func fetchAllExperiences() []api.Experience {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	allExperiences := []api.Experience{}
 	var pageToken *string = nil
@@ -473,6 +487,11 @@ func listExperiences(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	return allExperiences
+}
+
+func listExperiences(ccmd *cobra.Command, args []string) {
+	allExperiences := fetchAllExperiences()
 	if len(allExperiences) == 0 {
 		fmt.Println("no experiences")
 		return
@@ -537,6 +556,8 @@ func untagExperience(ccmd *cobra.Command, args []string) {
 	}
 	ValidateResponse(http.StatusNoContent, "failed to untag experience", response.HTTPResponse, response.Body)
 }
+
+
 
 func addSystemToExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))

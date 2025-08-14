@@ -178,6 +178,12 @@ func init() {
 	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided, only the batch-metrics phase will be rerun.")
 	batchCmd.AddCommand(rerunBatchCmd)
 
+	superviseBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to supervise")
+	superviseBatchCmd.MarkFlagRequired(batchProjectKey)
+	superviseBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to supervise.")
+	superviseBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to supervise (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this supervises the most recent batch with that name.")
+	superviseBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	superviseBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
 	batchCmd.AddCommand(superviseBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
@@ -219,7 +225,9 @@ func DetermineTriggerMethod() *api.TriggeredVia {
 }
 
 func superviseBatch(ccmd *cobra.Command, args []string) {
-	fmt.Println("I am Supervisor")
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+	fmt.Printf("I am Supervisor for project: %s and batch: %s\n", projectID.String(), batch.BatchID.String())
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {

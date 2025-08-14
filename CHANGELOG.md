@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+#### Added
+
+- The `systems create` command now supports creating systems that use `arm64` as the architecture. The default is `amd64`, but `--architecture` can be used to run tests with builds that use `arm64`.
+
 ### v0.23.1 - August 7, 2025
 
 - Don't print env files when creating a multi-container build in `--github` mode. Previously, if you passed an env file via `--env-files` when running `resim builds create`, the client would list the env files in addition to the github output of the form `build_id=<build-id>`. Having these env files printed would interfere with communicating the build id between jobs.

@@ -4,8 +4,13 @@ import (
 	"log"
 )
 
+type ExperienceMatch struct {
+	Original *Experience
+	New      *Experience
+}
 
-func GetDesiredUpdates(config *ExperienceSyncConfig, currentExperiencesByName *map[string]*Experience) *map[string]ExperienceUpdate {
+
+func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName *map[string]*Experience) *map[string]ExperienceMatch {
 	// Our algorithm can be summarized like so:
 	//
 	// For each configured experience, we attempt to match it to an existing experience if
@@ -47,7 +52,7 @@ func GetDesiredUpdates(config *ExperienceSyncConfig, currentExperiencesByName *m
 	// The above procedure guarantees that every desired experience has a unique name and ID and
 	// is matched to a unique existing experience if that's possible. It also guarantees that no
 	// desired experience has a name currently owned by another experience.
-	desiredUpdates := make(map[string]ExperienceUpdate)
+	matches := make(map[string]ExperienceMatch)
 
 	remainingCurrentExperiencesByID := byNameToByID(currentExperiencesByName)
 
@@ -56,7 +61,7 @@ func GetDesiredUpdates(config *ExperienceSyncConfig, currentExperiencesByName *m
 		currExp, exists := (*currentExperiencesByName)[experience.Name]
 		if exists {
 			// If the match target has already been matched with, that's a failure
-			if _, isAvailable := (*remainingCurrentExperiencesByID)[*currExp.ExperienceID]; !isAvailable {
+			if _, isAvailable := (*remainingCurrentExperiencesByID)[currExp.ExperienceID.ID]; !isAvailable {
 				log.Fatalf("Experience name collision: %s", currExp.Name)
 			}
 
@@ -67,31 +72,31 @@ func GetDesiredUpdates(config *ExperienceSyncConfig, currentExperiencesByName *m
 
 			// Experience exists with the same name and should be updated
 			experience.ExperienceID = currExp.ExperienceID
-			checkedInsert(&desiredUpdates, experience.Name, ExperienceUpdate{
+			checkedInsert(&matches, experience.Name, ExperienceMatch{
 				Original: currExp,
 				New:      experience,
 			})
-			delete(*remainingCurrentExperiencesByID, *currExp.ExperienceID)
+			delete(*remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
 			continue
 		}
 		// Step 2: Attempt to match by ID
 		if experience.ExperienceID != nil {
 			// Check if there's still an unmatched experience with this ID:
-			currExp, exists := (*remainingCurrentExperiencesByID)[*experience.ExperienceID]
+			currExp, exists := (*remainingCurrentExperiencesByID)[experience.ExperienceID.ID]
 			if !exists {
 				log.Fatalf("No existing experience available with ID. This could be due to multiple configured experiences requesting the same ID: %s", *experience.ExperienceID)
 			}
 
-			checkedInsert(&desiredUpdates, experience.Name, ExperienceUpdate{
+			checkedInsert(&matches, experience.Name, ExperienceMatch{
 				Original: currExp,
 				New:      experience,
 			})
-			delete(*remainingCurrentExperiencesByID, *currExp.ExperienceID)
+			delete(*remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
 			continue
 		}
 
 		// Step 3: Must be new then:
-		checkedInsert(&desiredUpdates, experience.Name, ExperienceUpdate{
+		checkedInsert(&matches, experience.Name, ExperienceMatch{
 			Original: nil,
 			New:      experience,
 		})
@@ -105,25 +110,23 @@ func GetDesiredUpdates(config *ExperienceSyncConfig, currentExperiencesByName *m
 		}
 		archivedVersion := *experience
 		archivedVersion.Archived = true
-		checkedInsert(&desiredUpdates, experience.Name, ExperienceUpdate{
+		checkedInsert(&matches, experience.Name, ExperienceMatch{
 			Original: experience,
 			New:      &archivedVersion,
 		})
 	}
-	return &desiredUpdates
+	return &matches
 }
 
-
-func byNameToByID(byName *map[string]*Experience) *map[string]*Experience {
-	byID := make(map[string]*Experience)
+func byNameToByID(byName *map[string]*Experience) *map[ExperienceID]*Experience {
+	byID := make(map[ExperienceID]*Experience)
 	for _, v := range *byName {
 		if v.ExperienceID != nil {
-			byID[*v.ExperienceID] = v
+			byID[v.ExperienceID.ID] = v
 		}
 	}
 	return &byID
 }
-
 
 func checkedInsert[K comparable, V any](m *map[K]V,
 	key K, value V) {

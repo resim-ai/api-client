@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"net/http"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 )
 
 // Validate Response fails the command if the response is nil, or the
@@ -14,7 +14,6 @@ func ValidateResponse(expectedStatusCode int, message string, response *http.Res
 		log.Fatal(err) // same behavior as before
 	}
 }
-
 
 // ValidateResponseSafe returns an error when the command if the response is nil, or the status code
 // is not what we expect.

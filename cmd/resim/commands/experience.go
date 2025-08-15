@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/cmd/resim/commands/sync"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -663,6 +664,13 @@ pageLoop:
 		}
 	}
 	return experienceID
+}
+
+func syncExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	configPath := viper.GetString(experiencesConfigKey)
+	updateConfig := viper.GetBool(experiencesUpdateConfigKey)
+	sync.SyncExperience(Client, projectID, configPath, updateConfig)
 }
 
 func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool, expectArchived bool) uuid.UUID {

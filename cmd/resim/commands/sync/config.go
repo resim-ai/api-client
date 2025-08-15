@@ -1,26 +1,28 @@
 package sync
 
 import (
-	"github.com/google/uuid"	
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
-	"os"
 	"log"
+	"os"
 )
 
-
+type ExperienceIDWrapper struct { // For custom unmarshalling
+	ID ExperienceID
+}
 
 type Experience struct {
-	Name                    string                     `yaml:"name"`
-	Description             string                     `yaml:"description"`
-	Locations               []string                   `yaml:"locations,omitempty"`
-	Tags                    []string                   `yaml:"tags,omitempty"`                  // Only used on read from config
-	Systems                 []string                   `yaml:"systems,omitempty"`               // Only used on read from config
-	Profile                 *string                    `yaml:"profile,omitempty"`               // Optional
-	ExperienceID            *string                    `yaml:"experience_id,omitempty"`         // Optional
+	Name                    string                 `yaml:"name"`
+	Description             string                 `yaml:"description"`
+	Locations               []string               `yaml:"locations,omitempty"`
+	Tags                    []string               `yaml:"tags,omitempty"`                  // Only used on read from config
+	Systems                 []string               `yaml:"systems,omitempty"`               // Only used on read from config
+	Profile                 *string                `yaml:"profile,omitempty"`               // Optional
+	ExperienceID            *ExperienceIDWrapper                `yaml:"experience_id,omitempty"`         // Optional
 	EnvironmentVariables    *[]EnvironmentVariable `yaml:"environment_variables,omitempty"` // Optional
-	CacheExempt             bool                       `yaml:"cache_exempt,omitempty"`
-	ContainerTimeoutSeconds *int32                     `yaml:"container_timeout_seconds,omitempty"` // Optional
-	Archived                bool                       `yaml:"-"`                                   // Shouldn't be in the config
+	CacheExempt             bool                   `yaml:"cache_exempt,omitempty"`
+	ContainerTimeoutSeconds *int32                 `yaml:"container_timeout_seconds,omitempty"` // Optional
+	Archived                bool                   `yaml:"-"`                                   // Shouldn't be in the config
 }
 
 type TestSuite struct {
@@ -29,18 +31,13 @@ type TestSuite struct {
 }
 
 type ExperienceSyncConfig struct {
-	RemovableTags []string      `yaml:"removable_tags,omitempty"`
 	Experiences   []*Experience `yaml:"experiences,omitempty"`
-	TestSuites    []TestSuite   `yaml:"test_suites,omitempty"`
-}
-
-type ExperienceUpdate struct {
-	Original *Experience
-	New      *Experience
+	TestSuites    []TestSuite   `yaml:"managed_test_suites,omitempty"`
+	ExperienceTags []string      `yaml:"managed_experience_tags,omitempty"`
 }
 
 
-func LoadExperienceSyncConfig(path string) *ExperienceSyncConfig {
+func loadExperienceSyncConfig(path string) *ExperienceSyncConfig {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		log.Fatalf("config file does not exist: %s", path)
 	}
@@ -65,16 +62,31 @@ func LoadExperienceSyncConfig(path string) *ExperienceSyncConfig {
 		if experience.Locations == nil || len(experience.Locations) == 0 {
 			log.Fatal("No locations provided for experience: ", experience.Name)
 		}
-		if experience.ExperienceID != nil && !isValidUUID(*experience.ExperienceID) {
-			log.Fatal("Invalid experience ID: ", *experience.ExperienceID)
-		}
 	}
 	return &cfg
 }
 
 
-
-func isValidUUID(u string) bool {
-	_, err := uuid.Parse(u)
-	return err == nil
+func (u *ExperienceIDWrapper) UnmarshalYAML(value *yaml.Node) error {
+    var s string
+    if err := value.Decode(&s); err != nil {
+        return err
+    }
+    if s == "" {
+        return nil // allow empty / missing
+    }
+    parsed, err := uuid.Parse(s)
+    if err != nil {
+        return err
+    }
+    u.ID = parsed
+    return nil
 }
+
+func (u ExperienceIDWrapper) MarshalYAML() (interface{}, error) {
+    if u.ID == uuid.Nil {
+        return "", nil
+    }
+    return u.ID.String(), nil
+}
+

@@ -44,6 +44,11 @@ type ExperienceUpdate struct {
 	New      *Experience
 }
 
+func isValidUUID(u string) bool {
+	_, err := uuid.Parse(u)
+	return err == nil
+}
+
 func loadExperienceSyncConfig(path string) *ExperienceSyncConfig {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		log.Fatalf("config file does not exist: %s", path)
@@ -60,24 +65,17 @@ func loadExperienceSyncConfig(path string) *ExperienceSyncConfig {
 	}
 	// Do some normalization and validation
 	for _, experience := range cfg.Experiences {
-		// TODO validate UUIDS
+		if experience.Name == "" {
+			log.Fatal("Empty experience name.")
+		}
+		if experience.Description == "" {
+			log.Fatal("Empty experience description for experience: ", experience.Name)
+		}
 		if experience.Locations == nil || len(experience.Locations) == 0 {
 			log.Fatal("No locations provided for experience: ", experience.Name)
 		}
-		if experience.Tags == nil {
-			experience.Tags = []string{}
-		}
-		if experience.Systems == nil {
-			experience.Systems = []string{}
-		}
-		if experience.ContainerTimeoutSeconds == nil {
-			experience.ContainerTimeoutSeconds = Ptr(int32(3600))
-		}
-		if experience.Profile == nil {
-			experience.Profile = Ptr("")
-		}
-		if experience.EnvironmentVariables == nil {
-			experience.EnvironmentVariables = &[]api.EnvironmentVariable{}
+		if experience.ExperienceID != nil && !isValidUUID(*experience.ExperienceID) {
+			log.Fatal("Invalid experience ID: ", *experience.ExperienceID)
 		}
 	}
 	return &cfg
@@ -298,7 +296,18 @@ func updateSingleExperience(
 			log.Print("WARNING:", err)
 		}
 	}
-	updateMask := []string{"name", "description", "cacheExempt", "locations", "containerTimeoutSeconds", "profile", "environmentVariables"}
+	updateMask := []string{"name", "description", "cacheExempt", "locations"}
+
+	if update.New.ContainerTimeoutSeconds != nil {
+		updateMask = append(updateMask, "containerTimeoutSeconds")
+	}
+	if update.New.Profile != nil {
+		updateMask = append(updateMask, "profile")
+	}
+	if update.New.EnvironmentVariables != nil {
+		updateMask = append(updateMask, "environmentVariables")
+	}
+
 	body := api.UpdateExperienceInput{
 		Experience: &api.UpdateExperienceFields{
 			Name:                    &update.New.Name,

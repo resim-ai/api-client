@@ -6,21 +6,14 @@ experiences:
       description: asdfadsfasfasf
       locations:
         - asdfs
-      profile: ""
       experience_id: 5b372a48-d88b-4c10-97eb-af8693995305
-      environment_variables: []
       cache_exempt: true
-      container_timeout_seconds: 3600
     - name: test-experience-bar
       description: A dummy experience
       locations:
         - foo
       profile: ""
       experience_id: 5106eaf7-6730-4bd4-8b58-9b4197b690f5
-      environment_variables:
-        - name: FOOBAR
-          value: baz
-      container_timeout_seconds: 3600
     - name: ahahaha
       description: AASDFSFSD
       locations:

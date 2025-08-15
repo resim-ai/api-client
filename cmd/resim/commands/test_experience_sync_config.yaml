@@ -1,0 +1,38 @@
+removable_tags:
+    - progression
+    - regression
+experiences:
+    - name: test-experience-bar2
+      description: asdfadsfasfasf
+      locations:
+        - asdfs
+      profile: ""
+      experience_id: 5b372a48-d88b-4c10-97eb-af8693995305
+      environment_variables: []
+      cache_exempt: true
+      container_timeout_seconds: 3600
+    - name: test-experience-bar
+      description: A dummy experience
+      locations:
+        - foo
+      profile: ""
+      experience_id: 5106eaf7-6730-4bd4-8b58-9b4197b690f5
+      environment_variables:
+        - name: FOOBAR
+          value: baz
+      container_timeout_seconds: 3600
+    - name: ahahaha
+      description: AASDFSFSD
+      locations:
+        - sdfkjdsf
+      profile: ""
+      experience_id: 0c8a10c6-f9be-4763-b2e9-f34df7f478bf
+      environment_variables: []
+      container_timeout_seconds: 3603
+test_suites:
+    - name: Basic Suite
+      experiences:
+        - test-experience-bar
+    - name: Smoke Tests
+      experiences:
+        - test-experience-bar

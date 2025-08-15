@@ -44,7 +44,6 @@ type ExperienceUpdate struct {
 	New      *Experience
 }
 
-
 func loadExperienceSyncConfig(path string) *ExperienceSyncConfig {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		log.Fatalf("config file does not exist: %s", path)
@@ -120,7 +119,6 @@ func byNameToByID(byName *map[string]*Experience) *map[string]*Experience {
 	}
 	return &byID
 }
-
 
 func checkedInsert[K comparable, V any](m *map[K]V,
 	key K, value V) {

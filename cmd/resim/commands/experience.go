@@ -99,7 +99,7 @@ const (
 	experienceNameKey                 = "name"
 	experienceKey                     = "experience"
 	experiencesConfigKey              = "experiences-config"
-	experiencesUpdateConfigKey              = "update-config"		
+	experiencesUpdateConfigKey        = "update-config"
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
 	experienceLocationKey             = "location"
@@ -191,7 +191,7 @@ func init() {
 
 	// Sync command
 	syncExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to update the experiences within")
-	syncExperienceCmd.MarkFlagRequired(experienceProjectKey)	
+	syncExperienceCmd.MarkFlagRequired(experienceProjectKey)
 	syncExperienceCmd.Flags().String(experiencesConfigKey, "", "The path of the experiences config file to sync")
 	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
 	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
@@ -462,7 +462,6 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 	fmt.Println("Updated experience successfully!")
 }
 
-
 func listExperiences(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	allExperiences := fetchAllExperiences(projectID, false)
@@ -530,8 +529,6 @@ func untagExperience(ccmd *cobra.Command, args []string) {
 	}
 	ValidateResponse(http.StatusNoContent, "failed to untag experience", response.HTTPResponse, response.Body)
 }
-
-
 
 func addSystemToExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))

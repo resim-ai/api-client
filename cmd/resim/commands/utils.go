@@ -3,18 +3,17 @@ package commands
 import (
 	"context"
 	"fmt"
-	"net/http"	
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
-	. "github.com/resim-ai/api-client/ptr"	
 	"github.com/compose-spec/compose-go/v2/loader"
 	compose_types "github.com/compose-spec/compose-go/v2/types"
+	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"	
-	
 )
 
 // ParseParameterString parses a string in the format "key=value" or "key:value"
@@ -93,7 +92,6 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 	return poolLabels
 }
 
-
 func fetchAllExperiences(projectID openapi_types.UUID, archived bool) []api.Experience {
 	allExperiences := []api.Experience{}
 	var pageToken *string = nil
@@ -103,7 +101,7 @@ func fetchAllExperiences(projectID openapi_types.UUID, archived bool) []api.Expe
 			context.Background(), projectID, &api.ListExperiencesParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
-				Archived: Ptr(archived),
+				Archived:  Ptr(archived),
 				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
@@ -152,7 +150,6 @@ func fetchAllExperienceTags(projectID openapi_types.UUID) []api.ExperienceTag {
 	return allExperienceTags
 }
 
-
 func fetchAllSystems(projectID openapi_types.UUID) []api.System {
 	allSystems := []api.System{}
 	var pageToken *string = nil
@@ -180,4 +177,3 @@ func fetchAllSystems(projectID openapi_types.UUID) []api.System {
 
 	return allSystems
 }
-

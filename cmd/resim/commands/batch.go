@@ -106,6 +106,9 @@ const (
 	batchSlackOutputKey             = "slack"
 	batchAllowableFailurePercentKey = "allowable-failure-percent"
 	batchTestIDsKey                 = "test-ids"
+	batchMaxRerunAttemptsKey        = "max-rerun-attempts"
+	batchMaxFailedJobThresholdKey   = "max-failed-job-threshold"
+	batchRerunOnStatesKey           = "rerun-on-states"
 )
 
 func init() {
@@ -184,6 +187,9 @@ func init() {
 	superviseBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to supervise (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this supervises the most recent batch with that name.")
 	superviseBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	superviseBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
+	superviseBatchCmd.Flags().Int(batchMaxRerunAttemptsKey, 0, "Maximum number of rerun attempts for failed tests (default: 0)")
+	superviseBatchCmd.Flags().Int(batchMaxFailedJobThresholdKey, 50, "Maximum percentage of failed jobs before stopping (1-99, default: 50)")
+	superviseBatchCmd.Flags().String(batchRerunOnStatesKey, "", "States to trigger rerun on (e.g. Warning, Error, Blocker)")
 	batchCmd.AddCommand(superviseBatchCmd)
 
 	rootCmd.AddCommand(batchCmd)
@@ -227,7 +233,19 @@ func DetermineTriggerMethod() *api.TriggeredVia {
 func superviseBatch(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+	maxRerunAttempts := viper.GetInt(batchMaxRerunAttemptsKey)
+	maxFailedJobThreshold := viper.GetInt(batchMaxFailedJobThresholdKey)
+	rerunOnStates := viper.GetString(batchRerunOnStatesKey)
+
+	// Validate max-failed-job-threshold is between 1 and 99
+	if maxFailedJobThreshold < 1 || maxFailedJobThreshold > 99 {
+		log.Fatalf("max-failed-job-threshold must be between 1 and 99, got: %d", maxFailedJobThreshold)
+	}
+
 	fmt.Printf("I am Supervisor for project: %s and batch: %s\n", projectID.String(), batch.BatchID.String())
+	fmt.Printf("Max rerun attempts: %d\n", maxRerunAttempts)
+	fmt.Printf("Max failed job threshold: %d%%\n", maxFailedJobThreshold)
+	fmt.Printf("Rerun on states: %s\n", rerunOnStates)
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {

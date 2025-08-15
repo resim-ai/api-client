@@ -4,15 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/loader"
 	compose_types "github.com/compose-spec/compose-go/v2/types"
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/resim-ai/api-client/api"
-	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
 )
 
@@ -90,90 +87,4 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 		}
 	}
 	return poolLabels
-}
-
-func fetchAllExperiences(projectID openapi_types.UUID, archived bool) []api.Experience {
-	allExperiences := []api.Experience{}
-	var pageToken *string = nil
-
-	for {
-		response, err := Client.ListExperiencesWithResponse(
-			context.Background(), projectID, &api.ListExperiencesParams{
-				PageSize:  Ptr(100),
-				PageToken: pageToken,
-				Archived:  Ptr(archived),
-				OrderBy:   Ptr("timestamp"),
-			})
-		if err != nil {
-			log.Fatal("failed to list experiences:", err)
-		}
-		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
-
-		pageToken = response.JSON200.NextPageToken
-		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
-			break // Either no experiences or we've reached the end of the list matching the page length
-		}
-		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
-		if pageToken == nil || *pageToken == "" {
-			break
-		}
-	}
-
-	return allExperiences
-}
-
-func fetchAllExperienceTags(projectID openapi_types.UUID) []api.ExperienceTag {
-	allExperienceTags := []api.ExperienceTag{}
-	var pageToken *string = nil
-
-	for {
-		response, err := Client.ListExperienceTagsWithResponse(
-			context.Background(), projectID, &api.ListExperienceTagsParams{
-				PageSize:  Ptr(100),
-				PageToken: pageToken,
-			})
-		if err != nil {
-			log.Fatal("failed to list experiences:", err)
-		}
-		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
-
-		pageToken = response.JSON200.NextPageToken
-		if response.JSON200 == nil || len(*response.JSON200.ExperienceTags) == 0 {
-			break // Either no experiences or we've reached the end of the list matching the page length
-		}
-		allExperienceTags = append(allExperienceTags, *response.JSON200.ExperienceTags...)
-		if pageToken == nil || *pageToken == "" {
-			break
-		}
-	}
-
-	return allExperienceTags
-}
-
-func fetchAllSystems(projectID openapi_types.UUID) []api.System {
-	allSystems := []api.System{}
-	var pageToken *string = nil
-
-	for {
-		response, err := Client.ListSystemsWithResponse(
-			context.Background(), projectID, &api.ListSystemsParams{
-				PageSize:  Ptr(100),
-				PageToken: pageToken,
-			})
-		if err != nil {
-			log.Fatal("failed to list experiences:", err)
-		}
-		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
-
-		pageToken = response.JSON200.NextPageToken
-		if response.JSON200 == nil || len(*response.JSON200.Systems) == 0 {
-			break // Either no experiences or we've reached the end of the list matching the page length
-		}
-		allSystems = append(allSystems, *response.JSON200.Systems...)
-		if pageToken == nil || *pageToken == "" {
-			break
-		}
-	}
-
-	return allSystems
 }

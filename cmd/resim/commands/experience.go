@@ -464,7 +464,31 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 
 func listExperiences(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
-	allExperiences := fetchAllExperiences(projectID, false)
+	allExperiences := []api.Experience{}
+	var pageToken *string = nil
+
+	for {
+		response, err := Client.ListExperiencesWithResponse(
+			context.Background(), projectID, &api.ListExperiencesParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
+			})
+		if err != nil {
+			log.Fatal("failed to list experiences:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
+			break // Either no experiences or we've reached the end of the list matching the page length
+		}
+		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+
 	if len(allExperiences) == 0 {
 		fmt.Println("no experiences")
 		return

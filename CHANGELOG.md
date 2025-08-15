@@ -4,9 +4,8 @@
 
 ### Unreleased
 
-#### Added
-
 - The `systems create` command now supports creating systems that use `arm64` as the architecture. The default is `amd64`, but `--architecture` can be used to run tests with builds that use `arm64`.
+- Commands now accept `--id`, `--<entity>-id` or `--<entity>`, e.g. `--id`, `--system`, `--system-id`. Note that where entities have names as well as IDs, a name or ID can be passed.
 
 ### v0.23.1 - August 7, 2025
 

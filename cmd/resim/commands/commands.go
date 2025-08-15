@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/api"
@@ -82,6 +83,8 @@ func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {
 }
 
 func RegisterViperFlags(cmd *cobra.Command, args []string) {
+	// Ensure all commands use a common alias normalization for flags
+	cmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	configDir, _ := GetConfigDir()
 	viper.BindPFlags(cmd.Flags())
 	viper.SetConfigName("resim")
@@ -133,6 +136,20 @@ func GetConfigDir() (string, error) {
 }
 
 func AliasNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	// Basic normalization
+	name = strings.TrimSpace(name)
+
+	// Capture existing flag names without triggering normalization recursion
+	existingBase := map[string]bool{}
+	existingIDs := map[string]bool{}
+	f.VisitAll(func(fl *pflag.Flag) {
+		existingBase[fl.Name] = true
+		if strings.HasSuffix(fl.Name, "-id") {
+			existingIDs[fl.Name] = true
+		}
+	})
+
+	// Backwards-compat aliases
 	switch name {
 	case "project-id":
 		name = "project"
@@ -145,5 +162,56 @@ func AliasNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {
 	case "locations":
 		name = "location"
 	}
+
+	// Support --<component> and --id as aliases for --<component>-id for known components
+	knownComponents := []string{"batch", "report", "sweep", "build", "test", "branch", "system"}
+
+	// Map component name and id variants consistently
+	for _, component := range knownComponents {
+		idFlag := component + "-id"
+		// --<component> → --<component>-id if id flag exists
+		if name == component {
+			if existingIDs[idFlag] {
+				name = idFlag
+				return pflag.NormalizedName(name)
+			}
+		}
+		// --<component>-id → --<component> if id flag not present but base exists (e.g., systems)
+		if name == idFlag {
+			if !existingIDs[idFlag] && existingBase[component] {
+				name = component
+				return pflag.NormalizedName(name)
+			}
+		}
+	}
+
+	// Map --id -> the unique --<component>-id present in this flag set
+	if name == "id" {
+		idCandidates := []string{}
+		for _, component := range knownComponents {
+			candidate := component + "-id"
+			if existingIDs[candidate] {
+				idCandidates = append(idCandidates, candidate)
+			}
+		}
+		if len(idCandidates) == 1 {
+			name = idCandidates[0]
+			return pflag.NormalizedName(name)
+		}
+		// If there are no *-id flags, allow mapping to a single base component flag (e.g., systems)
+		if len(idCandidates) == 0 {
+			baseCandidates := []string{}
+			for _, component := range knownComponents {
+				if existingBase[component] {
+					baseCandidates = append(baseCandidates, component)
+				}
+			}
+			if len(baseCandidates) == 1 {
+				name = baseCandidates[0]
+				return pflag.NormalizedName(name)
+			}
+		}
+	}
+
 	return pflag.NormalizedName(name)
 }

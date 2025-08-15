@@ -98,7 +98,8 @@ const (
 	experienceSystemsKey              = "systems"
 	experienceNameKey                 = "name"
 	experienceKey                     = "experience"
-	experiencesConfigKey              = "experiences-config"	
+	experiencesConfigKey              = "experiences-config"
+	experiencesUpdateConfigKey              = "update-config"		
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
 	experienceLocationKey             = "location"
@@ -193,6 +194,7 @@ func init() {
 	syncExperienceCmd.MarkFlagRequired(experienceProjectKey)	
 	syncExperienceCmd.Flags().String(experiencesConfigKey, "", "The path of the experiences config file to sync")
 	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
+	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
 	experienceCmd.AddCommand(syncExperienceCmd)
 
 	// Systems-related sub-commands:

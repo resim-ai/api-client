@@ -7,8 +7,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
+	"sync"
 )
-
 
 func SyncExperience(client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
@@ -20,28 +20,35 @@ func SyncExperience(client api.ClientWithResponsesInterface,
 	}
 	config := loadExperienceSyncConfig(configPath)
 
-
 	currentExperiencesByName := getCurrentExperiencesByName(client, projectID)
-	currentTagSets := getCurrentTagSets(client, projectID)
+	currentTagSetsByName := getCurrentTagSetsByName(client, projectID)
 	apiSystems := fetchAllSystems(client, projectID)
-	
 
 	matchedExperiencesByNewName := matchExperiences(config, currentExperiencesByName)
+	tagUpdates := getTagUpdates(matchedExperiencesByNewName, currentTagSetsByName, config.ManagedExperienceTags)
 
-
-	for _, update := range *matchedExperiencesByNewName {
-		updateSingleExperience(client, projectID, &update)
+	for _, update := range matchedExperiencesByNewName {
+		updateSingleExperience(client, projectID, update)
 	}
+
+	var wg sync.WaitGroup
+
+	for _, update := range tagUpdates {
+		wg.Add(1)
+		go asyncUpdateSingleTag(&wg, client, projectID, update)
+	}
+	wg.Wait()
 
 	if updateConfig {
 		writeConfigToFile(config, configPath)
 	}
 
+	_ = currentTagSetsByName
+	//_ = matchedExperiencesByOldID
+	_ = tagUpdates
 	_ = apiSystems
-	_ = currentTagSets
 
 }
-
 
 func writeConfigToFile(config *ExperienceSyncConfig, path string) {
 	data, err := yaml.Marshal(config)

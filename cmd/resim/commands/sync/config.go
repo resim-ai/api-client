@@ -18,7 +18,7 @@ type Experience struct {
 	Tags                    []string               `yaml:"tags,omitempty"`                  // Only used on read from config
 	Systems                 []string               `yaml:"systems,omitempty"`               // Only used on read from config
 	Profile                 *string                `yaml:"profile,omitempty"`               // Optional
-	ExperienceID            *ExperienceIDWrapper                `yaml:"experience_id,omitempty"`         // Optional
+	ExperienceID            *ExperienceIDWrapper   `yaml:"experience_id,omitempty"`         // Optional
 	EnvironmentVariables    *[]EnvironmentVariable `yaml:"environment_variables,omitempty"` // Optional
 	CacheExempt             bool                   `yaml:"cache_exempt,omitempty"`
 	ContainerTimeoutSeconds *int32                 `yaml:"container_timeout_seconds,omitempty"` // Optional
@@ -31,11 +31,10 @@ type TestSuite struct {
 }
 
 type ExperienceSyncConfig struct {
-	Experiences   []*Experience `yaml:"experiences,omitempty"`
-	TestSuites    []TestSuite   `yaml:"managed_test_suites,omitempty"`
-	ExperienceTags []string      `yaml:"managed_experience_tags,omitempty"`
+	Experiences           []*Experience `yaml:"experiences,omitempty"`
+	TestSuites            []TestSuite   `yaml:"managed_test_suites,omitempty"`
+	ManagedExperienceTags []string      `yaml:"managed_experience_tags,omitempty"`
 }
-
 
 func loadExperienceSyncConfig(path string) *ExperienceSyncConfig {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -66,27 +65,25 @@ func loadExperienceSyncConfig(path string) *ExperienceSyncConfig {
 	return &cfg
 }
 
-
 func (u *ExperienceIDWrapper) UnmarshalYAML(value *yaml.Node) error {
-    var s string
-    if err := value.Decode(&s); err != nil {
-        return err
-    }
-    if s == "" {
-        return nil // allow empty / missing
-    }
-    parsed, err := uuid.Parse(s)
-    if err != nil {
-        return err
-    }
-    u.ID = parsed
-    return nil
+	var s string
+	if err := value.Decode(&s); err != nil {
+		return err
+	}
+	if s == "" {
+		return nil // allow empty / missing
+	}
+	parsed, err := uuid.Parse(s)
+	if err != nil {
+		return err
+	}
+	u.ID = parsed
+	return nil
 }
 
 func (u ExperienceIDWrapper) MarshalYAML() (interface{}, error) {
-    if u.ID == uuid.Nil {
-        return "", nil
-    }
-    return u.ID.String(), nil
+	if u.ID == uuid.Nil {
+		return "", nil
+	}
+	return u.ID.String(), nil
 }
-

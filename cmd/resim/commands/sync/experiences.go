@@ -9,8 +9,7 @@ type ExperienceMatch struct {
 	New      *Experience
 }
 
-
-func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName *map[string]*Experience) *map[string]ExperienceMatch {
+func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map[string]*Experience) map[string]*ExperienceMatch {
 	// Our algorithm can be summarized like so:
 	//
 	// For each configured experience, we attempt to match it to an existing experience if
@@ -52,16 +51,16 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName *ma
 	// The above procedure guarantees that every desired experience has a unique name and ID and
 	// is matched to a unique existing experience if that's possible. It also guarantees that no
 	// desired experience has a name currently owned by another experience.
-	matches := make(map[string]ExperienceMatch)
+	matches := make(map[string]*ExperienceMatch)
 
 	remainingCurrentExperiencesByID := byNameToByID(currentExperiencesByName)
 
 	for _, experience := range config.Experiences {
 		// Step 1: Attempt to match by name
-		currExp, exists := (*currentExperiencesByName)[experience.Name]
+		currExp, exists := currentExperiencesByName[experience.Name]
 		if exists {
 			// If the match target has already been matched with, that's a failure
-			if _, isAvailable := (*remainingCurrentExperiencesByID)[currExp.ExperienceID.ID]; !isAvailable {
+			if _, isAvailable := remainingCurrentExperiencesByID[currExp.ExperienceID.ID]; !isAvailable {
 				log.Fatalf("Experience name collision: %s", currExp.Name)
 			}
 
@@ -72,60 +71,60 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName *ma
 
 			// Experience exists with the same name and should be updated
 			experience.ExperienceID = currExp.ExperienceID
-			checkedInsert(&matches, experience.Name, ExperienceMatch{
+			checkedInsert(&matches, experience.Name, &ExperienceMatch{
 				Original: currExp,
 				New:      experience,
 			})
-			delete(*remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
+			delete(remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
 			continue
 		}
 		// Step 2: Attempt to match by ID
 		if experience.ExperienceID != nil {
 			// Check if there's still an unmatched experience with this ID:
-			currExp, exists := (*remainingCurrentExperiencesByID)[experience.ExperienceID.ID]
+			currExp, exists := remainingCurrentExperiencesByID[experience.ExperienceID.ID]
 			if !exists {
 				log.Fatalf("No existing experience available with ID. This could be due to multiple configured experiences requesting the same ID: %s", *experience.ExperienceID)
 			}
 
-			checkedInsert(&matches, experience.Name, ExperienceMatch{
+			checkedInsert(&matches, experience.Name, &ExperienceMatch{
 				Original: currExp,
 				New:      experience,
 			})
-			delete(*remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
+			delete(remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
 			continue
 		}
 
 		// Step 3: Must be new then:
-		checkedInsert(&matches, experience.Name, ExperienceMatch{
+		checkedInsert(&matches, experience.Name, &ExperienceMatch{
 			Original: nil,
 			New:      experience,
 		})
 
 	}
 	// Step 4: Any leftover experiences should be archived
-	for _, experience := range *remainingCurrentExperiencesByID {
+	for _, experience := range remainingCurrentExperiencesByID {
 		if experience.Archived {
 			// No updates needed
 			continue
 		}
 		archivedVersion := *experience
 		archivedVersion.Archived = true
-		checkedInsert(&matches, experience.Name, ExperienceMatch{
+		checkedInsert(&matches, experience.Name, &ExperienceMatch{
 			Original: experience,
 			New:      &archivedVersion,
 		})
 	}
-	return &matches
+	return matches
 }
 
-func byNameToByID(byName *map[string]*Experience) *map[ExperienceID]*Experience {
+func byNameToByID(byName map[string]*Experience) map[ExperienceID]*Experience {
 	byID := make(map[ExperienceID]*Experience)
-	for _, v := range *byName {
+	for _, v := range byName {
 		if v.ExperienceID != nil {
 			byID[v.ExperienceID.ID] = v
 		}
 	}
-	return &byID
+	return byID
 }
 
 func checkedInsert[K comparable, V any](m *map[K]V,
@@ -134,4 +133,14 @@ func checkedInsert[K comparable, V any](m *map[K]V,
 		log.Fatalf("Duplicate key!")
 	}
 	(*m)[key] = value
+}
+
+func matchesByOldID(byName *map[string]*ExperienceMatch) *map[ExperienceID]*ExperienceMatch {
+	byID := make(map[ExperienceID]*ExperienceMatch)
+	for _, v := range *byName {
+		if v.Original != nil {
+			byID[v.Original.ExperienceID.ID] = v
+		}
+	}
+	return &byID
 }

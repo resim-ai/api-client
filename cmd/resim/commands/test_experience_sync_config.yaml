@@ -4,13 +4,16 @@ experiences:
       locations:
         - asdfs
       tags:
-        - progression
+        - regression
       experience_id: 5b372a48-d88b-4c10-97eb-af8693995305
     - name: test-experience-bar
       description: A dummy experience
       locations:
         - foo
+      tags:
+        - regression
       experience_id: 5106eaf7-6730-4bd4-8b58-9b4197b690f5
+      environment_variables: []
     - name: ahahaha
       description: AASDFSFSD
       locations:
@@ -21,6 +24,14 @@ experiences:
       locations:
         - s3://my-favorite-bucket/asdf
       experience_id: 5de0edf4-e46e-4f99-8d65-0a04a9422cb4
+    - name: new-experience-1
+      description: asdfadsfasfasf
+      locations:
+        - asdfs
+      tags:
+        - regression
+        - progression
+      experience_id: 4ba484f3-04dc-4d15-9ecd-fa3344933e2f
 managed_test_suites:
     - name: Basic Suite
       experiences:

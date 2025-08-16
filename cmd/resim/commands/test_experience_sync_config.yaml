@@ -1,37 +1,72 @@
 experiences:
+    - name: my-fun-new-new-one
+      description: Wohooo
+      locations:
+        - asdf
+        - jkl;
+      tags:
+        - progression
+        - regression
+        - bar
+      systems:
+        - mbauer_tmp_hil_repro
+      profile: ""
+      experience_id: f2010fc5-1f1a-4f5e-a064-9d5bb500dc68
+      environment_variables:
+        - name: ASDF
+          value: jjj
+      container_timeout_seconds: 3600
     - name: test-experience-bar2
       description: asdfadsfasfasf
       locations:
         - asdfs
       tags:
         - regression
+      profile: ""
       experience_id: 5b372a48-d88b-4c10-97eb-af8693995305
+      environment_variables: []
+      container_timeout_seconds: 3600
     - name: test-experience-bar
       description: A dummy experience
       locations:
         - foo
       tags:
         - regression
+        - bar
+      systems:
+        - mbauer_tmp_hil_repro
+      profile: ""
       experience_id: 5106eaf7-6730-4bd4-8b58-9b4197b690f5
       environment_variables: []
-    - name: ahahaha
-      description: AASDFSFSD
-      locations:
-        - sdfkjdsf
-      experience_id: 0c8a10c6-f9be-4763-b2e9-f34df7f478bf
-    - name: bfr-demo
-      description: Never gonna give you up
-      locations:
-        - s3://my-favorite-bucket/asdf
-      experience_id: 5de0edf4-e46e-4f99-8d65-0a04a9422cb4
+      container_timeout_seconds: 3600
     - name: new-experience-1
       description: asdfadsfasfasf
       locations:
         - asdfs
       tags:
         - regression
+        - bar
         - progression
+      profile: ""
       experience_id: 4ba484f3-04dc-4d15-9ecd-fa3344933e2f
+      environment_variables: []
+      container_timeout_seconds: 3600
+    - name: bfr-demo
+      description: Never gonna give you up
+      locations:
+        - s3://my-favorite-bucket/asdf
+      profile: ""
+      experience_id: 5de0edf4-e46e-4f99-8d65-0a04a9422cb4
+      environment_variables: []
+      container_timeout_seconds: 3600
+    - name: ahahaha
+      description: AASDFSFSD
+      locations:
+        - sdfkjdsf
+      profile: ""
+      experience_id: 0c8a10c6-f9be-4763-b2e9-f34df7f478bf
+      environment_variables: []
+      container_timeout_seconds: 3603
 managed_test_suites:
     - name: Basic Suite
       experiences:

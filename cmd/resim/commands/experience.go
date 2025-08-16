@@ -100,6 +100,7 @@ const (
 	experienceNameKey                 = "name"
 	experienceKey                     = "experience"
 	experiencesConfigKey              = "experiences-config"
+	experiencesCloneKey              = "clone"	
 	experiencesUpdateConfigKey        = "update-config"
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
@@ -196,6 +197,7 @@ func init() {
 	syncExperienceCmd.Flags().String(experiencesConfigKey, "", "The path of the experiences config file to sync")
 	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
 	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
+	syncExperienceCmd.Flags().Bool(experiencesCloneKey, false, "Whether to clone the existing database state to the config file rather than the other way around")
 	experienceCmd.AddCommand(syncExperienceCmd)
 
 	// Systems-related sub-commands:
@@ -670,7 +672,13 @@ func syncExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	configPath := viper.GetString(experiencesConfigKey)
 	updateConfig := viper.GetBool(experiencesUpdateConfigKey)
-	sync.SyncExperience(Client, projectID, configPath, updateConfig)
+	clone := viper.GetBool(experiencesCloneKey)	
+
+	if !clone {
+		sync.SyncExperiences(Client, projectID, configPath, updateConfig)
+	} else {
+		sync.CloneExperiences(Client, projectID, configPath)
+	}
 }
 
 func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool, expectArchived bool) uuid.UUID {

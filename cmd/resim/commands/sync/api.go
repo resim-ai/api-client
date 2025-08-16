@@ -13,10 +13,12 @@ import (
 )
 
 type ExperienceID = api.ExperienceID
+type SystemID = api.SystemID
 type TagID = api.ExperienceTagID
 type EnvironmentVariable = api.EnvironmentVariable
 
-func getCurrentExperiencesByName(client api.ClientWithResponsesInterface,
+func getCurrentExperiencesByName(
+	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID) map[string]*Experience {
 	archived := true
 	unarchived := false
@@ -63,6 +65,39 @@ func getCurrentTagSetsByName(
 		}
 	}
 	return currentTagSets
+}
+
+type SystemSet struct {
+	Name          string
+	SystemID      SystemID
+	ExperienceIDs map[ExperienceID]struct{}
+}
+
+func getCurrentSystemSetsByName(
+	client api.ClientWithResponsesInterface,
+	projectID uuid.UUID) map[string]SystemSet {
+	apiSystems := fetchAllSystems(client, projectID)
+
+	currentSystemSets := make(map[string]SystemSet)
+
+	for _, system := range apiSystems {
+		archived := true
+		unarchived := false
+		apiExperiences := fetchAllExperiencesWithSystem(client, projectID, system.SystemID, unarchived)
+		apiArchivedExperiences := fetchAllExperiencesWithSystem(client, projectID, system.SystemID, archived)
+		apiExperiences = append(apiExperiences, apiArchivedExperiences...)
+
+		experienceIDs := make(map[ExperienceID]struct{})
+		for _, experience := range apiExperiences {
+			experienceIDs[experience.ExperienceID] = struct{}{}
+		}
+		currentSystemSets[system.Name] = SystemSet{
+			Name:          system.Name,
+			SystemID:      system.SystemID,
+			ExperienceIDs: experienceIDs,
+		}
+	}
+	return currentSystemSets
 }
 
 func addApiExperienceToExperienceMap(experience api.Experience,
@@ -180,6 +215,38 @@ func fetchAllExperiencesWithTag(client api.ClientWithResponsesInterface,
 	for {
 		response, err := client.ListExperiencesWithExperienceTagWithResponse(
 			context.Background(), projectID, tagID, &api.ListExperiencesWithExperienceTagParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+				Archived:  Ptr(archived),
+			})
+		if err != nil {
+			log.Fatal("failed to list experiences:", err)
+		}
+		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+
+		pageToken = response.JSON200.NextPageToken
+		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
+			break // Either no experiences or we've reached the end of the list matching the page length
+		}
+		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+
+	return allExperiences
+}
+
+func fetchAllExperiencesWithSystem(client api.ClientWithResponsesInterface,
+	projectID openapi_types.UUID,
+	systemID SystemID,
+	archived bool) []api.Experience {
+	allExperiences := []api.Experience{}
+	var pageToken *string = nil
+
+	for {
+		response, err := client.ListExperiencesForSystemWithResponse(
+			context.Background(), projectID, systemID, &api.ListExperiencesForSystemParams{
 				PageSize:  Ptr(100),
 				PageToken: pageToken,
 				Archived:  Ptr(archived),

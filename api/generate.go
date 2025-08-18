@@ -9,6 +9,9 @@ package api
 // We import the codegen package so that go mod tidy doesn't remove it.
 import (
 	_ "github.com/deepmap/oapi-codegen/cmd/oapi-codegen"
+	_ "github.com/vektra/mockery/v2"
 )
 
-//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --config=client.cfg.yml https://api.resim.ai/v1/openapi.yaml
+// // DNL // go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --config=client.cfg.yml https://api.resim.ai/v1/openapi.yaml
+//go:generate go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen --config=client.cfg.yml rerun.yml
+//go:generate sh -c "GODEBUG=gotypesalias=0 go run github.com/vektra/mockery/v2/"

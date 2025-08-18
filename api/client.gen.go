@@ -22,6 +22,12 @@ const (
 	OAuthScopes = "OAuth.Scopes"
 )
 
+// Defines values for Architecture.
+const (
+	AMD64 Architecture = "AMD64"
+	ARM64 Architecture = "ARM64"
+)
+
 // Defines values for BatchStatus.
 const (
 	BatchStatusBATCHMETRICSQUEUED  BatchStatus = "BATCH_METRICS_QUEUED"
@@ -186,6 +192,9 @@ type AddTagsToExperiencesInput struct {
 	Filters          *ExperienceFilterInput `json:"filters,omitempty"`
 }
 
+// Architecture defines model for architecture.
+type Architecture string
+
 // Archived defines model for archived.
 type Archived = bool
 
@@ -210,6 +219,7 @@ type Batch struct {
 	JobMetricsStatusCounts  *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts         *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty"`
 	JobsMetricsStatus       *MetricStatus           `json:"jobsMetricsStatus,omitempty"`
+	LastRunTimestamp        *Timestamp              `json:"lastRunTimestamp,omitempty"`
 	LastUpdatedTimestamp    *Timestamp              `json:"lastUpdatedTimestamp,omitempty"`
 	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty"`
 	MetricsSetName          *MetricsSetName         `json:"metricsSetName"`
@@ -218,6 +228,7 @@ type Batch struct {
 	Parameters              *BatchParameters        `json:"parameters,omitempty"`
 	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty"`
 	ProjectID               *ProjectID              `json:"projectID,omitempty"`
+	RunCounter              *RunCounter             `json:"runCounter,omitempty"`
 	Status                  *BatchStatus            `json:"status,omitempty"`
 	StatusHistory           *BatchStatusHistory     `json:"statusHistory,omitempty"`
 	SystemID                *SystemID               `json:"systemID,omitempty"`
@@ -441,6 +452,9 @@ type CompareBatchesStatusFilter string
 // ConflatedJobStatus defines model for conflatedJobStatus.
 type ConflatedJobStatus string
 
+// ContainerName defines model for containerName.
+type ContainerName = string
+
 // CreateBranchInput defines model for createBranchInput.
 type CreateBranchInput struct {
 	BranchType BranchType `json:"branchType"`
@@ -533,16 +547,17 @@ type CreateProjectInput struct {
 
 // CreateSystemInput defines model for createSystemInput.
 type CreateSystemInput struct {
-	BuildGpus                  int    `json:"build_gpus"`
-	BuildMemoryMib             int    `json:"build_memory_mib"`
-	BuildSharedMemoryMb        int    `json:"build_shared_memory_mb"`
-	BuildVcpus                 int    `json:"build_vcpus"`
-	Description                string `json:"description"`
-	MetricsBuildGpus           int    `json:"metrics_build_gpus"`
-	MetricsBuildMemoryMib      int    `json:"metrics_build_memory_mib"`
-	MetricsBuildSharedMemoryMb int    `json:"metrics_build_shared_memory_mb"`
-	MetricsBuildVcpus          int    `json:"metrics_build_vcpus"`
-	Name                       string `json:"name"`
+	Architecture               *Architecture `json:"architecture,omitempty"`
+	BuildGpus                  int           `json:"build_gpus"`
+	BuildMemoryMib             int           `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int           `json:"build_shared_memory_mb"`
+	BuildVcpus                 int           `json:"build_vcpus"`
+	Description                string        `json:"description"`
+	MetricsBuildGpus           int           `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int           `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int           `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int           `json:"metrics_build_vcpus"`
+	Name                       string        `json:"name"`
 }
 
 // CreateTestSuiteInput defines model for createTestSuiteInput.
@@ -569,10 +584,11 @@ type CustomMetric struct {
 
 // DebugExperienceInput defines model for debugExperienceInput.
 type DebugExperienceInput struct {
-	BatchID     *BatchID     `json:"batchID,omitempty"`
-	BuildID     *BuildID     `json:"buildID,omitempty"`
-	PoolLabels  *PoolLabels  `json:"poolLabels,omitempty"`
-	TestSuiteID *TestSuiteID `json:"testSuiteID,omitempty"`
+	BatchID     *BatchID         `json:"batchID,omitempty"`
+	BuildID     *BuildID         `json:"buildID,omitempty"`
+	Containers  *[]ContainerName `json:"containers,omitempty"`
+	PoolLabels  *PoolLabels      `json:"poolLabels,omitempty"`
+	TestSuiteID *TestSuiteID     `json:"testSuiteID,omitempty"`
 }
 
 // DebugExperienceOutput defines model for debugExperienceOutput.
@@ -620,8 +636,20 @@ type ExecutionError struct {
 	// ErrorCode Standardized error code (e.g., UNKNOWN_ERROR, NONZERO_EXIT_CODE)
 	ErrorCode string `json:"errorCode"`
 
+	// ErrorText Error text
+	ErrorText *string `json:"errorText,omitempty"`
+
 	// Metadata Error metadata
 	Metadata *map[string]interface{} `json:"metadata,omitempty"`
+
+	// ParentID ID of the parent object (e.g., job ID, batch ID)
+	ParentID *openapi_types.UUID `json:"parentID,omitempty"`
+
+	// ParentType Type of the parent object (e.g., JOB, BATCH)
+	ParentType *string `json:"parentType,omitempty"`
+
+	// RunCounter Run counter of the error
+	RunCounter *int `json:"runCounter,omitempty"`
 }
 
 // ExecutionStep defines model for executionStep.
@@ -736,11 +764,13 @@ type Job struct {
 	JobID                          *JobID                 `json:"jobID,omitempty"`
 	JobMetricsStatus               *MetricStatus          `json:"jobMetricsStatus,omitempty"`
 	JobStatus                      *JobStatus             `json:"jobStatus,omitempty"`
+	LastRunTimestamp               *Timestamp             `json:"lastRunTimestamp,omitempty"`
 	LastUpdatedTimestamp           *Timestamp             `json:"lastUpdatedTimestamp,omitempty"`
 	OrgID                          *OrgID                 `json:"orgID,omitempty"`
 	OutputLocation                 *string                `json:"outputLocation,omitempty"`
 	Parameters                     *BatchParameters       `json:"parameters,omitempty"`
 	ProjectID                      *ProjectID             `json:"projectID,omitempty"`
+	RunCounter                     *RunCounter            `json:"runCounter,omitempty"`
 	StatusHistory                  *JobStatusHistory      `json:"statusHistory,omitempty"`
 	SystemID                       *SystemID              `json:"systemID,omitempty"`
 	UserID                         *UserID                `json:"userID,omitempty"`
@@ -856,6 +886,11 @@ type ListAllJobsOutput struct {
 	Jobs          *[]Job  `json:"jobs,omitempty"`
 	NextPageToken *string `json:"nextPageToken,omitempty"`
 	Total         *int    `json:"total,omitempty"`
+}
+
+// ListBatchErrorsOutput defines model for listBatchErrorsOutput.
+type ListBatchErrorsOutput struct {
+	Errors *[]ExecutionError `json:"errors,omitempty"`
 }
 
 // ListBatchLogsOutput defines model for listBatchLogsOutput.
@@ -1415,27 +1450,28 @@ type SweepParameter struct {
 
 // System defines model for system.
 type System struct {
-	Archived                   Archived  `json:"archived"`
-	BuildGpus                  int       `json:"build_gpus"`
-	BuildMemoryMib             int       `json:"build_memory_mib"`
-	BuildSharedMemoryMb        int       `json:"build_shared_memory_mb"`
-	BuildVcpus                 int       `json:"build_vcpus"`
-	CreationTimestamp          Timestamp `json:"creationTimestamp"`
-	Description                string    `json:"description"`
-	MetricsBuildGpus           int       `json:"metrics_build_gpus"`
-	MetricsBuildMemoryMib      int       `json:"metrics_build_memory_mib"`
-	MetricsBuildSharedMemoryMb int       `json:"metrics_build_shared_memory_mb"`
-	MetricsBuildVcpus          int       `json:"metrics_build_vcpus"`
-	Name                       string    `json:"name"`
-	NumBatches                 int       `json:"numBatches"`
-	NumBuilds                  int       `json:"numBuilds"`
-	NumExperiences             int       `json:"numExperiences"`
-	NumMetricsBuilds           int       `json:"numMetricsBuilds"`
-	NumTestSuites              int       `json:"numTestSuites"`
-	OrgID                      OrgID     `json:"orgID"`
-	ProjectID                  ProjectID `json:"projectID"`
-	SystemID                   SystemID  `json:"systemID"`
-	UserID                     UserID    `json:"userID"`
+	Architecture               Architecture `json:"architecture"`
+	Archived                   Archived     `json:"archived"`
+	BuildGpus                  int          `json:"build_gpus"`
+	BuildMemoryMib             int          `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int          `json:"build_shared_memory_mb"`
+	BuildVcpus                 int          `json:"build_vcpus"`
+	CreationTimestamp          Timestamp    `json:"creationTimestamp"`
+	Description                string       `json:"description"`
+	MetricsBuildGpus           int          `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int          `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int          `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int          `json:"metrics_build_vcpus"`
+	Name                       string       `json:"name"`
+	NumBatches                 int          `json:"numBatches"`
+	NumBuilds                  int          `json:"numBuilds"`
+	NumExperiences             int          `json:"numExperiences"`
+	NumMetricsBuilds           int          `json:"numMetricsBuilds"`
+	NumTestSuites              int          `json:"numTestSuites"`
+	OrgID                      OrgID        `json:"orgID"`
+	ProjectID                  ProjectID    `json:"projectID"`
+	SystemID                   SystemID     `json:"systemID"`
+	UserID                     UserID       `json:"userID"`
 }
 
 // SystemID defines model for systemID.
@@ -1622,16 +1658,17 @@ type UpdateProjectInput struct {
 
 // UpdateSystemInput defines model for updateSystemInput.
 type UpdateSystemInput struct {
-	BuildGpus                  *int    `json:"build_gpus,omitempty"`
-	BuildMemoryMib             *int    `json:"build_memory_mib,omitempty"`
-	BuildSharedMemoryMb        *int    `json:"build_shared_memory_mb,omitempty"`
-	BuildVcpus                 *int    `json:"build_vcpus,omitempty"`
-	Description                *string `json:"description,omitempty"`
-	MetricsBuildGpus           *int    `json:"metrics_build_gpus,omitempty"`
-	MetricsBuildMemoryMib      *int    `json:"metrics_build_memory_mib,omitempty"`
-	MetricsBuildSharedMemoryMb *int    `json:"metrics_build_shared_memory_mb,omitempty"`
-	MetricsBuildVcpus          *int    `json:"metrics_build_vcpus,omitempty"`
-	Name                       *string `json:"name,omitempty"`
+	Architecture               *Architecture `json:"architecture,omitempty"`
+	BuildGpus                  *int          `json:"build_gpus,omitempty"`
+	BuildMemoryMib             *int          `json:"build_memory_mib,omitempty"`
+	BuildSharedMemoryMb        *int          `json:"build_shared_memory_mb,omitempty"`
+	BuildVcpus                 *int          `json:"build_vcpus,omitempty"`
+	Description                *string       `json:"description,omitempty"`
+	MetricsBuildGpus           *int          `json:"metrics_build_gpus,omitempty"`
+	MetricsBuildMemoryMib      *int          `json:"metrics_build_memory_mib,omitempty"`
+	MetricsBuildSharedMemoryMb *int          `json:"metrics_build_shared_memory_mb,omitempty"`
+	MetricsBuildVcpus          *int          `json:"metrics_build_vcpus,omitempty"`
+	Name                       *string       `json:"name,omitempty"`
 }
 
 // UserID defines model for userID.
@@ -2689,6 +2726,9 @@ type ClientInterface interface {
 	// CompareBatches request
 	CompareBatches(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListBatchErrors request
+	ListBatchErrors(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListJobs request
 	ListJobs(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3303,6 +3343,18 @@ func (c *Client) CancelBatch(ctx context.Context, projectID ProjectID, batchID B
 
 func (c *Client) CompareBatches(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCompareBatchesRequest(c.Server, projectID, batchID, otherBatchID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchErrors(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchErrorsRequest(c.Server, projectID, batchID)
 	if err != nil {
 		return nil, err
 	}
@@ -5887,6 +5939,47 @@ func NewCompareBatchesRequest(server string, projectID ProjectID, batchID BatchI
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBatchErrorsRequest generates requests for ListBatchErrors
+func NewListBatchErrorsRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/errors", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -13737,6 +13830,9 @@ type ClientWithResponsesInterface interface {
 	// CompareBatchesWithResponse request
 	CompareBatchesWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*CompareBatchesResponse, error)
 
+	// ListBatchErrorsWithResponse request
+	ListBatchErrorsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchErrorsResponse, error)
+
 	// ListJobsWithResponse request
 	ListJobsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*ListJobsResponse, error)
 
@@ -14444,6 +14540,28 @@ func (r CompareBatchesResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CompareBatchesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchErrorsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBatchErrorsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchErrorsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchErrorsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -17161,6 +17279,15 @@ func (c *ClientWithResponses) CompareBatchesWithResponse(ctx context.Context, pr
 	return ParseCompareBatchesResponse(rsp)
 }
 
+// ListBatchErrorsWithResponse request returning *ListBatchErrorsResponse
+func (c *ClientWithResponses) ListBatchErrorsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchErrorsResponse, error) {
+	rsp, err := c.ListBatchErrors(ctx, projectID, batchID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchErrorsResponse(rsp)
+}
+
 // ListJobsWithResponse request returning *ListJobsResponse
 func (c *ClientWithResponses) ListJobsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*ListJobsResponse, error) {
 	rsp, err := c.ListJobs(ctx, projectID, batchID, params, reqEditors...)
@@ -18762,6 +18889,32 @@ func ParseCompareBatchesResponse(rsp *http.Response) (*CompareBatchesResponse, e
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest CompareBatchesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchErrorsResponse parses an HTTP response from a ListBatchErrorsWithResponse call
+func ParseListBatchErrorsResponse(rsp *http.Response) (*ListBatchErrorsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchErrorsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBatchErrorsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

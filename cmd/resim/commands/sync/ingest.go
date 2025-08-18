@@ -9,13 +9,65 @@ import (
 	. "github.com/resim-ai/api-client/ptr"
 	"log"
 	"net/http"
-	"sync"
 )
 
 type ExperienceID = api.ExperienceID
 type SystemID = api.SystemID
 type TagID = api.ExperienceTagID
 type EnvironmentVariable = api.EnvironmentVariable
+
+type TagSet struct {
+	Name          string
+	TagID         TagID
+	ExperienceIDs map[ExperienceID]struct{}
+}
+
+type SystemSet struct {
+	Name          string
+	SystemID      SystemID
+	ExperienceIDs map[ExperienceID]struct{}
+}
+
+type DatabaseState struct {
+	ExperiencesByName map[string]*Experience
+	TagSetsByName     map[string]TagSet
+	SystemSetsByName  map[string]SystemSet
+}
+
+func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
+	projectID uuid.UUID) DatabaseState {
+	expCh := make(chan map[string]*Experience)
+	tagCh := make(chan map[string]TagSet)
+	sysCh := make(chan map[string]SystemSet)
+
+	go func() { expCh <- getCurrentExperiencesByName(client, projectID) }()
+	go func() { tagCh <- getCurrentTagSetsByName(client, projectID) }()
+	go func() { sysCh <- getCurrentSystemSetsByName(client, projectID) }()
+
+	state := DatabaseState{
+		ExperiencesByName: <-expCh,
+		TagSetsByName:     <-tagCh,
+		SystemSetsByName:  <-sysCh,
+	}
+
+	// Update the tags in each experience
+	for _, experience := range state.ExperiencesByName {
+		if experience.Archived {
+			continue
+		}
+		for tag, tagSet := range state.TagSetsByName {
+			if _, has_tag := tagSet.ExperienceIDs[experience.ExperienceID.ID]; has_tag {
+				experience.Tags = append(experience.Tags, tag)
+			}
+		}
+		for system, systemSet := range state.SystemSetsByName {
+			if _, has_system := systemSet.ExperienceIDs[experience.ExperienceID.ID]; has_system {
+				experience.Systems = append(experience.Systems, system)
+			}
+		}
+	}
+	return state
+}
 
 func getCurrentExperiencesByName(
 	client api.ClientWithResponsesInterface,
@@ -32,12 +84,6 @@ func getCurrentExperiencesByName(
 		addApiExperienceToExperienceMap(experience, currentExperiencesByName)
 	}
 	return currentExperiencesByName
-}
-
-type TagSet struct {
-	Name          string
-	TagID         TagID
-	ExperienceIDs map[ExperienceID]struct{}
 }
 
 func getCurrentTagSetsByName(
@@ -65,12 +111,6 @@ func getCurrentTagSetsByName(
 		}
 	}
 	return currentTagSets
-}
-
-type SystemSet struct {
-	Name          string
-	SystemID      SystemID
-	ExperienceIDs map[ExperienceID]struct{}
 }
 
 func getCurrentSystemSetsByName(
@@ -267,159 +307,4 @@ func fetchAllExperiencesWithSystem(client api.ClientWithResponsesInterface,
 	}
 
 	return allExperiences
-}
-
-func updateSingleExperience(
-	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID,
-	update *ExperienceMatch) {
-	if update.Original == nil {
-		// New Experience
-		body := api.CreateExperienceInput{
-			Name:                    update.New.Name,
-			Description:             update.New.Description,
-			Locations:               &update.New.Locations,
-			ContainerTimeoutSeconds: update.New.ContainerTimeoutSeconds,
-			Profile:                 update.New.Profile,
-			EnvironmentVariables:    update.New.EnvironmentVariables,
-			CacheExempt:             &update.New.CacheExempt,
-		}
-
-		response, err := client.CreateExperienceWithResponse(context.Background(), projectID, body)
-		if err != nil {
-			log.Print("WARNING: failed to create experience: ", err)
-		}
-		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to create experience", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING:", err)
-		}
-
-		update.New.ExperienceID = &ExperienceIDWrapper{ID: response.JSON201.ExperienceID}
-		return
-	}
-	if update.New.ExperienceID == nil {
-		log.Fatalf("Trying to update with unset experience ID")
-	}
-	experienceID := update.New.ExperienceID.ID
-	if update.New.Archived {
-		// Archive
-		response, err := client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
-		if err != nil {
-			log.Print("WARNING: failed to archive experience: ", err)
-		}
-		err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING: ", err)
-		}
-
-		return
-	}
-	// Update
-	if update.Original.Archived {
-		// Restore
-		response, err := client.RestoreExperienceWithResponse(context.Background(), projectID, experienceID)
-		if err != nil {
-			log.Print("WARNING: failed to restore experience: ", err)
-		}
-		err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to restore experience", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING:", err)
-		}
-	}
-	updateMask := []string{"name", "description", "cacheExempt", "locations"}
-
-	if update.New.ContainerTimeoutSeconds != nil {
-		updateMask = append(updateMask, "containerTimeoutSeconds")
-	}
-	if update.New.Profile != nil {
-		updateMask = append(updateMask, "profile")
-	}
-	if update.New.EnvironmentVariables != nil {
-		updateMask = append(updateMask, "environmentVariables")
-	}
-
-	body := api.UpdateExperienceInput{
-		Experience: &api.UpdateExperienceFields{
-			Name:                    &update.New.Name,
-			Description:             &update.New.Description,
-			Locations:               &update.New.Locations,
-			ContainerTimeoutSeconds: update.New.ContainerTimeoutSeconds,
-			Profile:                 update.New.Profile,
-			EnvironmentVariables:    update.New.EnvironmentVariables,
-			CacheExempt:             &update.New.CacheExempt,
-		},
-		UpdateMask: &updateMask,
-	}
-	response, err := client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, body)
-	if err != nil {
-		log.Print("WARNING: failed to update experience: ", err)
-	}
-	err = utils.ValidateResponseSafe(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
-	if err != nil {
-		log.Print("WARNING:", err)
-	}
-
-}
-
-func asyncRemoveTagFromExperience(
-	wg *sync.WaitGroup,
-	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID,
-	tagID TagID,
-	experienceID ExperienceID) {
-	defer wg.Done()
-	response, err := client.RemoveExperienceTagFromExperienceWithResponse(
-		context.Background(),
-		projectID,
-		tagID,
-		experienceID,
-	)
-	if err != nil {
-		log.Print("WARNING: failed to update tags: ", err)
-	}
-	err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to update tags", response.HTTPResponse, response.Body)
-	if err != nil {
-		log.Print("WARNING:", err)
-	}
-
-}
-
-func asyncUpdateSingleTag(
-	wg *sync.WaitGroup,
-	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID,
-	updates *TagUpdates) {
-	defer wg.Done()
-
-	if len(updates.Additions) > 0 {
-		experienceIDs := []ExperienceID{}
-		for _, e := range updates.Additions {
-			if e.ExperienceID == nil {
-				log.Fatal("Experience has no ID. Maybe we failed to create it? ", e.Name)
-			}
-			experienceIDs = append(experienceIDs, e.ExperienceID.ID)
-		}
-
-		body := api.AddTagsToExperiencesInput{
-			ExperienceTagIDs: []TagID{updates.TagID},
-			Experiences:      &experienceIDs,
-		}
-		response, err := client.AddTagsToExperiencesWithResponse(context.Background(), projectID, body)
-		if err != nil {
-			log.Print("WARNING: failed to update tags: ", err)
-		}
-		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to update tags", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING:", err)
-		}
-	}
-
-	// Would be much better with a single endpoint for this
-	for _, removal := range updates.Removals {
-		wg.Add(1)
-		go asyncRemoveTagFromExperience(wg, client, projectID,
-			updates.TagID,
-			removal.ExperienceID.ID)
-	}
-
 }

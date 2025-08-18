@@ -7,7 +7,6 @@ import (
 	"gopkg.in/yaml.v3"
 	"log"
 	"os"
-	"sync"
 )
 
 func SyncExperiences(client api.ClientWithResponsesInterface,
@@ -15,39 +14,21 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 	configPath string,
 	updateConfig bool,
 ) {
-	return
 	if configPath == "" {
 		log.Fatal("experiences-config not set")
 	}
 	config := loadExperienceSyncConfig(configPath)
-	
-	currentExperiencesByName := getCurrentExperiencesByName(client, projectID)
-	currentTagSetsByName := getCurrentTagSetsByName(client, projectID)
-	currentSystemSetsByName := getCurrentSystemSetsByName(client, projectID)
+	currentState := getCurrentDatabaseState(client, projectID)
 
-	
-	matchedExperiencesByNewName := matchExperiences(config, currentExperiencesByName)
-	tagUpdates := getTagUpdates(matchedExperiencesByNewName, currentTagSetsByName, config.ManagedExperienceTags)
-
-	for _, update := range matchedExperiencesByNewName {
-		updateSingleExperience(client, projectID, update)
+	experienceUpdates, err := computeExperienceUpdates(config, currentState)
+	if err != nil {
+		log.Fatalf("%w", err)
 	}
-
-
-	var wg sync.WaitGroup
-
-	for _, update := range tagUpdates {
-		wg.Add(1)
-		go asyncUpdateSingleTag(&wg, client, projectID, update)
-	}
-	wg.Wait()
+	applyUpdates(client, projectID, *experienceUpdates)
 
 	if updateConfig {
 		writeConfigToFile(config, configPath)
 	}
-
-	_ = currentSystemSetsByName
-
 }
 
 func CloneExperiences(client api.ClientWithResponsesInterface,
@@ -57,31 +38,14 @@ func CloneExperiences(client api.ClientWithResponsesInterface,
 		log.Fatal("experiences-config not set")
 	}
 	config := loadExperienceSyncConfig(configPath)
-	config.Experiences = []*Experience{}
 
-	currentExperiencesByName := getCurrentExperiencesByName(client, projectID)
-	currentTagSetsByName := getCurrentTagSetsByName(client, projectID)
-	currentSystemSetsByName := getCurrentSystemSetsByName(client, projectID)
-	
-	for _, experience := range currentExperiencesByName {
-		if experience.Archived {
-			continue
-		}
-		for tag, tag_set := range currentTagSetsByName {
-			if _, has_tag := tag_set.ExperienceIDs[experience.ExperienceID.ID]; has_tag {
-				experience.Tags = append(experience.Tags, tag)
-			}
-		}
-		for system, system_set := range currentSystemSetsByName {
-			if _, has_system := system_set.ExperienceIDs[experience.ExperienceID.ID]; has_system {
-				experience.Systems = append(experience.Systems, system)
-			}
-		}
+	currentState := getCurrentDatabaseState(client, projectID)
+	config.Experiences = []*Experience{}
+	for _, experience := range currentState.ExperiencesByName {
 		config.Experiences = append(config.Experiences, experience)
 	}
-	writeConfigToFile(config, configPath)	
+	writeConfigToFile(config, configPath)
 }
-
 
 func writeConfigToFile(config *ExperienceSyncConfig, path string) {
 	data, err := yaml.Marshal(config)

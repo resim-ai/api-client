@@ -100,7 +100,7 @@ const (
 	experienceNameKey                 = "name"
 	experienceKey                     = "experience"
 	experiencesConfigKey              = "experiences-config"
-	experiencesCloneKey              = "clone"	
+	experiencesCloneKey               = "clone"
 	experiencesUpdateConfigKey        = "update-config"
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
@@ -672,7 +672,7 @@ func syncExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	configPath := viper.GetString(experiencesConfigKey)
 	updateConfig := viper.GetBool(experiencesUpdateConfigKey)
-	clone := viper.GetBool(experiencesCloneKey)	
+	clone := viper.GetBool(experiencesCloneKey)
 
 	if !clone {
 		sync.SyncExperiences(Client, projectID, configPath, updateConfig)

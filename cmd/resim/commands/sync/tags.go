@@ -1,10 +1,11 @@
 package sync
 
 import (
-	"log"
+	"fmt"
 	"slices"
 )
 
+// Struct encoding all the updates that need to be made for a single tag.
 type TagUpdates struct {
 	Name      string
 	TagID     TagID
@@ -12,15 +13,10 @@ type TagUpdates struct {
 	Removals  []*Experience
 }
 
-// Go through the matches and build a set of new names per tag that I *want*.
 
-// If I'm given a map of tags to lists of old ids, I can determine the new names of the new
-// experiences from this.
-//func planTagUpdates(currentTags
-
-func getTagUpdates(matchedExperiencesByNewName map[string]*ExperienceMatch,
+func getTagUpdates(matchedExperiencesByNewName map[string]ExperienceMatch,
 	currentTagSetsByName map[string]TagSet,
-	managedTags []string) map[string]*TagUpdates {
+	managedTags []string) (map[string]*TagUpdates, error) {
 	updates := make(map[string]*TagUpdates)
 
 	for tag, set := range currentTagSetsByName {
@@ -33,7 +29,7 @@ func getTagUpdates(matchedExperiencesByNewName map[string]*ExperienceMatch,
 	}
 	for _, tag := range managedTags {
 		if _, exists := currentTagSetsByName[tag]; !exists {
-			log.Fatal("Managed tag doesn't exist: ", tag)
+			return nil, fmt.Errorf("Managed tag doesn't exist: %s", tag)
 		}
 	}
 
@@ -45,7 +41,7 @@ func getTagUpdates(matchedExperiencesByNewName map[string]*ExperienceMatch,
 		for _, tag := range match.New.Tags {
 			tag_set, exists := currentTagSetsByName[tag]
 			if !exists {
-				log.Fatal("Non-existent tag: ", tag)
+				return nil, fmt.Errorf("Non-existent tag: %s", tag)
 			}
 
 			if match.Original == nil {
@@ -70,20 +66,5 @@ func getTagUpdates(matchedExperiencesByNewName map[string]*ExperienceMatch,
 			}
 		}
 	}
-
-	//for _, v := range updates {
-	//	log.Print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-	//	log.Print(v.Name)
-	//	log.Print("Additions:")
-	//	for _, addition := range v.Additions {
-	//		log.Print("    ", addition.Name)
-	//	}
-	//	log.Print("Removals:")
-	//	for _, removal := range v.Removals {
-	//		log.Print("    ", removal.Name)
-	//	}
-	//
-	//}
-
-	return updates
+	return updates, nil
 }

@@ -5,12 +5,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
+	"github.com/schollz/progressbar/v3"
 	"log"
 	"net/http"
-	"github.com/schollz/progressbar/v3"
 	"sync"
 )
-
 
 func applyUpdates(
 	client api.ClientWithResponsesInterface,
@@ -57,7 +56,6 @@ func applyUpdates(
 	}
 	wg.Wait()
 }
-	
 
 func updateSingleExperience(
 	client api.ClientWithResponsesInterface,

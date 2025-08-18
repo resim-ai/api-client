@@ -22,7 +22,7 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 
 	experienceUpdates, err := computeExperienceUpdates(config, currentState)
 	if err != nil {
-		log.Fatalf("%w", err)
+		log.Fatalf("%v", err)
 	}
 	applyUpdates(client, projectID, *experienceUpdates)
 

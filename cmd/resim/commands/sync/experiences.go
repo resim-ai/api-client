@@ -1,36 +1,35 @@
 package sync
 
 import (
-	"log"
 	"fmt"
 )
-
 
 // A struct describing the changes we need to make to update the current database state to the state
 // described by the given configuration.
 type ExperienceUpdates struct {
 	MatchedExperiencesByNewName map[string]ExperienceMatch
-	TagUpdatesByName map[string]*TagUpdates
+	TagUpdatesByName            map[string]*TagUpdates
 }
-
-
 
 // Compute the ExperiencesUpdate struct based off the current database state and the desired
 // configuration.
 func computeExperienceUpdates(
 	config *ExperienceSyncConfig,
 	currentState DatabaseState) (*ExperienceUpdates, error) {
-	matchedExperiencesByNewName := matchExperiences(config, currentState.ExperiencesByName)
+	matchedExperiencesByNewName, err := matchExperiences(config, currentState.ExperiencesByName)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to compute experience updates: %w", err)
+	}
+
 	tagUpdates, err := getTagUpdates(matchedExperiencesByNewName, currentState.TagSetsByName, config.ManagedExperienceTags)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to compute experience updates: %w", err)
 	}
 	return &ExperienceUpdates{
 		MatchedExperiencesByNewName: matchedExperiencesByNewName,
-		TagUpdatesByName: tagUpdates,
+		TagUpdatesByName:            tagUpdates,
 	}, nil
 }
-
 
 // A single pair of matched old and new experiences. See the documentation for matchExperiences
 // below.
@@ -39,10 +38,9 @@ type ExperienceMatch struct {
 	New      *Experience
 }
 
-
 // Perform a matching of the configured experiences to the current ones by name if possible, or by
 // ID if specified.
-func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map[string]*Experience) map[string]ExperienceMatch {
+func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map[string]*Experience) (map[string]ExperienceMatch, error) {
 	// Our algorithm can be summarized like so:
 	//
 	// For each configured experience, we attempt to match it to an existing experience if
@@ -94,20 +92,23 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 		if exists {
 			// If the match target has already been matched with, that's a failure
 			if _, isAvailable := remainingCurrentExperiencesByID[currExp.ExperienceID.ID]; !isAvailable {
-				log.Fatalf("Experience name collision: %s", currExp.Name)
+				return nil, fmt.Errorf("Experience name collision: %s", currExp.Name)
 			}
 
-			// If it exists but it's ID doesn't match a hard-coded one we provide, that's a failure
+			// If it exists but its ID doesn't match a hard-coded one we provide, that's a failure
 			if currExp.ExperienceID == nil || (experience.ExperienceID != nil && *experience.ExperienceID != *currExp.ExperienceID) {
-				log.Fatal("Multiple experiences desire the same name.", experience.ExperienceID.ID)
+				return nil, fmt.Errorf("Multiple experiences desire the same name: %s", experience.ExperienceID.ID)
 			}
 
 			// Experience exists with the same name and should be updated
 			experience.ExperienceID = currExp.ExperienceID
-			checkedInsert(matches, experience.Name, ExperienceMatch{
+			err := checkedInsert(matches, experience.Name, ExperienceMatch{
 				Original: currExp,
 				New:      experience,
 			})
+			if err != nil {
+				return nil, err
+			}
 			delete(remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
 			continue
 		}
@@ -116,22 +117,28 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 			// Check if there's still an unmatched experience with this ID:
 			currExp, exists := remainingCurrentExperiencesByID[experience.ExperienceID.ID]
 			if !exists {
-				log.Fatalf("No existing experience available with ID. This could be due to multiple configured experiences requesting the same ID: %s", *experience.ExperienceID)
+				return nil, fmt.Errorf("No existing experience available with ID. This could be due to multiple configured experiences requesting the same ID: %s", *experience.ExperienceID)
 			}
 
-			checkedInsert(matches, experience.Name, ExperienceMatch{
+			err := checkedInsert(matches, experience.Name, ExperienceMatch{
 				Original: currExp,
 				New:      experience,
 			})
+			if err != nil {
+				return nil, err
+			}
 			delete(remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
 			continue
 		}
 
 		// Step 3: Must be new then:
-		checkedInsert(matches, experience.Name, ExperienceMatch{
+		err := checkedInsert(matches, experience.Name, ExperienceMatch{
 			Original: nil,
 			New:      experience,
 		})
+		if err != nil {
+			return nil, err
+		}
 
 	}
 	// Step 4: Any leftover experiences should be archived
@@ -147,11 +154,10 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 			New:      &archivedVersion,
 		})
 	}
-	return matches
+	return matches, nil
 }
 
 // HELPERS
-
 
 // Convert a map keyed by experience name to one keyed by experience ID. Ignores any experiences
 // with unset id.
@@ -167,9 +173,10 @@ func byNameToByID(byName map[string]*Experience) map[ExperienceID]*Experience {
 
 // Insert into a map while failing if collisions occur.
 func checkedInsert[K comparable, V any](m map[K]V,
-	key K, value V) {
+	key K, value V) error {
 	if _, exists := m[key]; exists {
-		log.Fatalf("Duplicate key!")
+		return fmt.Errorf("Duplicate key!")
 	}
 	m[key] = value
+	return nil
 }

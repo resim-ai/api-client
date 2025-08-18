@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
-	"github.com/resim-ai/api-client/cmd/resim/commands/sync"
+	experience_sync "github.com/resim-ai/api-client/cmd/resim/commands/sync"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -675,9 +675,9 @@ func syncExperience(ccmd *cobra.Command, args []string) {
 	clone := viper.GetBool(experiencesCloneKey)
 
 	if !clone {
-		sync.SyncExperiences(Client, projectID, configPath, updateConfig)
+		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig)
 	} else {
-		sync.CloneExperiences(Client, projectID, configPath)
+		experience_sync.CloneExperiences(Client, projectID, configPath)
 	}
 }
 

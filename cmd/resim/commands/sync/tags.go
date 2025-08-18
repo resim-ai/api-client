@@ -13,7 +13,6 @@ type TagUpdates struct {
 	Removals  []*Experience
 }
 
-
 func getTagUpdates(matchedExperiencesByNewName map[string]ExperienceMatch,
 	currentTagSetsByName map[string]TagSet,
 	managedTags []string) (map[string]*TagUpdates, error) {

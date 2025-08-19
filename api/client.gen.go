@@ -774,6 +774,7 @@ type Job struct {
 	StatusHistory                  *JobStatusHistory      `json:"statusHistory,omitempty"`
 	SystemID                       *SystemID              `json:"systemID,omitempty"`
 	UserID                         *UserID                `json:"userID,omitempty"`
+	WorkerID                       *string                `json:"workerID,omitempty"`
 }
 
 // JobID defines model for jobID.

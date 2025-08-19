@@ -39,11 +39,10 @@ container_timeout_seconds: 7200
 
 	var createdExperience Experience
 	client.On("CreateExperienceWithResponse",
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		expectedProjectID,
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, body api.CreateExperienceInput, reqEditors ...api.RequestEditorFn) (*api.CreateExperienceResponse, error) {
-		assert.Equal(t, projectID, expectedProjectID)
 		createdExperience.Name = body.Name
 		createdExperience.ExperienceID = &ExperienceIDWrapper{ID: expectedExperienceID}
 		createdExperience.Description = body.Description
@@ -110,17 +109,13 @@ container_timeout_seconds: 7200
 	archiveMatch.New.Archived = true
 
 	client.On("ArchiveExperienceWithResponse",
+		context.Background(),
+		expectedProjectID,
+		archiveMatch.Original.ExperienceID.ID,
 		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-	).Return(func(ctx context.Context, projectID api.ProjectID, experienceID api.ExperienceID, reqEditors ...api.RequestEditorFn) (*api.ArchiveExperienceResponse, error) {
-		assert.Equal(t, projectID, expectedProjectID)
-		assert.Equal(t, experienceID, archiveMatch.Original.ExperienceID.ID)
-
-		return &api.ArchiveExperienceResponse{
-			HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
-		}, nil
-	})
+	).Return(&api.ArchiveExperienceResponse{
+		HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
+	}, nil)
 
 	updates := ExperienceUpdates{
 		MatchedExperiencesByNewName: map[string]ExperienceMatch{archiveMatch.New.Name: archiveMatch},
@@ -164,15 +159,13 @@ container_timeout_seconds: 7200
 	var updatedExperience Experience
 
 	client.On("UpdateExperienceWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		expectedProjectID,
+		updateMatch.Original.ExperienceID.ID,
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, experienceID api.ExperienceID,
 		body api.UpdateExperienceInput,
 		reqEditors ...api.RequestEditorFn) (*api.UpdateExperienceResponse, error) {
-		assert.Equal(t, projectID, expectedProjectID)
-		assert.Equal(t, experienceID, updateMatch.Original.ExperienceID.ID)
 		updatedExperience.Name = *body.Experience.Name
 		updatedExperience.ExperienceID = &ExperienceIDWrapper{ID: experienceID}
 		updatedExperience.Description = *body.Experience.Description
@@ -200,19 +193,13 @@ container_timeout_seconds: 7200
 	})
 
 	client.On("RestoreExperienceWithResponse",
+		context.Background(),
+		expectedProjectID,
+		updateMatch.Original.ExperienceID.ID,
 		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-	).Return(func(ctx context.Context, projectID api.ProjectID, experienceID api.ExperienceID,
-		reqEditors ...api.RequestEditorFn) (*api.RestoreExperienceResponse, error) {
-		assert.Equal(t, projectID, expectedProjectID)
-		assert.Equal(t, experienceID, updateMatch.Original.ExperienceID.ID)
-		return &api.RestoreExperienceResponse{
-			HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
-		}, nil
-
-	})
+	).Return(&api.RestoreExperienceResponse{
+		HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
+	}, nil)
 
 	updates := ExperienceUpdates{
 		MatchedExperiencesByNewName: map[string]ExperienceMatch{updateMatch.New.Name: updateMatch},
@@ -252,13 +239,12 @@ container_timeout_seconds: 7200
 	experienceToTag.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
 
 	client.On("AddTagsToExperiencesWithResponse",
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		expectedProjectID,
 		mock.Anything,
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, body api.AddTagsToExperiencesInput,
 		reqEditors ...api.RequestEditorFn) (*api.AddTagsToExperiencesResponse, error) {
-		assert.Equal(t, projectID, expectedProjectID)
 		assert.Len(t, body.ExperienceTagIDs, 1)
 		assert.Equal(t, body.ExperienceTagIDs[0], expectedTagID)
 		assert.NotEqual(t, body.Experiences, nil)
@@ -311,18 +297,13 @@ container_timeout_seconds: 7200
 	experienceToUnTag.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
 
 	client.On("RemoveExperienceTagFromExperienceWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
-	).Return(func(ctx context.Context, projectID api.ProjectID, experienceTagID api.ExperienceTagID, experienceID api.ExperienceID, reqEditors ...api.RequestEditorFn) (*api.RemoveExperienceTagFromExperienceResponse, error) {
-		assert.Equal(t, projectID, expectedProjectID)
-		assert.Equal(t, experienceTagID, expectedTagID)
-		assert.Equal(t, experienceID, experienceToUnTag.ExperienceID.ID)
-		return &api.RemoveExperienceTagFromExperienceResponse{
-			HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
-		}, nil
-	})
+		context.Background(),
+		expectedProjectID,
+		expectedTagID,
+		experienceToUnTag.ExperienceID.ID,
+	).Return(&api.RemoveExperienceTagFromExperienceResponse{
+		HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
+	}, nil)
 	updates := ExperienceUpdates{
 		MatchedExperiencesByNewName: map[string]ExperienceMatch{},
 		TagUpdatesByName: map[string]*TagUpdates{
@@ -364,13 +345,12 @@ container_timeout_seconds: 7200
 	experienceToAddToSystem.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
 
 	client.On("AddSystemsToExperiencesWithResponse",
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		expectedProjectID,
 		mock.Anything,
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, body api.MutateSystemsToExperienceInput,
 		reqEditors ...api.RequestEditorFn) (*api.AddSystemsToExperiencesResponse, error) {
-		assert.Equal(t, projectID, expectedProjectID)
 		assert.Len(t, body.SystemIDs, 1)
 		assert.Equal(t, body.SystemIDs[0], expectedSystemID)
 		assert.NotEqual(t, body.Experiences, nil)
@@ -422,15 +402,13 @@ container_timeout_seconds: 7200
 	experienceToAddToTestSuite.ExperienceID = &ExperienceIDWrapper{ID: expectedExperienceID}
 
 	client.On("ReviseTestSuiteWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		expectedProjectID,
+		expectedTestSuiteID,
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, testSuiteID api.TestSuiteID, body api.ReviseTestSuiteInput,
 		reqEditors ...api.RequestEditorFn) (*api.ReviseTestSuiteResponse, error) {
 		// Verification
-		assert.Equal(t, projectID, expectedProjectID)
-		assert.Equal(t, testSuiteID, expectedTestSuiteID)
 		assert.Len(t, *body.Experiences, 1)
 		assert.Equal(t, (*body.Experiences)[0], expectedExperienceID)
 		return &api.ReviseTestSuiteResponse{

@@ -731,45 +731,39 @@ func TestGetCurrentDatabaseState(t *testing.T) {
 	// SETUP
 	var client mockapiclient.ClientWithResponsesInterface
 	client.On("ListExperienceTagsWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		mockProjectID,
 		mock.Anything,
 	).Return(ListExperienceTagsWithResponseMock)
 
 	client.On("ListSystemsWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		mockProjectID,
 		mock.Anything,
 	).Return(ListSystemsWithResponseMock)
 
 	client.On("ListTestSuitesWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		mockProjectID,
 		mock.Anything,
 	).Return(ListTestSuitesWithResponseMock)
 
 	client.On("ListExperiencesWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		mockProjectID,
 		mock.Anything,
 	).Return(ListExperiencesWithResponseMock)
 
 	client.On("ListExperiencesWithExperienceTagWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		mockProjectID,
 		mock.Anything,
 		mock.Anything,
 	).Return(ListExperiencesWithExperienceTagWithResponseMock)
 
 	client.On("ListExperiencesForSystemWithResponse",
-		mock.Anything,
-		mock.Anything,
-		mock.Anything,
+		context.Background(),
+		mockProjectID,
 		mock.Anything,
 		mock.Anything,
 	).Return(ListExperiencesForSystemWithResponseMock)

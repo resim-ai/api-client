@@ -14,7 +14,6 @@ said experiences in them. Here's an example config to make things concrete:
 
 ```lang=yaml
 experiences:
-
     - name: scenario-survey-alpha
       description: Aerial survey over test zone
       locations:
@@ -67,3 +66,4 @@ experiences.
 
 ## Approach
 
+![Syncing Data Flow](./expereince-syncing.svg)

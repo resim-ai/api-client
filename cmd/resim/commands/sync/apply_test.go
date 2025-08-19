@@ -259,10 +259,10 @@ container_timeout_seconds: 7200
 	).Return(func(ctx context.Context, projectID api.ProjectID, body api.AddTagsToExperiencesInput,
 		reqEditors ...api.RequestEditorFn) (*api.AddTagsToExperiencesResponse, error) {
 		assert.Equal(t, projectID, expectedProjectID)
-		assert.Equal(t, len(body.ExperienceTagIDs), 1)
+		assert.Len(t, body.ExperienceTagIDs, 1)
 		assert.Equal(t, body.ExperienceTagIDs[0], expectedTagID)
 		assert.NotEqual(t, body.Experiences, nil)
-		assert.Equal(t, len(*body.Experiences), 1)
+		assert.Len(t, *body.Experiences, 1)
 		assert.Equal(t, (*body.Experiences)[0], experienceToTag.ExperienceID.ID)
 		return &api.AddTagsToExperiencesResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
@@ -371,10 +371,10 @@ container_timeout_seconds: 7200
 	).Return(func(ctx context.Context, projectID api.ProjectID, body api.MutateSystemsToExperienceInput,
 		reqEditors ...api.RequestEditorFn) (*api.AddSystemsToExperiencesResponse, error) {
 		assert.Equal(t, projectID, expectedProjectID)
-		assert.Equal(t, len(body.SystemIDs), 1)
+		assert.Len(t, body.SystemIDs, 1)
 		assert.Equal(t, body.SystemIDs[0], expectedSystemID)
 		assert.NotEqual(t, body.Experiences, nil)
-		assert.Equal(t, len(*body.Experiences), 1)
+		assert.Len(t, *body.Experiences, 1)
 		assert.Equal(t, (*body.Experiences)[0], experienceToAddToSystem.ExperienceID.ID)
 		return &api.AddSystemsToExperiencesResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
@@ -395,4 +395,61 @@ container_timeout_seconds: 7200
 	// ACTION
 	applyUpdates(&client, expectedProjectID, updates)
 	client.AssertNumberOfCalls(t, "AddSystemsToExperiencesWithResponse", 1)
+}
+
+func TestReviseTestSuiteApply(t *testing.T) {
+	// SETUP
+	var client mockapiclient.ClientWithResponsesInterface
+	expectedProjectID := uuid.New()
+	expectedTestSuiteID := uuid.New()
+	expectedExperienceID := uuid.New()
+
+	experienceData := `
+name: Test Experience
+description: This is a test experience
+locations:
+  - s3://my-favorite-bucket/foo
+profile: ""
+environment_variables:
+  - name: ENV_VAR_1
+    value: value1
+cache_exempt: true
+container_timeout_seconds: 7200
+`
+	experienceToAddToTestSuite := &Experience{}
+	err := yaml.Unmarshal([]byte(experienceData), experienceToAddToTestSuite)
+	assert.NoError(t, err, "failed to unmarshal YAML")
+	experienceToAddToTestSuite.ExperienceID = &ExperienceIDWrapper{ID: expectedExperienceID}
+
+	client.On("ReviseTestSuiteWithResponse",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(func(ctx context.Context, projectID api.ProjectID, testSuiteID api.TestSuiteID, body api.ReviseTestSuiteInput,
+		reqEditors ...api.RequestEditorFn) (*api.ReviseTestSuiteResponse, error) {
+		// Verification
+		assert.Equal(t, projectID, expectedProjectID)
+		assert.Equal(t, testSuiteID, expectedTestSuiteID)
+		assert.Len(t, *body.Experiences, 1)
+		assert.Equal(t, (*body.Experiences)[0], expectedExperienceID)
+		return &api.ReviseTestSuiteResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
+		}, nil
+	})
+
+	updates := ExperienceUpdates{
+		MatchedExperiencesByNewName: map[string]ExperienceMatch{},
+		TestSuiteUpdates: []TestSuiteUpdate{
+			{
+				Name:        "regression",
+				TestSuiteID: expectedTestSuiteID,
+				Experiences: []*Experience{experienceToAddToTestSuite},
+			},
+		},
+	}
+
+	// ACTION
+	applyUpdates(&client, expectedProjectID, updates)
+	client.AssertNumberOfCalls(t, "ReviseTestSuiteWithResponse", 1)
 }

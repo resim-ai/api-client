@@ -451,6 +451,9 @@ func createMockState() MockState {
 			ExperiencesByName: make(map[string]*Experience),
 			TagSetsByName:     make(map[string]TagSet),
 			SystemSetsByName:  make(map[string]SystemSet),
+			TestSuiteIDsByName: map[string]TestSuiteID{
+				"regression": uuid.New(),
+			},
 		},
 		ExperiencePages: make([][]*Experience, numPages),
 		TagPages:        make([][]TagSet, numPages),
@@ -579,8 +582,13 @@ func ListTestSuitesWithResponseMock(ctx context.Context,
 	}
 
 	testSuites := []api.TestSuite{}
-	// TODO
 
+	for name, testSuiteID := range mockState.TestSuiteIDsByName {
+		testSuites = append(testSuites, api.TestSuite{
+			Name:        name,
+			TestSuiteID: testSuiteID,
+		})
+	}
 	return &api.ListTestSuitesResponse{
 		HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 		JSON200: &api.ListTestSuiteOutput{
@@ -800,5 +808,10 @@ func TestGetCurrentDatabaseState(t *testing.T) {
 		for eid := range system_set.ExperienceIDs {
 			assert.Contains(t, mockState.SystemSetsByName[name].ExperienceIDs, eid)
 		}
+	}
+
+	assert.Equal(t, len(currentDatabaseState.TestSuiteIDsByName), len(mockState.TestSuiteIDsByName))
+	for name, testSuiteID := range currentDatabaseState.TestSuiteIDsByName {
+		assert.Equal(t, testSuiteID, mockState.TestSuiteIDsByName[name])
 	}
 }

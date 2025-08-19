@@ -414,3 +414,69 @@ experiences:
 	addedDesiredExperience := slices.Contains(systemUpdates.Additions, config.Experiences[0])
 	assert.True(t, addedDesiredExperience, "Not going to add system desired experience")
 }
+
+func TestReviseTestSuite(t *testing.T) {
+	// SETUP
+	currentStateData := `
+  - name: Test Experience
+    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+`
+	configData := `
+managed_experience_systems:
+  - regression
+managed_test_suites:
+  - name: "Nightly CI"
+    experiences:
+     - Test Experience But with New Name
+experiences:
+  - name: Test Experience But with New Name
+    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+`
+	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
+	testSuiteID := uuid.New()
+	currentState.TestSuiteIDsByName = map[string]TestSuiteID{
+		"Nightly CI": testSuiteID,
+	}
+
+	// ACTION
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+
+	// VERIFICATION
+	assert.NoError(t, err)
+	assert.Len(t, experienceUpdates.TestSuiteUpdates, 1)
+	update := experienceUpdates.TestSuiteUpdates[0]
+	assert.Equal(t, update.Name, "Nightly CI")
+	assert.Equal(t, update.TestSuiteID, testSuiteID)
+	assert.Len(t, update.Experiences, 1)
+	assert.Equal(t, update.Experiences[0], config.Experiences[0])
+}
+
+func TestReviseTestSuiteFailOnOldName(t *testing.T) {
+	// SETUP
+	currentStateData := `
+  - name: Test Experience Old Name
+    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+`
+	configData := `
+managed_experience_systems:
+  - regression
+managed_test_suites:
+  - name: "Nightly CI"
+    experiences:
+     - Test Experience Old Name
+experiences:
+  - name: Test Experience But with New Name
+    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+`
+	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
+	testSuiteID := uuid.New()
+	currentState.TestSuiteIDsByName = map[string]TestSuiteID{
+		"Nightly CI": testSuiteID,
+	}
+
+	// ACTION
+	_, err := computeExperienceUpdates(&config, currentState)
+
+	// VERIFICATION
+	assert.Error(t, err)
+}

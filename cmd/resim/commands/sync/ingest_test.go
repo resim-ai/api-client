@@ -15,6 +15,7 @@ import (
 )
 
 var mockState = createMockState()
+var mockProjectID = uuid.New()
 
 var experiencesData = `
 - name: Regression Analysis Alpha 99c862
@@ -503,6 +504,9 @@ func ListExperienceTagsWithResponseMock(ctx context.Context,
 	projectID api.ProjectID,
 	params *api.ListExperienceTagsParams,
 	reqEditors ...api.RequestEditorFn) (*api.ListExperienceTagsResponse, error) {
+	if projectID != mockProjectID {
+		log.Fatal("Bad project ID")
+	}
 
 	tags := []api.ExperienceTag{}
 
@@ -535,6 +539,9 @@ func ListSystemsWithResponseMock(ctx context.Context,
 	projectID api.ProjectID,
 	params *api.ListSystemsParams,
 	reqEditors ...api.RequestEditorFn) (*api.ListSystemsResponse, error) {
+	if projectID != mockProjectID {
+		log.Fatal("Bad project ID")
+	}
 
 	systems := []api.System{}
 
@@ -568,6 +575,9 @@ func ListExperiencesWithResponseMock(
 	projectID api.ProjectID,
 	params *api.ListExperiencesParams,
 	reqEditors ...api.RequestEditorFn) (*api.ListExperiencesResponse, error) {
+	if projectID != mockProjectID {
+		log.Fatal("Bad project ID")
+	}
 
 	experiences := []api.Experience{}
 
@@ -612,6 +622,9 @@ func ListExperiencesWithExperienceTagWithResponseMock(
 	tagID api.ExperienceTagID,
 	params *api.ListExperiencesWithExperienceTagParams,
 	reqEditors ...api.RequestEditorFn) (*api.ListExperiencesWithExperienceTagResponse, error) {
+	if projectID != mockProjectID {
+		log.Fatal("Bad project ID")
+	}
 
 	experiences := []api.Experience{}
 
@@ -652,6 +665,9 @@ func ListExperiencesForSystemWithResponseMock(
 	systemID api.SystemID,
 	params *api.ListExperiencesForSystemParams,
 	reqEditors ...api.RequestEditorFn) (*api.ListExperiencesForSystemResponse, error) {
+	if projectID != mockProjectID {
+		log.Fatal("Bad project ID")
+	}
 
 	experiences := []api.Experience{}
 
@@ -683,7 +699,8 @@ func ListExperiencesForSystemWithResponseMock(
 	}, nil
 }
 
-func TestFoo(t *testing.T) {
+func TestGetCurrentDatabaseState(t *testing.T) {
+	// SETUP
 	var client mockapiclient.ClientWithResponsesInterface
 	client.On("ListExperienceTagsWithResponse",
 		mock.Anything,
@@ -722,10 +739,10 @@ func TestFoo(t *testing.T) {
 		mock.Anything,
 	).Return(ListExperiencesForSystemWithResponseMock)
 
-	projectID := uuid.New()
+	// ACTION
+	currentDatabaseState := getCurrentDatabaseState(&client, mockProjectID)
 
-	currentDatabaseState := getCurrentDatabaseState(&client, projectID)
-
+	// VERIFICATION
 	assert.Equal(t, len(currentDatabaseState.ExperiencesByName), len(mockState.ExperiencesByName))
 	for name, experience := range currentDatabaseState.ExperiencesByName {
 		assert.Equal(t, experience.ExperienceID.ID, mockState.ExperiencesByName[name].ExperienceID.ID)

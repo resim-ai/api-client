@@ -225,7 +225,7 @@ func updateSingleTag(
 			wg.Done()
 		}()
 	}
-
+	wg.Wait()
 }
 
 func updateSingleSystem(

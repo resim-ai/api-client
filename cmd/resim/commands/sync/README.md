@@ -66,4 +66,4 @@ experiences.
 
 ## Approach
 
-![Syncing Data Flow](./expereince-syncing.svg)
+![Syncing Data Flow](./experience-syncing.svg)

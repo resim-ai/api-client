@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.23.2 - August 19, 2025
+
+- Support for "debug mode" for experiences in Multi Container builds. One container/service can be put into debug mode by using the `--container` option to `resim debug`
+
 ### v0.23.1 - August 7, 2025
 
 - Don't print env files when creating a multi-container build in `--github` mode. Previously, if you passed an env file via `--env-files` when running `resim builds create`, the client would list the env files in addition to the github output of the form `build_id=<build-id>`. Having these env files printed would interfere with communicating the build id between jobs.

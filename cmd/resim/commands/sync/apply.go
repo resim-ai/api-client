@@ -19,6 +19,8 @@ func applyUpdates(
 	inputs_chan := make(chan ExperienceMatch, num_experiences)
 	progress_chan := make(chan struct{}, num_experiences)
 	done := make(chan struct{})
+
+	log.Print("Updating Experiences...")
 	bar := progressbar.Default(int64(num_experiences))
 
 	go func() {
@@ -46,11 +48,25 @@ func applyUpdates(
 	close(inputs_chan)
 	<-done
 
+	log.Print("Updating Tags...")
 	var wg sync.WaitGroup
+	bar = progressbar.Default(int64(len(experienceUpdates.TagUpdatesByName)))
 	for _, update := range experienceUpdates.TagUpdatesByName {
 		wg.Add(1)
 		go func() {
 			updateSingleTag(client, projectID, *update)
+			bar.Add(1)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+	log.Print("Updating Systems...")
+	bar = progressbar.Default(int64(len(experienceUpdates.SystemUpdatesByName)))
+	for _, update := range experienceUpdates.SystemUpdatesByName {
+		wg.Add(1)
+		go func() {
+			updateSingleSystem(client, projectID, *update)
+			bar.Add(1)
 			wg.Done()
 		}()
 	}
@@ -210,4 +226,31 @@ func updateSingleTag(
 		}()
 	}
 
+}
+
+func updateSingleSystem(
+	client api.ClientWithResponsesInterface,
+	projectID uuid.UUID,
+	updates SystemUpdates) {
+	if len(updates.Additions) > 0 {
+		experienceIDs := []ExperienceID{}
+		for _, e := range updates.Additions {
+			if e.ExperienceID == nil {
+				log.Fatal("Experience has no ID. Maybe we failed to create it? ", e.Name)
+			}
+			experienceIDs = append(experienceIDs, e.ExperienceID.ID)
+		}
+		body := api.MutateSystemsToExperienceInput{
+			SystemIDs:   []SystemID{updates.SystemID},
+			Experiences: &experienceIDs,
+		}
+		response, err := client.AddSystemsToExperiencesWithResponse(context.Background(), projectID, body)
+		if err != nil {
+			log.Print("WARNING: failed to update systems: ", err)
+		}
+		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to update systems", response.HTTPResponse, response.Body)
+		if err != nil {
+			log.Print("WARNING:", err)
+		}
+	}
 }

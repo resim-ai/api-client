@@ -201,7 +201,7 @@ func fetchAllExperienceTags(client api.ClientWithResponsesInterface,
 		if err != nil {
 			log.Fatal("failed to list experiences:", err)
 		}
-		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		utils.ValidateResponse(http.StatusOK, "failed to list tags", response.HTTPResponse, response.Body)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.ExperienceTags) == 0 {
@@ -230,7 +230,7 @@ func fetchAllSystems(client api.ClientWithResponsesInterface,
 		if err != nil {
 			log.Fatal("failed to list experiences:", err)
 		}
-		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		utils.ValidateResponse(http.StatusOK, "failed to list systems", response.HTTPResponse, response.Body)
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Systems) == 0 {

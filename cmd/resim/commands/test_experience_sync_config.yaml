@@ -27,6 +27,9 @@ experiences:
       experience_id: 5de0edf4-e46e-4f99-8d65-0a04a9422cb4
       environment_variables: []
       container_timeout_seconds: 3600
+      systems:
+        - mbauer_tmp_hil_repro
+      
     - name: my-fun-new-new-one
       description: Wohooo
       locations:
@@ -53,6 +56,8 @@ experiences:
       experience_id: 5b372a48-d88b-4c10-97eb-af8693995305
       environment_variables: []
       container_timeout_seconds: 3600
+      systems:
+        - mbauer_tmp_hil_repro
     - name: new-experience-1
       description: asdfadsfasfasf
       locations:

@@ -79,7 +79,7 @@ var (
 
 	superviseBatchCmd = &cobra.Command{
 		Use:   "supervise",
-		Short: "supervise - Supervises batch operations",
+		Short: "supervise - waits on batch completion and reruns failed tests",
 		Long:  ``,
 		Run:   superviseBatch,
 	}
@@ -107,7 +107,7 @@ const (
 	batchAllowableFailurePercentKey = "allowable-failure-percent"
 	batchTestIDsKey                 = "test-ids"
 	batchMaxRerunAttemptsKey        = "max-rerun-attempts"
-	batchMaxFailedJobThresholdKey   = "max-failed-job-threshold"
+	batchRerunMaxFailurePercentKey  = "rerun-max-failure-percent"
 	batchRerunOnStatesKey           = "rerun-on-states"
 )
 
@@ -187,8 +187,8 @@ func init() {
 	superviseBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to supervise (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this supervises the most recent batch with that name.")
 	superviseBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	superviseBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
-	superviseBatchCmd.Flags().Int(batchMaxRerunAttemptsKey, 0, "Maximum number of rerun attempts for failed tests (default: 0)")
-	superviseBatchCmd.Flags().Int(batchMaxFailedJobThresholdKey, 50, "Maximum percentage of failed jobs before stopping (1-99, default: 50)")
+	superviseBatchCmd.Flags().Int(batchMaxRerunAttemptsKey, 1, "Maximum number of rerun attempts for failed tests (default: 1)")
+	superviseBatchCmd.Flags().Int(batchRerunMaxFailurePercentKey, 50, "Maximum percentage of failed jobs before stopping (1-100, default: 50)")
 	superviseBatchCmd.Flags().String(batchRerunOnStatesKey, "", "States to trigger rerun on (e.g. Warning, Error, Blocker)")
 	superviseBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
 	batchCmd.AddCommand(superviseBatchCmd)
@@ -308,22 +308,20 @@ func filterJobsByStatus(jobs []api.Job, conflatedStatuses []api.ConflatedJobStat
 func superviseBatch(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	maxRerunAttempts := viper.GetInt(batchMaxRerunAttemptsKey)
-	maxFailedJobThreshold := viper.GetInt(batchMaxFailedJobThresholdKey)
+	rerunMaxFailurePercent := viper.GetInt(batchRerunMaxFailurePercentKey)
 	rerunOnStates := viper.GetString(batchRerunOnStatesKey)
 
-	// Validate max-failed-job-threshold is between 1 and 99
-	if maxFailedJobThreshold < 1 || maxFailedJobThreshold > 100 {
-		log.Fatalf("max-failed-job-threshold must be between 1 and 100, got: %d", maxFailedJobThreshold)
+	// Validate rerun-max-failure-percent is between 1 and 100
+	if rerunMaxFailurePercent < 1 || rerunMaxFailurePercent > 100 {
+		log.Fatalf("rerun-max-failure-percent must be between 1 and 100, got: %d", rerunMaxFailurePercent)
+	}
+
+	if maxRerunAttempts < 1 {
+		log.Fatalf("max-rerun-attempts must be at least 1, got: %d", maxRerunAttempts)
 	}
 
 	// Parse rerun states
 	conflatedStates := parseRerunStates(rerunOnStates)
-
-	fmt.Printf("I am Supervisor for project: %s\n", projectID.String())
-	fmt.Printf("Max rerun attempts: %d\n", maxRerunAttempts)
-	fmt.Printf("Max failed job threshold: %d%%\n", maxFailedJobThreshold)
-	fmt.Printf("Rerun on states: %s\n", rerunOnStates)
-	fmt.Printf("Parsed conflated states: %v\n", conflatedStates)
 
 	// Wait for initial batch completion (no timeout for supervise)
 	pollWait, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
@@ -346,19 +344,19 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 	if totalJobs > 0 {
 		failedPercentage := (failedJobs * 100) / totalJobs
 		fmt.Printf("Failed job percentage: %d%% (%d/%d jobs)\n", failedPercentage, failedJobs, totalJobs)
-		if failedPercentage > maxFailedJobThreshold {
-			log.Fatalf("Failed job percentage (%d%%) exceeds threshold (%d%%). Not rerunning.", failedPercentage, maxFailedJobThreshold)
+		if failedPercentage > rerunMaxFailurePercent {
+			log.Fatalf("Failed job percentage (%d%%) exceeds threshold (%d%%). Not rerunning.", failedPercentage, rerunMaxFailurePercent)
 		}
-	}
-
-	// Check if there are any jobs to rerun
-	if len(matchingJobIDs) == 0 {
-		fmt.Println("No jobs match the rerun states. Exiting.")
-		return
 	}
 
 	// Rerun logic
 	for attempt := 1; attempt <= maxRerunAttempts; attempt++ {
+
+		// Check if there are any jobs to rerun
+		if len(matchingJobIDs) == 0 {
+			fmt.Println("No jobs match the rerun states. Exiting.")
+			return
+		}
 		fmt.Printf("Attempting rerun %d/%d\n", attempt, maxRerunAttempts)
 
 		// Submit rerun with the matching job IDs
@@ -380,11 +378,6 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 		matchingJobIDs = filterJobsByStatus(allJobs, conflatedStates)
 		fmt.Printf("Found %d job IDs for next rerun attempt: %v\n", len(matchingJobIDs), matchingJobIDs)
 
-		// Check if there are any jobs to rerun in the next attempt
-		if len(matchingJobIDs) == 0 {
-			fmt.Println("No jobs match the rerun states for next attempt. Exiting.")
-			return
-		}
 	}
 
 	log.Fatalf("All %d rerun attempts failed", maxRerunAttempts)

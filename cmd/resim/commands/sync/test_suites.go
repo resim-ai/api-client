@@ -31,7 +31,7 @@ func getTestSuiteUpdates(matchedExperiencesByNewName map[string]ExperienceMatch,
 
 		for _, exp := range testSuite.Experiences {
 			match, exists := matchedExperiencesByNewName[exp]
-			if !exists {
+			if !exists || match.New.Archived {
 				return nil, fmt.Errorf("Experience in test suite not found: %s", exp)
 			}
 			update.Experiences =

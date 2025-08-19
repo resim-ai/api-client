@@ -1,79 +1,106 @@
 experiences:
-    - name: ahahaha
-      description: AASDFSFSD
+    - name: scenario-survey-alpha
+      description: Aerial survey over test zone
       locations:
-        - sdfkjdsf
-      profile: ""
-      experience_id: 0c8a10c6-f9be-4763-b2e9-f34df7f478bf
-      environment_variables: []
-      container_timeout_seconds: 3603
-    - name: test-experience-bar
-      description: A dummy experience
-      locations:
-        - foo
-      tags:
-        - regression
-      systems:
-        - mbauer_tmp_hil_repro
-      profile: ""
-      experience_id: 5106eaf7-6730-4bd4-8b58-9b4197b690f5
-      environment_variables: []
-      container_timeout_seconds: 3600
-    - name: bfr-demo
-      description: Never gonna give you up
-      locations:
-        - s3://my-favorite-bucket/asdf
-      profile: ""
-      experience_id: 5de0edf4-e46e-4f99-8d65-0a04a9422cb4
-      environment_variables: []
-      container_timeout_seconds: 3600
-      systems:
-        - mbauer_tmp_hil_repro
-      
-    - name: my-fun-new-new-one
-      description: Wohooo
-      locations:
-        - asdf
-        - jkl;
-      tags:
-        - regression
-        - progression
-      systems:
-        - mbauer_tmp_hil_repro
-      profile: ""
-      experience_id: f2010fc5-1f1a-4f5e-a064-9d5bb500dc68
+        - s3://drone-missions/surveys/alpha-test-zone
+      profile: full_stack
+      experience_id: 5ba73f6d-0e72-4113-aee5-0ce831e39eda
       environment_variables:
-        - name: ASDF
-          value: jjj
-      container_timeout_seconds: 3600
-    - name: test-experience-bar2
-      description: asdfadsfasfasf
+        - name: MAX_ALTITUDE_M
+          value: "120"
+        - name: CRUISE_SPEED_MPS
+          value: "15"
+        - name: CAMERA_MODE
+          value: survey
+      container_timeout_seconds: 3603
+    - name: new-scenario-system-check
+      description: Regression validation run
       locations:
-        - asdfs
-      tags:
-        - regression
-      profile: ""
-      experience_id: 5b372a48-d88b-4c10-97eb-af8693995305
-      environment_variables: []
-      container_timeout_seconds: 3600
+        - s3://drone-missions/system-checks/regression-1
       systems:
         - mbauer_tmp_hil_repro
-    - name: new-experience-1
-      description: asdfadsfasfasf
+      profile: planner_stack
+      experience_id: 1a30fa5c-0946-4956-ad57-e7cd1971a5eb
+      environment_variables:
+        - name: TEST_MODE
+          value: "true"
+        - name: LOG_LEVEL
+          value: debug
+      container_timeout_seconds: 3600
+    - name: scenario-demo-delivery
+      description: Demonstration of package drop-off
       locations:
-        - asdfs
+        - s3://drone-missions/demos/package-delivery
+      systems:
+        - mbauer_tmp_hil_repro
+      profile: full_stack
+      experience_id: 7645545a-0f69-4a29-9d96-1a038af0d357
+      environment_variables:
+        - name: PAYLOAD_WEIGHT_KG
+          value: "2.5"
+        - name: DROP_ALTITUDE_M
+          value: "20"
+        - name: RETURN_TO_BASE
+          value: "true"
+      container_timeout_seconds: 3600
+    - name: scenario-patrol-beta
+      description: Multi-location reconnaissance flight
+      locations:
+        - s3://drone-missions/patrols/beta-sector-a
+        - s3://drone-missions/patrols/beta-sector-b
       tags:
         - regression
         - progression
-      profile: ""
-      experience_id: 4ba484f3-04dc-4d15-9ecd-fa3344933e2f
-      environment_variables: []
+      systems:
+        - mbauer_tmp_hil_repro
+      profile: full_stack
+      experience_id: 810542ac-0151-4986-81c4-3ce8b0a3766b
+      environment_variables:
+        - name: WAYPOINT_MODE
+          value: sequential
+        - name: MAX_FLIGHT_TIME_MIN
+          value: "30"
+        - name: SENSOR_PACKAGE
+          value: thermal
+      container_timeout_seconds: 3600
+    - name: scenario-system-check-2
+      description: Secondary regression validation run
+      locations:
+        - s3://drone-missions/system-checks/regression-2
+      tags:
+        - regression
+      systems:
+        - mbauer_tmp_hil_repro
+      profile: planner_stack
+      experience_id: 168db907-8653-4c79-bdd7-394404496585
+      environment_variables:
+        - name: TEST_MODE
+          value: "true"
+        - name: LOG_LEVEL
+          value: info
+      container_timeout_seconds: 3600
+    - name: scenario-progressive-flight
+      description: Progressive test of autonomous navigation
+      locations:
+        - s3://drone-missions/progression/autonomous-flight
+      tags:
+        - regression
+        - progression
+      profile: full_stack
+      experience_id: f7d57ff4-7d88-4ab4-a371-8b58bbdcd6ea
+      environment_variables:
+        - name: AUTONOMY_LEVEL
+          value: experimental
+        - name: MAX_SPEED_MPS
+          value: "12"
+        - name: FAILSAFE_MODE
+          value: rtl
       container_timeout_seconds: 3600
 managed_test_suites:
     - name: Basic Suite
       experiences:
-        - test-experience-bar
-        - new-experience-1
+        - scenario-survey-alpha
+        - new-scenario-system-check
 managed_experience_tags:
     - regression
     - progression

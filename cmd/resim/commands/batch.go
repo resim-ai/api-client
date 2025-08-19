@@ -188,8 +188,11 @@ func init() {
 	superviseBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	superviseBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
 	superviseBatchCmd.Flags().Int(batchMaxRerunAttemptsKey, 1, "Maximum number of rerun attempts for failed tests (default: 1)")
+	superviseBatchCmd.MarkFlagRequired(batchMaxRerunAttemptsKey)
 	superviseBatchCmd.Flags().Int(batchRerunMaxFailurePercentKey, 50, "Maximum percentage of failed jobs before stopping (1-100, default: 50)")
+	superviseBatchCmd.MarkFlagRequired(batchRerunMaxFailurePercentKey)
 	superviseBatchCmd.Flags().String(batchRerunOnStatesKey, "", "States to trigger rerun on (e.g. Warning, Error, Blocker)")
+	superviseBatchCmd.MarkFlagRequired(batchRerunOnStatesKey)
 	superviseBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
 	batchCmd.AddCommand(superviseBatchCmd)
 

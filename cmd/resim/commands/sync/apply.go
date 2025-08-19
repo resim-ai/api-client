@@ -71,6 +71,18 @@ func applyUpdates(
 		}()
 	}
 	wg.Wait()
+	log.Print("Updating Test Suites...")
+	bar = progressbar.Default(int64(len(experienceUpdates.SystemUpdatesByName)))
+	for _, update := range experienceUpdates.TestSuiteUpdates {
+		wg.Add(1)
+		go func() {
+			updateSingleTestSuite(client, projectID, update)
+			bar.Add(1)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+
 }
 
 func updateSingleExperience(
@@ -252,5 +264,29 @@ func updateSingleSystem(
 		if err != nil {
 			log.Print("WARNING:", err)
 		}
+	}
+}
+
+func updateSingleTestSuite(
+	client api.ClientWithResponsesInterface,
+	projectID uuid.UUID,
+	update TestSuiteUpdate) {
+
+	experiences := []ExperienceID{}
+
+	for _, exp := range update.Experiences {
+		experiences = append(experiences, exp.ExperienceID.ID)
+	}
+
+	body := api.ReviseTestSuiteInput{
+		Experiences: &experiences,
+	}
+	response, err := client.ReviseTestSuiteWithResponse(context.Background(), projectID, update.TestSuiteID, body)
+	if err != nil {
+		log.Print("WARNING: failed to revise test suite: ", err)
+	}
+	err = utils.ValidateResponseSafe(http.StatusOK, "failed to revise test suite", response.HTTPResponse, response.Body)
+	if err != nil {
+		log.Print("WARNING:", err)
 	}
 }

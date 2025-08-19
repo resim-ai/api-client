@@ -570,6 +570,26 @@ func ListSystemsWithResponseMock(ctx context.Context,
 	}, nil
 }
 
+func ListTestSuitesWithResponseMock(ctx context.Context,
+	projectID api.ProjectID,
+	params *api.ListTestSuitesParams,
+	reqEditors ...api.RequestEditorFn) (*api.ListTestSuitesResponse, error) {
+	if projectID != mockProjectID {
+		log.Fatal("Bad project ID")
+	}
+
+	testSuites := []api.TestSuite{}
+	// TODO
+
+	return &api.ListTestSuitesResponse{
+		HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+		JSON200: &api.ListTestSuiteOutput{
+			NextPageToken: "",
+			TestSuites:    testSuites,
+		},
+	}, nil
+}
+
 func ListExperiencesWithResponseMock(
 	ctx context.Context,
 	projectID api.ProjectID,
@@ -715,6 +735,13 @@ func TestGetCurrentDatabaseState(t *testing.T) {
 		mock.Anything,
 		mock.Anything,
 	).Return(ListSystemsWithResponseMock)
+
+	client.On("ListTestSuitesWithResponse",
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+		mock.Anything,
+	).Return(ListTestSuitesWithResponseMock)
 
 	client.On("ListExperiencesWithResponse",
 		mock.Anything,

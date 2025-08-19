@@ -73,9 +73,7 @@ managed_test_suites:
     - name: Basic Suite
       experiences:
         - test-experience-bar
-    - name: Smoke Tests
-      experiences:
-        - test-experience-bar
+        - new-experience-1
 managed_experience_tags:
     - regression
     - progression

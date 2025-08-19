@@ -14,6 +14,7 @@ import (
 type ExperienceID = api.ExperienceID
 type SystemID = api.SystemID
 type TagID = api.ExperienceTagID
+type TestSuiteID = api.TestSuiteID
 type EnvironmentVariable = api.EnvironmentVariable
 
 type TagSet struct {
@@ -29,9 +30,10 @@ type SystemSet struct {
 }
 
 type DatabaseState struct {
-	ExperiencesByName map[string]*Experience
-	TagSetsByName     map[string]TagSet
-	SystemSetsByName  map[string]SystemSet
+	ExperiencesByName  map[string]*Experience
+	TagSetsByName      map[string]TagSet
+	SystemSetsByName   map[string]SystemSet
+	TestSuiteIDsByName map[string]TestSuiteID
 }
 
 func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
@@ -39,15 +41,18 @@ func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
 	expCh := make(chan map[string]*Experience)
 	tagCh := make(chan map[string]TagSet)
 	sysCh := make(chan map[string]SystemSet)
+	tsCh := make(chan map[string]TestSuiteID)
 
 	go func() { expCh <- getCurrentExperiencesByName(client, projectID) }()
 	go func() { tagCh <- getCurrentTagSetsByName(client, projectID) }()
 	go func() { sysCh <- getCurrentSystemSetsByName(client, projectID) }()
+	go func() { tsCh <- getCurrentTestSuitesIDsByName(client, projectID) }()
 
 	state := DatabaseState{
-		ExperiencesByName: <-expCh,
-		TagSetsByName:     <-tagCh,
-		SystemSetsByName:  <-sysCh,
+		ExperiencesByName:  <-expCh,
+		TagSetsByName:      <-tagCh,
+		SystemSetsByName:   <-sysCh,
+		TestSuiteIDsByName: <-tsCh,
 	}
 
 	// Update the tags in each experience
@@ -138,6 +143,39 @@ func getCurrentSystemSetsByName(
 		}
 	}
 	return currentSystemSets
+}
+
+func getCurrentTestSuitesIDsByName(
+	client api.ClientWithResponsesInterface,
+	projectID uuid.UUID) map[string]TestSuiteID {
+	testSuiteIDsByName := make(map[string]TestSuiteID)
+	var pageToken *string = nil
+
+	for {
+		response, err := client.ListTestSuitesWithResponse(
+			context.Background(), projectID, &api.ListTestSuitesParams{
+				PageSize:  Ptr(100),
+				PageToken: pageToken,
+			})
+		if err != nil {
+			log.Fatal("failed to list test suites:", err)
+		}
+		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+
+		pageToken = &response.JSON200.NextPageToken
+		if response.JSON200 == nil || len(response.JSON200.TestSuites) == 0 {
+			break
+		}
+
+		for _, testSuite := range response.JSON200.TestSuites {
+			testSuiteIDsByName[testSuite.Name] = testSuite.TestSuiteID
+		}
+
+		if pageToken == nil || *pageToken == "" {
+			break
+		}
+	}
+	return testSuiteIDsByName
 }
 
 func addApiExperienceToExperienceMap(experience api.Experience,

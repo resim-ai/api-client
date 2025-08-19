@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -8,7 +9,15 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+var matchContext = mock.MatchedBy(func(maybeContext any) bool {
+	if _, ok := maybeContext.(context.Context); ok {
+		return true
+	}
+	return false
+})
 
 func sampleCommand() cobra.Command {
 	var testCmd = cobra.Command{

@@ -181,6 +181,7 @@ func init() {
 	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided, only the batch-metrics phase will be rerun.")
 	batchCmd.AddCommand(rerunBatchCmd)
 
+	//TODO: Re-enable supervise command after refactoring to state machine approach
 	superviseBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to supervise")
 	superviseBatchCmd.MarkFlagRequired(batchProjectKey)
 	superviseBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to supervise.")
@@ -334,6 +335,8 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 		log.Fatalf("Initial batch failed: %v", err)
 	}
 
+	// TODO: Handle batch cancelled case when refactoring to state machine approach
+
 	fmt.Printf("Initial batch completed with status: %s\n", *batch.Status)
 
 	// Get all jobs and filter by status
@@ -373,6 +376,8 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 			log.Printf("Rerun %d failed: %v", attempt, err)
 			continue
 		}
+
+		// TODO: Handle batch cancelled case when refactoring to state machine approach
 
 		fmt.Printf("Rerun %d completed with status: %s\n", attempt, *completedBatch.Status)
 
@@ -712,6 +717,19 @@ func getBatch(ccmd *cobra.Command, args []string) {
 	}
 }
 
+// TimeoutError represents a timeout condition
+type TimeoutError struct {
+	message string
+}
+
+func (e *TimeoutError) Error() string {
+	return e.message
+}
+
+func (e *TimeoutError) IsTimeout() bool {
+	return true
+}
+
 func waitForBatchCompletion(projectID uuid.UUID, batchID string, batchName string, timeout *time.Duration, pollInterval time.Duration) (*api.Batch, error) {
 	startTime := time.Now()
 
@@ -728,7 +746,7 @@ func waitForBatchCompletion(projectID uuid.UUID, batchID string, batchName strin
 		case api.BatchStatusERROR:
 			return batch, nil
 		case api.BatchStatusCANCELLED:
-			return batch, fmt.Errorf("batch was cancelled")
+			return batch, nil
 		case api.BatchStatusSUBMITTED, api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
 			// Continue waiting
 		default:
@@ -737,7 +755,7 @@ func waitForBatchCompletion(projectID uuid.UUID, batchID string, batchName strin
 
 		// Check timeout only if provided
 		if timeout != nil && time.Now().After(startTime.Add(*timeout)) {
-			return batch, fmt.Errorf("timeout after %v, last state %s", *timeout, *batch.Status)
+			return batch, &TimeoutError{message: fmt.Sprintf("timeout after %v, last state %s", *timeout, *batch.Status)}
 		}
 
 		time.Sleep(pollInterval)
@@ -750,7 +768,14 @@ func waitBatch(ccmd *cobra.Command, args []string) {
 	pollWait, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
 
 	batch, err := waitForBatchCompletion(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey), &timeout, pollWait)
+
 	if err != nil {
+		// Check if it's a timeout error
+		if timeoutErr, ok := err.(*TimeoutError); ok {
+			log.Println("Batch timed out:", timeoutErr.message)
+			os.Exit(6)
+		}
+		// other errors get an exit code of 1
 		log.Fatal(err)
 	}
 

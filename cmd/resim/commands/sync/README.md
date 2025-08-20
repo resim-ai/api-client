@@ -89,9 +89,10 @@ future. Let's look at the different steps of the sync operation.
    new experiences listed in the config (matched initially by name and then by ID if an explicit ID
    is provided in the sync config), which experiences need to be added or removed from each tag or
    system, and which experiences to revise each test suite with. This matching has a lot of edge
-   cases which we take care to test.
+   cases which we take care to test. This logic is distributed among `experiences.go`, `tags.go`,
+   `systems.go`, and `test_suites.go`.
 
 4. `applyUpdates()` - This is where we take the `ExperienceUpdates` and actually call the needed
    endpoints to manifest them in the app. It's a pretty simple matter of calling the right update,
    create, archive, and restore endpoints based on each pair of matched experience and tag/system
-   additions and removals.
+   additions and removals. This logic is in `apply.go`.

@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	dockerterm "github.com/moby/term"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	v1 "k8s.io/api/core/v1"

@@ -93,6 +93,7 @@ const (
 	batchAccountKey                 = "account"
 	batchGithubKey                  = "github"
 	batchMetricsBuildKey            = "metrics-build-id"
+	batchMetricsSetKey              = "metrics-set"
 	batchExitStatusKey              = "exit-status"
 	batchWaitTimeoutKey             = "wait-timeout"
 	batchWaitPollKey                = "poll-every"
@@ -120,6 +121,7 @@ func init() {
 	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
 	createBatchCmd.Flags().String(batchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
 	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
+	createBatchCmd.Flags().String(batchMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
@@ -297,12 +299,24 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		associatedAccount = viper.GetString(batchAccountKey)
 	}
 
+	var metricsSet *string
+	if viper.IsSet(batchMetricsSetKey) {
+		metricsSet = Ptr(viper.GetString(batchMetricsSetKey))
+		// Metrics 2.0 steps will only be run if we use the special pool
+		// label, so let's enable it automatically if the user requested a
+		// metrics set
+		if len(poolLabels) == 0 {
+			poolLabels = append(poolLabels, METRICS_2_POOL_LABEL)
+		}
+	}
+
 	// Build the request body
 	body := api.BatchInput{
 		BuildID:           &buildID,
 		Parameters:        &parameters,
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
+		MetricsSetName:    metricsSet,
 	}
 
 	// Parse --batch-name (if any provided)

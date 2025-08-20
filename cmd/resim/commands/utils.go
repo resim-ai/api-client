@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const METRICS_2_POOL_LABEL = "resim:metrics2"
+
 // ParseParameterString parses a string in the format "key=value" or "key:value"
 // into a key-value pair. It first tries to split on "=" and falls back to ":" if that fails.
 // This is especially useful for cases where parameter names contain colons, which

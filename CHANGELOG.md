@@ -4,6 +4,11 @@
 
 ### Unreleased
 
+- Support for experience syncing from a config file using `resim experiences sync ...`. In short, by
+  specifying which experiences they want with which tags, systems, and test suites in a yaml file, a
+  user can use this command to easily make the required updates so that the backend matches the
+  yaml.
+
 ### v0.23.2 - August 19, 2025
 
 - Support for "debug mode" for experiences in Multi Container builds. One container/service can be put into debug mode by using the `--container` option to `resim debug`

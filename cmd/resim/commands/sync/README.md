@@ -24,7 +24,7 @@ experiences:
       environment_variables:
         - name: MAX_ALTITUDE_M
           value: "120"
-		  
+
     - name: new-scenario-system-check
       description: Regression validation run
       locations:
@@ -38,7 +38,7 @@ experiences:
       environment_variables:
         - name: TEST_MODE
           value: "true"
-	  
+
 managed_test_suites:
     - name: Basic Suite
       experiences:
@@ -66,4 +66,32 @@ experiences.
 
 ## Approach
 
+The general approach used here separates any logic that interacts with the API from the logic which
+decides what modifications are needed to reconcile the current database state with the provided
+configuration. This makes it much easier to unit test the core update logic without using mocks for
+everything. It makes it slightly easier to maintain as endpoints change and better endpoints become
+available, and it should allow us to relatively easily support "dry running" this process in the
+future. Let's look at the different steps of the sync operation.
+
 ![Syncing Data Flow](./experience-syncing.svg)
+
+1. `loadExperienceSyncConfig()` - This is pretty simple logic which just unpacks the config yaml
+   into a similarly structured go struct. The logic for this is in `config.go`.
+
+2. `getCurrentDatabaseState()` - This function calls a variety of `List*WithResponse` endpoints to
+   populate the `DataBaseState` struct. This struct reflects what experiences exist (archived and
+   unarchived) what tags and systems exist along with their members, and what test suites exist with
+   their ids. The core logic for this is in `ingest.go`.
+
+3. `computeExperienceUpdates()` - This is the core of the syncing operation. It takes the
+   `ExperienceSyncConfig` and the `DatabaseState` produced by the previous steps and produces an
+   `ExperienceUpdates` object. This object decribes how the current experiences correspond to the
+   new experiences listed in the config (matched initially by name and then by ID if an explicit ID
+   is provided in the sync config), which experiences need to be added or removed from each tag or
+   system, and which experiences to revise each test suite with. This matching has a lot of edge
+   cases which we take care to test.
+
+4. `applyUpdates()` - This is where we take the `ExperienceUpdates` and actually call the needed
+   endpoints to manifest them in the app. It's a pretty simple matter of calling the right update,
+   create, archive, and restore endpoints based on each pair of matched experience and tag/system
+   additions and removals.

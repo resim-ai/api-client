@@ -59,10 +59,9 @@ resim experiences sync \
 ```
 
 And the CLI will be responsible for ensuring that the specified experiences exist and have the
-specified tags. Currently the tags in the `managed_experience_tags` list are removed from
-experiences not explicitly listing them, and the resulting test suites contain *only* the
-experiences that they list. Systems and unmanaged experience tags are never removed from
-experiences.
+specified tags. Only the tags in the `managed_experience_tags` list are removed from experiences not
+explicitly listing them, and the resulting test suites contain *only* the experiences that they
+list. Systems and unmanaged experience tags are never removed from experiences.
 
 ## Approach
 
@@ -111,5 +110,5 @@ resim experiences sync \
 
 It fetches this information anyway in the normal case, so this is a pretty easy thing to
 implement. However, it does not currently do anything with test suites since we don't currently
-fetch information about test suite membership when running the `sync`. It's not normally required to
-revise the test suites. We hope to support this soon.
+fetch information about test suite membership when running the `sync`. This information is not
+normally required to revise the test suites. We hope to support this soon.

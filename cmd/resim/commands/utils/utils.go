@@ -11,7 +11,7 @@ import (
 // status code is not what we expect.
 func ValidateResponse(expectedStatusCode int, message string, response *http.Response, body []byte) {
 	if err := ValidateResponseSafe(expectedStatusCode, message, response, body); err != nil {
-		log.Fatal(err) // same behavior as before
+		log.Fatal(err)
 	}
 }
 

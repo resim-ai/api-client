@@ -96,3 +96,17 @@ future. Let's look at the different steps of the sync operation.
    endpoints to manifest them in the app. It's a pretty simple matter of calling the right update,
    create, archive, and restore endpoints based on each pair of matched experience and tag/system
    additions and removals. This logic is in `apply.go`.
+
+## Experience Cloning
+
+For convenience, the `sync` command also provides the ability to fetch the current state of the
+database and save it to a local config file like so:
+
+```lang=bash
+resim experiences sync \
+    --project <project-name> \
+	--clone \
+	--experience-config <config/file/path.yaml>
+```
+
+It fetches this information anyway in the normal case, so this is a pretty easy thing to implement.

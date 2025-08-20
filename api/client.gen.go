@@ -22,6 +22,12 @@ const (
 	OAuthScopes = "OAuth.Scopes"
 )
 
+// Defines values for Architecture.
+const (
+	AMD64 Architecture = "AMD64"
+	ARM64 Architecture = "ARM64"
+)
+
 // Defines values for BatchStatus.
 const (
 	BatchStatusBATCHMETRICSQUEUED  BatchStatus = "BATCH_METRICS_QUEUED"
@@ -185,6 +191,9 @@ type AddTagsToExperiencesInput struct {
 	Experiences      *[]ExperienceID        `json:"experiences,omitempty"`
 	Filters          *ExperienceFilterInput `json:"filters,omitempty"`
 }
+
+// Architecture defines model for architecture.
+type Architecture string
 
 // Archived defines model for archived.
 type Archived = bool
@@ -443,6 +452,9 @@ type CompareBatchesStatusFilter string
 // ConflatedJobStatus defines model for conflatedJobStatus.
 type ConflatedJobStatus string
 
+// ContainerName defines model for containerName.
+type ContainerName = string
+
 // CreateBranchInput defines model for createBranchInput.
 type CreateBranchInput struct {
 	BranchType BranchType `json:"branchType"`
@@ -535,16 +547,17 @@ type CreateProjectInput struct {
 
 // CreateSystemInput defines model for createSystemInput.
 type CreateSystemInput struct {
-	BuildGpus                  int    `json:"build_gpus"`
-	BuildMemoryMib             int    `json:"build_memory_mib"`
-	BuildSharedMemoryMb        int    `json:"build_shared_memory_mb"`
-	BuildVcpus                 int    `json:"build_vcpus"`
-	Description                string `json:"description"`
-	MetricsBuildGpus           int    `json:"metrics_build_gpus"`
-	MetricsBuildMemoryMib      int    `json:"metrics_build_memory_mib"`
-	MetricsBuildSharedMemoryMb int    `json:"metrics_build_shared_memory_mb"`
-	MetricsBuildVcpus          int    `json:"metrics_build_vcpus"`
-	Name                       string `json:"name"`
+	Architecture               *Architecture `json:"architecture,omitempty"`
+	BuildGpus                  int           `json:"build_gpus"`
+	BuildMemoryMib             int           `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int           `json:"build_shared_memory_mb"`
+	BuildVcpus                 int           `json:"build_vcpus"`
+	Description                string        `json:"description"`
+	MetricsBuildGpus           int           `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int           `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int           `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int           `json:"metrics_build_vcpus"`
+	Name                       string        `json:"name"`
 }
 
 // CreateTestSuiteInput defines model for createTestSuiteInput.
@@ -571,10 +584,11 @@ type CustomMetric struct {
 
 // DebugExperienceInput defines model for debugExperienceInput.
 type DebugExperienceInput struct {
-	BatchID     *BatchID     `json:"batchID,omitempty"`
-	BuildID     *BuildID     `json:"buildID,omitempty"`
-	PoolLabels  *PoolLabels  `json:"poolLabels,omitempty"`
-	TestSuiteID *TestSuiteID `json:"testSuiteID,omitempty"`
+	BatchID     *BatchID         `json:"batchID,omitempty"`
+	BuildID     *BuildID         `json:"buildID,omitempty"`
+	Containers  *[]ContainerName `json:"containers,omitempty"`
+	PoolLabels  *PoolLabels      `json:"poolLabels,omitempty"`
+	TestSuiteID *TestSuiteID     `json:"testSuiteID,omitempty"`
 }
 
 // DebugExperienceOutput defines model for debugExperienceOutput.
@@ -760,6 +774,7 @@ type Job struct {
 	StatusHistory                  *JobStatusHistory      `json:"statusHistory,omitempty"`
 	SystemID                       *SystemID              `json:"systemID,omitempty"`
 	UserID                         *UserID                `json:"userID,omitempty"`
+	WorkerID                       *string                `json:"workerID,omitempty"`
 }
 
 // JobID defines model for jobID.
@@ -1436,27 +1451,28 @@ type SweepParameter struct {
 
 // System defines model for system.
 type System struct {
-	Archived                   Archived  `json:"archived"`
-	BuildGpus                  int       `json:"build_gpus"`
-	BuildMemoryMib             int       `json:"build_memory_mib"`
-	BuildSharedMemoryMb        int       `json:"build_shared_memory_mb"`
-	BuildVcpus                 int       `json:"build_vcpus"`
-	CreationTimestamp          Timestamp `json:"creationTimestamp"`
-	Description                string    `json:"description"`
-	MetricsBuildGpus           int       `json:"metrics_build_gpus"`
-	MetricsBuildMemoryMib      int       `json:"metrics_build_memory_mib"`
-	MetricsBuildSharedMemoryMb int       `json:"metrics_build_shared_memory_mb"`
-	MetricsBuildVcpus          int       `json:"metrics_build_vcpus"`
-	Name                       string    `json:"name"`
-	NumBatches                 int       `json:"numBatches"`
-	NumBuilds                  int       `json:"numBuilds"`
-	NumExperiences             int       `json:"numExperiences"`
-	NumMetricsBuilds           int       `json:"numMetricsBuilds"`
-	NumTestSuites              int       `json:"numTestSuites"`
-	OrgID                      OrgID     `json:"orgID"`
-	ProjectID                  ProjectID `json:"projectID"`
-	SystemID                   SystemID  `json:"systemID"`
-	UserID                     UserID    `json:"userID"`
+	Architecture               Architecture `json:"architecture"`
+	Archived                   Archived     `json:"archived"`
+	BuildGpus                  int          `json:"build_gpus"`
+	BuildMemoryMib             int          `json:"build_memory_mib"`
+	BuildSharedMemoryMb        int          `json:"build_shared_memory_mb"`
+	BuildVcpus                 int          `json:"build_vcpus"`
+	CreationTimestamp          Timestamp    `json:"creationTimestamp"`
+	Description                string       `json:"description"`
+	MetricsBuildGpus           int          `json:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      int          `json:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb int          `json:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          int          `json:"metrics_build_vcpus"`
+	Name                       string       `json:"name"`
+	NumBatches                 int          `json:"numBatches"`
+	NumBuilds                  int          `json:"numBuilds"`
+	NumExperiences             int          `json:"numExperiences"`
+	NumMetricsBuilds           int          `json:"numMetricsBuilds"`
+	NumTestSuites              int          `json:"numTestSuites"`
+	OrgID                      OrgID        `json:"orgID"`
+	ProjectID                  ProjectID    `json:"projectID"`
+	SystemID                   SystemID     `json:"systemID"`
+	UserID                     UserID       `json:"userID"`
 }
 
 // SystemID defines model for systemID.
@@ -1643,16 +1659,17 @@ type UpdateProjectInput struct {
 
 // UpdateSystemInput defines model for updateSystemInput.
 type UpdateSystemInput struct {
-	BuildGpus                  *int    `json:"build_gpus,omitempty"`
-	BuildMemoryMib             *int    `json:"build_memory_mib,omitempty"`
-	BuildSharedMemoryMb        *int    `json:"build_shared_memory_mb,omitempty"`
-	BuildVcpus                 *int    `json:"build_vcpus,omitempty"`
-	Description                *string `json:"description,omitempty"`
-	MetricsBuildGpus           *int    `json:"metrics_build_gpus,omitempty"`
-	MetricsBuildMemoryMib      *int    `json:"metrics_build_memory_mib,omitempty"`
-	MetricsBuildSharedMemoryMb *int    `json:"metrics_build_shared_memory_mb,omitempty"`
-	MetricsBuildVcpus          *int    `json:"metrics_build_vcpus,omitempty"`
-	Name                       *string `json:"name,omitempty"`
+	Architecture               *Architecture `json:"architecture,omitempty"`
+	BuildGpus                  *int          `json:"build_gpus,omitempty"`
+	BuildMemoryMib             *int          `json:"build_memory_mib,omitempty"`
+	BuildSharedMemoryMb        *int          `json:"build_shared_memory_mb,omitempty"`
+	BuildVcpus                 *int          `json:"build_vcpus,omitempty"`
+	Description                *string       `json:"description,omitempty"`
+	MetricsBuildGpus           *int          `json:"metrics_build_gpus,omitempty"`
+	MetricsBuildMemoryMib      *int          `json:"metrics_build_memory_mib,omitempty"`
+	MetricsBuildSharedMemoryMb *int          `json:"metrics_build_shared_memory_mb,omitempty"`
+	MetricsBuildVcpus          *int          `json:"metrics_build_vcpus,omitempty"`
+	Name                       *string       `json:"name,omitempty"`
 }
 
 // UserID defines model for userID.

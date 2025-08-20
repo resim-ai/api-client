@@ -38,14 +38,10 @@ func getSystemUpdates(matchedExperiencesByNewName map[string]ExperienceMatch,
 				updates[system].Additions = append(updates[system].Additions, match.New)
 				continue
 			}
-			_, alreadySystemged := system_set.ExperienceIDs[match.Original.ExperienceID.ID]
-			if !alreadySystemged {
+			_, alreadyInSystem := system_set.ExperienceIDs[match.Original.ExperienceID.ID]
+			if !alreadyInSystem {
 				updates[system].Additions = append(updates[system].Additions, match.New)
 			}
-		}
-		if match.Original == nil {
-			// Can't possibly remove since it doesn't exist currently
-			continue
 		}
 	}
 	return updates, nil

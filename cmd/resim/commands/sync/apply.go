@@ -7,90 +7,89 @@ import (
 	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	"github.com/schollz/progressbar/v3"
 	"log"
+	"maps"
 	"net/http"
+	"slices"
 	"sync"
 )
 
+// Apply the given ExperienceUpdates to the backend by calling the relevant endpoints.
 func applyUpdates(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
 	experienceUpdates ExperienceUpdates) {
-	num_experiences := len(experienceUpdates.MatchedExperiencesByNewName)
-	inputs_chan := make(chan ExperienceMatch, num_experiences)
-	progress_chan := make(chan struct{}, num_experiences)
-	done := make(chan struct{})
-
-	log.Print("Updating Experiences...")
-	bar := progressbar.Default(int64(num_experiences))
-
-	go func() {
-		for ii := 0; ii < num_experiences; ii++ {
-			<-progress_chan
-			bar.Add(1)
-		}
-		done <- struct{}{}
-	}()
 
 	numWorkers := 16
+	runConcurrentUpdates("Experiences", slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)),
+		numWorkers,
+		func(update ExperienceMatch) {
+			updateSingleExperience(client, projectID, update)
+		})
 
-	for ii := 0; ii < numWorkers; ii++ {
+	runConcurrentUpdates("Tags", slices.Collect(maps.Values(experienceUpdates.TagUpdatesByName)),
+		numWorkers,
+		func(update *TagUpdates) {
+			updateSingleTag(client, projectID, *update)
+		})
+
+	runConcurrentUpdates("Systems", slices.Collect(maps.Values(experienceUpdates.SystemUpdatesByName)),
+		numWorkers,
+		func(update *SystemUpdates) {
+			updateSingleSystem(client, projectID, *update)
+		})
+
+	runConcurrentUpdates("Test Suites", experienceUpdates.TestSuiteUpdates,
+		numWorkers,
+		func(update TestSuiteUpdate) {
+			updateSingleTestSuite(client, projectID, update)
+		})
+}
+
+// Helper to parallelize our updates and track progress with a bar
+func runConcurrentUpdates[T any](
+	label string,
+	items []T,
+	numWorkers int,
+	task func(T),
+) {
+	if len(items) == 0 {
+		return
+	}
+
+	log.Printf("Updating %s...", label)
+	bar := progressbar.Default(int64(len(items)))
+
+	var wg sync.WaitGroup
+	inputsCh := make(chan T, len(items))
+
+	// Start workers
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
 		go func() {
-			for update := range inputs_chan {
-				updateSingleExperience(client, projectID, update)
-				progress_chan <- struct{}{}
+			defer wg.Done()
+			for item := range inputsCh {
+				task(item)
+				bar.Add(1)
 			}
 		}()
 	}
 
-	for _, update := range experienceUpdates.MatchedExperiencesByNewName {
-		inputs_chan <- update
+	// Feed items
+	for _, item := range items {
+		inputsCh <- item
 	}
-	close(inputs_chan)
-	<-done
+	close(inputsCh)
 
-	log.Print("Updating Tags...")
-	var wg sync.WaitGroup
-	bar = progressbar.Default(int64(len(experienceUpdates.TagUpdatesByName)))
-	for _, update := range experienceUpdates.TagUpdatesByName {
-		wg.Add(1)
-		go func() {
-			updateSingleTag(client, projectID, *update)
-			bar.Add(1)
-			wg.Done()
-		}()
-	}
 	wg.Wait()
-	log.Print("Updating Systems...")
-	bar = progressbar.Default(int64(len(experienceUpdates.SystemUpdatesByName)))
-	for _, update := range experienceUpdates.SystemUpdatesByName {
-		wg.Add(1)
-		go func() {
-			updateSingleSystem(client, projectID, *update)
-			bar.Add(1)
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-	log.Print("Updating Test Suites...")
-	bar = progressbar.Default(int64(len(experienceUpdates.SystemUpdatesByName)))
-	for _, update := range experienceUpdates.TestSuiteUpdates {
-		wg.Add(1)
-		go func() {
-			updateSingleTestSuite(client, projectID, update)
-			bar.Add(1)
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-
 }
 
 func updateSingleExperience(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
 	update ExperienceMatch) {
-	if update.Original == nil {
-		// New Experience
+
+	newExperience := update.Original == nil
+	if newExperience {
 		body := api.CreateExperienceInput{
 			Name:                    update.New.Name,
 			Description:             update.New.Description,
@@ -103,30 +102,28 @@ func updateSingleExperience(
 
 		response, err := client.CreateExperienceWithResponse(context.Background(), projectID, body)
 		if err != nil {
-			log.Print("WARNING: failed to create experience: ", err)
+			log.Fatal("failed to create experience: ", err)
 		}
-		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to create experience", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING:", err)
-		}
+		utils.ValidateResponse(http.StatusCreated, "failed to create experience", response.HTTPResponse, response.Body)
 
+		// Update the match with then new experience ID. This way the other updates (which
+		// reference this by pointer) will have the ID.
 		update.New.ExperienceID = &ExperienceIDWrapper{ID: response.JSON201.ExperienceID}
 		return
 	}
 	if update.New.ExperienceID == nil {
-		log.Fatalf("Trying to update with unset experience ID")
+		// Fatal since this should *never* happen. It's a bug in the api client if so.
+		log.Fatal("Trying to update with unset experience ID")
 	}
+
 	experienceID := update.New.ExperienceID.ID
 	if update.New.Archived {
 		// Archive
 		response, err := client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
 		if err != nil {
-			log.Print("WARNING: failed to archive experience: ", err)
+			log.Fatal("failed to archive experience: ", err)
 		}
-		err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING: ", err)
-		}
+		utils.ValidateResponse(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
 
 		return
 	}
@@ -135,15 +132,14 @@ func updateSingleExperience(
 		// Restore
 		response, err := client.RestoreExperienceWithResponse(context.Background(), projectID, experienceID)
 		if err != nil {
-			log.Print("WARNING: failed to restore experience: ", err)
+			log.Fatal("failed to restore experience: ", err)
 		}
-		err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to restore experience", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING:", err)
-		}
+		utils.ValidateResponse(http.StatusNoContent, "failed to restore experience", response.HTTPResponse, response.Body)
 	}
 	updateMask := []string{"name", "description", "cacheExempt", "locations"}
 
+	// These are only updated if they're included. Otherwise they retain their current
+	// value. Users should probably include them anyway.
 	if update.New.ContainerTimeoutSeconds != nil {
 		updateMask = append(updateMask, "containerTimeoutSeconds")
 	}
@@ -168,12 +164,9 @@ func updateSingleExperience(
 	}
 	response, err := client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, body)
 	if err != nil {
-		log.Print("WARNING: failed to update experience: ", err)
+		log.Fatal("failed to update experience: ", err)
 	}
-	err = utils.ValidateResponseSafe(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
-	if err != nil {
-		log.Print("WARNING:", err)
-	}
+	utils.ValidateResponse(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
 
 }
 
@@ -189,13 +182,9 @@ func removeTagFromExperience(
 		experienceID,
 	)
 	if err != nil {
-		log.Print("WARNING: failed to update tags: ", err)
+		log.Fatal("failed to update tags: ", err)
 	}
-	err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to update tags", response.HTTPResponse, response.Body)
-	if err != nil {
-		log.Print("WARNING:", err)
-	}
-
+	utils.ValidateResponse(http.StatusNoContent, "failed to update tags", response.HTTPResponse, response.Body)
 }
 
 func updateSingleTag(
@@ -203,7 +192,6 @@ func updateSingleTag(
 	projectID uuid.UUID,
 	updates TagUpdates) {
 
-	var wg sync.WaitGroup
 	if len(updates.Additions) > 0 {
 		experienceIDs := []ExperienceID{}
 		for _, e := range updates.Additions {
@@ -219,15 +207,12 @@ func updateSingleTag(
 		}
 		response, err := client.AddTagsToExperiencesWithResponse(context.Background(), projectID, body)
 		if err != nil {
-			log.Print("WARNING: failed to update tags: ", err)
+			log.Fatal("failed to update tags: ", err)
 		}
-		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to update tags", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING:", err)
-		}
+		utils.ValidateResponse(http.StatusCreated, "failed to update tags", response.HTTPResponse, response.Body)
 	}
 
-	// Would be much better with a single endpoint for this
+	var wg sync.WaitGroup
 	for _, removal := range updates.Removals {
 		wg.Add(1)
 		go func() {
@@ -258,12 +243,9 @@ func updateSingleSystem(
 		}
 		response, err := client.AddSystemsToExperiencesWithResponse(context.Background(), projectID, body)
 		if err != nil {
-			log.Print("WARNING: failed to update systems: ", err)
+			log.Fatal("failed to update systems: ", err)
 		}
-		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to update systems", response.HTTPResponse, response.Body)
-		if err != nil {
-			log.Print("WARNING:", err)
-		}
+		utils.ValidateResponse(http.StatusCreated, "failed to update systems", response.HTTPResponse, response.Body)
 	}
 }
 
@@ -283,10 +265,7 @@ func updateSingleTestSuite(
 	}
 	response, err := client.ReviseTestSuiteWithResponse(context.Background(), projectID, update.TestSuiteID, body)
 	if err != nil {
-		log.Print("WARNING: failed to revise test suite: ", err)
+		log.Fatal("failed to revise test suite: ", err)
 	}
-	err = utils.ValidateResponseSafe(http.StatusOK, "failed to revise test suite", response.HTTPResponse, response.Body)
-	if err != nil {
-		log.Print("WARNING:", err)
-	}
+	utils.ValidateResponse(http.StatusOK, "failed to revise test suite", response.HTTPResponse, response.Body)
 }

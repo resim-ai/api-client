@@ -176,7 +176,7 @@ container_timeout_seconds: 7200
 		updatedExperience.ContainerTimeoutSeconds = body.Experience.ContainerTimeoutSeconds
 
 		return &api.UpdateExperienceResponse{
-			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 			JSON200: &api.Experience{
 				Name:                    *body.Experience.Name,
 				ExperienceID:            experienceID,
@@ -412,7 +412,7 @@ container_timeout_seconds: 7200
 		assert.Len(t, *body.Experiences, 1)
 		assert.Equal(t, (*body.Experiences)[0], expectedExperienceID)
 		return &api.ReviseTestSuiteResponse{
-			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 		}, nil
 	})
 

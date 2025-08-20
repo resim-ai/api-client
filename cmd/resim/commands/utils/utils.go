@@ -2,7 +2,6 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -10,34 +9,25 @@ import (
 // Validate Response fails the command if the response is nil, or the
 // status code is not what we expect.
 func ValidateResponse(expectedStatusCode int, message string, response *http.Response, body []byte) {
-	if err := ValidateResponseSafe(expectedStatusCode, message, response, body); err != nil {
-		log.Fatal(err)
-	}
-}
-
-// ValidateResponseSafe returns an error when the command if the response is nil, or the status code
-// is not what we expect.
-func ValidateResponseSafe(expectedStatusCode int, message string, response *http.Response, body []byte) error {
 	if response == nil {
-		return fmt.Errorf("%s: no response", message)
+		log.Fatal(message, ": ", "no response")
 	}
-
 	if response.StatusCode != expectedStatusCode {
+		// Unmarshal response as JSON:
 		var data map[string]interface{}
 		if err := json.Unmarshal(body, &data); err != nil {
-			return fmt.Errorf("%s: expected status code: %d received: %d status: %s (invalid JSON body)",
-				message, expectedStatusCode, response.StatusCode, response.Status)
+			log.Fatal(message, ": expected status code: ", expectedStatusCode,
+				" received: ", response.StatusCode, " status: ", response.Status)
 		}
-
+		// Pretty print the response map
 		prettyJSON, err := json.MarshalIndent(data, "", "  ")
 		if err != nil {
-			return fmt.Errorf("%s: expected status code: %d received: %d status: %s (failed to format JSON)",
-				message, expectedStatusCode, response.StatusCode, response.Status)
+			log.Fatal(message, ": expected status code: ", expectedStatusCode,
+				" received: ", response.StatusCode, " status: ", response.Status)
 		}
-
-		return fmt.Errorf("%s: expected status code: %d received: %d status: %s\nmessage:\n%s",
-			message, expectedStatusCode, response.StatusCode, response.Status, prettyJSON)
+		// Handle the unmarshalled data
+		log.Fatal(message, ": expected status code: ", expectedStatusCode,
+			" received: ", response.StatusCode, " status: ", response.Status, "\n message:\n", string(prettyJSON))
 	}
 
-	return nil
 }

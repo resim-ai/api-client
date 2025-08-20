@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+// A helper so we can load currentStateData and configData from yaml for convenience.
 func loaderHelper(t *testing.T, currentStateData string, configData string, currentTags []string, currentSystems []string) (DatabaseState, ExperienceSyncConfig) {
 	var currentExperiences []*Experience
 	err := yaml.Unmarshal([]byte(currentStateData), &currentExperiences)
@@ -34,6 +35,7 @@ func loaderHelper(t *testing.T, currentStateData string, configData string, curr
 		}
 
 	}
+	// Populate the tag and system sets based off what's listed in the YAML snippet.
 	for _, exp := range currentExperiences {
 		currentState.ExperiencesByName[exp.Name] = exp
 		for _, tag := range exp.Tags {
@@ -292,6 +294,11 @@ experiences:
 
 func TestFailsOnClobberingExistingWithRename(t *testing.T) {
 	// SETUP
+	//
+	// Here we swap the names so they clobber each other. Technically this should be possible,
+	// but there's no order of updates that could be made without the database state being
+	// temporarily invalid. We don't try to do any fancy swapping or other logic so we just
+	// don't support this.
 	currentStateData := `
   - name: new-name
     experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"

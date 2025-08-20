@@ -243,7 +243,7 @@ func fetchAllExperienceTags(client api.ClientWithResponsesInterface,
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.ExperienceTags) == 0 {
-			break // Either no experiences or we've reached the end of the list matching the page length
+			break // Either no tags or we've reached the end of the list matching the page length
 		}
 		allExperienceTags = append(allExperienceTags, *response.JSON200.ExperienceTags...)
 		if pageToken == nil || *pageToken == "" {
@@ -272,7 +272,7 @@ func fetchAllSystems(client api.ClientWithResponsesInterface,
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Systems) == 0 {
-			break // Either no experiences or we've reached the end of the list matching the page length
+			break // Either no systems or we've reached the end of the list matching the page length
 		}
 		allSystems = append(allSystems, *response.JSON200.Systems...)
 		if pageToken == nil || *pageToken == "" {

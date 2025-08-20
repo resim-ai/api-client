@@ -772,6 +772,7 @@ func TestGetCurrentDatabaseState(t *testing.T) {
 	currentDatabaseState := getCurrentDatabaseState(&client, mockProjectID)
 
 	// VERIFICATION
+	// Verify that the state we fetched matches the mocked state
 	assert.Equal(t, len(currentDatabaseState.ExperiencesByName), len(mockState.ExperiencesByName))
 	for name, experience := range currentDatabaseState.ExperiencesByName {
 		assert.Equal(t, experience.ExperienceID.ID, mockState.ExperiencesByName[name].ExperienceID.ID)

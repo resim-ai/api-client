@@ -76,6 +76,8 @@ container_timeout_seconds: 7200
 
 	// ACTION
 	applyUpdates(&client, expectedProjectID, updates)
+
+	// VERIFICATION
 	assert.Equal(t, createdExperience, *creationMatch.New)
 	// Verify that the experience ID has been set
 	assert.Equal(t, creationMatch.New.ExperienceID.ID, expectedExperienceID)
@@ -269,6 +271,8 @@ container_timeout_seconds: 7200
 
 	// ACTION
 	applyUpdates(&client, expectedProjectID, updates)
+
+	// VERIFICATION
 	client.AssertNumberOfCalls(t, "AddTagsToExperiencesWithResponse", 1)
 }
 
@@ -318,6 +322,8 @@ container_timeout_seconds: 7200
 
 	// ACTION
 	applyUpdates(&client, expectedProjectID, updates)
+
+	// VERIFICATION
 	client.AssertNumberOfCalls(t, "RemoveExperienceTagFromExperienceWithResponse", 1)
 }
 
@@ -374,6 +380,8 @@ container_timeout_seconds: 7200
 
 	// ACTION
 	applyUpdates(&client, expectedProjectID, updates)
+
+	// VERIFICATION
 	client.AssertNumberOfCalls(t, "AddSystemsToExperiencesWithResponse", 1)
 }
 
@@ -408,7 +416,7 @@ container_timeout_seconds: 7200
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, testSuiteID api.TestSuiteID, body api.ReviseTestSuiteInput,
 		reqEditors ...api.RequestEditorFn) (*api.ReviseTestSuiteResponse, error) {
-		// Verification
+		// VERIFICATION
 		assert.Len(t, *body.Experiences, 1)
 		assert.Equal(t, (*body.Experiences)[0], expectedExperienceID)
 		return &api.ReviseTestSuiteResponse{
@@ -429,5 +437,7 @@ container_timeout_seconds: 7200
 
 	// ACTION
 	applyUpdates(&client, expectedProjectID, updates)
+
+	// VERIFICATION
 	client.AssertNumberOfCalls(t, "ReviseTestSuiteWithResponse", 1)
 }

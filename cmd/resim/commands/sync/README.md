@@ -109,4 +109,7 @@ resim experiences sync \
 	--experience-config <config/file/path.yaml>
 ```
 
-It fetches this information anyway in the normal case, so this is a pretty easy thing to implement.
+It fetches this information anyway in the normal case, so this is a pretty easy thing to
+implement. However, it does not currently do anything with test suites since we don't currently
+fetch information about test suite membership when running the `sync`. It's not normally required to
+revise the test suites. We hope to support this soon.

@@ -199,6 +199,7 @@ func init() {
 	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
 	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
 	syncExperienceCmd.Flags().Bool(experiencesCloneKey, false, "Whether to clone the existing database state to the config file rather than the other way around")
+	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesUpdateConfigKey, experiencesCloneKey)
 	experienceCmd.AddCommand(syncExperienceCmd)
 
 	// Systems-related sub-commands:

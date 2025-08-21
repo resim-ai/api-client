@@ -209,16 +209,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	var metricsSet *string
-	if viper.IsSet(sweepMetricsSetKey) {
-		metricsSet = Ptr(viper.GetString(sweepMetricsSetKey))
-		// Metrics 2.0 steps will only be run if we use the special pool
-		// label, so let's enable it automatically if the user requested a
-		// metrics set
-		if len(poolLabels) == 0 {
-			poolLabels = append(poolLabels, METRICS_2_POOL_LABEL)
-		}
-	}
+	metricsSet := ProcessMetricsSet(sweepMetricsSetKey, &poolLabels)
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".

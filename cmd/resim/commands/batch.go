@@ -299,16 +299,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		associatedAccount = viper.GetString(batchAccountKey)
 	}
 
-	var metricsSet *string
-	if viper.IsSet(batchMetricsSetKey) {
-		metricsSet = Ptr(viper.GetString(batchMetricsSetKey))
-		// Metrics 2.0 steps will only be run if we use the special pool
-		// label, so let's enable it automatically if the user requested a
-		// metrics set
-		if len(poolLabels) == 0 {
-			poolLabels = append(poolLabels, METRICS_2_POOL_LABEL)
-		}
-	}
+	metricsSet := ProcessMetricsSet(batchMetricsSetKey, &poolLabels)
 
 	// Build the request body
 	body := api.BatchInput{

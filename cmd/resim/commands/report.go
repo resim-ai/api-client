@@ -192,15 +192,8 @@ func createReport(ccmd *cobra.Command, args []string) {
 		associatedAccount = viper.GetString(reportAccountKey)
 	}
 
-	var metricsSet *string
 	poolLabels := api.PoolLabels{}
-	if viper.IsSet(reportMetricsSetKey) {
-		metricsSet = Ptr(viper.GetString(reportMetricsSetKey))
-		// Metrics 2.0 steps will only be run if we use the special pool
-		// label, so let's enable it automatically if the user requested a
-		// metrics set
-		poolLabels = append(poolLabels, METRICS_2_POOL_LABEL)
-	}
+	metricsSet := ProcessMetricsSet(reportMetricsSetKey, &poolLabels)
 
 	// Build the request body
 	body := api.ReportInput{

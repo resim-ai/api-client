@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.24.0 - August 21, 2025
+
+- Add support for specifying a metrics set when launching a batch, report, or parameter sweep
+
 ### v0.23.2 - August 19, 2025
 
 - Support for "debug mode" for experiences in Multi Container builds. One container/service can be put into debug mode by using the `--container` option to `resim debug`

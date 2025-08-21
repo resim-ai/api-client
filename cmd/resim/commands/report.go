@@ -62,6 +62,7 @@ const (
 	reportEndTimestampKey             = "end-timestamp"
 	reportRespectTestSuiteRevisionKey = "respect-revision-boundary"
 	reportMetricsBuildIDKey           = "metrics-build-id"
+	reportMetricsSetKey               = "metrics-set"
 	reportIDKey                       = "report-id"
 	reportNameKey                     = "report-name"
 	reportAccountKey                  = "account"
@@ -90,6 +91,8 @@ func init() {
 	// Metrics Build
 	createReportCmd.Flags().String(reportMetricsBuildIDKey, "", "The ID of the metrics build to use in this report.")
 	createReportCmd.MarkFlagRequired(reportMetricsBuildIDKey)
+	// Metrics Set
+	createReportCmd.Flags().String(reportMetricsSetKey, "", "The name of the metrics set to use in this report.")
 	// Length, Start, End Timestamps
 	createReportCmd.Flags().Int(reportLengthKey, 28, "The length of the report in days, from now. Cannot be used in combination with start and end timestamps. For a more precise report, use the start and end timestamps")
 	createReportCmd.Flags().String(reportStartTimestampKey, time.Now().UTC().String(), "The start timestamp of the report (in a Golang parsable format using RFC3339). Cannot be used in combination with length.")
@@ -189,6 +192,9 @@ func createReport(ccmd *cobra.Command, args []string) {
 		associatedAccount = viper.GetString(reportAccountKey)
 	}
 
+	poolLabels := api.PoolLabels{}
+	metricsSet := ProcessMetricsSet(reportMetricsSetKey, &poolLabels)
+
 	// Build the request body
 	body := api.ReportInput{
 		TestSuiteID:             testSuite.TestSuiteID,
@@ -199,6 +205,7 @@ func createReport(ccmd *cobra.Command, args []string) {
 		EndTimestamp:            Ptr(endTimestamp),
 		AssociatedAccount:       &associatedAccount,
 		TriggeredVia:            DetermineTriggerMethod(),
+		MetricsSetName:          metricsSet,
 	}
 
 	if viper.IsSet(reportNameKey) {
@@ -207,6 +214,10 @@ func createReport(ccmd *cobra.Command, args []string) {
 
 	if viper.IsSet(reportTestSuiteRevisionKey) {
 		body.TestSuiteRevision = Ptr(viper.GetInt32(reportTestSuiteRevisionKey))
+	}
+
+	if len(poolLabels) > 0 {
+		body.PoolLabels = &poolLabels
 	}
 
 	// Make the request

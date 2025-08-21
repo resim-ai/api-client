@@ -9,6 +9,7 @@ import (
 	"github.com/resim-ai/api-client/api"
 	mockapiclient "github.com/resim-ai/api-client/api/mocks"
 	. "github.com/resim-ai/api-client/ptr"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
@@ -334,4 +335,293 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_ByName() {
 	s.Equal(batchID, *batch.BatchID)
 	s.Equal(batchName, *batch.FriendlyName)
 	s.Equal(api.BatchStatusSUCCEEDED, *batch.Status)
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_Valid() {
+	// Set up viper with valid parameters
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 3)
+	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunOnStatesKey, "Error,Warning")
+	viper.Set(batchWaitTimeoutKey, "1h")
+	viper.Set(batchWaitPollKey, "30s")
+	viper.Set(batchIDKey, "test-batch-id")
+	viper.Set(batchNameKey, "test-batch-name")
+
+	// Mock the project lookup
+	projectID := uuid.New()
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	params, err := getSuperviseParams(nil, []string{})
+
+	s.NoError(err)
+	s.NotNil(params)
+	s.Equal(projectID, params.ProjectID)
+	s.Equal(3, params.MaxRerunAttempts)
+	s.Equal(50, params.RerunMaxFailurePercent)
+	s.Equal("test-batch-id", params.BatchID)
+	s.Equal("test-batch-name", params.BatchName)
+	s.Equal(1*time.Hour, params.Timeout)
+	s.Equal(30*time.Second, params.PollInterval)
+	s.Len(params.ConflatedStates, 2)
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_InvalidMaxRerunAttempts() {
+	// Set up viper with invalid max rerun attempts
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 0) // Invalid: must be at least 1
+	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunOnStatesKey, "Error")
+
+	// Mock the project lookup - since "test-project" is not a UUID, it will call ListProjectsWithResponse
+	projectID := uuid.New()
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true // Accept any ListProjectsParams
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	params, err := getSuperviseParams(nil, []string{})
+
+	s.Error(err)
+	s.Nil(params)
+	s.Contains(err.Error(), "max-rerun-attempts must be at least 1")
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_InvalidFailurePercent() {
+	// Set up viper with invalid failure percent
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 1)
+	viper.Set(batchRerunMaxFailurePercentKey, 101) // Invalid: must be 1-100
+	viper.Set(batchRerunOnStatesKey, "Error")
+
+	// Mock the project lookup
+	projectID := uuid.New()
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	params, err := getSuperviseParams(nil, []string{})
+
+	s.Error(err)
+	s.Nil(params)
+	s.Contains(err.Error(), "rerun-max-failure-percent must be between 1 and 100")
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_ZeroFailurePercent() {
+	// Set up viper with zero failure percent
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 1)
+	viper.Set(batchRerunMaxFailurePercentKey, 0) // Invalid: must be 1-100
+	viper.Set(batchRerunOnStatesKey, "Error")
+
+	// Mock the project lookup
+	projectID := uuid.New()
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	params, err := getSuperviseParams(nil, []string{})
+
+	s.Error(err)
+	s.Nil(params)
+	s.Contains(err.Error(), "rerun-max-failure-percent must be between 1 and 100")
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_ValidFailurePercentBoundaries() {
+	// Test boundary values for failure percent
+	testCases := []int{1, 50, 100}
+
+	for _, failurePercent := range testCases {
+		viper.Set(batchProjectKey, "test-project")
+		viper.Set(batchMaxRerunAttemptsKey, 1)
+		viper.Set(batchRerunMaxFailurePercentKey, failurePercent)
+		viper.Set(batchRerunOnStatesKey, "Error")
+
+		// Mock the project lookup
+		projectID := uuid.New()
+		s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+			return true
+		})).Return(
+			&api.ListProjectsResponse{
+				HTTPResponse: &http.Response{
+					StatusCode: http.StatusOK,
+				},
+				JSON200: &api.ListProjectsOutput{
+					Projects: &[]api.Project{
+						{
+							ProjectID: projectID,
+							Name:      "test-project",
+						},
+					},
+				},
+			}, nil).Once() // Use Once() to avoid mock conflicts in the loop
+
+		params, err := getSuperviseParams(nil, []string{})
+
+		s.NoError(err, "Should not error for failure percent %d", failurePercent)
+		s.NotNil(params)
+		s.Equal(failurePercent, params.RerunMaxFailurePercent)
+	}
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_ValidMaxRerunAttemptsBoundaries() {
+	// Test boundary values for max rerun attempts
+	testCases := []int{1, 5, 10}
+
+	for _, maxAttempts := range testCases {
+		viper.Set(batchProjectKey, "test-project")
+		viper.Set(batchMaxRerunAttemptsKey, maxAttempts)
+		viper.Set(batchRerunMaxFailurePercentKey, 50)
+		viper.Set(batchRerunOnStatesKey, "Error")
+
+		// Mock the project lookup
+		projectID := uuid.New()
+		s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+			return true
+		})).Return(
+			&api.ListProjectsResponse{
+				HTTPResponse: &http.Response{
+					StatusCode: http.StatusOK,
+				},
+				JSON200: &api.ListProjectsOutput{
+					Projects: &[]api.Project{
+						{
+							ProjectID: projectID,
+							Name:      "test-project",
+						},
+					},
+				},
+			}, nil).Once() // Use Once() to avoid mock conflicts in the loop
+
+		params, err := getSuperviseParams(nil, []string{})
+
+		s.NoError(err, "Should not error for max attempts %d", maxAttempts)
+		s.NotNil(params)
+		s.Equal(maxAttempts, params.MaxRerunAttempts)
+	}
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_DefaultTimeouts() {
+	// Test that default timeouts are parsed correctly
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 1)
+	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunOnStatesKey, "Error")
+	// Don't set timeout and poll interval to test defaults
+
+	// Mock the project lookup
+	projectID := uuid.New()
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	params, err := getSuperviseParams(nil, []string{})
+
+	s.NoError(err)
+	s.NotNil(params)
+	// Default values should be parsed (these depend on your viper defaults)
+	s.NotZero(params.Timeout)
+	s.NotZero(params.PollInterval)
+}
+
+func (s *CommandsSuite) TestGetSuperviseParams_CustomTimeouts() {
+	// Test custom timeout values
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 1)
+	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchWaitTimeoutKey, "2h")
+	viper.Set(batchWaitPollKey, "45s")
+
+	// Mock the project lookup
+	projectID := uuid.New()
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	params, err := getSuperviseParams(nil, []string{})
+
+	s.NoError(err)
+	s.NotNil(params)
+	s.Equal(2*time.Hour, params.Timeout)
+	s.Equal(45*time.Second, params.PollInterval)
 }

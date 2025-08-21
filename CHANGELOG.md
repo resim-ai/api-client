@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-### v0.23.3 - August 21, 2025
+### v0.24.0 - August 21, 2025
 
 - Add support for specifying a metrics set when launching a batch, report, or parameter sweep
 

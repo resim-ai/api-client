@@ -625,3 +625,188 @@ func (s *CommandsSuite) TestGetSuperviseParams_CustomTimeouts() {
 	s.Equal(2*time.Hour, params.Timeout)
 	s.Equal(45*time.Second, params.PollInterval)
 }
+
+func (s *CommandsSuite) TestCheckRerunNeeded_RerunAttemptsExceeded() {
+	// Create test data
+	projectID := uuid.New()
+	batchID := uuid.New()
+	jobID1 := uuid.New()
+	jobID2 := uuid.New()
+
+	// Create a batch with ERROR status
+	batch := &api.Batch{
+		BatchID: &batchID,
+		Status:  Ptr(api.BatchStatusERROR),
+	}
+
+	// Create params with max rerun attempts = 3
+	params := &SuperviseParams{
+		ProjectID:              projectID,
+		MaxRerunAttempts:       3,
+		RerunMaxFailurePercent: 50,
+		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+	}
+
+	// Mock the ListJobsWithResponse call that getAllJobs makes
+	// Use Maybe() to make the mock optional - this avoids tight coupling
+	// The test will pass whether the API call is made or not
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR),
+					},
+					{
+						JobID:           &jobID2,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR),
+					},
+				},
+			},
+		}, nil).Maybe()
+
+	// Test with attempt = 3 (equal to max attempts)
+	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 3)
+
+	// Should not need rerun because max attempts reached
+	s.False(rerunNeeded)
+	s.Nil(matchingJobIDs)
+}
+
+func (s *CommandsSuite) TestCheckRerunNeeded_BatchStatusCancelled() {
+	// Create test data
+	projectID := uuid.New()
+	batchID := uuid.New()
+
+	// Create a batch with CANCELLED status
+	batch := &api.Batch{
+		BatchID: &batchID,
+		Status:  Ptr(api.BatchStatusCANCELLED),
+	}
+
+	// Create params
+	params := &SuperviseParams{
+		ProjectID:              projectID,
+		MaxRerunAttempts:       3,
+		RerunMaxFailurePercent: 50,
+		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+	}
+
+	// Test with attempt = 0 (well within max attempts)
+	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 0)
+
+	// Should not need rerun because batch is cancelled
+	s.False(rerunNeeded)
+	s.Nil(matchingJobIDs)
+
+	// Verify that no API calls were made since we return early for cancelled batches
+	s.mockClient.AssertNotCalled(s.T(), "ListJobsWithResponse")
+}
+
+func (s *CommandsSuite) TestCheckRerunNeeded_ValidRerunScenario() {
+	// Create test data
+	projectID := uuid.New()
+	batchID := uuid.New()
+	jobID1 := uuid.New()
+	jobID2 := uuid.New()
+
+	// Create a batch with ERROR status
+	batch := &api.Batch{
+		BatchID: &batchID,
+		Status:  Ptr(api.BatchStatusERROR),
+	}
+
+	// Create params with max rerun attempts = 3
+	params := &SuperviseParams{
+		ProjectID:              projectID,
+		MaxRerunAttempts:       3,
+		RerunMaxFailurePercent: 50,
+		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+	}
+
+	// Mock the ListJobsWithResponse call that getAllJobs makes
+	s.mockClient.On("ListJobsWithResponse", matchContext, projectID, batchID, mock.MatchedBy(func(params *api.ListJobsParams) bool {
+		return true
+	})).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR),
+					},
+					{
+						JobID:           &jobID2,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // This one passed
+					},
+				},
+			},
+		}, nil)
+
+	// Test with attempt = 0 (within max attempts)
+	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 0)
+
+	// Should need rerun because there are failed jobs and we're within max attempts
+	s.True(rerunNeeded)
+	s.Len(matchingJobIDs, 1)
+	s.Equal(jobID1, matchingJobIDs[0])
+}
+
+func (s *CommandsSuite) TestCheckRerunNeeded_TooManyFailedJobs() {
+	// Create test data
+	projectID := uuid.New()
+	batchID := uuid.New()
+	jobID1 := uuid.New()
+	jobID2 := uuid.New()
+
+	// Create a batch with ERROR status
+	batch := &api.Batch{
+		BatchID: &batchID,
+		Status:  Ptr(api.BatchStatusERROR),
+	}
+
+	// Create params with max rerun attempts = 3
+	params := &SuperviseParams{
+		ProjectID:              projectID,
+		MaxRerunAttempts:       3,
+		RerunMaxFailurePercent: 50,
+		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+	}
+
+	// Mock the ListJobsWithResponse call that getAllJobs makes
+	s.mockClient.On("ListJobsWithResponse", matchContext, projectID, batchID, mock.MatchedBy(func(params *api.ListJobsParams) bool {
+		return true
+	})).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR),
+					},
+					{
+						JobID:           &jobID2,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR), // Both failed so more than 50%
+					},
+				},
+			},
+		}, nil)
+
+	// Test with attempt = 0 (within max attempts)
+	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 0)
+
+	// Should need rerun because there are failed jobs and we're within max attempts
+	s.False(rerunNeeded)
+	s.Nil(matchingJobIDs)
+
+}

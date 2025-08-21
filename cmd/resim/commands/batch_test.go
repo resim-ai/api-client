@@ -805,8 +805,605 @@ func (s *CommandsSuite) TestCheckRerunNeeded_TooManyFailedJobs() {
 	// Test with attempt = 0 (within max attempts)
 	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 0)
 
-	// Should need rerun because there are failed jobs and we're within max attempts
+	// Should not need rerun because there are more than 50% failed jobs
 	s.False(rerunNeeded)
 	s.Nil(matchingJobIDs)
 
+}
+
+func (s *CommandsSuite) TestSuperviseBatch_Success() {
+	// Create test data first
+	projectID := uuid.New()
+	batchID := uuid.New()
+
+	// Set up viper with valid parameters
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 3)
+	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchWaitTimeoutKey, "1h")
+	viper.Set(batchWaitPollKey, "100ms")
+	viper.Set(batchIDKey, batchID.String()) // Use actual UUID
+	viper.Set(batchNameKey, "test-batch-name")
+
+	// Mock the project lookup
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	// Mock the batch status transitions: RUNNING -> SUCCEEDED
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // First call: still running
+			},
+		}, nil).Once()
+
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusSUCCEEDED), // Second call: succeeded
+			},
+		}, nil).Once()
+
+	// Mock the jobs list call (for checkRerunNeeded)
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{}, // No failed jobs
+			},
+		}, nil).Maybe()
+
+	// Call the supervise function
+	result := actualsuperviseBatch(nil, []string{})
+
+	// Should succeed with no error
+	s.NoError(result.Error)
+	s.NotNil(result.Batch)
+	s.Equal(api.BatchStatusSUCCEEDED, *result.Batch.Status)
+}
+
+func (s *CommandsSuite) TestSuperviseBatch_Cancelled() {
+	// Create test data first
+	projectID := uuid.New()
+	batchID := uuid.New()
+
+	// Set up viper with valid parameters
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 3)
+	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchWaitTimeoutKey, "1h")
+	viper.Set(batchWaitPollKey, "100ms")
+	viper.Set(batchIDKey, batchID.String()) // Use actual UUID
+	viper.Set(batchNameKey, "test-batch-name")
+
+	// Mock the project lookup
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	// Mock the batch status transitions: RUNNING -> CANCELLED
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // First call: still running
+			},
+		}, nil).Once()
+
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusCANCELLED), // Second call: cancelled
+			},
+		}, nil).Once()
+
+	// Mock the jobs list call (for checkRerunNeeded)
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{}, // No failed jobs
+			},
+		}, nil).Maybe()
+
+	// Call the supervise function
+	result := actualsuperviseBatch(nil, []string{})
+
+	// Should succeed with cancelled batch (no error, but batch is cancelled)
+	s.NoError(result.Error)
+	s.NotNil(result.Batch)
+	s.Equal(api.BatchStatusCANCELLED, *result.Batch.Status)
+}
+
+func (s *CommandsSuite) TestSuperviseBatch_Timeout() {
+	// Create test data first
+	projectID := uuid.New()
+	batchID := uuid.New()
+
+	// Set up viper with valid parameters
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 3)
+	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchWaitTimeoutKey, "1s") // Short timeout for testing
+	viper.Set(batchWaitPollKey, "500ms")
+	viper.Set(batchIDKey, batchID.String()) // Use actual UUID
+	viper.Set(batchNameKey, "test-batch-name")
+
+	// Mock the project lookup
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	// Mock the batch status to always be running (will cause timeout)
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // Always running
+			},
+		}, nil)
+
+	// Call the supervise function
+	result := actualsuperviseBatch(nil, []string{})
+
+	// Should fail with timeout error
+	s.Error(result.Error)
+	s.Nil(result.Batch)
+	s.Contains(result.Error.Error(), "timeout")
+}
+
+func (s *CommandsSuite) TestSuperviseBatch_TooManyFailedJobs_NoRerun() {
+	// Create test data first
+	projectID := uuid.New()
+	batchID := uuid.New()
+	jobID1 := uuid.New()
+	jobID2 := uuid.New()
+	jobID3 := uuid.New()
+
+	// Set up viper with valid parameters
+	// Set failure threshold to 33% - with 2 out of 3 jobs failing (66.7%), no rerun should happen
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 3)
+	viper.Set(batchRerunMaxFailurePercentKey, 33) // 33% threshold
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchWaitTimeoutKey, "1h")
+	viper.Set(batchWaitPollKey, "100ms")
+	viper.Set(batchIDKey, batchID.String()) // Use actual UUID
+	viper.Set(batchNameKey, "test-batch-name")
+
+	// Mock the project lookup
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	// Mock the batch status transitions: RUNNING -> ERROR
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // First call: still running
+			},
+		}, nil).Once()
+
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusERROR), // Second call: error status
+			},
+		}, nil).Once()
+
+	// Mock the jobs list call with 3 jobs: 2 failed (Error status), 1 succeeded
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR), // Failed job 1
+					},
+					{
+						JobID:           &jobID2,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR), // Failed job 2
+					},
+					{
+						JobID:           &jobID3,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Successful job
+					},
+				},
+			},
+		}, nil).Once()
+
+	// Call the supervise function
+	result := actualsuperviseBatch(nil, []string{})
+
+	// Should succeed with no error, but batch has ERROR status
+	// No rerun should be attempted because failure rate (66.7%) exceeds threshold (33%)
+	s.NoError(result.Error)
+	s.NotNil(result.Batch)
+	s.Equal(api.BatchStatusERROR, *result.Batch.Status)
+}
+
+func (s *CommandsSuite) TestSuperviseBatch_RerunSuccess() {
+	// Create test data first
+	projectID := uuid.New()
+	batchID := uuid.New()
+	rerunBatchID := uuid.New()
+	jobID1 := uuid.New()
+	jobID2 := uuid.New()
+	jobID3 := uuid.New()
+
+	// Set up viper with valid parameters
+	// Set failure threshold to 33% - with 1 out of 3 jobs failing (33.3%), rerun should happen
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 3)
+	viper.Set(batchRerunMaxFailurePercentKey, 33) // 33% threshold
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchWaitTimeoutKey, "1h")
+	viper.Set(batchWaitPollKey, "100ms")
+	viper.Set(batchIDKey, batchID.String()) // Use actual UUID
+	viper.Set(batchNameKey, "test-batch-name")
+
+	// Mock the project lookup
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	// Mock the initial batch status transitions: RUNNING -> ERROR
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // First call: still running
+			},
+		}, nil).Once()
+
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusERROR), // Second call: error status
+			},
+		}, nil).Once()
+
+	// Mock the jobs list call for initial batch with 3 jobs: 1 failed (Error status), 2 succeeded
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR), // Failed job 1
+					},
+					{
+						JobID:           &jobID2,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Successful job 2
+					},
+					{
+						JobID:           &jobID3,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Successful job 3
+					},
+				},
+			},
+		}, nil).Once()
+
+	// Mock the rerun batch submission
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.RerunBatchOutput{
+				BatchID: &rerunBatchID,
+			},
+		}, nil).Once()
+
+	// Mock the rerun batch status transitions: RUNNING -> SUCCEEDED
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, rerunBatchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &rerunBatchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // First call: still running
+			},
+		}, nil).Once()
+
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, rerunBatchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &rerunBatchID,
+				Status:  Ptr(api.BatchStatusSUCCEEDED), // Second call: succeeded
+			},
+		}, nil).Once()
+
+	// Mock the jobs list call for rerun batch with all jobs succeeded
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Now succeeded
+					},
+				},
+			},
+		}, nil).Once()
+
+	// Call the supervise function
+	result := actualsuperviseBatch(nil, []string{})
+
+	// Should succeed with no error, and batch has SUCCEEDED status
+	s.NoError(result.Error)
+	s.NotNil(result.Batch)
+	s.Equal(api.BatchStatusSUCCEEDED, *result.Batch.Status)
+}
+
+func (s *CommandsSuite) TestSuperviseBatch_RerunFails_MaxAttemptsReached() {
+	// Create test data first
+	projectID := uuid.New()
+	batchID := uuid.New()
+	rerunBatchID := uuid.New()
+	jobID1 := uuid.New()
+	jobID2 := uuid.New()
+	jobID3 := uuid.New()
+
+	// Set up viper with valid parameters
+	// Set max rerun attempts to 1 - after first rerun fails, no more reruns should happen
+	viper.Set(batchProjectKey, "test-project")
+	viper.Set(batchMaxRerunAttemptsKey, 1)        // Only 1 rerun attempt allowed
+	viper.Set(batchRerunMaxFailurePercentKey, 33) // 33% threshold
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchWaitTimeoutKey, "1h")
+	viper.Set(batchWaitPollKey, "100ms")
+	viper.Set(batchIDKey, batchID.String()) // Use actual UUID
+	viper.Set(batchNameKey, "test-batch-name")
+
+	// Mock the project lookup
+	s.mockClient.On("ListProjectsWithResponse", matchContext, mock.MatchedBy(func(params *api.ListProjectsParams) bool {
+		return true
+	})).Return(
+		&api.ListProjectsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListProjectsOutput{
+				Projects: &[]api.Project{
+					{
+						ProjectID: projectID,
+						Name:      "test-project",
+					},
+				},
+			},
+		}, nil)
+
+	// Mock the initial batch status transitions: RUNNING -> ERROR
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // First call: still running
+			},
+		}, nil).Once()
+
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, batchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &batchID,
+				Status:  Ptr(api.BatchStatusERROR), // Second call: error status
+			},
+		}, nil).Once()
+
+	// Mock the jobs list call for initial batch with 3 jobs: 1 failed (Error status), 2 succeeded
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR), // Failed job 1
+					},
+					{
+						JobID:           &jobID2,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Successful job 2
+					},
+					{
+						JobID:           &jobID3,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Successful job 3
+					},
+				},
+			},
+		}, nil).Once()
+
+	// Mock the rerun batch submission
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.RerunBatchOutput{
+				BatchID: &rerunBatchID,
+			},
+		}, nil).Once()
+
+	// Mock the rerun batch status transitions: RUNNING -> ERROR
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, rerunBatchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &rerunBatchID,
+				Status:  Ptr(api.BatchStatusEXPERIENCESRUNNING), // First call: still running
+			},
+		}, nil).Once()
+
+	s.mockClient.On("GetBatchWithResponse", matchContext, projectID, rerunBatchID).Return(
+		&api.GetBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.Batch{
+				BatchID: &rerunBatchID,
+				Status:  Ptr(api.BatchStatusERROR), // Second call: error status again
+			},
+		}, nil).Once()
+
+	// Mock the jobs list call for rerun batch with 1 job still failed
+	s.mockClient.On("ListJobsWithResponse", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(
+		&api.ListJobsResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK,
+			},
+			JSON200: &api.ListJobsOutput{
+				Jobs: &[]api.Job{
+					{
+						JobID:           &jobID1,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusERROR), // Still failed
+					},
+					{
+						JobID:           &jobID2,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Successful job 2
+					},
+					{
+						JobID:           &jobID3,
+						ConflatedStatus: Ptr(api.ConflatedJobStatusPASSED), // Successful job 3
+					},
+				},
+			},
+		}, nil).Maybe() // this shouldnt be hit because we have already exhausted max rerun attempts
+
+	// Call the supervise function
+	result := actualsuperviseBatch(nil, []string{})
+
+	// Should succeed with no error, but batch has ERROR status
+	// No more reruns should be attempted because max attempts (1) reached
+	s.NoError(result.Error)
+	s.NotNil(result.Batch)
+	s.Equal(api.BatchStatusERROR, *result.Batch.Status)
 }

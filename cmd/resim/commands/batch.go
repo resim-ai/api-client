@@ -363,14 +363,14 @@ func getSuperviseParams(ccmd *cobra.Command, args []string) (*SuperviseParams, e
 }
 
 func checkRerunNeeded(batch *api.Batch, params *SuperviseParams, attempt int) (bool, []uuid.UUID) {
+	// Check if we've reached max attempts first (before any API calls)
+	if attempt >= params.MaxRerunAttempts {
+		return false, nil // Max attempts reached, no more reruns
+	}
+
 	// If batch is cancelled, do not rerun
 	if *batch.Status == api.BatchStatusCANCELLED {
 		return false, nil // No rerun needed for cancelled batch
-	}
-
-	// Check if we've reached max attempts
-	if attempt >= params.MaxRerunAttempts {
-		return false, nil // Max attempts reached, no more reruns
 	}
 
 	// Get all jobs and filter by status

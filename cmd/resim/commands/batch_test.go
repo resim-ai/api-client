@@ -110,7 +110,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_Success() {
 			},
 		}, nil)
 
-	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", timeout, pollInterval)
 
 	s.NoError(err)
 	s.NotNil(batch)
@@ -138,7 +138,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_ErrorStatus() {
 			},
 		}, nil)
 
-	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", timeout, pollInterval)
 
 	s.NoError(err)
 	s.NotNil(batch)
@@ -166,7 +166,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_CancelledStatus() {
 			},
 		}, nil)
 
-	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", timeout, pollInterval)
 
 	s.NoError(err)
 	s.NotNil(batch)
@@ -192,7 +192,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_NoStatusReturned() {
 			},
 		}, nil)
 
-	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", timeout, pollInterval)
 
 	s.Error(err)
 	s.Nil(batch)
@@ -217,7 +217,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_UnknownStatus() {
 			},
 		}, nil)
 
-	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", timeout, pollInterval)
 
 	s.Error(err)
 	s.Nil(batch)
@@ -242,7 +242,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_Timeout() {
 			},
 		}, nil)
 
-	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", timeout, pollInterval)
 
 	s.Error(err)
 	s.NotNil(batch) // Should return the last batch state
@@ -295,7 +295,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_StateTransition() {
 			},
 		}, nil).Once()
 
-	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, batchID.String(), "", timeout, pollInterval)
 
 	s.NoError(err)
 	s.NotNil(batch)
@@ -327,7 +327,7 @@ func (s *CommandsSuite) TestWaitForBatchCompletion_ByName() {
 			},
 		}, nil)
 
-	batch, err := waitForBatchCompletion(projectID, "", batchName, &timeout, pollInterval)
+	batch, err := waitForBatchCompletion(projectID, "", batchName, timeout, pollInterval)
 
 	s.NoError(err)
 	s.NotNil(batch)

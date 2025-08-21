@@ -80,7 +80,7 @@ var (
 	superviseBatchCmd = &cobra.Command{
 		Use:   "supervise",
 		Short: "supervise - waits on batch completion and reruns failed tests",
-		Long:  ``,
+		Long:  `Awaits batch completion with rerun capability and returns an exit code corresponding to the final batch status. 1 = internal error, 0 = SUCCEEDED, 2=ERROR, 5=CANCELLED, 6=timed out)`,
 		Run:   superviseBatch,
 	}
 )
@@ -310,7 +310,25 @@ func filterJobsByStatus(jobs []api.Job, conflatedStatuses []api.ConflatedJobStat
 	return jobIDs
 }
 
-func superviseBatch(ccmd *cobra.Command, args []string) {
+// SuperviseResult contains the result information from actualsuperviseBatch
+type SuperviseResult struct {
+	Batch *api.Batch
+	Error error
+}
+
+// SuperviseParams contains the parameters needed for actualsuperviseBatch
+type SuperviseParams struct {
+	ProjectID              uuid.UUID
+	MaxRerunAttempts       int
+	RerunMaxFailurePercent int
+	ConflatedStates        []api.ConflatedJobStatus
+	Timeout                time.Duration
+	PollInterval           time.Duration
+	BatchID                string
+	BatchName              string
+}
+
+func getSuperviseParams(ccmd *cobra.Command, args []string) (*SuperviseParams, error) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	maxRerunAttempts := viper.GetInt(batchMaxRerunAttemptsKey)
 	rerunMaxFailurePercent := viper.GetInt(batchRerunMaxFailurePercentKey)
@@ -318,32 +336,46 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 
 	// Validate rerun-max-failure-percent is between 1 and 100
 	if rerunMaxFailurePercent < 1 || rerunMaxFailurePercent > 100 {
-		log.Fatalf("rerun-max-failure-percent must be between 1 and 100, got: %d", rerunMaxFailurePercent)
+		return nil, fmt.Errorf("rerun-max-failure-percent must be between 1 and 100, got: %d", rerunMaxFailurePercent)
 	}
 
 	if maxRerunAttempts < 1 {
-		log.Fatalf("max-rerun-attempts must be at least 1, got: %d", maxRerunAttempts)
+		return nil, fmt.Errorf("max-rerun-attempts must be at least 1, got: %d", maxRerunAttempts)
 	}
 
 	// Parse rerun states
 	conflatedStates := parseRerunStates(rerunOnStates)
 
-	// Wait for initial batch completion
-	pollWait, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
+	// Parse timeout and poll interval
+	pollInterval, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
 	timeout, _ := time.ParseDuration(viper.GetString(batchWaitTimeoutKey))
-	batch, err := waitForBatchCompletion(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey), timeout, pollWait)
 
-	if err != nil {
-		log.Fatalf("Initial batch failed: %v", err)
+	return &SuperviseParams{
+		ProjectID:              projectID,
+		MaxRerunAttempts:       maxRerunAttempts,
+		RerunMaxFailurePercent: rerunMaxFailurePercent,
+		ConflatedStates:        conflatedStates,
+		Timeout:                timeout,
+		PollInterval:           pollInterval,
+		BatchID:                viper.GetString(batchIDKey),
+		BatchName:              viper.GetString(batchNameKey),
+	}, nil
+}
+
+func checkRerunNeeded(batch *api.Batch, params *SuperviseParams, attempt int) (bool, []uuid.UUID) {
+	// If batch is cancelled, do not rerun
+	if *batch.Status == api.BatchStatusCANCELLED {
+		return false, nil // No rerun needed for cancelled batch
 	}
 
-	// TODO: Handle batch cancelled case when refactoring to state machine approach
-
-	fmt.Printf("Initial batch completed with status: %s\n", *batch.Status)
+	// Check if we've reached max attempts
+	if attempt >= params.MaxRerunAttempts {
+		return false, nil // Max attempts reached, no more reruns
+	}
 
 	// Get all jobs and filter by status
-	allJobs := getAllJobs(projectID, *batch.BatchID)
-	matchingJobIDs := filterJobsByStatus(allJobs, conflatedStates)
+	allJobs := getAllJobs(params.ProjectID, *batch.BatchID)
+	matchingJobIDs := filterJobsByStatus(allJobs, params.ConflatedStates)
 	fmt.Printf("Found %d job IDs matching rerun states: %v\n", len(matchingJobIDs), matchingJobIDs)
 
 	// Check threshold before rerunning
@@ -352,45 +384,111 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 	if totalJobs > 0 {
 		failedPercentage := (failedJobs * 100) / totalJobs
 		fmt.Printf("Failed job percentage: %d%% (%d/%d jobs)\n", failedPercentage, failedJobs, totalJobs)
-		if failedPercentage > rerunMaxFailurePercent {
-			log.Fatalf("Failed job percentage (%d%%) exceeds threshold (%d%%). Not rerunning.", failedPercentage, rerunMaxFailurePercent)
+		if failedPercentage > params.RerunMaxFailurePercent {
+			return false, nil // Threshold exceeded, no rerun needed
 		}
 	}
 
-	// Rerun logic
-	for attempt := 1; attempt <= maxRerunAttempts; attempt++ {
+	// If no jobs need rerunning, we're done
+	if len(matchingJobIDs) == 0 {
+		return false, nil // No rerun needed
+	}
 
-		// Check if there are any jobs to rerun
-		if len(matchingJobIDs) == 0 {
-			fmt.Println("No jobs match the rerun states. Exiting.")
-			return
+	return true, matchingJobIDs // Rerun needed
+}
+
+func actualsuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
+
+	// Get parameters
+	params, err := getSuperviseParams(ccmd, args)
+	if err != nil {
+		return &SuperviseResult{
+			Error: err,
 		}
-		fmt.Printf("Attempting rerun %d/%d\n", attempt, maxRerunAttempts)
+	}
 
-		// Submit rerun with the matching job IDs
-		response := submitBatchRerun(projectID, *batch.BatchID, matchingJobIDs)
+	// Unified loop for initial batch and reruns
+	var batch *api.Batch
+
+	for attempt := 0; attempt <= params.MaxRerunAttempts; attempt++ {
+		var err error
+		fmt.Printf("Attempt %d\n", attempt)
+
+		batch, err = waitForBatchCompletion(params.ProjectID, params.BatchID, params.BatchName, params.Timeout, params.PollInterval)
+
+		// Check timeout
+		if err != nil {
+			if timeoutErr, ok := err.(*TimeoutError); ok {
+				return &SuperviseResult{
+					Error: timeoutErr,
+				}
+			} else {
+				return &SuperviseResult{
+					Error: fmt.Errorf("Batch failed: %v", err),
+				}
+			}
+		}
+
+		fmt.Printf("Batch completed with status: %s\n", *batch.Status)
+
+		// Check if rerun is required (includes max attempts check)
+		rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, attempt)
+		if !rerunNeeded {
+			return &SuperviseResult{
+				Batch: batch,
+			}
+		}
+
+		response := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs)
 		newBatchID := response.JSON200.BatchID
 		fmt.Printf("Submitted rerun batch: %s\n", newBatchID.String())
 
-		// Wait for rerun to complete
-		completedBatch, err := waitForBatchCompletion(projectID, newBatchID.String(), "", timeout, pollWait)
-		if err != nil {
-			log.Printf("Rerun %d failed: %v", attempt, err)
-			continue
-		}
-
-		// TODO: Handle batch cancelled case when refactoring to state machine approach
-
-		fmt.Printf("Rerun %d completed with status: %s\n", attempt, *completedBatch.Status)
-
-		// Get job IDs for next rerun attempt
-		allJobs = getAllJobs(projectID, *completedBatch.BatchID)
-		matchingJobIDs = filterJobsByStatus(allJobs, conflatedStates)
-		fmt.Printf("Found %d job IDs for next rerun attempt: %v\n", len(matchingJobIDs), matchingJobIDs)
-
+		// Update batch ID for next iteration
+		params.BatchID = newBatchID.String()
+		params.BatchName = "" // Clear batch name since we're using ID now
 	}
 
-	log.Fatalf("All %d rerun attempts failed", maxRerunAttempts)
+	// This should never happen, but we'll return the batch if we get here
+	return &SuperviseResult{
+		Batch: batch,
+	}
+}
+
+func superviseBatch(ccmd *cobra.Command, args []string) {
+
+	result := actualsuperviseBatch(ccmd, args)
+
+	if result.Error != nil {
+		// Check if it's a timeout error
+		if timeoutErr, ok := result.Error.(*TimeoutError); ok {
+			log.Println("Batch timed out:", timeoutErr.message)
+			os.Exit(6)
+		}
+		// other errors get an exit code of 1
+		log.Fatal(result.Error)
+	}
+
+	// Set the batch ID for future reference
+	if result.Batch != nil && result.Batch.BatchID != nil {
+		viper.Set(batchIDKey, result.Batch.BatchID.String())
+	}
+
+	// Exit with appropriate code based on final status
+	if result.Batch != nil && result.Batch.Status != nil {
+		switch *result.Batch.Status {
+		case api.BatchStatusSUCCEEDED:
+			log.Println("Batch Completed Successfully")
+			os.Exit(0)
+		case api.BatchStatusERROR:
+			os.Exit(2)
+		case api.BatchStatusCANCELLED:
+			os.Exit(5)
+		default:
+			log.Fatal("unknown batch status: ", *result.Batch.Status)
+		}
+	} else {
+		log.Fatal("no batch status returned")
+	}
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {

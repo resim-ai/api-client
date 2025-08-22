@@ -452,6 +452,9 @@ type CompareBatchesStatusFilter string
 // ConflatedJobStatus defines model for conflatedJobStatus.
 type ConflatedJobStatus string
 
+// ContainerName defines model for containerName.
+type ContainerName = string
+
 // CreateBranchInput defines model for createBranchInput.
 type CreateBranchInput struct {
 	BranchType BranchType `json:"branchType"`
@@ -581,10 +584,11 @@ type CustomMetric struct {
 
 // DebugExperienceInput defines model for debugExperienceInput.
 type DebugExperienceInput struct {
-	BatchID     *BatchID     `json:"batchID,omitempty"`
-	BuildID     *BuildID     `json:"buildID,omitempty"`
-	PoolLabels  *PoolLabels  `json:"poolLabels,omitempty"`
-	TestSuiteID *TestSuiteID `json:"testSuiteID,omitempty"`
+	BatchID     *BatchID         `json:"batchID,omitempty"`
+	BuildID     *BuildID         `json:"buildID,omitempty"`
+	Containers  *[]ContainerName `json:"containers,omitempty"`
+	PoolLabels  *PoolLabels      `json:"poolLabels,omitempty"`
+	TestSuiteID *TestSuiteID     `json:"testSuiteID,omitempty"`
 }
 
 // DebugExperienceOutput defines model for debugExperienceOutput.
@@ -770,6 +774,7 @@ type Job struct {
 	StatusHistory                  *JobStatusHistory      `json:"statusHistory,omitempty"`
 	SystemID                       *SystemID              `json:"systemID,omitempty"`
 	UserID                         *UserID                `json:"userID,omitempty"`
+	WorkerID                       *string                `json:"workerID,omitempty"`
 }
 
 // JobID defines model for jobID.

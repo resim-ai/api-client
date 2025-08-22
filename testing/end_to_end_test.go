@@ -449,7 +449,7 @@ func listBranches(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{branchCommand, listCommand}
 }
 
-func createSystem(projectName string, systemName string, systemDescription string, buildVCPUs *int, buildGPUs *int, buildMemoryMiB *int, buildSharedMemoryMB *int, metricsBuildVCPUs *int, metricsBuildGPUs *int, metricsBuildMemoryMiB *int, metricsBuildSharedMemoryMB *int, github bool) []CommandBuilder {
+func createSystem(projectName string, systemName string, systemDescription string, buildVCPUs *int, buildGPUs *int, buildMemoryMiB *int, buildSharedMemoryMB *int, metricsBuildVCPUs *int, metricsBuildGPUs *int, metricsBuildMemoryMiB *int, metricsBuildSharedMemoryMB *int, architecture *string, github bool) []CommandBuilder {
 	systemCommand := CommandBuilder{
 		Command: "systems",
 	}
@@ -516,6 +516,12 @@ func createSystem(projectName string, systemName string, systemDescription strin
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--metrics-build-shared-memory-mb",
 			Value: fmt.Sprintf("%d", *metricsBuildSharedMemoryMB),
+		})
+	}
+	if architecture != nil && *architecture != "" {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--architecture",
+			Value: *architecture,
 		})
 	}
 	if github {
@@ -2632,7 +2638,7 @@ func TestSystems(t *testing.T) {
 	const metricsBuildGPUs = 10
 	const metricsBuildMemoryMiB = 900
 	const metricsBuildSharedMemoryMB = 1024
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), GithubFalse), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), nil, GithubFalse), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedSystem)
 	// Get the system:
 	output = s.runCommand(ts, getSystem(projectIDString, systemName), ExpectNoError)
@@ -2654,7 +2660,7 @@ func TestSystems(t *testing.T) {
 
 	// Validate that the defaults work:
 	system2Name := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, system2Name, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, system2Name, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedSystem)
 	// Get the system:
 	output = s.runCommand(ts, getSystem(projectIDString, system2Name), ExpectNoError)
@@ -2674,12 +2680,16 @@ func TestSystems(t *testing.T) {
 	ts.Empty(output.StdErr)
 
 	// Validate that missing name, project, or description returns errors:
-	output = s.runCommand(ts, createSystem(projectIDString, "", systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
+	output = s.runCommand(ts, createSystem(projectIDString, "", systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	ts.Contains(output.StdErr, EmptySystemName)
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "", nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	ts.Contains(output.StdErr, EmptySystemDescription)
-	output = s.runCommand(ts, createSystem(uuid.Nil.String(), systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
+	output = s.runCommand(ts, createSystem(uuid.Nil.String(), systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectError)
 	ts.Contains(output.StdErr, FailedToFindProject)
+
+	// Validate that invalid architecture returns errors:
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, Ptr("invalid"), GithubFalse), ExpectError)
+	ts.Contains(output.StdErr, "invalid architecture: invalid")
 
 	// Check we can list the systems, and our new system is in it:
 	output = s.runCommand(ts, listSystems(projectID), ExpectNoError)
@@ -2914,7 +2924,7 @@ func TestSystemCreateGithub(t *testing.T) {
 	// Now create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
 	const systemDescription = "test system description"
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// Get the system:
 	output = s.runCommand(ts, getSystem(projectIDString, systemName), ExpectNoError)
@@ -2998,7 +3008,7 @@ func TestBuildCreateUpdate(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the project ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -3087,7 +3097,7 @@ func TestBuildCreateWithBuildSpec(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the project ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -3168,7 +3178,7 @@ func TestBuildCreateGithub(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the project ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -3211,7 +3221,7 @@ func TestBuildCreateAutoCreateBranch(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -3251,13 +3261,13 @@ func TestExperienceCreate(t *testing.T) {
 
 	// Create two systems to add as part of the experience creation:
 	systemName1 := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName1, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName1, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString1 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
 	uuid.MustParse(systemIDString1)
 	systemName2 := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName2, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName2, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString2 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -3519,7 +3529,7 @@ func TestBatchAndLogs(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -3867,7 +3877,7 @@ func TestRerunBatch(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -4043,7 +4053,7 @@ func TestParameterizedBatch(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -4154,7 +4164,7 @@ func TestCreateSweepParameterNameAndValues(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -4364,7 +4374,7 @@ func TestCancelSweep(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -4457,13 +4467,13 @@ func TestCreateMetricsBuild(t *testing.T) {
 
 	// Create two systems to add as part of the experience creation:
 	systemName1 := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName1, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName1, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString1 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
 	uuid.MustParse(systemIDString1)
 	systemName2 := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName2, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName2, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString2 := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -4583,7 +4593,7 @@ func TestAliases(t *testing.T) {
 	branchID := uuid.MustParse(branchIDString)
 
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -4814,7 +4824,7 @@ func TestTestSuites(t *testing.T) {
 	const metricsBuildGPUs = 0
 	const metricsBuildMemoryMiB = 900
 	const metricsBuildSharedMemoryMB = 1024
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
 	uuid.MustParse(systemIDString)
@@ -5032,7 +5042,7 @@ func TestReports(t *testing.T) {
 	const metricsBuildGPUs = 0
 	const metricsBuildMemoryMiB = 900
 	const metricsBuildSharedMemoryMB = 1024
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, systemDescription, Ptr(buildVCPUs), Ptr(buildGPUs), Ptr(buildMemoryMiB), Ptr(buildSharedMemoryMB), Ptr(metricsBuildVCPUs), Ptr(metricsBuildGPUs), Ptr(metricsBuildMemoryMiB), Ptr(metricsBuildSharedMemoryMB), nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
 	uuid.MustParse(systemIDString)
@@ -5230,7 +5240,7 @@ func TestBatchWithZeroTimeout(t *testing.T) {
 
 	// Create the system
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
 	uuid.MustParse(systemIDString)
@@ -5297,7 +5307,7 @@ func TestLogIngest(t *testing.T) {
 	projectID := uuid.MustParse(projectIDString)
 	// Create the system
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
 
@@ -5770,7 +5780,7 @@ func TestCancelBatch(t *testing.T) {
 
 	// Create the system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]
@@ -5861,7 +5871,7 @@ func TestDebug(t *testing.T) {
 
 	// create a system:
 	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedSystem)
 	// We expect to be able to parse the system ID as a UUID
 	systemIDString := output.StdOut[len(GithubCreatedSystem) : len(output.StdOut)-1]

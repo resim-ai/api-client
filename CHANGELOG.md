@@ -4,6 +4,12 @@
 
 ### Unreleased
 
+### v0.25.0 - August 22, 2025
+
+#### Added
+
+- The `systems create` command now supports creating systems that use `arm64` as the architecture. The default is `amd64`, but `--architecture` can be used to run tests with builds that use `arm64`.
+
 ### v0.24.0 - August 21, 2025
 
 - Add support for specifying a metrics set when launching a batch, report, or parameter sweep

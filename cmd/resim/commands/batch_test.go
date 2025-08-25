@@ -341,7 +341,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_Valid() {
 	// Set up viper with valid parameters
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 3)
-	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error,Warning")
 	viper.Set(batchWaitTimeoutKey, "1h")
 	viper.Set(batchWaitPollKey, "30s")
@@ -373,7 +373,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_Valid() {
 	s.NotNil(params)
 	s.Equal(projectID, params.ProjectID)
 	s.Equal(3, params.MaxRerunAttempts)
-	s.Equal(50, params.RerunMaxFailurePercent)
+	s.Equal(50.0, params.RerunMaxFailurePercent)
 	s.Equal("test-batch-id", params.BatchID)
 	s.Equal("test-batch-name", params.BatchName)
 	s.Equal(1*time.Hour, params.Timeout)
@@ -385,7 +385,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_InvalidMaxRerunAttempts() {
 	// Set up viper with invalid max rerun attempts
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 0) // Invalid: must be at least 1
-	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error")
 
 	// Mock the project lookup - since "test-project" is not a UUID, it will call ListProjectsWithResponse
@@ -418,7 +418,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_InvalidFailurePercent() {
 	// Set up viper with invalid failure percent
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 1)
-	viper.Set(batchRerunMaxFailurePercentKey, 101) // Invalid: must be 1-100
+	viper.Set(batchRerunMaxFailurePercentKey, 101.0) // Invalid: must be 1-100
 	viper.Set(batchRerunOnStatesKey, "Error")
 
 	// Mock the project lookup
@@ -444,14 +444,14 @@ func (s *CommandsSuite) TestGetSuperviseParams_InvalidFailurePercent() {
 
 	s.Error(err)
 	s.Nil(params)
-	s.Contains(err.Error(), "rerun-max-failure-percent must be between 1 and 100")
+	s.Contains(err.Error(), "rerun-max-failure-percent must be greater than 0 and less than 100")
 }
 
 func (s *CommandsSuite) TestGetSuperviseParams_ZeroFailurePercent() {
 	// Set up viper with zero failure percent
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 1)
-	viper.Set(batchRerunMaxFailurePercentKey, 0) // Invalid: must be 1-100
+	viper.Set(batchRerunMaxFailurePercentKey, 0.0) // Invalid: must be > 0 and less than or equal to 100
 	viper.Set(batchRerunOnStatesKey, "Error")
 
 	// Mock the project lookup
@@ -477,7 +477,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_ZeroFailurePercent() {
 
 	s.Error(err)
 	s.Nil(params)
-	s.Contains(err.Error(), "rerun-max-failure-percent must be between 1 and 100")
+	s.Contains(err.Error(), "rerun-max-failure-percent must be greater than 0 and less than 100")
 }
 
 func (s *CommandsSuite) TestGetSuperviseParams_ValidFailurePercentBoundaries() {
@@ -487,7 +487,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_ValidFailurePercentBoundaries() {
 	for _, failurePercent := range testCases {
 		viper.Set(batchProjectKey, "test-project")
 		viper.Set(batchMaxRerunAttemptsKey, 1)
-		viper.Set(batchRerunMaxFailurePercentKey, failurePercent)
+		viper.Set(batchRerunMaxFailurePercentKey, float64(failurePercent))
 		viper.Set(batchRerunOnStatesKey, "Error")
 
 		// Mock the project lookup
@@ -513,7 +513,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_ValidFailurePercentBoundaries() {
 
 		s.NoError(err, "Should not error for failure percent %d", failurePercent)
 		s.NotNil(params)
-		s.Equal(failurePercent, params.RerunMaxFailurePercent)
+		s.Equal(float64(failurePercent), params.RerunMaxFailurePercent)
 	}
 }
 
@@ -524,7 +524,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_ValidMaxRerunAttemptsBoundaries()
 	for _, maxAttempts := range testCases {
 		viper.Set(batchProjectKey, "test-project")
 		viper.Set(batchMaxRerunAttemptsKey, maxAttempts)
-		viper.Set(batchRerunMaxFailurePercentKey, 50)
+		viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 		viper.Set(batchRerunOnStatesKey, "Error")
 
 		// Mock the project lookup
@@ -558,7 +558,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_DefaultTimeouts() {
 	// Test that default timeouts are parsed correctly
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 1)
-	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error")
 	// Don't set timeout and poll interval to test defaults
 
@@ -594,7 +594,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_CustomTimeouts() {
 	// Test custom timeout values
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 1)
-	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchWaitTimeoutKey, "2h")
 	viper.Set(batchWaitPollKey, "45s")
@@ -643,7 +643,7 @@ func (s *CommandsSuite) TestCheckRerunNeeded_RerunAttemptsExceeded() {
 	params := &SuperviseParams{
 		ProjectID:                projectID,
 		MaxRerunAttempts:         3,
-		RerunMaxFailurePercent:   50,
+		RerunMaxFailurePercent:   50.0,
 		UndesiredConflatedStates: []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
 	}
 
@@ -691,7 +691,7 @@ func (s *CommandsSuite) TestCheckRerunNeeded_BatchStatusCancelled() {
 	params := &SuperviseParams{
 		ProjectID:                projectID,
 		MaxRerunAttempts:         3,
-		RerunMaxFailurePercent:   50,
+		RerunMaxFailurePercent:   50.0,
 		UndesiredConflatedStates: []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
 	}
 
@@ -773,7 +773,7 @@ func (s *CommandsSuite) TestCheckRerunNeeded_TooManyFailedJobs() {
 	params := &SuperviseParams{
 		ProjectID:                projectID,
 		MaxRerunAttempts:         3,
-		RerunMaxFailurePercent:   50,
+		RerunMaxFailurePercent:   50.0,
 		UndesiredConflatedStates: []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
 	}
 
@@ -815,7 +815,7 @@ func (s *CommandsSuite) TestSuperviseBatch_Success() {
 	// Set up viper with valid parameters
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 3)
-	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchWaitTimeoutKey, "1h")
 	viper.Set(batchWaitPollKey, "100ms")
@@ -891,7 +891,7 @@ func (s *CommandsSuite) TestSuperviseBatch_Cancelled() {
 	// Set up viper with valid parameters
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 3)
-	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchWaitTimeoutKey, "1h")
 	viper.Set(batchWaitPollKey, "100ms")
@@ -967,7 +967,7 @@ func (s *CommandsSuite) TestSuperviseBatch_Timeout() {
 	// Set up viper with valid parameters
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 3)
-	viper.Set(batchRerunMaxFailurePercentKey, 50)
+	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchWaitTimeoutKey, "1s") // Short timeout for testing
 	viper.Set(batchWaitPollKey, "500ms")
@@ -1025,7 +1025,7 @@ func (s *CommandsSuite) TestSuperviseBatch_TooManyFailedJobs_NoRerun() {
 	// Set failure threshold to 33% - with 2 out of 3 jobs failing (66.7%), no rerun should happen
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 3)
-	viper.Set(batchRerunMaxFailurePercentKey, 33) // 33% threshold
+	viper.Set(batchRerunMaxFailurePercentKey, 34.0) // 33% threshold
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchWaitTimeoutKey, "1h")
 	viper.Set(batchWaitPollKey, "100ms")
@@ -1120,7 +1120,7 @@ func (s *CommandsSuite) TestSuperviseBatch_RerunSuccess() {
 	// Set failure threshold to 33% - with 1 out of 3 jobs failing (33.3%), rerun should happen
 	viper.Set(batchProjectKey, "test-project")
 	viper.Set(batchMaxRerunAttemptsKey, 3)
-	viper.Set(batchRerunMaxFailurePercentKey, 33) // 33% threshold
+	viper.Set(batchRerunMaxFailurePercentKey, 34.0) // 33% threshold
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchWaitTimeoutKey, "1h")
 	viper.Set(batchWaitPollKey, "100ms")
@@ -1263,8 +1263,8 @@ func (s *CommandsSuite) TestSuperviseBatch_RerunFails_MaxAttemptsReached() {
 	// Set up viper with valid parameters
 	// Set max rerun attempts to 1 - after first rerun fails, no more reruns should happen
 	viper.Set(batchProjectKey, "test-project")
-	viper.Set(batchMaxRerunAttemptsKey, 1)        // Only 1 rerun attempt allowed
-	viper.Set(batchRerunMaxFailurePercentKey, 33) // 33% threshold
+	viper.Set(batchMaxRerunAttemptsKey, 1)          // Only 1 rerun attempt allowed
+	viper.Set(batchRerunMaxFailurePercentKey, 34.0) // 33% threshold
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchWaitTimeoutKey, "1h")
 	viper.Set(batchWaitPollKey, "100ms")

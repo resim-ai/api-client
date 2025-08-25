@@ -189,7 +189,7 @@ func init() {
 	superviseBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
 	superviseBatchCmd.Flags().Int(batchMaxRerunAttemptsKey, 1, "Maximum number of rerun attempts for failed tests (default: 1)")
 	superviseBatchCmd.MarkFlagRequired(batchMaxRerunAttemptsKey)
-	superviseBatchCmd.Flags().Int(batchRerunMaxFailurePercentKey, 50, "Maximum percentage of failed jobs before stopping (1-100, default: 50)")
+	superviseBatchCmd.Flags().Float64(batchRerunMaxFailurePercentKey, 50, "Maximum percentage of failed jobs before stopping (1-100, default: 50)")
 	superviseBatchCmd.MarkFlagRequired(batchRerunMaxFailurePercentKey)
 	superviseBatchCmd.Flags().String(batchRerunOnStatesKey, "", "States to trigger rerun on (e.g. Warning, Error, Blocker)")
 	superviseBatchCmd.MarkFlagRequired(batchRerunOnStatesKey)
@@ -319,7 +319,7 @@ type SuperviseResult struct {
 type SuperviseParams struct {
 	ProjectID                uuid.UUID
 	MaxRerunAttempts         int
-	RerunMaxFailurePercent   int
+	RerunMaxFailurePercent   float64
 	UndesiredConflatedStates []api.ConflatedJobStatus
 	Timeout                  time.Duration
 	PollInterval             time.Duration
@@ -330,12 +330,12 @@ type SuperviseParams struct {
 func getSuperviseParams(ccmd *cobra.Command, args []string) (*SuperviseParams, error) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	maxRerunAttempts := viper.GetInt(batchMaxRerunAttemptsKey)
-	rerunMaxFailurePercent := viper.GetInt(batchRerunMaxFailurePercentKey)
+	rerunMaxFailurePercent := viper.GetFloat64(batchRerunMaxFailurePercentKey)
 	rerunOnStates := viper.GetString(batchRerunOnStatesKey)
 
-	// Validate rerun-max-failure-percent is between 1 and 100
-	if rerunMaxFailurePercent < 1 || rerunMaxFailurePercent > 100 {
-		return nil, fmt.Errorf("rerun-max-failure-percent must be between 1 and 100, got: %d", rerunMaxFailurePercent)
+	// Validate rerun-max-failure-percent <= 0.0 or > 100.0
+	if rerunMaxFailurePercent <= 0.0 || rerunMaxFailurePercent > 100 {
+		return nil, fmt.Errorf("rerun-max-failure-percent must be greater than 0 and less than 100, got: %f", rerunMaxFailurePercent)
 	}
 
 	if maxRerunAttempts < 1 {
@@ -381,8 +381,8 @@ func getMatchingJobIDs(batch *api.Batch, params *SuperviseParams, attempt int) [
 	totalJobs := len(allJobs)
 	failedJobs := len(matchingJobIDs)
 	if totalJobs > 0 {
-		failedPercentage := (failedJobs * 100) / totalJobs
-		fmt.Printf("Failed job percentage: %d%% (%d/%d jobs)\n", failedPercentage, failedJobs, totalJobs)
+		failedPercentage := float64(failedJobs*100) / float64(totalJobs)
+		fmt.Printf("Failed job percentage: %.1f%% (%d/%d jobs)\n", failedPercentage, failedJobs, totalJobs)
 		if failedPercentage > params.RerunMaxFailurePercent {
 			return nil // Threshold exceeded, no rerun needed
 		}

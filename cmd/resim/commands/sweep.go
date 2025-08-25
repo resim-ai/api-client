@@ -58,6 +58,7 @@ const (
 	sweepIDKey               = "sweep-id"
 	sweepNameKey             = "sweep-name"
 	sweepMetricsBuildKey     = "metrics-build-id"
+	sweepMetricsSetKey       = "metrics-set"
 	sweepGridSearchConfigKey = "grid-search-config"
 	sweepParameterNameKey    = "parameter-name"
 	sweepParameterValuesKey  = "parameter-values"
@@ -74,6 +75,7 @@ func init() {
 	createSweepCmd.Flags().String(sweepBuildIDKey, "", "The ID of the build.")
 	createSweepCmd.MarkFlagRequired(sweepBuildIDKey)
 	createSweepCmd.Flags().String(sweepMetricsBuildKey, "", "The ID of the metrics build to use in this sweep.")
+	createSweepCmd.Flags().String(sweepMetricsSetKey, "", "The name of the metrics set to use in this sweep.")
 	createSweepCmd.Flags().String(sweepExperiencesKey, "", "List of experience names or list of experience IDs to run, comma-separated")
 	createSweepCmd.Flags().String(sweepExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
 	createSweepCmd.Flags().String(sweepGridSearchConfigKey, "", "Location of a json file listing parameter names and values to perform an exhaustive (combinatorial!) grid search. The json should be a list of objects with 'name' (parameter name) and 'values' (list of values to sample.)")
@@ -207,6 +209,8 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	metricsSet := ProcessMetricsSet(sweepMetricsSetKey, &poolLabels)
+
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()
@@ -220,6 +224,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		Parameters:        &sweepParameters,
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
+		MetricsSetName:    metricsSet,
 	}
 
 	if allExperienceIDs != nil {

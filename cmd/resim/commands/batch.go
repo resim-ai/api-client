@@ -361,15 +361,15 @@ func getSuperviseParams(ccmd *cobra.Command, args []string) (*SuperviseParams, e
 	}, nil
 }
 
-func checkRerunNeeded(batch *api.Batch, params *SuperviseParams, attempt int) (bool, []uuid.UUID) {
+func getMatchingJobIDs(batch *api.Batch, params *SuperviseParams, attempt int) []uuid.UUID {
 	// Check if we've reached max attempts first (before any API calls)
 	if attempt >= params.MaxRerunAttempts {
-		return false, nil // Max attempts reached, no more reruns
+		return nil // Max attempts reached, no more reruns
 	}
 
 	// If batch is cancelled, do not rerun
 	if *batch.Status == api.BatchStatusCANCELLED {
-		return false, nil // No rerun needed for cancelled batch
+		return nil // No rerun needed for cancelled batch
 	}
 
 	// Get all jobs and filter by status
@@ -384,16 +384,11 @@ func checkRerunNeeded(batch *api.Batch, params *SuperviseParams, attempt int) (b
 		failedPercentage := (failedJobs * 100) / totalJobs
 		fmt.Printf("Failed job percentage: %d%% (%d/%d jobs)\n", failedPercentage, failedJobs, totalJobs)
 		if failedPercentage > params.RerunMaxFailurePercent {
-			return false, nil // Threshold exceeded, no rerun needed
+			return nil // Threshold exceeded, no rerun needed
 		}
 	}
 
-	// If no jobs need rerunning, we're done
-	if len(matchingJobIDs) == 0 {
-		return false, nil // No rerun needed
-	}
-
-	return true, matchingJobIDs // Rerun needed
+	return matchingJobIDs
 }
 
 func actualsuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
@@ -430,8 +425,8 @@ func actualsuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 		fmt.Printf("Batch completed with status: %s\n", *batch.Status)
 
 		// Check if rerun is required (includes max attempts check)
-		rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, attempt)
-		if !rerunNeeded {
+		matchingJobIDs := getMatchingJobIDs(batch, params, attempt)
+		if len(matchingJobIDs) == 0 {
 			return &SuperviseResult{
 				Batch: batch,
 			}

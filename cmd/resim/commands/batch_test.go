@@ -670,10 +670,9 @@ func (s *CommandsSuite) TestCheckRerunNeeded_RerunAttemptsExceeded() {
 		}, nil).Maybe()
 
 	// Test with attempt = 3 (equal to max attempts)
-	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 3)
+	matchingJobIDs := getMatchingJobIDs(batch, params, 3)
 
 	// Should not need rerun because max attempts reached
-	s.False(rerunNeeded)
 	s.Nil(matchingJobIDs)
 }
 
@@ -697,10 +696,9 @@ func (s *CommandsSuite) TestCheckRerunNeeded_BatchStatusCancelled() {
 	}
 
 	// Test with attempt = 0 (well within max attempts)
-	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 0)
+	matchingJobIDs := getMatchingJobIDs(batch, params, 0)
 
 	// Should not need rerun because batch is cancelled
-	s.False(rerunNeeded)
 	s.Nil(matchingJobIDs)
 
 	// Verify that no API calls were made since we return early for cancelled batches
@@ -751,10 +749,9 @@ func (s *CommandsSuite) TestCheckRerunNeeded_ValidRerunScenario() {
 		}, nil)
 
 	// Test with attempt = 0 (within max attempts)
-	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 0)
+	matchingJobIDs := getMatchingJobIDs(batch, params, 0)
 
 	// Should need rerun because there are failed jobs and we're within max attempts
-	s.True(rerunNeeded)
 	s.Len(matchingJobIDs, 1)
 	s.Equal(jobID1, matchingJobIDs[0])
 }
@@ -803,10 +800,9 @@ func (s *CommandsSuite) TestCheckRerunNeeded_TooManyFailedJobs() {
 		}, nil)
 
 	// Test with attempt = 0 (within max attempts)
-	rerunNeeded, matchingJobIDs := checkRerunNeeded(batch, params, 0)
+	matchingJobIDs := getMatchingJobIDs(batch, params, 0)
 
 	// Should not need rerun because there are more than 50% failed jobs
-	s.False(rerunNeeded)
 	s.Nil(matchingJobIDs)
 
 }

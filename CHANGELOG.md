@@ -4,6 +4,17 @@
 
 ### Unreleased
 
+### v0.26.0 - August 25, 2025
+
+#### Added
+
+- New `supervise` command for batch monitoring and automatic rerun functionality
+  - Automatically monitors batch completion and status
+  - Supports configurable rerun attempts with `--max-rerun-attempts` (default: 1)
+  - Configurable failure threshold with `--rerun-max-failure-percent` (default: 50.0)
+  - Rerun on specific job states with `--rerun-on-states` (e.g., "Error,Warning")
+  - Configurable timeout and poll interval for monitoring
+  
 ### v0.25.0 - August 22, 2025
 
 #### Added

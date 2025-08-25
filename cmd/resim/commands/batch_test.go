@@ -378,7 +378,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_Valid() {
 	s.Equal("test-batch-name", params.BatchName)
 	s.Equal(1*time.Hour, params.Timeout)
 	s.Equal(30*time.Second, params.PollInterval)
-	s.Len(params.ConflatedStates, 2)
+	s.Len(params.UndesiredConflatedStates, 2)
 }
 
 func (s *CommandsSuite) TestGetSuperviseParams_InvalidMaxRerunAttempts() {
@@ -641,10 +641,10 @@ func (s *CommandsSuite) TestCheckRerunNeeded_RerunAttemptsExceeded() {
 
 	// Create params with max rerun attempts = 3
 	params := &SuperviseParams{
-		ProjectID:              projectID,
-		MaxRerunAttempts:       3,
-		RerunMaxFailurePercent: 50,
-		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+		ProjectID:                projectID,
+		MaxRerunAttempts:         3,
+		RerunMaxFailurePercent:   50,
+		UndesiredConflatedStates: []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
 	}
 
 	// Mock the ListJobsWithResponse call that getAllJobs makes
@@ -689,10 +689,10 @@ func (s *CommandsSuite) TestCheckRerunNeeded_BatchStatusCancelled() {
 
 	// Create params
 	params := &SuperviseParams{
-		ProjectID:              projectID,
-		MaxRerunAttempts:       3,
-		RerunMaxFailurePercent: 50,
-		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+		ProjectID:                projectID,
+		MaxRerunAttempts:         3,
+		RerunMaxFailurePercent:   50,
+		UndesiredConflatedStates: []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
 	}
 
 	// Test with attempt = 0 (well within max attempts)
@@ -720,10 +720,10 @@ func (s *CommandsSuite) TestCheckRerunNeeded_ValidRerunScenario() {
 
 	// Create params with max rerun attempts = 3
 	params := &SuperviseParams{
-		ProjectID:              projectID,
-		MaxRerunAttempts:       3,
-		RerunMaxFailurePercent: 50,
-		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+		ProjectID:                projectID,
+		MaxRerunAttempts:         3,
+		RerunMaxFailurePercent:   50,
+		UndesiredConflatedStates: []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
 	}
 
 	// Mock the ListJobsWithResponse call that getAllJobs makes
@@ -771,10 +771,10 @@ func (s *CommandsSuite) TestCheckRerunNeeded_TooManyFailedJobs() {
 
 	// Create params with max rerun attempts = 3
 	params := &SuperviseParams{
-		ProjectID:              projectID,
-		MaxRerunAttempts:       3,
-		RerunMaxFailurePercent: 50,
-		ConflatedStates:        []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
+		ProjectID:                projectID,
+		MaxRerunAttempts:         3,
+		RerunMaxFailurePercent:   50,
+		UndesiredConflatedStates: []api.ConflatedJobStatus{api.ConflatedJobStatusERROR},
 	}
 
 	// Mock the ListJobsWithResponse call that getAllJobs makes
@@ -875,7 +875,7 @@ func (s *CommandsSuite) TestSuperviseBatch_Success() {
 		}, nil).Maybe()
 
 	// Call the supervise function
-	result := actualsuperviseBatch(nil, []string{})
+	result := actualSuperviseBatch(nil, []string{})
 
 	// Should succeed with no error
 	s.NoError(result.Error)
@@ -951,7 +951,7 @@ func (s *CommandsSuite) TestSuperviseBatch_Cancelled() {
 		}, nil).Maybe()
 
 	// Call the supervise function
-	result := actualsuperviseBatch(nil, []string{})
+	result := actualSuperviseBatch(nil, []string{})
 
 	// Should succeed with cancelled batch (no error, but batch is cancelled)
 	s.NoError(result.Error)
@@ -1005,7 +1005,7 @@ func (s *CommandsSuite) TestSuperviseBatch_Timeout() {
 		}, nil)
 
 	// Call the supervise function
-	result := actualsuperviseBatch(nil, []string{})
+	result := actualSuperviseBatch(nil, []string{})
 
 	// Should fail with timeout error
 	s.Error(result.Error)
@@ -1098,7 +1098,7 @@ func (s *CommandsSuite) TestSuperviseBatch_TooManyFailedJobs_NoRerun() {
 		}, nil).Once()
 
 	// Call the supervise function
-	result := actualsuperviseBatch(nil, []string{})
+	result := actualSuperviseBatch(nil, []string{})
 
 	// Should succeed with no error, but batch has ERROR status
 	// No rerun should be attempted because failure rate (66.7%) exceeds threshold (33%)
@@ -1243,7 +1243,7 @@ func (s *CommandsSuite) TestSuperviseBatch_RerunSuccess() {
 		}, nil).Once()
 
 	// Call the supervise function
-	result := actualsuperviseBatch(nil, []string{})
+	result := actualSuperviseBatch(nil, []string{})
 
 	// Should succeed with no error, and batch has SUCCEEDED status
 	s.NoError(result.Error)
@@ -1395,7 +1395,7 @@ func (s *CommandsSuite) TestSuperviseBatch_RerunFails_MaxAttemptsReached() {
 		}, nil).Maybe() // this shouldnt be hit because we have already exhausted max rerun attempts
 
 	// Call the supervise function
-	result := actualsuperviseBatch(nil, []string{})
+	result := actualSuperviseBatch(nil, []string{})
 
 	// Should succeed with no error, but batch has ERROR status
 	// No more reruns should be attempted because max attempts (1) reached

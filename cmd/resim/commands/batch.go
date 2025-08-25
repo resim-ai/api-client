@@ -309,22 +309,22 @@ func filterJobsByStatus(jobs []api.Job, conflatedStatuses []api.ConflatedJobStat
 	return jobIDs
 }
 
-// SuperviseResult contains the result information from actualsuperviseBatch
+// SuperviseResult contains the result information from actualSuperviseBatch
 type SuperviseResult struct {
 	Batch *api.Batch
 	Error error
 }
 
-// SuperviseParams contains the parameters needed for actualsuperviseBatch
+// SuperviseParams contains the parameters needed for actualSuperviseBatch
 type SuperviseParams struct {
-	ProjectID              uuid.UUID
-	MaxRerunAttempts       int
-	RerunMaxFailurePercent int
-	ConflatedStates        []api.ConflatedJobStatus
-	Timeout                time.Duration
-	PollInterval           time.Duration
-	BatchID                string
-	BatchName              string
+	ProjectID                uuid.UUID
+	MaxRerunAttempts         int
+	RerunMaxFailurePercent   int
+	UndesiredConflatedStates []api.ConflatedJobStatus
+	Timeout                  time.Duration
+	PollInterval             time.Duration
+	BatchID                  string
+	BatchName                string
 }
 
 func getSuperviseParams(ccmd *cobra.Command, args []string) (*SuperviseParams, error) {
@@ -350,14 +350,14 @@ func getSuperviseParams(ccmd *cobra.Command, args []string) (*SuperviseParams, e
 	timeout, _ := time.ParseDuration(viper.GetString(batchWaitTimeoutKey))
 
 	return &SuperviseParams{
-		ProjectID:              projectID,
-		MaxRerunAttempts:       maxRerunAttempts,
-		RerunMaxFailurePercent: rerunMaxFailurePercent,
-		ConflatedStates:        conflatedStates,
-		Timeout:                timeout,
-		PollInterval:           pollInterval,
-		BatchID:                viper.GetString(batchIDKey),
-		BatchName:              viper.GetString(batchNameKey),
+		ProjectID:                projectID,
+		MaxRerunAttempts:         maxRerunAttempts,
+		RerunMaxFailurePercent:   rerunMaxFailurePercent,
+		UndesiredConflatedStates: conflatedStates,
+		Timeout:                  timeout,
+		PollInterval:             pollInterval,
+		BatchID:                  viper.GetString(batchIDKey),   // validated in waitForBatchCompletion
+		BatchName:                viper.GetString(batchNameKey), // validated in waitForBatchCompletion
 	}, nil
 }
 
@@ -374,7 +374,7 @@ func getMatchingJobIDs(batch *api.Batch, params *SuperviseParams, attempt int) [
 
 	// Get all jobs and filter by status
 	allJobs := getAllJobs(params.ProjectID, *batch.BatchID)
-	matchingJobIDs := filterJobsByStatus(allJobs, params.ConflatedStates)
+	matchingJobIDs := filterJobsByStatus(allJobs, params.UndesiredConflatedStates)
 	fmt.Printf("Found %d job IDs matching rerun states: %v\n", len(matchingJobIDs), matchingJobIDs)
 
 	// Check threshold before rerunning
@@ -391,7 +391,7 @@ func getMatchingJobIDs(batch *api.Batch, params *SuperviseParams, attempt int) [
 	return matchingJobIDs
 }
 
-func actualsuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
+func actualSuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 
 	// Get parameters
 	params, err := getSuperviseParams(ccmd, args)
@@ -417,7 +417,7 @@ func actualsuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 				}
 			} else {
 				return &SuperviseResult{
-					Error: fmt.Errorf("Batch failed: %v", err),
+					Error: fmt.Errorf("Error retrieving batch: %v", err),
 				}
 			}
 		}
@@ -442,6 +442,7 @@ func actualsuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 	}
 
 	// This should never happen, but we'll return the batch if we get here
+	log.Fatal("Control should never reach here. Returning batch.")
 	return &SuperviseResult{
 		Batch: batch,
 	}
@@ -449,7 +450,7 @@ func actualsuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 
 func superviseBatch(ccmd *cobra.Command, args []string) {
 
-	result := actualsuperviseBatch(ccmd, args)
+	result := actualSuperviseBatch(ccmd, args)
 
 	if result.Error != nil {
 		// Check if it's a timeout error

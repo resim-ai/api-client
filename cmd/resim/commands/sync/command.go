@@ -17,14 +17,22 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 	if configPath == "" {
 		log.Fatal("experiences-config not set")
 	}
-	config := loadExperienceSyncConfig(configPath)
-	currentState := getCurrentDatabaseState(client, projectID)
-
-	experienceUpdates, err := computeExperienceUpdates(config, currentState)
+	config, err := loadExperienceSyncConfig(configPath)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	applyUpdates(client, projectID, *experienceUpdates)
+	currentState, err := getCurrentDatabaseState(client, projectID)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	experienceUpdates, err := computeExperienceUpdates(config, *currentState)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	err = applyUpdates(client, projectID, *experienceUpdates)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 
 	if updateConfig {
 		writeConfigToFile(config, configPath)
@@ -37,9 +45,14 @@ func CloneExperiences(client api.ClientWithResponsesInterface,
 	if configPath == "" {
 		log.Fatal("experiences-config not set")
 	}
-	config := loadExperienceSyncConfig(configPath)
-
-	currentState := getCurrentDatabaseState(client, projectID)
+	config, err := loadExperienceSyncConfig(configPath)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	currentState, err := getCurrentDatabaseState(client, projectID)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 	config.Experiences = []*Experience{}
 	for _, experience := range currentState.ExperiencesByName {
 		config.Experiences = append(config.Experiences, experience)

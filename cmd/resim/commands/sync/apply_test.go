@@ -75,9 +75,10 @@ container_timeout_seconds: 7200
 	}
 
 	// ACTION
-	applyUpdates(&client, expectedProjectID, updates)
+	err = applyUpdates(&client, expectedProjectID, updates)
 
 	// VERIFICATION
+	assert.NoError(t, err)
 	assert.Equal(t, createdExperience, *creationMatch.New)
 	// Verify that the experience ID has been set
 	assert.Equal(t, creationMatch.New.ExperienceID.ID, expectedExperienceID)
@@ -126,7 +127,8 @@ container_timeout_seconds: 7200
 	}
 
 	// ACTION / VERIFICATION
-	applyUpdates(&client, expectedProjectID, updates)
+	err = applyUpdates(&client, expectedProjectID, updates)
+	assert.NoError(t, err)
 	client.AssertNumberOfCalls(t, "ArchiveExperienceWithResponse", 1)
 }
 
@@ -210,7 +212,8 @@ container_timeout_seconds: 7200
 	}
 
 	// ACTION / VERIFICATION
-	applyUpdates(&client, expectedProjectID, updates)
+	err = applyUpdates(&client, expectedProjectID, updates)
+	assert.NoError(t, err)
 	client.AssertNumberOfCalls(t, "UpdateExperienceWithResponse", 1)
 	client.AssertNumberOfCalls(t, "RestoreExperienceWithResponse", 1)
 	assert.Equal(t, updatedExperience, *updateMatch.New)
@@ -270,7 +273,8 @@ container_timeout_seconds: 7200
 	}
 
 	// ACTION
-	applyUpdates(&client, expectedProjectID, updates)
+	err = applyUpdates(&client, expectedProjectID, updates)
+	assert.NoError(t, err)
 
 	// VERIFICATION
 	client.AssertNumberOfCalls(t, "AddTagsToExperiencesWithResponse", 1)
@@ -321,7 +325,8 @@ container_timeout_seconds: 7200
 	}
 
 	// ACTION
-	applyUpdates(&client, expectedProjectID, updates)
+	err = applyUpdates(&client, expectedProjectID, updates)
+	assert.NoError(t, err)
 
 	// VERIFICATION
 	client.AssertNumberOfCalls(t, "RemoveExperienceTagFromExperienceWithResponse", 1)
@@ -379,7 +384,8 @@ container_timeout_seconds: 7200
 	}
 
 	// ACTION
-	applyUpdates(&client, expectedProjectID, updates)
+	err = applyUpdates(&client, expectedProjectID, updates)
+	assert.NoError(t, err)
 
 	// VERIFICATION
 	client.AssertNumberOfCalls(t, "AddSystemsToExperiencesWithResponse", 1)
@@ -436,7 +442,8 @@ container_timeout_seconds: 7200
 	}
 
 	// ACTION
-	applyUpdates(&client, expectedProjectID, updates)
+	err = applyUpdates(&client, expectedProjectID, updates)
+	assert.NoError(t, err)
 
 	// VERIFICATION
 	client.AssertNumberOfCalls(t, "ReviseTestSuiteWithResponse", 1)

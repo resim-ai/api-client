@@ -769,7 +769,8 @@ func TestGetCurrentDatabaseState(t *testing.T) {
 	).Return(ListExperiencesForSystemWithResponseMock)
 
 	// ACTION
-	currentDatabaseState := getCurrentDatabaseState(&client, mockProjectID)
+	currentDatabaseState, err := getCurrentDatabaseState(&client, mockProjectID)
+	assert.NoError(t, err)
 
 	// VERIFICATION
 	// Verify that the state we fetched matches the mocked state

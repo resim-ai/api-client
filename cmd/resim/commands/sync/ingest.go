@@ -2,12 +2,12 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
-	"log"
 	"net/http"
 )
 
@@ -36,23 +36,61 @@ type DatabaseState struct {
 	TestSuiteIDsByName map[string]TestSuiteID
 }
 
-func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
-	projectID uuid.UUID) DatabaseState {
-	expCh := make(chan map[string]*Experience)
-	tagCh := make(chan map[string]TagSet)
-	sysCh := make(chan map[string]SystemSet)
-	tsCh := make(chan map[string]TestSuiteID)
+type Result[T any] struct {
+	Val T
+	Err error
+}
 
-	go func() { expCh <- getCurrentExperiencesByName(client, projectID) }()
-	go func() { tagCh <- getCurrentTagSetsByName(client, projectID) }()
-	go func() { sysCh <- getCurrentSystemSetsByName(client, projectID) }()
-	go func() { tsCh <- getCurrentTestSuitesIDsByName(client, projectID) }()
+func wrapResult[T any](val T, err error) Result[T] {
+	return Result[T]{Val: val, Err: err}
+}
+
+func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
+	projectID uuid.UUID) (*DatabaseState, error) {
+	expCh := make(chan Result[map[string]*Experience])
+	tagCh := make(chan Result[map[string]TagSet])
+	sysCh := make(chan Result[map[string]SystemSet])
+	tsCh := make(chan Result[map[string]TestSuiteID])
+
+	go func() {
+		exp, err := getCurrentExperiencesByName(client, projectID)
+		expCh <- wrapResult(exp, err)
+	}()
+	go func() {
+		tags, err := getCurrentTagSetsByName(client, projectID)
+		tagCh <- wrapResult(tags, err)
+	}()
+	go func() {
+		sys, err := getCurrentSystemSetsByName(client, projectID)
+		sysCh <- wrapResult(sys, err)
+	}()
+	go func() {
+		ts, err := getCurrentTestSuitesIDsByName(client, projectID)
+		tsCh <- wrapResult(ts, err)
+	}()
+
+	expRes := <-expCh
+	if expRes.Err != nil {
+		return nil, expRes.Err
+	}
+	tagRes := <-tagCh
+	if tagRes.Err != nil {
+		return nil, tagRes.Err
+	}
+	sysRes := <-sysCh
+	if sysRes.Err != nil {
+		return nil, sysRes.Err
+	}
+	tsRes := <-tsCh
+	if tsRes.Err != nil {
+		return nil, tsRes.Err
+	}
 
 	state := DatabaseState{
-		ExperiencesByName:  <-expCh,
-		TagSetsByName:      <-tagCh,
-		SystemSetsByName:   <-sysCh,
-		TestSuiteIDsByName: <-tsCh,
+		ExperiencesByName:  expRes.Val,
+		TagSetsByName:      tagRes.Val,
+		SystemSetsByName:   sysRes.Val,
+		TestSuiteIDsByName: tsRes.Val,
 	}
 
 	// Update the tags in each experience
@@ -71,16 +109,22 @@ func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
 			}
 		}
 	}
-	return state
+	return &state, nil
 }
 
 func getCurrentExperiencesByName(
 	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID) map[string]*Experience {
+	projectID uuid.UUID) (map[string]*Experience, error) {
 	archived := true
 	unarchived := false
-	apiExperiences := fetchAllExperiences(client, projectID, unarchived)
-	apiArchivedExperiences := fetchAllExperiences(client, projectID, archived)
+	apiExperiences, err := fetchAllExperiences(client, projectID, unarchived)
+	if err != nil {
+		return nil, err
+	}
+	apiArchivedExperiences, err := fetchAllExperiences(client, projectID, archived)
+	if err != nil {
+		return nil, err
+	}
 	currentExperiencesByName := make(map[string]*Experience)
 	for _, experience := range apiExperiences {
 		addApiExperienceToExperienceMap(experience, currentExperiencesByName)
@@ -88,21 +132,31 @@ func getCurrentExperiencesByName(
 	for _, experience := range apiArchivedExperiences {
 		addApiExperienceToExperienceMap(experience, currentExperiencesByName)
 	}
-	return currentExperiencesByName
+	return currentExperiencesByName, nil
 }
 
 func getCurrentTagSetsByName(
 	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID) map[string]TagSet {
-	apiExperienceTags := fetchAllExperienceTags(client, projectID)
+	projectID uuid.UUID) (map[string]TagSet, error) {
+	apiExperienceTags, err := fetchAllExperienceTags(client, projectID)
+	if err != nil {
+		return nil, err
+	}
 
 	currentTagSets := make(map[string]TagSet)
 
 	for _, tag := range apiExperienceTags {
 		archived := true
 		unarchived := false
-		apiExperiences := fetchAllExperiencesWithTag(client, projectID, tag.ExperienceTagID, unarchived)
-		apiArchivedExperiences := fetchAllExperiencesWithTag(client, projectID, tag.ExperienceTagID, archived)
+		apiExperiences, err := fetchAllExperiencesWithTag(client, projectID, tag.ExperienceTagID, unarchived)
+		if err != nil {
+			return nil, err
+		}
+
+		apiArchivedExperiences, err := fetchAllExperiencesWithTag(client, projectID, tag.ExperienceTagID, archived)
+		if err != nil {
+			return nil, err
+		}
 		apiExperiences = append(apiExperiences, apiArchivedExperiences...)
 
 		experienceIDs := make(map[ExperienceID]struct{})
@@ -115,21 +169,32 @@ func getCurrentTagSetsByName(
 			ExperienceIDs: experienceIDs,
 		}
 	}
-	return currentTagSets
+	return currentTagSets, nil
 }
 
 func getCurrentSystemSetsByName(
 	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID) map[string]SystemSet {
-	apiSystems := fetchAllSystems(client, projectID)
+	projectID uuid.UUID) (map[string]SystemSet, error) {
+	apiSystems, err := fetchAllSystems(client, projectID)
+	if err != nil {
+		return nil, err
+	}
 
 	currentSystemSets := make(map[string]SystemSet)
 
 	for _, system := range apiSystems {
 		archived := true
 		unarchived := false
-		apiExperiences := fetchAllExperiencesWithSystem(client, projectID, system.SystemID, unarchived)
-		apiArchivedExperiences := fetchAllExperiencesWithSystem(client, projectID, system.SystemID, archived)
+		apiExperiences, err := fetchAllExperiencesWithSystem(client, projectID, system.SystemID, unarchived)
+		if err != nil {
+			return nil, err
+		}
+
+		apiArchivedExperiences, err := fetchAllExperiencesWithSystem(client, projectID, system.SystemID, archived)
+		if err != nil {
+			return nil, err
+		}
+
 		apiExperiences = append(apiExperiences, apiArchivedExperiences...)
 
 		experienceIDs := make(map[ExperienceID]struct{})
@@ -142,12 +207,12 @@ func getCurrentSystemSetsByName(
 			ExperienceIDs: experienceIDs,
 		}
 	}
-	return currentSystemSets
+	return currentSystemSets, nil
 }
 
 func getCurrentTestSuitesIDsByName(
 	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID) map[string]TestSuiteID {
+	projectID uuid.UUID) (map[string]TestSuiteID, error) {
 	testSuiteIDsByName := make(map[string]TestSuiteID)
 	var pageToken *string = nil
 
@@ -158,9 +223,12 @@ func getCurrentTestSuitesIDsByName(
 				PageToken: pageToken,
 			})
 		if err != nil {
-			log.Fatal("failed to list test suites:", err)
+			return nil, fmt.Errorf("failed to list test suites: %s", err)
 		}
-		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusOK, "failed to list test suites", response.HTTPResponse, response.Body)
+		if err != nil {
+			return nil, err
+		}
 
 		pageToken = &response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(response.JSON200.TestSuites) == 0 {
@@ -175,7 +243,7 @@ func getCurrentTestSuitesIDsByName(
 			break
 		}
 	}
-	return testSuiteIDsByName
+	return testSuiteIDsByName, nil
 }
 
 func addApiExperienceToExperienceMap(experience api.Experience,
@@ -195,7 +263,7 @@ func addApiExperienceToExperienceMap(experience api.Experience,
 
 func fetchAllExperiences(client api.ClientWithResponsesInterface,
 	projectID openapi_types.UUID,
-	archived bool) []api.Experience {
+	archived bool) ([]api.Experience, error) {
 	allExperiences := []api.Experience{}
 	var pageToken *string = nil
 
@@ -208,9 +276,12 @@ func fetchAllExperiences(client api.ClientWithResponsesInterface,
 				OrderBy:   Ptr("timestamp"),
 			})
 		if err != nil {
-			log.Fatal("failed to list experiences:", err)
+			return nil, fmt.Errorf("failed to list experiences: %s", err)
 		}
-		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		if err != nil {
+			return nil, err
+		}
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
@@ -222,11 +293,11 @@ func fetchAllExperiences(client api.ClientWithResponsesInterface,
 		}
 	}
 
-	return allExperiences
+	return allExperiences, nil
 }
 
 func fetchAllExperienceTags(client api.ClientWithResponsesInterface,
-	projectID openapi_types.UUID) []api.ExperienceTag {
+	projectID openapi_types.UUID) ([]api.ExperienceTag, error) {
 	allExperienceTags := []api.ExperienceTag{}
 	var pageToken *string = nil
 
@@ -237,9 +308,12 @@ func fetchAllExperienceTags(client api.ClientWithResponsesInterface,
 				PageToken: pageToken,
 			})
 		if err != nil {
-			log.Fatal("failed to list experiences:", err)
+			return nil, fmt.Errorf("failed to list experiences: %s", err)
 		}
-		utils.ValidateResponse(http.StatusOK, "failed to list tags", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusOK, "failed to list tags", response.HTTPResponse, response.Body)
+		if err != nil {
+			return nil, err
+		}
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.ExperienceTags) == 0 {
@@ -251,11 +325,11 @@ func fetchAllExperienceTags(client api.ClientWithResponsesInterface,
 		}
 	}
 
-	return allExperienceTags
+	return allExperienceTags, nil
 }
 
 func fetchAllSystems(client api.ClientWithResponsesInterface,
-	projectID openapi_types.UUID) []api.System {
+	projectID openapi_types.UUID) ([]api.System, error) {
 	allSystems := []api.System{}
 	var pageToken *string = nil
 
@@ -266,9 +340,12 @@ func fetchAllSystems(client api.ClientWithResponsesInterface,
 				PageToken: pageToken,
 			})
 		if err != nil {
-			log.Fatal("failed to list experiences:", err)
+			return nil, fmt.Errorf("failed to list experiences: %s", err)
 		}
-		utils.ValidateResponse(http.StatusOK, "failed to list systems", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusOK, "failed to list systems", response.HTTPResponse, response.Body)
+		if err != nil {
+			return nil, err
+		}
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Systems) == 0 {
@@ -280,13 +357,13 @@ func fetchAllSystems(client api.ClientWithResponsesInterface,
 		}
 	}
 
-	return allSystems
+	return allSystems, nil
 }
 
 func fetchAllExperiencesWithTag(client api.ClientWithResponsesInterface,
 	projectID openapi_types.UUID,
 	tagID TagID,
-	archived bool) []api.Experience {
+	archived bool) ([]api.Experience, error) {
 	allExperiences := []api.Experience{}
 	var pageToken *string = nil
 
@@ -298,9 +375,12 @@ func fetchAllExperiencesWithTag(client api.ClientWithResponsesInterface,
 				Archived:  Ptr(archived),
 			})
 		if err != nil {
-			log.Fatal("failed to list experiences:", err)
+			return nil, fmt.Errorf("failed to list experiences: %s", err)
 		}
-		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
+		if err != nil {
+			return nil, err
+		}
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
@@ -312,13 +392,13 @@ func fetchAllExperiencesWithTag(client api.ClientWithResponsesInterface,
 		}
 	}
 
-	return allExperiences
+	return allExperiences, nil
 }
 
 func fetchAllExperiencesWithSystem(client api.ClientWithResponsesInterface,
 	projectID openapi_types.UUID,
 	systemID SystemID,
-	archived bool) []api.Experience {
+	archived bool) ([]api.Experience, error) {
 	allExperiences := []api.Experience{}
 	var pageToken *string = nil
 
@@ -330,7 +410,7 @@ func fetchAllExperiencesWithSystem(client api.ClientWithResponsesInterface,
 				Archived:  Ptr(archived),
 			})
 		if err != nil {
-			log.Fatal("failed to list experiences:", err)
+			return nil, fmt.Errorf("failed to list experiences: %s", err)
 		}
 		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
 
@@ -344,5 +424,5 @@ func fetchAllExperiencesWithSystem(client api.ClientWithResponsesInterface,
 		}
 	}
 
-	return allExperiences
+	return allExperiences, nil
 }

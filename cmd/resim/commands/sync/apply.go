@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
@@ -17,32 +18,42 @@ import (
 func applyUpdates(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	experienceUpdates ExperienceUpdates) {
+	experienceUpdates ExperienceUpdates) error {
 
 	numWorkers := 16
-	runConcurrentUpdates("Experiences", slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)),
+	err := runConcurrentUpdates("Experiences", slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)),
 		numWorkers,
-		func(update ExperienceMatch) {
-			updateSingleExperience(client, projectID, update)
+		func(update ExperienceMatch) error {
+			return updateSingleExperience(client, projectID, update)
 		})
+	if err != nil {
+		return err
+	}
 
-	runConcurrentUpdates("Tags", slices.Collect(maps.Values(experienceUpdates.TagUpdatesByName)),
+	err = runConcurrentUpdates("Tags", slices.Collect(maps.Values(experienceUpdates.TagUpdatesByName)),
 		numWorkers,
-		func(update *TagUpdates) {
-			updateSingleTag(client, projectID, *update)
+		func(update *TagUpdates) error {
+			return updateSingleTag(client, projectID, *update)
 		})
+	if err != nil {
+		return err
+	}
 
-	runConcurrentUpdates("Systems", slices.Collect(maps.Values(experienceUpdates.SystemUpdatesByName)),
+	err = runConcurrentUpdates("Systems", slices.Collect(maps.Values(experienceUpdates.SystemUpdatesByName)),
 		numWorkers,
-		func(update *SystemUpdates) {
-			updateSingleSystem(client, projectID, *update)
+		func(update *SystemUpdates) error {
+			return updateSingleSystem(client, projectID, *update)
 		})
+	if err != nil {
+		return err
+	}
 
-	runConcurrentUpdates("Test Suites", experienceUpdates.TestSuiteUpdates,
+	err = runConcurrentUpdates("Test Suites", experienceUpdates.TestSuiteUpdates,
 		numWorkers,
-		func(update TestSuiteUpdate) {
-			updateSingleTestSuite(client, projectID, update)
+		func(update TestSuiteUpdate) error {
+			return updateSingleTestSuite(client, projectID, update)
 		})
+	return err
 }
 
 // Helper to parallelize our updates and track progress with a bar
@@ -50,10 +61,10 @@ func runConcurrentUpdates[T any](
 	label string,
 	items []T,
 	numWorkers int,
-	task func(T),
-) {
+	task func(T) error,
+) error {
 	if len(items) == 0 {
-		return
+		return nil
 	}
 
 	log.Printf("Updating %s...", label)
@@ -61,6 +72,7 @@ func runConcurrentUpdates[T any](
 
 	var wg sync.WaitGroup
 	inputsCh := make(chan T, len(items))
+	errCh := make(chan error, len(items))
 
 	// Start workers
 	for i := 0; i < numWorkers; i++ {
@@ -68,7 +80,9 @@ func runConcurrentUpdates[T any](
 		go func() {
 			defer wg.Done()
 			for item := range inputsCh {
-				task(item)
+				if err := task(item); err != nil {
+					errCh <- err
+				}
 				bar.Add(1)
 			}
 		}()
@@ -81,12 +95,22 @@ func runConcurrentUpdates[T any](
 	close(inputsCh)
 
 	wg.Wait()
+	close(errCh)
+
+	var firstErr error
+	for err := range errCh {
+		if firstErr == nil {
+			firstErr = err
+		}
+		log.Printf("Error updating %s: %v", label, err)
+	}
+	return firstErr
 }
 
 func updateSingleExperience(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	update ExperienceMatch) {
+	update ExperienceMatch) error {
 
 	newExperience := update.Original == nil
 	if newExperience {
@@ -102,39 +126,49 @@ func updateSingleExperience(
 
 		response, err := client.CreateExperienceWithResponse(context.Background(), projectID, body)
 		if err != nil {
-			log.Fatal("failed to create experience: ", err)
+			return fmt.Errorf("failed to create experience: %s", err)
 		}
-		utils.ValidateResponse(http.StatusCreated, "failed to create experience", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to create experience", response.HTTPResponse, response.Body)
+		if err != nil {
+			return err
+		}
 
 		// Update the match with then new experience ID. This way the other updates (which
 		// reference this by pointer) will have the ID.
 		update.New.ExperienceID = &ExperienceIDWrapper{ID: response.JSON201.ExperienceID}
-		return
+		return nil
 	}
 	if update.New.ExperienceID == nil {
 		// Fatal since this should *never* happen. It's a bug in the api client if so.
-		log.Fatal("Trying to update with unset experience ID")
+		return fmt.Errorf("Trying to update with unset experience ID")
 	}
 
 	experienceID := update.New.ExperienceID.ID
 	if update.New.Archived {
 		// Archive
+		log.Print(projectID, experienceID)
 		response, err := client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
 		if err != nil {
-			log.Fatal("failed to archive experience: ", err)
+			return fmt.Errorf("failed to archive experience: %s", err)
 		}
-		utils.ValidateResponse(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
+		if err != nil {
+			return err
+		}
 
-		return
+		return nil
 	}
 	// Update
 	if update.Original.Archived {
 		// Restore
 		response, err := client.RestoreExperienceWithResponse(context.Background(), projectID, experienceID)
 		if err != nil {
-			log.Fatal("failed to restore experience: ", err)
+			return fmt.Errorf("failed to restore experience: %s", err)
 		}
-		utils.ValidateResponse(http.StatusNoContent, "failed to restore experience", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to restore experience", response.HTTPResponse, response.Body)
+		if err != nil {
+			return err
+		}
 	}
 	updateMask := []string{"name", "description", "cacheExempt", "locations"}
 
@@ -164,17 +198,20 @@ func updateSingleExperience(
 	}
 	response, err := client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, body)
 	if err != nil {
-		log.Fatal("failed to update experience: ", err)
+		return fmt.Errorf("failed to update experience: %s", err)
 	}
-	utils.ValidateResponse(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
-
+	err = utils.ValidateResponseSafe(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func removeTagFromExperience(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
 	tagID TagID,
-	experienceID ExperienceID) {
+	experienceID ExperienceID) error {
 	response, err := client.RemoveExperienceTagFromExperienceWithResponse(
 		context.Background(),
 		projectID,
@@ -182,21 +219,25 @@ func removeTagFromExperience(
 		experienceID,
 	)
 	if err != nil {
-		log.Fatal("failed to update tags: ", err)
+		return fmt.Errorf("failed to update tags: %s", err)
 	}
-	utils.ValidateResponse(http.StatusNoContent, "failed to update tags", response.HTTPResponse, response.Body)
+	err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to update tags", response.HTTPResponse, response.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func updateSingleTag(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	updates TagUpdates) {
+	updates TagUpdates) error {
 
 	if len(updates.Additions) > 0 {
 		experienceIDs := []ExperienceID{}
 		for _, e := range updates.Additions {
 			if e.ExperienceID == nil {
-				log.Fatal("Experience has no ID. Maybe we failed to create it? ", e.Name)
+				return fmt.Errorf("Experience has no ID. Maybe we failed to create it? %s", e.Name)
 			}
 			experienceIDs = append(experienceIDs, e.ExperienceID.ID)
 		}
@@ -207,33 +248,50 @@ func updateSingleTag(
 		}
 		response, err := client.AddTagsToExperiencesWithResponse(context.Background(), projectID, body)
 		if err != nil {
-			log.Fatal("failed to update tags: ", err)
+			return fmt.Errorf("failed to update tags: %s", err)
 		}
-		utils.ValidateResponse(http.StatusCreated, "failed to update tags", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to update tags", response.HTTPResponse, response.Body)
+		if err != nil {
+			return err
+		}
 	}
 
 	var wg sync.WaitGroup
+	errCh := make(chan error, len(updates.Removals))
 	for _, removal := range updates.Removals {
 		wg.Add(1)
 		go func() {
-			removeTagFromExperience(client, projectID,
+			if err := removeTagFromExperience(client, projectID,
 				updates.TagID,
-				removal.ExperienceID.ID)
+				removal.ExperienceID.ID); err != nil {
+				errCh <- err
+			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
+
+	close(errCh)
+
+	var firstErr error
+	for err := range errCh {
+		if firstErr == nil {
+			firstErr = err
+		}
+		log.Printf("Error removing tag: %s", updates.TagID)
+	}
+	return firstErr
 }
 
 func updateSingleSystem(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	updates SystemUpdates) {
+	updates SystemUpdates) error {
 	if len(updates.Additions) > 0 {
 		experienceIDs := []ExperienceID{}
 		for _, e := range updates.Additions {
 			if e.ExperienceID == nil {
-				log.Fatal("Experience has no ID. Maybe we failed to create it? ", e.Name)
+				return fmt.Errorf("Experience has no ID. Maybe we failed to create it? %s", e.Name)
 			}
 			experienceIDs = append(experienceIDs, e.ExperienceID.ID)
 		}
@@ -243,16 +301,20 @@ func updateSingleSystem(
 		}
 		response, err := client.AddSystemsToExperiencesWithResponse(context.Background(), projectID, body)
 		if err != nil {
-			log.Fatal("failed to update systems: ", err)
+			return fmt.Errorf("failed to update systems: %s", err)
 		}
-		utils.ValidateResponse(http.StatusCreated, "failed to update systems", response.HTTPResponse, response.Body)
+		err = utils.ValidateResponseSafe(http.StatusCreated, "failed to update systems", response.HTTPResponse, response.Body)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func updateSingleTestSuite(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	update TestSuiteUpdate) {
+	update TestSuiteUpdate) error {
 
 	experiences := []ExperienceID{}
 
@@ -265,7 +327,11 @@ func updateSingleTestSuite(
 	}
 	response, err := client.ReviseTestSuiteWithResponse(context.Background(), projectID, update.TestSuiteID, body)
 	if err != nil {
-		log.Fatal("failed to revise test suite: ", err)
+		return fmt.Errorf("failed to revise test suite: %s", err)
 	}
-	utils.ValidateResponse(http.StatusOK, "failed to revise test suite", response.HTTPResponse, response.Body)
+	err = utils.ValidateResponseSafe(http.StatusOK, "failed to revise test suite", response.HTTPResponse, response.Body)
+	if err != nil {
+		return err
+	}
+	return nil
 }

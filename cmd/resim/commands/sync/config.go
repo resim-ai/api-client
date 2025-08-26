@@ -1,9 +1,9 @@
 package sync
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
-	"log"
 	"os"
 )
 
@@ -36,33 +36,33 @@ type ExperienceSyncConfig struct {
 	ManagedExperienceTags []string      `yaml:"managed_experience_tags,omitempty"`
 }
 
-func loadExperienceSyncConfig(path string) *ExperienceSyncConfig {
+func loadExperienceSyncConfig(path string) (*ExperienceSyncConfig, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Fatalf("config file does not exist: %s", path)
+		return nil, fmt.Errorf("config file does not exist: %s", path)
 	}
 	// Read file
 	data, err := os.ReadFile(path)
 
 	if err != nil {
-		log.Fatalf("Failed to load config file: %s", err)
+		return nil, fmt.Errorf("Failed to load config file: %s", err)
 	}
 	var cfg ExperienceSyncConfig
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		log.Fatalf("failed to unmarshal config: %s", err)
+		return nil, fmt.Errorf("failed to unmarshal config: %s", err)
 	}
 	// Do some normalization and validation
 	for _, experience := range cfg.Experiences {
 		if experience.Name == "" {
-			log.Fatal("Empty experience name.")
+			return nil, fmt.Errorf("Empty experience name.")
 		}
 		if experience.Description == "" {
-			log.Fatal("Empty experience description for experience: ", experience.Name)
+			return nil, fmt.Errorf("Empty experience description for experience: %s", experience.Name)
 		}
 		if experience.Locations == nil || len(experience.Locations) == 0 {
-			log.Fatal("No locations provided for experience: ", experience.Name)
+			return nil, fmt.Errorf("No locations provided for experience: %s", experience.Name)
 		}
 	}
-	return &cfg
+	return &cfg, nil
 }
 
 func (u *ExperienceIDWrapper) UnmarshalYAML(value *yaml.Node) error {

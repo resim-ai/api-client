@@ -84,6 +84,7 @@ const (
 	systemMetricsBuildSharedMemoryMbKey = "metrics-build-shared-memory-mb"
 	systemProjectKey                    = "project"
 	systemKey                           = "system"
+	systemArchitectureKey               = "architecture"
 	systemGithubKey                     = "github"
 	//Defaults:
 	DefaultCPUs           = 4
@@ -108,6 +109,7 @@ func init() {
 	createSystemCmd.Flags().Int(systemBuildSharedMemoryMBKey, DefaultSharedMemoryMB, "The amount of shared memory in MB required to execute the build (default: 64)")
 	createSystemCmd.Flags().Int(systemMetricsBuildSharedMemoryMbKey, DefaultSharedMemoryMB, "The amount of shared memory in MB required to execute the metrics build (default: 64)")
 	createSystemCmd.Flags().Bool(systemGithubKey, false, "Whether to output format in github action friendly format")
+	createSystemCmd.Flags().String(systemArchitectureKey, "", "The architecture of the system: amd64 or arm64 are supported")
 	createSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	updateSystemCmd.Flags().String(systemProjectKey, "", "The name or ID of the project the system belongs to")
@@ -124,6 +126,7 @@ func init() {
 	updateSystemCmd.Flags().Int(systemMetricsBuildMemoryMibKey, DefaultMemoryMiB, "New value for the amount of memory in MiB required to execute the metrics build")
 	updateSystemCmd.Flags().Int(systemBuildSharedMemoryMBKey, DefaultSharedMemoryMB, "New value for the amount of shared memory in MB required to execute the build")
 	updateSystemCmd.Flags().Int(systemMetricsBuildSharedMemoryMbKey, DefaultSharedMemoryMB, "The amount of shared memory in MB required to execute the metrics build")
+	updateSystemCmd.Flags().String(systemArchitectureKey, "", "The architecture of the system: amd64 or arm64 are supported")
 	updateSystemCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	getSystemCmd.Flags().String(systemProjectKey, "", "Get system associated with this project")
@@ -239,12 +242,28 @@ func updateSystem(ccmd *cobra.Command, args []string) {
 	if viper.IsSet(systemMetricsBuildSharedMemoryMbKey) {
 		updateSystemInput.MetricsBuildSharedMemoryMb = Ptr(viper.GetInt(systemMetricsBuildSharedMemoryMbKey))
 	}
+	if viper.IsSet(systemArchitectureKey) {
+		architecture := parseArchitecture(viper.GetString(systemArchitectureKey))
+		updateSystemInput.Architecture = &architecture
+	}
 	response, err := Client.UpdateSystemWithResponse(context.Background(), projectID, systemID, updateSystemInput)
 	if err != nil {
 		log.Fatal("unable to update system:", err)
 	}
 	ValidateResponse(http.StatusOK, "unable to update system", response.HTTPResponse, response.Body)
 	fmt.Println("Updated system successfully!")
+}
+
+func parseArchitecture(architecture string) api.Architecture {
+	switch architecture {
+	case "amd64":
+		return api.AMD64
+	case "arm64":
+		return api.ARM64
+	default:
+		log.Fatal("invalid architecture: ", architecture)
+		return api.AMD64 // technically unreachable
+	}
 }
 
 func listSystems(cmd *cobra.Command, args []string) {
@@ -305,6 +324,11 @@ func createSystem(cmd *cobra.Command, args []string) {
 		MetricsBuildGpus:           viper.GetInt(systemMetricsBuildGPUsKey),
 		MetricsBuildMemoryMib:      viper.GetInt(systemMetricsBuildMemoryMibKey),
 		MetricsBuildSharedMemoryMb: viper.GetInt(systemMetricsBuildSharedMemoryMbKey),
+	}
+
+	if viper.IsSet(systemArchitectureKey) {
+		architecture := parseArchitecture(viper.GetString(systemArchitectureKey))
+		body.Architecture = &architecture
 	}
 
 	response, err := Client.CreateSystemWithResponse(context.Background(), projectID, body)

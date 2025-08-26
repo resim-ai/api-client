@@ -9,6 +9,27 @@
   user can use this command to easily make the required updates so that the backend matches the
   yaml.
 
+### v0.26.0 - August 25, 2025
+
+#### Added
+
+- New `supervise` command for batch monitoring and automatic rerun functionality
+  - Automatically monitors batch completion and status
+  - Supports configurable rerun attempts with `--max-rerun-attempts` (default: 1)
+  - Configurable failure threshold with `--rerun-max-failure-percent` (default: 50.0)
+  - Rerun on specific job states with `--rerun-on-states` (e.g., "Error,Warning")
+  - Configurable timeout and poll interval for monitoring
+
+### v0.25.0 - August 22, 2025
+
+#### Added
+
+- The `systems create` command now supports creating systems that use `arm64` as the architecture. The default is `amd64`, but `--architecture` can be used to run tests with builds that use `arm64`.
+
+### v0.24.0 - August 21, 2025
+
+- Add support for specifying a metrics set when launching a batch, report, or parameter sweep
+
 ### v0.23.2 - August 19, 2025
 
 - Support for "debug mode" for experiences in Multi Container builds. One container/service can be put into debug mode by using the `--container` option to `resim debug`

@@ -4,6 +4,11 @@
 
 ### Unreleased
 
+- Support for experience syncing from a config file using `resim experiences sync ...`. In short, by
+  specifying which experiences they want with which tags, systems, and test suites in a yaml file, a
+  user can use this command to easily make the required updates so that the backend matches the
+  yaml.
+
 ### v0.26.0 - August 25, 2025
 
 #### Added
@@ -14,7 +19,7 @@
   - Configurable failure threshold with `--rerun-max-failure-percent` (default: 50.0)
   - Rerun on specific job states with `--rerun-on-states` (e.g., "Error,Warning")
   - Configurable timeout and poll interval for monitoring
-  
+
 ### v0.25.0 - August 22, 2025
 
 #### Added

@@ -146,7 +146,6 @@ func updateSingleExperience(
 	experienceID := update.New.ExperienceID.ID
 	if update.New.Archived {
 		// Archive
-		log.Print(projectID, experienceID)
 		response, err := client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
 		if err != nil {
 			return fmt.Errorf("failed to archive experience: %s", err)

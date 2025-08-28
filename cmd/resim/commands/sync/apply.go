@@ -21,7 +21,7 @@ func applyUpdates(
 	experienceUpdates ExperienceUpdates) error {
 
 	numWorkers := 16
-	err := runConcurrentUpdates("Experiences", slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)),
+	err := runConcurrentUpdates("Create/Update Experiences", slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)),
 		numWorkers,
 		func(update ExperienceMatch) error {
 			return updateSingleExperience(client, projectID, update)
@@ -30,7 +30,16 @@ func applyUpdates(
 		return err
 	}
 
-	err = runConcurrentUpdates("Tags", slices.Collect(maps.Values(experienceUpdates.TagUpdatesByName)),
+	err = runConcurrentUpdates("Update Test Suites", experienceUpdates.TestSuiteUpdates,
+		numWorkers,
+		func(update TestSuiteIDUpdate) error {
+			return updateSingleTestSuite(client, projectID, update)
+		})
+	if err != nil {
+		return err
+	}
+
+	err = runConcurrentUpdates("Update Tags", slices.Collect(maps.Values(experienceUpdates.TagUpdatesByName)),
 		numWorkers,
 		func(update *TagUpdates) error {
 			return updateSingleTag(client, projectID, *update)
@@ -39,7 +48,7 @@ func applyUpdates(
 		return err
 	}
 
-	err = runConcurrentUpdates("Systems", slices.Collect(maps.Values(experienceUpdates.SystemUpdatesByName)),
+	err = runConcurrentUpdates("Update Systems", slices.Collect(maps.Values(experienceUpdates.SystemUpdatesByName)),
 		numWorkers,
 		func(update *SystemUpdates) error {
 			return updateSingleSystem(client, projectID, *update)
@@ -48,11 +57,15 @@ func applyUpdates(
 		return err
 	}
 
-	err = runConcurrentUpdates("Test Suites", experienceUpdates.TestSuiteUpdates,
+	// We archive experiences *after* everything else so that we don't end up inadvertently
+	// revising a test suite multiple times if we archive multiple experiences from it. This is
+	// because the backend automatically removes archived experiences from test suites.
+	err = runConcurrentUpdates("Archive Experiences", slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)),
 		numWorkers,
-		func(update TestSuiteUpdate) error {
-			return updateSingleTestSuite(client, projectID, update)
+		func(update ExperienceMatch) error {
+			return maybeArchiveExperience(client, projectID, update)
 		})
+
 	return err
 }
 
@@ -67,7 +80,7 @@ func runConcurrentUpdates[T any](
 		return nil
 	}
 
-	log.Printf("Updating %s...", label)
+	log.Printf("%s...", label)
 	bar := progressbar.Default(int64(len(items)))
 
 	var wg sync.WaitGroup
@@ -143,21 +156,12 @@ func updateSingleExperience(
 		return fmt.Errorf("Trying to update with unset experience ID")
 	}
 
-	experienceID := update.New.ExperienceID.ID
 	if update.New.Archived {
-		// Archive
-		response, err := client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
-		if err != nil {
-			return fmt.Errorf("failed to archive experience: %s", err)
-		}
-		err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
-		if err != nil {
-			return err
-		}
-
+		// Skip this experience. We archive it later
 		return nil
 	}
 	// Update
+	experienceID := update.New.ExperienceID.ID
 	if update.Original.Archived {
 		// Restore
 		response, err := client.RestoreExperienceWithResponse(context.Background(), projectID, experienceID)
@@ -200,6 +204,32 @@ func updateSingleExperience(
 		return fmt.Errorf("failed to update experience: %s", err)
 	}
 	err = utils.ValidateResponseSafe(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func maybeArchiveExperience(
+	client api.ClientWithResponsesInterface,
+	projectID uuid.UUID,
+	update ExperienceMatch) error {
+	if !update.New.Archived {
+		return nil
+	}
+
+	if update.New.ExperienceID == nil {
+		// Fatal since this should *never* happen. It's a bug in the api client if so.
+		return fmt.Errorf("Trying to archive with unset experience ID")
+	}
+
+	experienceID := update.New.ExperienceID.ID
+	// Archive
+	response, err := client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
+	if err != nil {
+		return fmt.Errorf("failed to archive experience: %s", err)
+	}
+	err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
 	if err != nil {
 		return err
 	}
@@ -313,7 +343,7 @@ func updateSingleSystem(
 func updateSingleTestSuite(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	update TestSuiteUpdate) error {
+	update TestSuiteIDUpdate) error {
 
 	experiences := []ExperienceID{}
 

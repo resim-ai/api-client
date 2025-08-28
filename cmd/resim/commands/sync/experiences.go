@@ -10,7 +10,7 @@ type ExperienceUpdates struct {
 	MatchedExperiencesByNewName map[string]ExperienceMatch
 	TagUpdatesByName            map[string]*TagUpdates
 	SystemUpdatesByName         map[string]*SystemUpdates
-	TestSuiteUpdates            []TestSuiteUpdate
+	TestSuiteUpdates            []TestSuiteIDUpdate
 }
 
 // Compute the ExperiencesUpdate struct based off the current database state and the desired
@@ -33,7 +33,7 @@ func computeExperienceUpdates(
 		return nil, fmt.Errorf("Failed to compute system updates: %w", err)
 	}
 
-	testSuiteUpdates, err := getTestSuiteUpdates(matchedExperiencesByNewName, config.TestSuites,
+	testSuiteUpdates, err := getTestSuiteIDUpdates(matchedExperiencesByNewName, config.TestSuites,
 		currentState.TestSuiteIDsByName)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to compute test suite updates: %w", err)

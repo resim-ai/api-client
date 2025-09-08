@@ -390,12 +390,13 @@ type Build struct {
 	ImageUri    BuildImageUri    `json:"imageUri"`
 
 	// Name The name of the build.
-	Name      BuildName    `json:"name"`
-	OrgID     OrgID        `json:"orgID"`
-	ProjectID ProjectID    `json:"projectID"`
-	SystemID  SystemID     `json:"systemID"`
-	UserID    UserID       `json:"userID"`
-	Version   BuildVersion `json:"version"`
+	Name            BuildName    `json:"name"`
+	OrgID           OrgID        `json:"orgID"`
+	ProjectID       ProjectID    `json:"projectID"`
+	SystemID        SystemID     `json:"systemID"`
+	UpdateTimestamp Timestamp    `json:"updateTimestamp"`
+	UserID          UserID       `json:"userID"`
+	Version         BuildVersion `json:"version"`
 }
 
 // BuildDescription The description of the build. May be a SHA or commit message.
@@ -575,6 +576,24 @@ type CreateTestSuiteInput struct {
 	SystemID              SystemID                `json:"systemID"`
 }
 
+// CreateWorkflowInput defines model for createWorkflowInput.
+type CreateWorkflowInput struct {
+	CiWorkflowLink *string              `json:"ciWorkflowLink,omitempty"`
+	Description    string               `json:"description"`
+	Name           string               `json:"name"`
+	WorkflowSuites []WorkflowSuiteInput `json:"workflowSuites"`
+}
+
+// CreateWorkflowRunInput defines model for createWorkflowRunInput.
+type CreateWorkflowRunInput struct {
+	AllowableFailurePercent *int               `json:"allowableFailurePercent"`
+	AssociatedAccount       *AssociatedAccount `json:"associatedAccount,omitempty"`
+	BuildID                 BuildID            `json:"buildID"`
+	Parameters              *BatchParameters   `json:"parameters,omitempty"`
+	PoolLabels              *PoolLabels        `json:"poolLabels,omitempty"`
+	TriggeredVia            *TriggeredVia      `json:"triggeredVia,omitempty"`
+}
+
 // CustomMetric defines model for customMetric.
 type CustomMetric struct {
 	Name  string  `json:"name"`
@@ -599,6 +618,9 @@ type DebugExperienceOutput struct {
 	ClusterToken    *string  `json:"clusterToken,omitempty"`
 	Namespace       *string  `json:"namespace,omitempty"`
 }
+
+// Enabled defines model for enabled.
+type Enabled = bool
 
 // EnvironmentVariable defines model for environmentVariable.
 type EnvironmentVariable struct {
@@ -1089,6 +1111,25 @@ type ListUsersOutput = []string
 type ListViewObjectsOutput struct {
 	NextPageToken *string       `json:"nextPageToken,omitempty"`
 	ViewSessions  *[]ViewObject `json:"viewSessions,omitempty"`
+}
+
+// ListWorkflowRunsOutput defines model for listWorkflowRunsOutput.
+type ListWorkflowRunsOutput struct {
+	NextPageToken string        `json:"nextPageToken"`
+	Total         int           `json:"total"`
+	WorkflowRuns  []WorkflowRun `json:"workflowRuns"`
+}
+
+// ListWorkflowSuitesOutput defines model for listWorkflowSuitesOutput.
+type ListWorkflowSuitesOutput struct {
+	WorkflowSuites []WorkflowSuite `json:"workflowSuites"`
+}
+
+// ListWorkflowsOutput defines model for listWorkflowsOutput.
+type ListWorkflowsOutput struct {
+	NextPageToken string     `json:"nextPageToken"`
+	Total         int        `json:"total"`
+	Workflows     []Workflow `json:"workflows"`
 }
 
 // Log defines model for log.
@@ -1672,6 +1713,14 @@ type UpdateSystemInput struct {
 	Name                       *string       `json:"name,omitempty"`
 }
 
+// UpdateWorkflowInput defines model for updateWorkflowInput.
+type UpdateWorkflowInput struct {
+	CiWorkflowLink *string               `json:"ciWorkflowLink"`
+	Description    *string               `json:"description,omitempty"`
+	Name           *string               `json:"name,omitempty"`
+	WorkflowSuites *[]WorkflowSuiteInput `json:"workflowSuites,omitempty"`
+}
+
 // UserID defines model for userID.
 type UserID = string
 
@@ -1715,6 +1764,58 @@ type ViewSessionUpdate struct {
 
 // ViewUpdateID defines model for viewUpdateID.
 type ViewUpdateID = int
+
+// Workflow defines model for workflow.
+type Workflow struct {
+	Archived          Archived   `json:"archived"`
+	CiWorkflowLink    *string    `json:"ciWorkflowLink"`
+	CreationTimestamp Timestamp  `json:"creationTimestamp"`
+	Description       string     `json:"description"`
+	LastRunTimestamp  *Timestamp `json:"lastRunTimestamp,omitempty"`
+	Name              string     `json:"name"`
+	OrgID             OrgID      `json:"orgID"`
+	ProjectID         ProjectID  `json:"projectID"`
+	UpdateTimestamp   *Timestamp `json:"updateTimestamp,omitempty"`
+	UserID            UserID     `json:"userID"`
+	WorkflowID        WorkflowID `json:"workflowID"`
+}
+
+// WorkflowID defines model for workflowID.
+type WorkflowID = openapi_types.UUID
+
+// WorkflowRun defines model for workflowRun.
+type WorkflowRun struct {
+	AssociatedAccount     *AssociatedAccount     `json:"associatedAccount,omitempty"`
+	BuildID               BuildID                `json:"buildID"`
+	CreationTimestamp     Timestamp              `json:"creationTimestamp"`
+	OrgID                 OrgID                  `json:"orgID"`
+	TriggeredVia          *TriggeredVia          `json:"triggeredVia,omitempty"`
+	UserID                UserID                 `json:"userID"`
+	WorkflowID            WorkflowID             `json:"workflowID"`
+	WorkflowRunID         WorkflowRunID          `json:"workflowRunID"`
+	WorkflowRunTestSuites []WorkflowRunTestSuite `json:"workflowRunTestSuites"`
+}
+
+// WorkflowRunID defines model for workflowRunID.
+type WorkflowRunID = openapi_types.UUID
+
+// WorkflowRunTestSuite defines model for workflowRunTestSuite.
+type WorkflowRunTestSuite struct {
+	BatchID     BatchID     `json:"batchID"`
+	TestSuiteID TestSuiteID `json:"testSuiteID"`
+}
+
+// WorkflowSuite defines model for workflowSuite.
+type WorkflowSuite struct {
+	Enabled   Enabled   `json:"enabled"`
+	TestSuite TestSuite `json:"testSuite"`
+}
+
+// WorkflowSuiteInput defines model for workflowSuiteInput.
+type WorkflowSuiteInput struct {
+	Enabled     Enabled     `json:"enabled"`
+	TestSuiteID TestSuiteID `json:"testSuiteID"`
+}
 
 // OrderBy defines model for orderBy.
 type OrderBy = string
@@ -2133,6 +2234,26 @@ type ListExperiencesForSystemParams struct {
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
 }
 
+// ListWorkflowsParams defines parameters for ListWorkflows.
+type ListWorkflowsParams struct {
+	// Name Filter branches by name
+	Name *string `form:"name,omitempty" json:"name,omitempty"`
+
+	// Text Filter test suites by a text string on name and description
+	Text      *string    `form:"text,omitempty" json:"text,omitempty"`
+	Archived  *bool      `form:"archived,omitempty" json:"archived,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
+// ListWorkflowRunsParams defines parameters for ListWorkflowRuns.
+type ListWorkflowRunsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty"`
+}
+
 // ListViewSessionsParams defines parameters for ListViewSessions.
 type ListViewSessionsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty"`
@@ -2232,6 +2353,15 @@ type UpdateSystemJSONRequestBody = UpdateSystemInput
 
 // CreateBuildForSystemJSONRequestBody defines body for CreateBuildForSystem for application/json ContentType.
 type CreateBuildForSystemJSONRequestBody = CreateBuildForSystemInput
+
+// CreateWorkflowJSONRequestBody defines body for CreateWorkflow for application/json ContentType.
+type CreateWorkflowJSONRequestBody = CreateWorkflowInput
+
+// UpdateWorkflowJSONRequestBody defines body for UpdateWorkflow for application/json ContentType.
+type UpdateWorkflowJSONRequestBody = UpdateWorkflowInput
+
+// CreateWorkflowRunJSONRequestBody defines body for CreateWorkflowRun for application/json ContentType.
+type CreateWorkflowRunJSONRequestBody = CreateWorkflowRunInput
 
 // ValidateExperienceLocationJSONRequestBody defines body for ValidateExperienceLocation for application/json ContentType.
 type ValidateExperienceLocationJSONRequestBody = ExperienceLocation
@@ -3116,6 +3246,36 @@ type ClientInterface interface {
 
 	// AddSystemToMetricsBuild request
 	AddSystemToMetricsBuild(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWorkflows request
+	ListWorkflows(ctx context.Context, projectID ProjectID, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateWorkflowWithBody request with any body
+	CreateWorkflowWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateWorkflow(ctx context.Context, projectID ProjectID, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkflow request
+	GetWorkflow(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateWorkflowWithBody request with any body
+	UpdateWorkflowWithBody(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateWorkflow(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWorkflowRuns request
+	ListWorkflowRuns(ctx context.Context, projectID ProjectID, workflowID WorkflowID, params *ListWorkflowRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateWorkflowRunWithBody request with any body
+	CreateWorkflowRunWithBody(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateWorkflowRun(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body CreateWorkflowRunJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkflowRun request
+	GetWorkflowRun(ctx context.Context, projectID ProjectID, workflowID WorkflowID, workflowRunID WorkflowRunID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListWorkflowSuites request
+	ListWorkflowSuites(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetQuota request
 	GetQuota(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5012,6 +5172,138 @@ func (c *Client) RemoveSystemFromMetricsBuild(ctx context.Context, projectID Pro
 
 func (c *Client) AddSystemToMetricsBuild(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewAddSystemToMetricsBuildRequest(c.Server, projectID, systemID, metricsBuildID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListWorkflows(ctx context.Context, projectID ProjectID, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkflowsRequest(c.Server, projectID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWorkflowWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWorkflow(ctx context.Context, projectID ProjectID, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWorkflow(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkflowRequest(c.Server, projectID, workflowID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateWorkflowWithBody(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWorkflowRequestWithBody(c.Server, projectID, workflowID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateWorkflow(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateWorkflowRequest(c.Server, projectID, workflowID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListWorkflowRuns(ctx context.Context, projectID ProjectID, workflowID WorkflowID, params *ListWorkflowRunsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkflowRunsRequest(c.Server, projectID, workflowID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWorkflowRunWithBody(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowRunRequestWithBody(c.Server, projectID, workflowID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateWorkflowRun(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body CreateWorkflowRunJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateWorkflowRunRequest(c.Server, projectID, workflowID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWorkflowRun(ctx context.Context, projectID ProjectID, workflowID WorkflowID, workflowRunID WorkflowRunID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkflowRunRequest(c.Server, projectID, workflowID, workflowRunID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListWorkflowSuites(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListWorkflowSuitesRequest(c.Server, projectID, workflowID)
 	if err != nil {
 		return nil, err
 	}
@@ -13486,6 +13778,522 @@ func NewAddSystemToMetricsBuildRequest(server string, projectID ProjectID, syste
 	return req, nil
 }
 
+// NewListWorkflowsRequest generates requests for ListWorkflows
+func NewListWorkflowsRequest(server string, projectID ProjectID, params *ListWorkflowsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Archived != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateWorkflowRequest calls the generic CreateWorkflow builder with application/json body
+func NewCreateWorkflowRequest(server string, projectID ProjectID, body CreateWorkflowJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateWorkflowRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateWorkflowRequestWithBody generates requests for CreateWorkflow with any type of body
+func NewCreateWorkflowRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetWorkflowRequest generates requests for GetWorkflow
+func NewGetWorkflowRequest(server string, projectID ProjectID, workflowID WorkflowID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workflowID", runtime.ParamLocationPath, workflowID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateWorkflowRequest calls the generic UpdateWorkflow builder with application/json body
+func NewUpdateWorkflowRequest(server string, projectID ProjectID, workflowID WorkflowID, body UpdateWorkflowJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateWorkflowRequestWithBody(server, projectID, workflowID, "application/json", bodyReader)
+}
+
+// NewUpdateWorkflowRequestWithBody generates requests for UpdateWorkflow with any type of body
+func NewUpdateWorkflowRequestWithBody(server string, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workflowID", runtime.ParamLocationPath, workflowID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListWorkflowRunsRequest generates requests for ListWorkflowRuns
+func NewListWorkflowRunsRequest(server string, projectID ProjectID, workflowID WorkflowID, params *ListWorkflowRunsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workflowID", runtime.ParamLocationPath, workflowID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows/%s/runs", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateWorkflowRunRequest calls the generic CreateWorkflowRun builder with application/json body
+func NewCreateWorkflowRunRequest(server string, projectID ProjectID, workflowID WorkflowID, body CreateWorkflowRunJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateWorkflowRunRequestWithBody(server, projectID, workflowID, "application/json", bodyReader)
+}
+
+// NewCreateWorkflowRunRequestWithBody generates requests for CreateWorkflowRun with any type of body
+func NewCreateWorkflowRunRequestWithBody(server string, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workflowID", runtime.ParamLocationPath, workflowID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows/%s/runs", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetWorkflowRunRequest generates requests for GetWorkflowRun
+func NewGetWorkflowRunRequest(server string, projectID ProjectID, workflowID WorkflowID, workflowRunID WorkflowRunID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workflowID", runtime.ParamLocationPath, workflowID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "workflowRunID", runtime.ParamLocationPath, workflowRunID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows/%s/runs/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListWorkflowSuitesRequest generates requests for ListWorkflowSuites
+func NewListWorkflowSuitesRequest(server string, projectID ProjectID, workflowID WorkflowID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "workflowID", runtime.ParamLocationPath, workflowID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/workflows/%s/suites", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetQuotaRequest generates requests for GetQuota
 func NewGetQuotaRequest(server string) (*http.Request, error) {
 	var err error
@@ -14220,6 +15028,36 @@ type ClientWithResponsesInterface interface {
 
 	// AddSystemToMetricsBuildWithResponse request
 	AddSystemToMetricsBuildWithResponse(ctx context.Context, projectID ProjectID, systemID SystemID, metricsBuildID MetricsBuildID, reqEditors ...RequestEditorFn) (*AddSystemToMetricsBuildResponse, error)
+
+	// ListWorkflowsWithResponse request
+	ListWorkflowsWithResponse(ctx context.Context, projectID ProjectID, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*ListWorkflowsResponse, error)
+
+	// CreateWorkflowWithBodyWithResponse request with any body
+	CreateWorkflowWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error)
+
+	CreateWorkflowWithResponse(ctx context.Context, projectID ProjectID, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error)
+
+	// GetWorkflowWithResponse request
+	GetWorkflowWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*GetWorkflowResponse, error)
+
+	// UpdateWorkflowWithBodyWithResponse request with any body
+	UpdateWorkflowWithBodyWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error)
+
+	UpdateWorkflowWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error)
+
+	// ListWorkflowRunsWithResponse request
+	ListWorkflowRunsWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, params *ListWorkflowRunsParams, reqEditors ...RequestEditorFn) (*ListWorkflowRunsResponse, error)
+
+	// CreateWorkflowRunWithBodyWithResponse request with any body
+	CreateWorkflowRunWithBodyWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowRunResponse, error)
+
+	CreateWorkflowRunWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body CreateWorkflowRunJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowRunResponse, error)
+
+	// GetWorkflowRunWithResponse request
+	GetWorkflowRunWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, workflowRunID WorkflowRunID, reqEditors ...RequestEditorFn) (*GetWorkflowRunResponse, error)
+
+	// ListWorkflowSuitesWithResponse request
+	ListWorkflowSuitesWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*ListWorkflowSuitesResponse, error)
 
 	// GetQuotaWithResponse request
 	GetQuotaWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetQuotaResponse, error)
@@ -16990,6 +17828,182 @@ func (r AddSystemToMetricsBuildResponse) StatusCode() int {
 	return 0
 }
 
+type ListWorkflowsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListWorkflowsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkflowsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkflowsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Workflow
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Workflow
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateWorkflowResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Workflow
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateWorkflowResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateWorkflowResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListWorkflowRunsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListWorkflowRunsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkflowRunsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkflowRunsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateWorkflowRunResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *WorkflowRun
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateWorkflowRunResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateWorkflowRunResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetWorkflowRunResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *WorkflowRun
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkflowRunResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkflowRunResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListWorkflowSuitesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListWorkflowSuitesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListWorkflowSuitesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListWorkflowSuitesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetQuotaResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -18502,6 +19516,102 @@ func (c *ClientWithResponses) AddSystemToMetricsBuildWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseAddSystemToMetricsBuildResponse(rsp)
+}
+
+// ListWorkflowsWithResponse request returning *ListWorkflowsResponse
+func (c *ClientWithResponses) ListWorkflowsWithResponse(ctx context.Context, projectID ProjectID, params *ListWorkflowsParams, reqEditors ...RequestEditorFn) (*ListWorkflowsResponse, error) {
+	rsp, err := c.ListWorkflows(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkflowsResponse(rsp)
+}
+
+// CreateWorkflowWithBodyWithResponse request with arbitrary body returning *CreateWorkflowResponse
+func (c *ClientWithResponses) CreateWorkflowWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error) {
+	rsp, err := c.CreateWorkflowWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateWorkflowWithResponse(ctx context.Context, projectID ProjectID, body CreateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowResponse, error) {
+	rsp, err := c.CreateWorkflow(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowResponse(rsp)
+}
+
+// GetWorkflowWithResponse request returning *GetWorkflowResponse
+func (c *ClientWithResponses) GetWorkflowWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*GetWorkflowResponse, error) {
+	rsp, err := c.GetWorkflow(ctx, projectID, workflowID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkflowResponse(rsp)
+}
+
+// UpdateWorkflowWithBodyWithResponse request with arbitrary body returning *UpdateWorkflowResponse
+func (c *ClientWithResponses) UpdateWorkflowWithBodyWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error) {
+	rsp, err := c.UpdateWorkflowWithBody(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWorkflowResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateWorkflowWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body UpdateWorkflowJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateWorkflowResponse, error) {
+	rsp, err := c.UpdateWorkflow(ctx, projectID, workflowID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateWorkflowResponse(rsp)
+}
+
+// ListWorkflowRunsWithResponse request returning *ListWorkflowRunsResponse
+func (c *ClientWithResponses) ListWorkflowRunsWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, params *ListWorkflowRunsParams, reqEditors ...RequestEditorFn) (*ListWorkflowRunsResponse, error) {
+	rsp, err := c.ListWorkflowRuns(ctx, projectID, workflowID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkflowRunsResponse(rsp)
+}
+
+// CreateWorkflowRunWithBodyWithResponse request with arbitrary body returning *CreateWorkflowRunResponse
+func (c *ClientWithResponses) CreateWorkflowRunWithBodyWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateWorkflowRunResponse, error) {
+	rsp, err := c.CreateWorkflowRunWithBody(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowRunResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateWorkflowRunWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, body CreateWorkflowRunJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateWorkflowRunResponse, error) {
+	rsp, err := c.CreateWorkflowRun(ctx, projectID, workflowID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateWorkflowRunResponse(rsp)
+}
+
+// GetWorkflowRunWithResponse request returning *GetWorkflowRunResponse
+func (c *ClientWithResponses) GetWorkflowRunWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, workflowRunID WorkflowRunID, reqEditors ...RequestEditorFn) (*GetWorkflowRunResponse, error) {
+	rsp, err := c.GetWorkflowRun(ctx, projectID, workflowID, workflowRunID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkflowRunResponse(rsp)
+}
+
+// ListWorkflowSuitesWithResponse request returning *ListWorkflowSuitesResponse
+func (c *ClientWithResponses) ListWorkflowSuitesWithResponse(ctx context.Context, projectID ProjectID, workflowID WorkflowID, reqEditors ...RequestEditorFn) (*ListWorkflowSuitesResponse, error) {
+	rsp, err := c.ListWorkflowSuites(ctx, projectID, workflowID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListWorkflowSuitesResponse(rsp)
 }
 
 // GetQuotaWithResponse request returning *GetQuotaResponse
@@ -21597,6 +22707,214 @@ func ParseAddSystemToMetricsBuildResponse(rsp *http.Response) (*AddSystemToMetri
 	response := &AddSystemToMetricsBuildResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListWorkflowsResponse parses an HTTP response from a ListWorkflowsWithResponse call
+func ParseListWorkflowsResponse(rsp *http.Response) (*ListWorkflowsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkflowsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListWorkflowsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateWorkflowResponse parses an HTTP response from a CreateWorkflowWithResponse call
+func ParseCreateWorkflowResponse(rsp *http.Response) (*CreateWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Workflow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkflowResponse parses an HTTP response from a GetWorkflowWithResponse call
+func ParseGetWorkflowResponse(rsp *http.Response) (*GetWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Workflow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateWorkflowResponse parses an HTTP response from a UpdateWorkflowWithResponse call
+func ParseUpdateWorkflowResponse(rsp *http.Response) (*UpdateWorkflowResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateWorkflowResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Workflow
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWorkflowRunsResponse parses an HTTP response from a ListWorkflowRunsWithResponse call
+func ParseListWorkflowRunsResponse(rsp *http.Response) (*ListWorkflowRunsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkflowRunsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListWorkflowRunsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateWorkflowRunResponse parses an HTTP response from a CreateWorkflowRunWithResponse call
+func ParseCreateWorkflowRunResponse(rsp *http.Response) (*CreateWorkflowRunResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateWorkflowRunResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest WorkflowRun
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkflowRunResponse parses an HTTP response from a GetWorkflowRunWithResponse call
+func ParseGetWorkflowRunResponse(rsp *http.Response) (*GetWorkflowRunResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkflowRunResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest WorkflowRun
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListWorkflowSuitesResponse parses an HTTP response from a ListWorkflowSuitesWithResponse call
+func ParseListWorkflowSuitesResponse(rsp *http.Response) (*ListWorkflowSuitesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListWorkflowSuitesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListWorkflowSuitesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil

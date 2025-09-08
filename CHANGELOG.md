@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.27.0 - September 8, 2025
+
+ - Extends Support for metrics sets to test suite creation and running
+
 ### v0.26.0 - August 25, 2025
 
 #### Added

@@ -5040,7 +5040,8 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getTestSuite(projectID, metricsSetTestSuiteName, nil, false), false)
 	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
 	ts.NoError(err)
-	ts.Nil(testSuite.MetricsSetName)
+	ts.NotNil(testSuite.MetricsSetName)
+	ts.Equal(emptyMetricsSet, *testSuite.MetricsSetName)
 
 	// Then set a new metrics set name
 	newMetricsSetName := fmt.Sprintf("metrics-set-%s", uuid.New().String())

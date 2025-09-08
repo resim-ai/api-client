@@ -1962,7 +1962,7 @@ func listSweeps(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{sweepCommand, listCommand}
 }
 
-func createTestSuite(projectID uuid.UUID, name string, description string, systemID string, experiences []string, metricsBuildID string, github bool) []CommandBuilder {
+func createTestSuite(projectID uuid.UUID, name string, description string, systemID string, experiences []string, metricsBuildID string, github bool, metricsSet *string) []CommandBuilder {
 	suitesCommand := CommandBuilder{
 		Command: "suites",
 	}
@@ -2004,6 +2004,12 @@ func createTestSuite(projectID uuid.UUID, name string, description string, syste
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--github",
 			Value: "",
+		})
+	}
+	if metricsSet != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--metrics-set",
+			Value: *metricsSet,
 		})
 	}
 	return []CommandBuilder{suitesCommand, createCommand}
@@ -4867,11 +4873,11 @@ func TestTestSuites(t *testing.T) {
 	// Now, create a test suite with all our experiences, the system, and a metrics build:
 	firstTestSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
 	testSuiteDescription := "test suite description"
-	output = s.runCommand(ts, createTestSuite(projectID, firstTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectNoError)
+	output = s.runCommand(ts, createTestSuite(projectID, firstTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse, nil), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuite)
 	// Try with the github flag:
 	secondTestSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
-	output = s.runCommand(ts, createTestSuite(projectID, secondTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createTestSuite(projectID, secondTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubTrue, nil), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedTestSuite)
 	// Parse the output
 	testSuiteIDRevisionString := output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
@@ -4884,15 +4890,15 @@ func TestTestSuites(t *testing.T) {
 
 	// Failure possibilities:
 	// Try to create a test suite with an empty system:
-	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "description", "", experienceNames, metricsBuildIDString, GithubFalse), ExpectError)
+	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "description", "", experienceNames, metricsBuildIDString, GithubFalse, nil), ExpectError)
 	ts.Contains(output.StdErr, EmptyTestSuiteSystemName)
-	output = s.runCommand(ts, createTestSuite(projectID, "", "description", systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectError)
+	output = s.runCommand(ts, createTestSuite(projectID, "", "description", systemName, experienceNames, metricsBuildIDString, GithubFalse, nil), ExpectError)
 	ts.Contains(output.StdErr, EmptyTestSuiteName)
-	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "", systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectError)
+	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "", systemName, experienceNames, metricsBuildIDString, GithubFalse, nil), ExpectError)
 	ts.Contains(output.StdErr, EmptyTestSuiteDescription)
-	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "description", systemName, []string{}, metricsBuildIDString, GithubFalse), ExpectError)
+	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "description", systemName, []string{}, metricsBuildIDString, GithubFalse, nil), ExpectError)
 	ts.Contains(output.StdErr, EmptyTestSuiteExperiences)
-	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "description", systemName, experienceNames, "not-a-uuid", GithubFalse), ExpectError)
+	output = s.runCommand(ts, createTestSuite(projectID, "test-suite", "description", systemName, experienceNames, "not-a-uuid", GithubFalse, nil), ExpectError)
 	ts.Contains(output.StdErr, EmptyTestSuiteMetricsBuild)
 
 	// Revise the test suite:
@@ -5016,6 +5022,20 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getTestSuite(projectID, firstTestSuiteName, nil, false), false)
 	ts.Contains(output.StdOut, firstTestSuiteName)
 	ts.Contains(output.StdOut, testSuiteDescription)
+
+	// Create and test a test suite using the metrics set:
+	metricsSetName := fmt.Sprintf("metrics-set-%s", uuid.New().String())
+	metricsSetTestSuiteName := fmt.Sprintf("metrics-set-test-suite-%s", uuid.New().String())
+	output = s.runCommand(ts, createTestSuite(projectID, metricsSetTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse, &metricsSetName), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedTestSuite)
+	// Verify metrics set name is stored
+	output = s.runCommand(ts, getTestSuite(projectID, metricsSetTestSuiteName, nil, false), false)
+	ts.Contains(output.StdOut, metricsSetTestSuiteName)
+	ts.Contains(output.StdOut, testSuiteDescription)
+	ts.NotNil(testSuite.MetricsSetName)
+	ts.Equal(metricsSetName, *testSuite.MetricsSetName)
+
+	// TODO(iain): a test that actually runs it.
 }
 
 func TestReports(t *testing.T) {
@@ -5079,11 +5099,11 @@ func TestReports(t *testing.T) {
 	// Now, create a test suite with all our experiences, the system, and a metrics build:
 	testSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
 	testSuiteDescription := "test suite description"
-	output = s.runCommand(ts, createTestSuite(projectID, testSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse), ExpectNoError)
+	output = s.runCommand(ts, createTestSuite(projectID, testSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubFalse, nil), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuite)
 	// Try with the github flag:
 	secondTestSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
-	output = s.runCommand(ts, createTestSuite(projectID, secondTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createTestSuite(projectID, secondTestSuiteName, testSuiteDescription, systemName, experienceNames, metricsBuildIDString, GithubTrue, nil), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedTestSuite)
 	// Parse the output
 	testSuiteIDRevisionString := output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]

@@ -91,6 +91,7 @@ const (
 	testSuiteAllRevisionKey             = "all-revisions"
 	testSuiteGithubKey                  = "github"
 	testSuiteMetricsBuildKey            = "metrics-build"
+	testSuiteMetricsSetKey              = "metrics-set"
 	testSuitePoolLabelsKey              = "pool-labels"
 	testSuiteAccountKey                 = "account"
 	testSuiteShowOnSummaryKey           = "show-on-summary"
@@ -119,6 +120,8 @@ func init() {
 	// Experiences
 	createTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "List of experience names or list of experience IDs to form this test suite.")
 	createTestSuiteCmd.MarkFlagRequired(testSuiteExperiencesKey)
+	// Optional: Metrics set
+	createTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	// Show on Summary
 	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
@@ -276,6 +279,14 @@ func createTestSuite(ccmd *cobra.Command, args []string) {
 
 	if metricsBuildID != uuid.Nil {
 		body.MetricsBuildID = &metricsBuildID
+	}
+
+	// Optional metrics set name
+	if viper.IsSet(testSuiteMetricsSetKey) {
+		metricsSet := viper.GetString(testSuiteMetricsSetKey)
+		if metricsSet != "" {
+			body.MetricsSetName = &metricsSet
+		}
 	}
 
 	if viper.IsSet(testSuiteShowOnSummaryKey) {
@@ -576,6 +587,10 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 
 	poolLabels := getAndValidatePoolLabels(testSuitePoolLabelsKey)
 
+	if testSuite.MetricsSetName != nil {
+		AddMetrics2PoolLabels(&poolLabels)
+	}
+
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()
@@ -597,6 +612,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 			ExperienceIDs:     &testSuite.Experiences,
 			Parameters:        &parameters,
 			AssociatedAccount: &associatedAccount,
+			MetricsSetName:    testSuite.MetricsSetName,
 		}
 
 		// Add the pool labels if any

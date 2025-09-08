@@ -648,7 +648,6 @@ func getSystem(project string, system string) []CommandBuilder {
 	}
 	return []CommandBuilder{systemCommand, getCommand}
 }
-
 func archiveSystem(project string, system string) []CommandBuilder {
 	systemCommand := CommandBuilder{
 		Command: "system",
@@ -780,7 +779,6 @@ func addSystemToMetricsBuild(project string, system string, metricsBuildID strin
 	}
 	return []CommandBuilder{addMetricsBuildCommand, addCommand}
 }
-
 func removeSystemFromMetricsBuild(project string, system string, metricsBuildID string) []CommandBuilder {
 	removeMetricsBuildCommand := CommandBuilder{
 		Command: "metrics-build",
@@ -1279,7 +1277,6 @@ func listExperienceTags(projectID uuid.UUID) []CommandBuilder {
 
 	return []CommandBuilder{experienceTagCommand, listCommand}
 }
-
 func tagExperience(projectID uuid.UUID, tag string, experienceID uuid.UUID) []CommandBuilder {
 	tagExperienceCommand := CommandBuilder{
 		Command: "experience",
@@ -1569,7 +1566,6 @@ func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, 
 	}
 	return []CommandBuilder{ingestCommand}
 }
-
 func getBatchByName(projectID uuid.UUID, batchName string, exitStatus bool) []CommandBuilder {
 	// We build a get batch command with the name flag
 	batchCommand := CommandBuilder{
@@ -1918,7 +1914,6 @@ func getSweepByName(projectID uuid.UUID, sweepName string, exitStatus bool) []Co
 	}
 	return []CommandBuilder{sweepCommand, getCommand}
 }
-
 func getSweepByID(projectID uuid.UUID, sweepID string, exitStatus bool) []CommandBuilder {
 	// We build a get sweep command with the id flag
 	batchCommand := CommandBuilder{
@@ -2015,7 +2010,7 @@ func createTestSuite(projectID uuid.UUID, name string, description string, syste
 	return []CommandBuilder{suitesCommand, createCommand}
 }
 
-func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, showOnSummary *bool, github bool) []CommandBuilder {
+func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, showOnSummary *bool, metricsSetName *string, github bool) []CommandBuilder {
 	suitesCommand := CommandBuilder{
 		Command: "suites",
 	}
@@ -2067,6 +2062,12 @@ func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, descri
 		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
 			Name:  "--metrics-build-id",
 			Value: *metricsBuildID,
+		})
+	}
+	if metricsSetName != nil {
+		reviseCommand.Flags = append(reviseCommand.Flags, Flag{
+			Name:  "--metrics-set",
+			Value: *metricsSetName,
 		})
 	}
 	if github {
@@ -2343,7 +2344,6 @@ func createReport(projectID uuid.UUID, testSuiteID string, testSuiteRevision *in
 	}
 	return []CommandBuilder{reportCommand, createCommand}
 }
-
 func getReportByName(projectID uuid.UUID, reportName string, exitStatus bool) []CommandBuilder {
 	// We build a get report command with the name flag
 	reportCommand := CommandBuilder{
@@ -2556,7 +2556,6 @@ func TestProjectCreateGithub(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
-
 // Test branch creation:
 func TestBranchCreate(t *testing.T) {
 	ts := assert.New(t)
@@ -3080,7 +3079,6 @@ func TestBuildCreateUpdate(t *testing.T) {
 	ts.Empty(output.StdErr)
 	// TODO(https://app.asana.com/0/1205272835002601/1205376807361747/f): Archive builds when possible
 }
-
 func TestBuildCreateWithBuildSpec(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
@@ -3203,7 +3201,6 @@ func TestBuildCreateGithub(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
-
 func TestBuildCreateAutoCreateBranch(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
@@ -3844,7 +3841,6 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
-
 func TestRerunBatch(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
@@ -4457,7 +4453,6 @@ func TestCancelSweep(t *testing.T) {
 	// Validate that it was cancelled:
 	ts.Equal(api.ParameterSweepStatusCANCELLED, *sweep.Status)
 }
-
 // Test the metrics builds:
 func TestCreateMetricsBuild(t *testing.T) {
 	ts := assert.New(t)
@@ -4536,7 +4531,6 @@ func TestMetricsBuildGithub(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
-
 func TestAliases(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
@@ -4903,10 +4897,10 @@ func TestTestSuites(t *testing.T) {
 
 	// Revise the test suite:
 	// Now, create a test suite with all our experiences, the system, and a metrics build:
-	output = s.runCommand(ts, reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, GithubFalse), ExpectNoError)
+	output = s.runCommand(ts, reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, nil, GithubFalse), ExpectNoError)
 	ts.Contains(output.StdOut, RevisedTestSuite)
 	// Revise w/ github flag
-	output = s.runCommand(ts, reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, reviseTestSuite(projectID, firstTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedTestSuite)
 	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
 	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
@@ -5037,8 +5031,27 @@ func TestTestSuites(t *testing.T) {
 	ts.NoError(err)
 	ts.NotNil(testSuite.MetricsSetName)
 	ts.Equal(metricsSetName, *testSuite.MetricsSetName)
-}
 
+	// Now revise the test suite to clear the metrics set (set to nil), then set a new one
+	// First clear
+	emptyMetricsSet := ""
+	output = s.runCommand(ts, reviseTestSuite(projectID, metricsSetTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, &emptyMetricsSet, GithubFalse), ExpectNoError)
+	ts.Contains(output.StdOut, RevisedTestSuite)
+	output = s.runCommand(ts, getTestSuite(projectID, metricsSetTestSuiteName, nil, false), false)
+	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
+	ts.NoError(err)
+	ts.Nil(testSuite.MetricsSetName)
+
+	// Then set a new metrics set name
+	newMetricsSetName := fmt.Sprintf("metrics-set-%s", uuid.New().String())
+	output = s.runCommand(ts, reviseTestSuite(projectID, metricsSetTestSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, nil, &newMetricsSetName, GithubFalse), ExpectNoError)
+	ts.Contains(output.StdOut, RevisedTestSuite)
+	output = s.runCommand(ts, getTestSuite(projectID, metricsSetTestSuiteName, nil, false), false)
+	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
+	ts.NoError(err)
+	ts.NotNil(testSuite.MetricsSetName)
+	ts.Equal(newMetricsSetName, *testSuite.MetricsSetName)
+}
 func TestReports(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
@@ -5124,7 +5137,7 @@ func TestReports(t *testing.T) {
 	ts.False(testSuite.ShowOnSummary)
 
 	// Revise w/ github flag
-	output = s.runCommand(ts, reviseTestSuite(projectID, testSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, Ptr(true), GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, reviseTestSuite(projectID, testSuiteName, nil, nil, nil, Ptr([]string{experienceNames[0]}), nil, Ptr(true), nil, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedTestSuite)
 	testSuiteIDRevisionString = output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
 	testSuiteIDRevision = strings.Split(testSuiteIDRevisionString, "/")
@@ -5313,7 +5326,6 @@ func TestBatchWithZeroTimeout(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
-
 func TestLogIngest(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()
@@ -5545,7 +5557,7 @@ func TestLogIngest(t *testing.T) {
 	ts.Equal(defaultBranchName, branches[0].Name)
 
 	//Create a build:
-	output = s.runCommand(ts, createBuild(projectName, firstBranchName, systemName, "description", commands.LogIngestURI, []string{}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	output = s.runCommand(ts, createBuild(projectName, firstBranchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", []string{}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedBuild)
 	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
 	existingBuildID := uuid.MustParse(buildIDString)
@@ -5681,7 +5693,6 @@ func TestLogIngest(t *testing.T) {
 	ts.NoError(err)
 	ts.Equal(2, len(jobs))
 }
-
 func TestMetricsSync(t *testing.T) {
 	ts := assert.New(t)
 	req := require.New(t)

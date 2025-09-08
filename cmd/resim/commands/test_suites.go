@@ -367,6 +367,12 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	// Optional metrics set name (can be set to empty string to unset)	)
+	if viper.IsSet(testSuiteMetricsSetKey) {
+		metricsSet := viper.GetString(testSuiteMetricsSetKey)
+		reviseRequest.MetricsSetName = &metricsSet
+	}
+
 	// Parse --experiences into either IDs or names
 	var allExperienceIDs []uuid.UUID
 	var allExperienceNames []string

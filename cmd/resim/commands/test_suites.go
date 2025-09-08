@@ -171,6 +171,8 @@ func init() {
 	reviseTestSuiteCmd.Flags().String(testSuiteMetricsBuildKey, "", "A new ID of the metrics build to use in this test suite revision. To unset an existing metrics build, pass a nil uuid (00000000-0000-0000-0000-000000000000).")
 	// Experiences
 	reviseTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "A list of updated experience names or list of experience IDs to have in the test suite revision.")
+	// Metrics set
+	reviseTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "A new name of the metrics set to use to generate test and batch metrics. To unset an existing metrics set, pass an empty string.")
 	// We need something to revise!
 	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey, testSuiteShowOnSummaryKey)
 	testSuiteCmd.AddCommand(reviseTestSuiteCmd)

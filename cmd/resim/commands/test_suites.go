@@ -174,7 +174,7 @@ func init() {
 	// Metrics set
 	reviseTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "A new name of the metrics set to use to generate test and batch metrics. To unset an existing metrics set, pass an empty string.")
 	// We need something to revise!
-	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey, testSuiteShowOnSummaryKey)
+	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey, testSuiteShowOnSummaryKey, testSuiteMetricsSetKey)
 	testSuiteCmd.AddCommand(reviseTestSuiteCmd)
 
 	// List Test Suite

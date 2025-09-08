@@ -5032,10 +5032,11 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getTestSuite(projectID, metricsSetTestSuiteName, nil, false), false)
 	ts.Contains(output.StdOut, metricsSetTestSuiteName)
 	ts.Contains(output.StdOut, testSuiteDescription)
+	// Parse the output into a test suite:
+	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
+	ts.NoError(err)
 	ts.NotNil(testSuite.MetricsSetName)
 	ts.Equal(metricsSetName, *testSuite.MetricsSetName)
-
-	// TODO(iain): a test that actually runs it.
 }
 
 func TestReports(t *testing.T) {

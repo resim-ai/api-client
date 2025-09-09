@@ -8,7 +8,6 @@ import (
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
-	"log"
 	"net/http"
 )
 
@@ -30,18 +29,11 @@ type SystemSet struct {
 	ExperienceIDs map[ExperienceID]struct{}
 }
 
-type TestSuiteSet struct {
-	Name          string
-	TestSuiteID   TestSuiteID
-	ExperienceIDs map[ExperienceID]struct{}
-}
-
 type DatabaseState struct {
-	ExperiencesByName   map[string]*Experience
-	TagSetsByName       map[string]TagSet
-	SystemSetsByName    map[string]SystemSet
-	TestSuiteIDsByName  map[string]TestSuiteID
-	TestSuiteSetsByName map[string]TestSuiteSet
+	ExperiencesByName  map[string]*Experience
+	TagSetsByName      map[string]TagSet
+	SystemSetsByName   map[string]SystemSet
+	TestSuiteIDsByName map[string]TestSuiteID
 }
 
 type Result[T any] struct {
@@ -58,8 +50,7 @@ func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
 	expCh := make(chan Result[map[string]*Experience])
 	tagCh := make(chan Result[map[string]TagSet])
 	sysCh := make(chan Result[map[string]SystemSet])
-	tsIDCh := make(chan Result[map[string]TestSuiteID])
-	tsCh := make(chan Result[map[string]TestSuiteSet])
+	tsCh := make(chan Result[map[string]TestSuiteID])
 
 	go func() {
 		exp, err := getCurrentExperiencesByName(client, projectID)
@@ -75,10 +66,6 @@ func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
 	}()
 	go func() {
 		ts, err := getCurrentTestSuitesIDsByName(client, projectID)
-		tsIDCh <- wrapResult(ts, err)
-	}()
-	go func() {
-		ts, err := getCurrentTestSuiteSetsByName(client, projectID)
 		tsCh <- wrapResult(ts, err)
 	}()
 
@@ -94,22 +81,16 @@ func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
 	if sysRes.Err != nil {
 		return nil, sysRes.Err
 	}
-	tsIDRes := <-tsIDCh
-	if tsIDRes.Err != nil {
-		return nil, tsIDRes.Err
-	}
-
 	tsRes := <-tsCh
 	if tsRes.Err != nil {
 		return nil, tsRes.Err
 	}
 
 	state := DatabaseState{
-		ExperiencesByName:   expRes.Val,
-		TagSetsByName:       tagRes.Val,
-		SystemSetsByName:    sysRes.Val,
-		TestSuiteIDsByName:  tsIDRes.Val,
-		TestSuiteSetsByName: tsRes.Val,
+		ExperiencesByName:  expRes.Val,
+		TagSetsByName:      tagRes.Val,
+		SystemSetsByName:   sysRes.Val,
+		TestSuiteIDsByName: tsRes.Val,
 	}
 
 	// Update the tags in each experience
@@ -227,36 +208,6 @@ func getCurrentSystemSetsByName(
 		}
 	}
 	return currentSystemSets, nil
-}
-
-func getCurrentTestSuiteSetsByName(
-	client api.ClientWithResponsesInterface,
-	projectID uuid.UUID) (map[string]TestSuiteSet, error) {
-	apiTestSuites, err := fetchAllTestSuites(client, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	currentTestSuiteSets := make(map[string]TestSuiteSet)
-
-	for _, testSuite := range apiTestSuites {
-		unarchived := false
-		apiExperiences, err := fetchAllExperiencesWithTestSuite(client, projectID, testSuite, unarchived)
-		if err != nil {
-			return nil, err
-		}
-
-		experienceIDs := make(map[ExperienceID]struct{})
-		for _, experience := range apiExperiences {
-			experienceIDs[experience.ExperienceID] = struct{}{}
-		}
-		currentTestSuiteSets[testSuite.Name] = TestSuiteSet{
-			Name:          testSuite.Name,
-			TestSuiteID:   testSuite.TestSuiteID,
-			ExperienceIDs: experienceIDs,
-		}
-	}
-	return currentTestSuiteSets, nil
 }
 
 func getCurrentTestSuitesIDsByName(
@@ -409,38 +360,6 @@ func fetchAllSystems(client api.ClientWithResponsesInterface,
 	return allSystems, nil
 }
 
-func fetchAllTestSuites(client api.ClientWithResponsesInterface,
-	projectID openapi_types.UUID) ([]api.TestSuite, error) {
-	allTestSuites := []api.TestSuite{}
-	var pageToken *string = nil
-
-	for {
-		response, err := client.ListTestSuitesWithResponse(
-			context.Background(), projectID, &api.ListTestSuitesParams{
-				PageSize:  Ptr(100),
-				PageToken: pageToken,
-			})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list experiences: %s", err)
-		}
-		err = utils.ValidateResponseSafe(http.StatusOK, "failed to list systems", response.HTTPResponse, response.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		pageToken = &response.JSON200.NextPageToken
-		if response.JSON200 == nil || len(response.JSON200.TestSuites) == 0 {
-			break // Either no systems or we've reached the end of the list matching the page length
-		}
-		allTestSuites = append(allTestSuites, response.JSON200.TestSuites...)
-		if pageToken == nil || *pageToken == "" {
-			break
-		}
-	}
-
-	return allTestSuites, nil
-}
-
 func fetchAllExperiencesWithTag(client api.ClientWithResponsesInterface,
 	projectID openapi_types.UUID,
 	tagID TagID,
@@ -494,44 +413,6 @@ func fetchAllExperiencesWithSystem(client api.ClientWithResponsesInterface,
 			return nil, fmt.Errorf("failed to list experiences: %s", err)
 		}
 		utils.ValidateResponse(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
-
-		pageToken = response.JSON200.NextPageToken
-		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {
-			break // Either no experiences or we've reached the end of the list matching the page length
-		}
-		allExperiences = append(allExperiences, *response.JSON200.Experiences...)
-		if pageToken == nil || *pageToken == "" {
-			break
-		}
-	}
-
-	return allExperiences, nil
-}
-
-func fetchAllExperiencesWithTestSuite(client api.ClientWithResponsesInterface,
-	projectID openapi_types.UUID,
-	testSuite api.TestSuite,
-	archived bool) ([]api.Experience, error) {
-	allExperiences := []api.Experience{}
-	var pageToken *string = nil
-
-	search := fmt.Sprintf("test_suite=\"%s:%d\"", testSuite.TestSuiteID, testSuite.TestSuiteRevision)
-	log.Printf(search)
-	for {
-		response, err := client.ListExperiencesWithResponse(
-			context.Background(), projectID, &api.ListExperiencesParams{
-				PageSize:  Ptr(100),
-				PageToken: pageToken,
-				Archived:  Ptr(archived),
-				Search:    &search,
-			})
-		if err != nil {
-			return nil, fmt.Errorf("failed to list experiences for test suite: %s", err)
-		}
-		err = utils.ValidateResponseSafe(http.StatusOK, "failed to list experiences", response.HTTPResponse, response.Body)
-		if err != nil {
-			return nil, err
-		}
 
 		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || len(*response.JSON200.Experiences) == 0 {

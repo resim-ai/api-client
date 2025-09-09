@@ -432,7 +432,7 @@ container_timeout_seconds: 7200
 
 	updates := ExperienceUpdates{
 		MatchedExperiencesByNewName: map[string]ExperienceMatch{},
-		TestSuiteUpdates: []TestSuiteIDUpdate{
+		TestSuiteUpdates: []TestSuiteUpdate{
 			{
 				Name:        "regression",
 				TestSuiteID: expectedTestSuiteID,

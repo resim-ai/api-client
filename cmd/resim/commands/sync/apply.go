@@ -32,7 +32,7 @@ func applyUpdates(
 
 	err = runConcurrentUpdates("Update Test Suites", experienceUpdates.TestSuiteUpdates,
 		numWorkers,
-		func(update TestSuiteIDUpdate) error {
+		func(update TestSuiteUpdate) error {
 			return updateSingleTestSuite(client, projectID, update)
 		})
 	if err != nil {
@@ -58,13 +58,8 @@ func applyUpdates(
 	}
 
 	// We archive experiences *after* everything else so that we don't end up inadvertently
-	// revising a test suite multiple times if we archive multiple experiences from it. This is
-	// because the backend automatically removes archived experiences from test suites.
-	err = runConcurrentUpdates("Archive Experiences", slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)),
-		numWorkers,
-		func(update ExperienceMatch) error {
-			return maybeArchiveExperience(client, projectID, update)
-		})
+	// revising test suites more than necessary.
+	err = maybeArchiveExperiences(client, projectID, slices.Collect(maps.Values(experienceUpdates.MatchedExperiencesByNewName)))
 
 	return err
 }
@@ -210,28 +205,22 @@ func updateSingleExperience(
 	return nil
 }
 
-func maybeArchiveExperience(
+func maybeArchiveExperiences(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	update ExperienceMatch) error {
-	if !update.New.Archived {
-		return nil
-	}
+	updates []ExperienceMatch) error {
 
-	if update.New.ExperienceID == nil {
-		// Fatal since this should *never* happen. It's a bug in the api client if so.
-		return fmt.Errorf("Trying to archive with unset experience ID")
-	}
+	experiencesToArchive := []ExperienceID{}
 
-	experienceID := update.New.ExperienceID.ID
-	// Archive
-	response, err := client.ArchiveExperienceWithResponse(context.Background(), projectID, experienceID)
-	if err != nil {
-		return fmt.Errorf("failed to archive experience: %s", err)
-	}
-	err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to archive experience", response.HTTPResponse, response.Body)
-	if err != nil {
-		return err
+	for _, update := range updates {
+		if !update.New.Archived {
+		    continue	
+	        }
+		if update.New.ExperienceID == nil {
+		    // Fatal since this should *never* happen. It's a bug in the api client if so.
+		    return fmt.Errorf("Trying to archive with unset experience ID")
+		}
+		experiencesToArchive = append(experiencesToArchive, update.New.ExperienceID.ID)
 	}
 	return nil
 }
@@ -343,7 +332,7 @@ func updateSingleSystem(
 func updateSingleTestSuite(
 	client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
-	update TestSuiteIDUpdate) error {
+	update TestSuiteUpdate) error {
 
 	experiences := []ExperienceID{}
 

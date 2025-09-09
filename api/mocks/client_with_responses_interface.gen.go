@@ -3659,6 +3659,310 @@ func (_c *ClientWithResponsesInterface_CreateViewUpdateWithBodyWithResponse_Call
 	return _c
 }
 
+// CreateWorkflowRunWithBodyWithResponse provides a mock function with given fields: ctx, projectID, workflowID, contentType, body, reqEditors
+func (_m *ClientWithResponsesInterface) CreateWorkflowRunWithBodyWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.CreateWorkflowRunResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateWorkflowRunWithBodyWithResponse")
+	}
+
+	var r0 *api.CreateWorkflowRunResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*api.CreateWorkflowRunResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *api.CreateWorkflowRunResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.CreateWorkflowRunResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateWorkflowRunWithBodyWithResponse'
+type ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call struct {
+	*mock.Call
+}
+
+// CreateWorkflowRunWithBodyWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) CreateWorkflowRunWithBodyWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call {
+	return &ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call{Call: _e.mock.On("CreateWorkflowRunWithBodyWithResponse",
+		append([]interface{}{ctx, projectID, workflowID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call) Return(_a0 *api.CreateWorkflowRunResponse, _a1 error) *ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*api.CreateWorkflowRunResponse, error)) *ClientWithResponsesInterface_CreateWorkflowRunWithBodyWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateWorkflowRunWithResponse provides a mock function with given fields: ctx, projectID, workflowID, body, reqEditors
+func (_m *ClientWithResponsesInterface) CreateWorkflowRunWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, body api.CreateWorkflowRunInput, reqEditors ...api.RequestEditorFn) (*api.CreateWorkflowRunResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateWorkflowRunWithResponse")
+	}
+
+	var r0 *api.CreateWorkflowRunResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.CreateWorkflowRunInput, ...api.RequestEditorFn) (*api.CreateWorkflowRunResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.CreateWorkflowRunInput, ...api.RequestEditorFn) *api.CreateWorkflowRunResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.CreateWorkflowRunResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, api.CreateWorkflowRunInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateWorkflowRunWithResponse'
+type ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call struct {
+	*mock.Call
+}
+
+// CreateWorkflowRunWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - body api.CreateWorkflowRunInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) CreateWorkflowRunWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call {
+	return &ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call{Call: _e.mock.On("CreateWorkflowRunWithResponse",
+		append([]interface{}{ctx, projectID, workflowID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, body api.CreateWorkflowRunInput, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(api.CreateWorkflowRunInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call) Return(_a0 *api.CreateWorkflowRunResponse, _a1 error) *ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.CreateWorkflowRunInput, ...api.RequestEditorFn) (*api.CreateWorkflowRunResponse, error)) *ClientWithResponsesInterface_CreateWorkflowRunWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateWorkflowWithBodyWithResponse provides a mock function with given fields: ctx, projectID, contentType, body, reqEditors
+func (_m *ClientWithResponsesInterface) CreateWorkflowWithBodyWithResponse(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.CreateWorkflowResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateWorkflowWithBodyWithResponse")
+	}
+
+	var r0 *api.CreateWorkflowResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*api.CreateWorkflowResponse, error)); ok {
+		return rf(ctx, projectID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *api.CreateWorkflowResponse); ok {
+		r0 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.CreateWorkflowResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateWorkflowWithBodyWithResponse'
+type ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call struct {
+	*mock.Call
+}
+
+// CreateWorkflowWithBodyWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) CreateWorkflowWithBodyWithResponse(ctx interface{}, projectID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call {
+	return &ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call{Call: _e.mock.On("CreateWorkflowWithBodyWithResponse",
+		append([]interface{}{ctx, projectID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), args[3].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call) Return(_a0 *api.CreateWorkflowResponse, _a1 error) *ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*api.CreateWorkflowResponse, error)) *ClientWithResponsesInterface_CreateWorkflowWithBodyWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateWorkflowWithResponse provides a mock function with given fields: ctx, projectID, body, reqEditors
+func (_m *ClientWithResponsesInterface) CreateWorkflowWithResponse(ctx context.Context, projectID uuid.UUID, body api.CreateWorkflowInput, reqEditors ...api.RequestEditorFn) (*api.CreateWorkflowResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateWorkflowWithResponse")
+	}
+
+	var r0 *api.CreateWorkflowResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateWorkflowInput, ...api.RequestEditorFn) (*api.CreateWorkflowResponse, error)); ok {
+		return rf(ctx, projectID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateWorkflowInput, ...api.RequestEditorFn) *api.CreateWorkflowResponse); ok {
+		r0 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.CreateWorkflowResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, api.CreateWorkflowInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_CreateWorkflowWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateWorkflowWithResponse'
+type ClientWithResponsesInterface_CreateWorkflowWithResponse_Call struct {
+	*mock.Call
+}
+
+// CreateWorkflowWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - body api.CreateWorkflowInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) CreateWorkflowWithResponse(ctx interface{}, projectID interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_CreateWorkflowWithResponse_Call {
+	return &ClientWithResponsesInterface_CreateWorkflowWithResponse_Call{Call: _e.mock.On("CreateWorkflowWithResponse",
+		append([]interface{}{ctx, projectID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, body api.CreateWorkflowInput, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_CreateWorkflowWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(api.CreateWorkflowInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowWithResponse_Call) Return(_a0 *api.CreateWorkflowResponse, _a1 error) *ClientWithResponsesInterface_CreateWorkflowWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateWorkflowWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.CreateWorkflowInput, ...api.RequestEditorFn) (*api.CreateWorkflowResponse, error)) *ClientWithResponsesInterface_CreateWorkflowWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DebugExperienceWithBodyWithResponse provides a mock function with given fields: ctx, projectID, experienceID, contentType, body, reqEditors
 func (_m *ClientWithResponsesInterface) DebugExperienceWithBodyWithResponse(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.DebugExperienceResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -6070,6 +6374,157 @@ func (_c *ClientWithResponsesInterface_GetViewSessionWithResponse_Call) Return(_
 }
 
 func (_c *ClientWithResponsesInterface_GetViewSessionWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, ...api.RequestEditorFn) (*api.GetViewSessionResponse, error)) *ClientWithResponsesInterface_GetViewSessionWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetWorkflowRunWithResponse provides a mock function with given fields: ctx, projectID, workflowID, workflowRunID, reqEditors
+func (_m *ClientWithResponsesInterface) GetWorkflowRunWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, workflowRunID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.GetWorkflowRunResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID, workflowRunID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowRunWithResponse")
+	}
+
+	var r0 *api.GetWorkflowRunResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetWorkflowRunResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, workflowRunID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *api.GetWorkflowRunResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, workflowRunID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.GetWorkflowRunResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, workflowRunID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowRunWithResponse'
+type ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowRunWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - workflowRunID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) GetWorkflowRunWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, workflowRunID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call {
+	return &ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call{Call: _e.mock.On("GetWorkflowRunWithResponse",
+		append([]interface{}{ctx, projectID, workflowID, workflowRunID}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, workflowRunID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call) Return(_a0 *api.GetWorkflowRunResponse, _a1 error) *ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetWorkflowRunResponse, error)) *ClientWithResponsesInterface_GetWorkflowRunWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetWorkflowWithResponse provides a mock function with given fields: ctx, projectID, workflowID, reqEditors
+func (_m *ClientWithResponsesInterface) GetWorkflowWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.GetWorkflowResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetWorkflowWithResponse")
+	}
+
+	var r0 *api.GetWorkflowResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetWorkflowResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *api.GetWorkflowResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.GetWorkflowResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_GetWorkflowWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetWorkflowWithResponse'
+type ClientWithResponsesInterface_GetWorkflowWithResponse_Call struct {
+	*mock.Call
+}
+
+// GetWorkflowWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) GetWorkflowWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_GetWorkflowWithResponse_Call {
+	return &ClientWithResponsesInterface_GetWorkflowWithResponse_Call{Call: _e.mock.On("GetWorkflowWithResponse",
+		append([]interface{}{ctx, projectID, workflowID}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_GetWorkflowWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_GetWorkflowWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetWorkflowWithResponse_Call) Return(_a0 *api.GetWorkflowResponse, _a1 error) *ClientWithResponsesInterface_GetWorkflowWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetWorkflowWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetWorkflowResponse, error)) *ClientWithResponsesInterface_GetWorkflowWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -10097,6 +10552,232 @@ func (_c *ClientWithResponsesInterface_ListViewSessionsWithResponse_Call) RunAnd
 	return _c
 }
 
+// ListWorkflowRunsWithResponse provides a mock function with given fields: ctx, projectID, workflowID, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListWorkflowRunsWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, params *api.ListWorkflowRunsParams, reqEditors ...api.RequestEditorFn) (*api.ListWorkflowRunsResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListWorkflowRunsWithResponse")
+	}
+
+	var r0 *api.ListWorkflowRunsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListWorkflowRunsParams, ...api.RequestEditorFn) (*api.ListWorkflowRunsResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListWorkflowRunsParams, ...api.RequestEditorFn) *api.ListWorkflowRunsResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListWorkflowRunsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListWorkflowRunsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListWorkflowRunsWithResponse'
+type ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListWorkflowRunsWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - params *api.ListWorkflowRunsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListWorkflowRunsWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call {
+	return &ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call{Call: _e.mock.On("ListWorkflowRunsWithResponse",
+		append([]interface{}{ctx, projectID, workflowID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, params *api.ListWorkflowRunsParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.ListWorkflowRunsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call) Return(_a0 *api.ListWorkflowRunsResponse, _a1 error) *ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListWorkflowRunsParams, ...api.RequestEditorFn) (*api.ListWorkflowRunsResponse, error)) *ClientWithResponsesInterface_ListWorkflowRunsWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListWorkflowSuitesWithResponse provides a mock function with given fields: ctx, projectID, workflowID, reqEditors
+func (_m *ClientWithResponsesInterface) ListWorkflowSuitesWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.ListWorkflowSuitesResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListWorkflowSuitesWithResponse")
+	}
+
+	var r0 *api.ListWorkflowSuitesResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListWorkflowSuitesResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *api.ListWorkflowSuitesResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListWorkflowSuitesResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListWorkflowSuitesWithResponse'
+type ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListWorkflowSuitesWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListWorkflowSuitesWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call {
+	return &ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call{Call: _e.mock.On("ListWorkflowSuitesWithResponse",
+		append([]interface{}{ctx, projectID, workflowID}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call) Return(_a0 *api.ListWorkflowSuitesResponse, _a1 error) *ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListWorkflowSuitesResponse, error)) *ClientWithResponsesInterface_ListWorkflowSuitesWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListWorkflowsWithResponse provides a mock function with given fields: ctx, projectID, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListWorkflowsWithResponse(ctx context.Context, projectID uuid.UUID, params *api.ListWorkflowsParams, reqEditors ...api.RequestEditorFn) (*api.ListWorkflowsResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListWorkflowsWithResponse")
+	}
+
+	var r0 *api.ListWorkflowsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListWorkflowsParams, ...api.RequestEditorFn) (*api.ListWorkflowsResponse, error)); ok {
+		return rf(ctx, projectID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListWorkflowsParams, ...api.RequestEditorFn) *api.ListWorkflowsResponse); ok {
+		r0 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListWorkflowsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *api.ListWorkflowsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListWorkflowsWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListWorkflowsWithResponse'
+type ClientWithResponsesInterface_ListWorkflowsWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListWorkflowsWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - params *api.ListWorkflowsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListWorkflowsWithResponse(ctx interface{}, projectID interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListWorkflowsWithResponse_Call {
+	return &ClientWithResponsesInterface_ListWorkflowsWithResponse_Call{Call: _e.mock.On("ListWorkflowsWithResponse",
+		append([]interface{}{ctx, projectID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowsWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, params *api.ListWorkflowsParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListWorkflowsWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*api.ListWorkflowsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowsWithResponse_Call) Return(_a0 *api.ListWorkflowsResponse, _a1 error) *ClientWithResponsesInterface_ListWorkflowsWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListWorkflowsWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListWorkflowsParams, ...api.RequestEditorFn) (*api.ListWorkflowsResponse, error)) *ClientWithResponsesInterface_ListWorkflowsWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemoveExperienceTagFromExperienceWithResponse provides a mock function with given fields: ctx, projectID, experienceTagID, experienceID, reqEditors
 func (_m *ClientWithResponsesInterface) RemoveExperienceTagFromExperienceWithResponse(ctx context.Context, projectID uuid.UUID, experienceTagID uuid.UUID, experienceID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.RemoveExperienceTagFromExperienceResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -12309,6 +12990,159 @@ func (_c *ClientWithResponsesInterface_UpdateSystemWithResponse_Call) Return(_a0
 }
 
 func (_c *ClientWithResponsesInterface_UpdateSystemWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.UpdateSystemInput, ...api.RequestEditorFn) (*api.UpdateSystemResponse, error)) *ClientWithResponsesInterface_UpdateSystemWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateWorkflowWithBodyWithResponse provides a mock function with given fields: ctx, projectID, workflowID, contentType, body, reqEditors
+func (_m *ClientWithResponsesInterface) UpdateWorkflowWithBodyWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.UpdateWorkflowResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateWorkflowWithBodyWithResponse")
+	}
+
+	var r0 *api.UpdateWorkflowResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*api.UpdateWorkflowResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *api.UpdateWorkflowResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.UpdateWorkflowResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateWorkflowWithBodyWithResponse'
+type ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call struct {
+	*mock.Call
+}
+
+// UpdateWorkflowWithBodyWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) UpdateWorkflowWithBodyWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call {
+	return &ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call{Call: _e.mock.On("UpdateWorkflowWithBodyWithResponse",
+		append([]interface{}{ctx, projectID, workflowID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call) Return(_a0 *api.UpdateWorkflowResponse, _a1 error) *ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*api.UpdateWorkflowResponse, error)) *ClientWithResponsesInterface_UpdateWorkflowWithBodyWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateWorkflowWithResponse provides a mock function with given fields: ctx, projectID, workflowID, body, reqEditors
+func (_m *ClientWithResponsesInterface) UpdateWorkflowWithResponse(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, body api.UpdateWorkflowInput, reqEditors ...api.RequestEditorFn) (*api.UpdateWorkflowResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, workflowID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateWorkflowWithResponse")
+	}
+
+	var r0 *api.UpdateWorkflowResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.UpdateWorkflowInput, ...api.RequestEditorFn) (*api.UpdateWorkflowResponse, error)); ok {
+		return rf(ctx, projectID, workflowID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.UpdateWorkflowInput, ...api.RequestEditorFn) *api.UpdateWorkflowResponse); ok {
+		r0 = rf(ctx, projectID, workflowID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.UpdateWorkflowResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, api.UpdateWorkflowInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, workflowID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateWorkflowWithResponse'
+type ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call struct {
+	*mock.Call
+}
+
+// UpdateWorkflowWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - workflowID uuid.UUID
+//   - body api.UpdateWorkflowInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) UpdateWorkflowWithResponse(ctx interface{}, projectID interface{}, workflowID interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call {
+	return &ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call{Call: _e.mock.On("UpdateWorkflowWithResponse",
+		append([]interface{}{ctx, projectID, workflowID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, body api.UpdateWorkflowInput, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(api.UpdateWorkflowInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call) Return(_a0 *api.UpdateWorkflowResponse, _a1 error) *ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.UpdateWorkflowInput, ...api.RequestEditorFn) (*api.UpdateWorkflowResponse, error)) *ClientWithResponsesInterface_UpdateWorkflowWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }

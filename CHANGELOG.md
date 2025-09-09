@@ -9,6 +9,12 @@
   user can use this command to easily make the required updates so that the backend matches the
   yaml.
 
+### v0.27.0 - September 8, 2025
+
+#### Added
+
+ - Extends Support for metrics sets to test suite creation and running
+
 ### v0.26.0 - August 25, 2025
 
 #### Added

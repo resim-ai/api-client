@@ -199,10 +199,7 @@ func updateSingleExperience(
 		return fmt.Errorf("failed to update experience: %s", err)
 	}
 	err = utils.ValidateResponseSafe(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func maybeArchiveExperiences(
@@ -214,15 +211,30 @@ func maybeArchiveExperiences(
 
 	for _, update := range updates {
 		if !update.New.Archived {
-		    continue	
-	        }
+			continue
+		}
 		if update.New.ExperienceID == nil {
-		    // Fatal since this should *never* happen. It's a bug in the api client if so.
-		    return fmt.Errorf("Trying to archive with unset experience ID")
+			// Fatal since this should *never* happen. It's a bug in the api client if so.
+			return fmt.Errorf("Trying to archive with unset experience ID")
 		}
 		experiencesToArchive = append(experiencesToArchive, update.New.ExperienceID.ID)
 	}
-	return nil
+	if len(experiencesToArchive) == 0 {
+		return nil
+	}
+	body := api.BulkArchiveExperiencesInput{
+		ExperienceIDs: experiencesToArchive,
+	}
+	response, err := client.BulkArchiveExperiencesWithResponse(
+		context.Background(),
+		projectID,
+		body,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to archive experiences: %s", err)
+	}
+	err = utils.ValidateResponseSafe(http.StatusOK, "failed to update tags", response.HTTPResponse, response.Body)
+	return err
 }
 
 func removeTagFromExperience(
@@ -240,10 +252,7 @@ func removeTagFromExperience(
 		return fmt.Errorf("failed to update tags: %s", err)
 	}
 	err = utils.ValidateResponseSafe(http.StatusNoContent, "failed to update tags", response.HTTPResponse, response.Body)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func updateSingleTag(
@@ -348,8 +357,5 @@ func updateSingleTestSuite(
 		return fmt.Errorf("failed to revise test suite: %s", err)
 	}
 	err = utils.ValidateResponseSafe(http.StatusOK, "failed to revise test suite", response.HTTPResponse, response.Body)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }

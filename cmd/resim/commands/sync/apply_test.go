@@ -111,14 +111,30 @@ container_timeout_seconds: 7200
 	*archiveMatch.New = *archiveMatch.Original
 	archiveMatch.New.Archived = true
 
-	client.On("ArchiveExperienceWithResponse",
+	// Another match for an experience we don't want to archive
+	dontArchiveMatch := ExperienceMatch{
+		Original: &Experience{},
+		New:      &Experience{},
+	}
+	*dontArchiveMatch.Original = *archiveMatch.Original
+	dontArchiveMatch.Original.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
+	dontArchiveMatch.Original.Name = "Don't archive me, bro"
+	*dontArchiveMatch.New = *dontArchiveMatch.Original
+
+	client.On("BulkArchiveExperiencesWithResponse",
 		context.Background(),
 		expectedProjectID,
-		archiveMatch.Original.ExperienceID.ID,
 		mock.Anything,
-	).Return(&api.ArchiveExperienceResponse{
-		HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
-	}, nil)
+	).Return(func(ctx context.Context,
+		projectID api.ProjectID,
+		body api.BulkArchiveExperiencesInput,
+		reqEditors ...api.RequestEditorFn) (*api.BulkArchiveExperiencesResponse, error) {
+		assert.Len(t, body.ExperienceIDs, 1)
+		assert.Equal(t, body.ExperienceIDs[0], archiveMatch.Original.ExperienceID.ID)
+		return &api.BulkArchiveExperiencesResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+		}, nil
+	}).Once()
 
 	updates := ExperienceUpdates{
 		MatchedExperiencesByNewName: map[string]ExperienceMatch{archiveMatch.New.Name: archiveMatch},
@@ -129,7 +145,7 @@ container_timeout_seconds: 7200
 	// ACTION / VERIFICATION
 	err = applyUpdates(&client, expectedProjectID, updates)
 	assert.NoError(t, err)
-	client.AssertNumberOfCalls(t, "ArchiveExperienceWithResponse", 1)
+	client.AssertNumberOfCalls(t, "BulkArchiveExperiencesWithResponse", 1)
 }
 
 func TestRestoreAndUpdateExperience(t *testing.T) {

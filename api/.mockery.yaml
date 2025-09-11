@@ -1,0 +1,15 @@
+# mockery's yaml style allows empty objects
+# yamllint disable rule:empty-values
+
+with-expecter: true
+packages:
+  github.com/resim-ai/api-client/api:
+    config:
+      filename: "{{.InterfaceNameSnake}}.gen.go"
+      dir: mocks
+      outpkg: mockapiclient
+      mockname: "{{.InterfaceName}}"
+    interfaces:
+      ClientInterface:
+      ClientWithResponsesInterface:
+      HttpRequestDoer:

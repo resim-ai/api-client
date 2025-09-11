@@ -91,6 +91,7 @@ const (
 	testSuiteAllRevisionKey             = "all-revisions"
 	testSuiteGithubKey                  = "github"
 	testSuiteMetricsBuildKey            = "metrics-build"
+	testSuiteMetricsSetKey              = "metrics-set"
 	testSuitePoolLabelsKey              = "pool-labels"
 	testSuiteAccountKey                 = "account"
 	testSuiteShowOnSummaryKey           = "show-on-summary"
@@ -119,6 +120,8 @@ func init() {
 	// Experiences
 	createTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "List of experience names or list of experience IDs to form this test suite.")
 	createTestSuiteCmd.MarkFlagRequired(testSuiteExperiencesKey)
+	// Optional: Metrics set
+	createTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	// Show on Summary
 	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
@@ -168,8 +171,10 @@ func init() {
 	reviseTestSuiteCmd.Flags().String(testSuiteMetricsBuildKey, "", "A new ID of the metrics build to use in this test suite revision. To unset an existing metrics build, pass a nil uuid (00000000-0000-0000-0000-000000000000).")
 	// Experiences
 	reviseTestSuiteCmd.Flags().String(testSuiteExperiencesKey, "", "A list of updated experience names or list of experience IDs to have in the test suite revision.")
+	// Metrics set
+	reviseTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "A new name of the metrics set to use to generate test and batch metrics. To unset an existing metrics set, pass an empty string.")
 	// We need something to revise!
-	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey, testSuiteShowOnSummaryKey)
+	reviseTestSuiteCmd.MarkFlagsOneRequired(testSuiteNameKey, testSuiteSystemKey, testSuiteDescriptionKey, testSuiteMetricsBuildKey, testSuiteExperiencesKey, testSuiteShowOnSummaryKey, testSuiteMetricsSetKey)
 	testSuiteCmd.AddCommand(reviseTestSuiteCmd)
 
 	// List Test Suite
@@ -278,6 +283,14 @@ func createTestSuite(ccmd *cobra.Command, args []string) {
 		body.MetricsBuildID = &metricsBuildID
 	}
 
+	// Optional metrics set name
+	if viper.IsSet(testSuiteMetricsSetKey) {
+		metricsSet := viper.GetString(testSuiteMetricsSetKey)
+		if metricsSet != "" {
+			body.MetricsSetName = &metricsSet
+		}
+	}
+
 	if viper.IsSet(testSuiteShowOnSummaryKey) {
 		body.ShowOnSummary = Ptr(viper.GetBool(testSuiteShowOnSummaryKey))
 	}
@@ -354,6 +367,12 @@ func reviseTestSuite(ccmd *cobra.Command, args []string) {
 		} else { // This has the effect of unsetting the metrics build
 			reviseRequest.UpdateMetricsBuild = true
 		}
+	}
+
+	// Optional metrics set name (can be set to empty string to unset)	)
+	if viper.IsSet(testSuiteMetricsSetKey) {
+		metricsSet := viper.GetString(testSuiteMetricsSetKey)
+		reviseRequest.MetricsSetName = &metricsSet
 	}
 
 	// Parse --experiences into either IDs or names
@@ -576,6 +595,10 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 
 	poolLabels := getAndValidatePoolLabels(testSuitePoolLabelsKey)
 
+	if testSuite.MetricsSetName != nil {
+		AddMetrics2PoolLabels(&poolLabels)
+	}
+
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()
@@ -597,6 +620,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 			ExperienceIDs:     &testSuite.Experiences,
 			Parameters:        &parameters,
 			AssociatedAccount: &associatedAccount,
+			MetricsSetName:    testSuite.MetricsSetName,
 		}
 
 		// Add the pool labels if any

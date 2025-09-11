@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/resim-ai/api-client/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -183,4 +184,17 @@ func TestParseBuildSpecWithProfiles(t *testing.T) {
 	assert.Contains(t, buildSpec.Services, "orchestrator")            // profile2
 	assert.NotContains(t, buildSpec.Services, "command-orchestrator") // profile1
 	assert.Contains(t, buildSpec.Services, "entrypoint-orchestrator") // no profile
+}
+
+func TestAddMetrics2PoolLabels(t *testing.T) {
+	poolLabels := []api.PoolLabel{}
+	AddMetrics2PoolLabels(&poolLabels)
+	assert.Contains(t, poolLabels, METRICS_2_POOL_LABEL)
+}
+
+func TestAddMetrics2PoolLabelsWithExistingLabels(t *testing.T) {
+	poolLabels := []api.PoolLabel{"foo", "bar"}
+	AddMetrics2PoolLabels(&poolLabels)
+	assert.Contains(t, poolLabels, METRICS_2_POOL_LABEL)
+	assert.Equal(t, []api.PoolLabel{"foo", "bar", METRICS_2_POOL_LABEL}, poolLabels)
 }

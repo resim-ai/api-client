@@ -42,6 +42,7 @@ const (
 	debugExperienceKey = "experience"
 	debugBatchKey      = "batch"
 	debugCommandKey    = "command"
+	debugContainerKey  = "container"
 )
 
 func init() {
@@ -52,6 +53,7 @@ func init() {
 	debugCmd.Flags().String(debugExperienceKey, "", "The name or ID of the experience to debug")
 	debugCmd.MarkFlagRequired(debugExperienceKey)
 	debugCmd.Flags().String(debugCommandKey, "", "The command to run in the debug session. Must be installed in the image, e.g. bash")
+	debugCmd.Flags().String(debugContainerKey, "", "The container to debug. If not provided, the first container in the batch will be used.")
 	rootCmd.AddCommand(debugCmd)
 }
 
@@ -91,7 +93,13 @@ func debug(ccmd *cobra.Command, args []string) {
 	var buildID uuid.UUID
 	var err error
 	if batchRef != "" {
-		batch := actualGetBatch(projectID, "", batchRef)
+		var batch *api.Batch
+		_, err = uuid.Parse(batchRef)
+		if err == nil {
+			batch = actualGetBatch(projectID, batchRef, "")
+		} else {
+			batch = actualGetBatch(projectID, "", batchRef)
+		}
 		body.BatchID = batch.BatchID
 	} else {
 		buildID, err = uuid.Parse(buildIDString)
@@ -103,6 +111,10 @@ func debug(ccmd *cobra.Command, args []string) {
 		}
 	}
 
+	container := viper.GetString(debugContainerKey)
+	if container != "" {
+		body.Containers = &[]string{container}
+	}
 	experienceID := getExperienceID(Client, projectID, viper.GetString(debugExperienceKey), true, false)
 
 	response, err := Client.DebugExperienceWithResponse(ctx, projectID, experienceID, body)
@@ -182,7 +194,7 @@ func debug(ccmd *cobra.Command, args []string) {
 		SubResource("exec")
 
 	req.VersionedParams(&v1.PodExecOptions{
-		Container: "",
+		Container: container,
 		Command:   strings.Fields(command),
 		Stdin:     true,
 		Stdout:    true,

@@ -10,8 +10,34 @@ import (
 	"github.com/compose-spec/compose-go/v2/loader"
 	compose_types "github.com/compose-spec/compose-go/v2/types"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
 )
+
+const METRICS_2_POOL_LABEL = "resim:metrics2"
+
+// Add Metrics 2.0 Pool labels to the list of pool labels:
+func AddMetrics2PoolLabels(poolLabels *[]api.PoolLabel) {
+	*poolLabels = append(*poolLabels, METRICS_2_POOL_LABEL)
+}
+
+// ProcessMetricsSet handles the common logic for processing metrics sets
+// and automatically adding the special metrics 2.0 pool label when needed.
+// Returns the metrics set name if set, nil otherwise.
+func ProcessMetricsSet(metricsSetKey string, poolLabels *[]api.PoolLabel) *string {
+	if !viper.IsSet(metricsSetKey) {
+		return nil
+	}
+
+	metricsSet := Ptr(viper.GetString(metricsSetKey))
+
+	// Metrics 2.0 steps will only be run if we use the special pool
+	// label, so let's enable it automatically if the user requested a
+	// metrics set
+	AddMetrics2PoolLabels(poolLabels)
+
+	return metricsSet
+}
 
 // ParseParameterString parses a string in the format "key=value" or "key:value"
 // into a key-value pair. It first tries to split on "=" and falls back to ":" if that fails.

@@ -562,7 +562,7 @@ func getWorkflowRun(ccmd *cobra.Command, args []string) {
 		fmt.Println("no suite runs")
 		return
 	}
-	OutputJson(*resp.JSON200.WorkflowRunTestSuites)
+	OutputJson(resp.JSON200.WorkflowRunTestSuites)
 }
 
 func actualGetWorkflow(projectID uuid.UUID, workflowKeyRaw string, expectArchived bool) api.Workflow {

@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.27.1 - September 12, 2025
+
+- Increase debug mode timeout to 30 minutes
+
 ### v0.27.0 - September 8, 2025
 
  - Extends Support for metrics sets to test suite creation and running

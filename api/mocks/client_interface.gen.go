@@ -1162,6 +1162,157 @@ func (_c *ClientInterface_ArchiveTestSuite_Call) RunAndReturn(run func(context.C
 	return _c
 }
 
+// BulkArchiveExperiences provides a mock function with given fields: ctx, projectID, body, reqEditors
+func (_m *ClientInterface) BulkArchiveExperiences(ctx context.Context, projectID uuid.UUID, body api.BulkArchiveExperiencesInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkArchiveExperiences")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.BulkArchiveExperiencesInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.BulkArchiveExperiencesInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, api.BulkArchiveExperiencesInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_BulkArchiveExperiences_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkArchiveExperiences'
+type ClientInterface_BulkArchiveExperiences_Call struct {
+	*mock.Call
+}
+
+// BulkArchiveExperiences is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - body api.BulkArchiveExperiencesInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) BulkArchiveExperiences(ctx interface{}, projectID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_BulkArchiveExperiences_Call {
+	return &ClientInterface_BulkArchiveExperiences_Call{Call: _e.mock.On("BulkArchiveExperiences",
+		append([]interface{}{ctx, projectID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_BulkArchiveExperiences_Call) Run(run func(ctx context.Context, projectID uuid.UUID, body api.BulkArchiveExperiencesInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_BulkArchiveExperiences_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(api.BulkArchiveExperiencesInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_BulkArchiveExperiences_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_BulkArchiveExperiences_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_BulkArchiveExperiences_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.BulkArchiveExperiencesInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_BulkArchiveExperiences_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// BulkArchiveExperiencesWithBody provides a mock function with given fields: ctx, projectID, contentType, body, reqEditors
+func (_m *ClientInterface) BulkArchiveExperiencesWithBody(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for BulkArchiveExperiencesWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_BulkArchiveExperiencesWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'BulkArchiveExperiencesWithBody'
+type ClientInterface_BulkArchiveExperiencesWithBody_Call struct {
+	*mock.Call
+}
+
+// BulkArchiveExperiencesWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) BulkArchiveExperiencesWithBody(ctx interface{}, projectID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_BulkArchiveExperiencesWithBody_Call {
+	return &ClientInterface_BulkArchiveExperiencesWithBody_Call{Call: _e.mock.On("BulkArchiveExperiencesWithBody",
+		append([]interface{}{ctx, projectID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_BulkArchiveExperiencesWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_BulkArchiveExperiencesWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), args[3].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_BulkArchiveExperiencesWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_BulkArchiveExperiencesWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_BulkArchiveExperiencesWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_BulkArchiveExperiencesWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CancelBatch provides a mock function with given fields: ctx, projectID, batchID, reqEditors
 func (_m *ClientInterface) CancelBatch(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))

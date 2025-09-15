@@ -13,6 +13,7 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
 	configPath string,
 	updateConfig bool,
+	noArchive bool,
 ) {
 	if configPath == "" {
 		log.Fatal("experiences-config not set")
@@ -25,7 +26,7 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	experienceUpdates, err := computeExperienceUpdates(config, *currentState)
+	experienceUpdates, err := computeExperienceUpdates(config, *currentState, noArchive)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

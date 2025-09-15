@@ -4,7 +4,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-	"log"
 	"slices"
 	"testing"
 )
@@ -59,7 +58,7 @@ func TestUpdateExperiencesEmpty(t *testing.T) {
 	currentState := DatabaseState{}
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -86,7 +85,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -120,7 +119,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -131,9 +130,6 @@ experiences:
 	match, exists := experienceUpdates.MatchedExperiencesByNewName["Test Experience"]
 	assert.True(t, exists, "Expected experience in updates")
 	assert.Same(t, currentState.ExperiencesByName["Test Experience"], match.Original, "Should be the same object (pointer equality)")
-
-	log.Print(match.Original.Locations)
-	log.Print(match.New.Locations)
 
 	assert.Equal(t, match.Original.Name, match.New.Name)
 	assert.Equal(t, match.Original.Description, match.New.Description)
@@ -197,7 +193,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -233,7 +229,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState)
+	_, err := computeExperienceUpdates(&config, currentState, false)
 	assert.Error(t, err)
 
 	// SETUP
@@ -250,7 +246,7 @@ experiences:
 	currentState, config = loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err = computeExperienceUpdates(&config, currentState)
+	_, err = computeExperienceUpdates(&config, currentState, false)
 	assert.Error(t, err)
 }
 
@@ -268,7 +264,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState)
+	_, err := computeExperienceUpdates(&config, currentState, false)
 	assert.Error(t, err)
 }
 
@@ -288,7 +284,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState)
+	_, err := computeExperienceUpdates(&config, currentState, false)
 	assert.Error(t, err)
 }
 
@@ -315,7 +311,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState)
+	_, err := computeExperienceUpdates(&config, currentState, false)
 	assert.Error(t, err)
 }
 
@@ -335,7 +331,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState)
+	_, err := computeExperienceUpdates(&config, currentState, false)
 	assert.Error(t, err)
 }
 
@@ -367,7 +363,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, []string{"regression", "my-special-tag"}, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -410,7 +406,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, []string{"planner"})
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -446,7 +442,7 @@ experiences:
 	}
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -482,8 +478,53 @@ experiences:
 	}
 
 	// ACTION
-	_, err := computeExperienceUpdates(&config, currentState)
+	_, err := computeExperienceUpdates(&config, currentState, false)
 
 	// VERIFICATION
 	assert.Error(t, err)
+}
+
+
+func TestNoArchiveSingleExperience(t *testing.T) {
+	// SETUP
+	currentStateData := `
+  - name: Test Experience
+    description: This is a test experience
+    experience_id: "3dd91177-1e66-426c-bf5b-fb46fe4a0c3b"
+    locations:
+      - s3://my-favorite-bucket/foo
+    environment_variables:
+      - name: ENV_VAR_1
+        value: value1
+    cache_exempt: true
+    container_timeout_seconds: 7200
+`
+	configData := `
+experiences:
+`
+	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
+
+	// ACTION
+	noArchive := true
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, noArchive)
+
+	// VERIFICATION
+	assert.NoError(t, err)
+
+	assert.Len(t, experienceUpdates.MatchedExperiencesByNewName, 1, "Should be one experience update")
+	assert.Empty(t, experienceUpdates.TagUpdatesByName, "Should be no tag updates")
+
+	match, exists := experienceUpdates.MatchedExperiencesByNewName["Test Experience"]
+	assert.True(t, exists, "Expected experience in updates")
+	assert.Same(t, currentState.ExperiencesByName["Test Experience"], match.Original, "Should be the same object (pointer equality)")
+
+	assert.Equal(t, match.Original.Name, match.New.Name)
+	assert.Equal(t, match.Original.Description, match.New.Description)
+	assert.Equal(t, match.Original.Name, match.New.Name)
+	assert.Equal(t, match.Original.Profile, match.New.Profile)
+	assert.Equal(t, match.Original.ExperienceID, match.New.ExperienceID)
+	assert.Equal(t, match.Original.EnvironmentVariables, match.New.EnvironmentVariables)
+	assert.Equal(t, match.Original.CacheExempt, match.New.CacheExempt)
+	assert.Equal(t, match.Original.ContainerTimeoutSeconds, match.New.ContainerTimeoutSeconds)
+	assert.False(t, match.New.Archived, "Experience should not be archived")
 }

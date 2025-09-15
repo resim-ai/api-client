@@ -73,7 +73,7 @@ var (
 
 	getWorkflowRunCmd = &cobra.Command{
 		Use:   "get",
-		Short: "get - Get a workflow run and list its suite runs (batchID <> testSuiteID)",
+		Short: "get - Get a workflow run and list its suite runs (batchID <> test suite)",
 		Long:  ``,
 		Run:   getWorkflowRun,
 	}
@@ -116,8 +116,8 @@ func init() {
 	createWorkflowCmd.Flags().String(workflowDescriptionKey, "", "The description of the workflow.")
 	createWorkflowCmd.MarkFlagRequired(workflowDescriptionKey)
 	createWorkflowCmd.Flags().String(workflowCILinkKey, "", "An optional link to the CI workflow.")
-	createWorkflowCmd.Flags().String(workflowSuitesKey, "", "JSON array of objects {testSuiteID, enabled} specifying suites for this workflow. testSuiteID may be a UUID or a test suite name.")
-	createWorkflowCmd.Flags().String(workflowSuitesFileKey, "", "Path to a JSON file containing an array of objects {testSuiteID, enabled} specifying suites for this workflow. testSuiteID may be a UUID or a test suite name.")
+	createWorkflowCmd.Flags().String(workflowSuitesKey, "", "JSON array of objects {testSuite, enabled} specifying suites for this workflow. testSuite may be a UUID or a test suite name.")
+	createWorkflowCmd.Flags().String(workflowSuitesFileKey, "", "Path to a JSON file containing an array of objects {testSuite, enabled} specifying suites for this workflow. testSuite may be a UUID or a test suite name.")
 	createWorkflowCmd.MarkFlagsOneRequired(workflowSuitesKey, workflowSuitesFileKey)
 	workflowCmd.AddCommand(createWorkflowCmd)
 
@@ -129,8 +129,8 @@ func init() {
 	updateWorkflowCmd.Flags().String(workflowNameKey, "", "A new name for the workflow.")
 	updateWorkflowCmd.Flags().String(workflowDescriptionKey, "", "A new description for the workflow.")
 	updateWorkflowCmd.Flags().String(workflowCILinkKey, "", "A new CI workflow link.")
-	updateWorkflowCmd.Flags().String(workflowSuitesKey, "", "JSON array of objects {testSuiteID, enabled} specifying suites to replace on this workflow. testSuiteID may be a UUID or a test suite name.")
-	updateWorkflowCmd.Flags().String(workflowSuitesFileKey, "", "Path to a JSON file containing an array of objects {testSuiteID, enabled} specifying suites to replace on this workflow. testSuiteID may be a UUID or a test suite name.")
+	updateWorkflowCmd.Flags().String(workflowSuitesKey, "", "JSON array of objects {testSuite, enabled} specifying suites to replace on this workflow. testSuite may be a UUID or a test suite name.")
+	updateWorkflowCmd.Flags().String(workflowSuitesFileKey, "", "Path to a JSON file containing an array of objects {testSuite, enabled} specifying suites to replace on this workflow. testSuite may be a UUID or a test suite name.")
 	updateWorkflowCmd.MarkFlagsMutuallyExclusive(workflowSuitesKey, workflowSuitesFileKey)
 	workflowCmd.AddCommand(updateWorkflowCmd)
 
@@ -165,8 +165,6 @@ func init() {
 	listWorkflowRunsCmd.MarkFlagRequired(workflowProjectKey)
 	listWorkflowRunsCmd.Flags().String(workflowKey, "", "The name or ID of the workflow to list runs for.")
 	listWorkflowRunsCmd.MarkFlagRequired(workflowKey)
-
-	// Workflow Runs - Get
 
 	rootCmd.AddCommand(workflowCmd)
 }
@@ -290,8 +288,8 @@ func createWorkflow(ccmd *cobra.Command, args []string) {
 
 	// Parse suites from JSON string or JSON file
 	type suiteSpec struct {
-		TestSuiteID string `json:"testSuiteID"`
-		Enabled     bool   `json:"enabled"`
+		TestSuite string `json:"testSuite"`
+		Enabled   bool   `json:"enabled"`
 	}
 	var specs []suiteSpec
 	if viper.IsSet(workflowSuitesFileKey) {
@@ -320,16 +318,16 @@ func createWorkflow(ccmd *cobra.Command, args []string) {
 
 	workflowSuites := make([]api.WorkflowSuiteInput, 0, len(specs))
 	for _, s := range specs {
-		if s.TestSuiteID == "" {
-			log.Fatal("suite entry missing testSuiteID")
+		if s.TestSuite == "" {
+			log.Fatal("suite entry missing testSuite")
 		}
 		var id uuid.UUID
-		if parsed, err := uuid.Parse(s.TestSuiteID); err == nil {
+		if parsed, err := uuid.Parse(s.TestSuite); err == nil {
 			id = parsed
 		} else {
-			ts := actualGetTestSuite(projectID, s.TestSuiteID, nil, false)
+			ts := actualGetTestSuite(projectID, s.TestSuite, nil, false)
 			if ts == nil {
-				log.Fatal("unable to find test suite: ", s.TestSuiteID)
+				log.Fatal("unable to find test suite: ", s.TestSuite)
 			}
 			id = ts.TestSuiteID
 		}

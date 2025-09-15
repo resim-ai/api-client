@@ -36,8 +36,11 @@ type ExperienceSyncConfig struct {
 	ManagedExperienceTags []string      `yaml:"managed_experience_tags,omitempty"`
 }
 
-func loadExperienceSyncConfig(path string) (*ExperienceSyncConfig, error) {
+func loadExperienceSyncConfig(path string, allowNew bool) (*ExperienceSyncConfig, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if allowNew {
+			return &ExperienceSyncConfig{}, nil
+		}
 		return nil, fmt.Errorf("config file does not exist: %s", path)
 	}
 	// Read file

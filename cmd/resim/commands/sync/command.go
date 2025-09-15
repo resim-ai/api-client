@@ -17,7 +17,7 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 	if configPath == "" {
 		log.Fatal("experiences-config not set")
 	}
-	config, err := loadExperienceSyncConfig(configPath)
+	config, err := loadExperienceSyncConfig(configPath, false)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -45,7 +45,7 @@ func CloneExperiences(client api.ClientWithResponsesInterface,
 	if configPath == "" {
 		log.Fatal("experiences-config not set")
 	}
-	config, err := loadExperienceSyncConfig(configPath)
+	config, err := loadExperienceSyncConfig(configPath, true)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

@@ -4,6 +4,9 @@
 
 ### Unreleased
 
+- Add a --no-archive flag for experience syncing to keep experiences from being archived if not
+  listed in the config.
+
 ### v0.28.0 - September 15, 2025
 
 - Support for experience syncing from a config file using `resim experiences sync ...`. In short, by

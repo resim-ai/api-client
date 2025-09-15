@@ -18,7 +18,7 @@ type ExperienceUpdates struct {
 func computeExperienceUpdates(
 	config *ExperienceSyncConfig,
 	currentState DatabaseState,
-        noArchive bool) (*ExperienceUpdates, error) {
+	noArchive bool) (*ExperienceUpdates, error) {
 	matchedExperiencesByNewName, err := matchExperiences(config, currentState.ExperiencesByName, noArchive)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to compute experience updates: %w", err)

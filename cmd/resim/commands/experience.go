@@ -102,7 +102,7 @@ const (
 	experienceKey                     = "experience"
 	experiencesConfigKey              = "experiences-config"
 	experiencesCloneKey               = "clone"
-	experiencesSyncNoArchiveKey       = "no-archive"	
+	experiencesSyncNoArchiveKey       = "no-archive"
 	experiencesUpdateConfigKey        = "update-config"
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
@@ -200,7 +200,7 @@ func init() {
 	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
 	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
 	syncExperienceCmd.Flags().Bool(experiencesSyncNoArchiveKey, false, "Whether to archive experiences not listed in the config file")
-	
+
 	syncExperienceCmd.Flags().Bool(experiencesCloneKey, false, "Whether to clone the existing database state to the config file rather than the other way around")
 	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesUpdateConfigKey, experiencesCloneKey)
 	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesSyncNoArchiveKey, experiencesCloneKey)

@@ -484,7 +484,6 @@ experiences:
 	assert.Error(t, err)
 }
 
-
 func TestNoArchiveSingleExperience(t *testing.T) {
 	// SETUP
 	currentStateData := `

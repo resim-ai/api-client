@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

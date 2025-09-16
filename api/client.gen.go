@@ -420,6 +420,14 @@ type BuildSpecificationOutput = string
 // BuildVersion defines model for buildVersion.
 type BuildVersion = string
 
+// BulkArchiveExperiencesInput defines model for bulkArchiveExperiencesInput.
+type BulkArchiveExperiencesInput struct {
+	AllExperiences *bool                  `json:"allExperiences,omitempty"`
+	ExperienceIDs  []ExperienceID         `json:"experienceIDs"`
+	Experiences    *[]ExperienceID        `json:"experiences,omitempty"`
+	Filters        *ExperienceFilterInput `json:"filters,omitempty"`
+}
+
 // Checksum defines model for checksum.
 type Checksum = string
 
@@ -2303,6 +2311,9 @@ type UpdateExperienceTagJSONRequestBody = UpdateExperienceTagInput
 // CreateExperienceJSONRequestBody defines body for CreateExperience for application/json ContentType.
 type CreateExperienceJSONRequestBody = CreateExperienceInput
 
+// BulkArchiveExperiencesJSONRequestBody defines body for BulkArchiveExperiences for application/json ContentType.
+type BulkArchiveExperiencesJSONRequestBody = BulkArchiveExperiencesInput
+
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
 type UpdateExperienceJSONRequestBody = UpdateExperienceInput
 
@@ -3032,6 +3043,11 @@ type ClientInterface interface {
 	CreateExperienceWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateExperience(ctx context.Context, projectID ProjectID, body CreateExperienceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// BulkArchiveExperiencesWithBody request with any body
+	BulkArchiveExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	BulkArchiveExperiences(ctx context.Context, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ArchiveExperience request
 	ArchiveExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4248,6 +4264,30 @@ func (c *Client) CreateExperienceWithBody(ctx context.Context, projectID Project
 
 func (c *Client) CreateExperience(ctx context.Context, projectID ProjectID, body CreateExperienceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateExperienceRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) BulkArchiveExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBulkArchiveExperiencesRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) BulkArchiveExperiences(ctx context.Context, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewBulkArchiveExperiencesRequest(c.Server, projectID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -10023,6 +10063,53 @@ func NewCreateExperienceRequestWithBody(server string, projectID ProjectID, cont
 	return req, nil
 }
 
+// NewBulkArchiveExperiencesRequest calls the generic BulkArchiveExperiences builder with application/json body
+func NewBulkArchiveExperiencesRequest(server string, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewBulkArchiveExperiencesRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewBulkArchiveExperiencesRequestWithBody generates requests for BulkArchiveExperiences with any type of body
+func NewBulkArchiveExperiencesRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/experiences/archive", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewArchiveExperienceRequest generates requests for ArchiveExperience
 func NewArchiveExperienceRequest(server string, projectID ProjectID, experienceID ExperienceID) (*http.Request, error) {
 	var err error
@@ -14815,6 +14902,11 @@ type ClientWithResponsesInterface interface {
 
 	CreateExperienceWithResponse(ctx context.Context, projectID ProjectID, body CreateExperienceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateExperienceResponse, error)
 
+	// BulkArchiveExperiencesWithBodyWithResponse request with any body
+	BulkArchiveExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkArchiveExperiencesResponse, error)
+
+	BulkArchiveExperiencesWithResponse(ctx context.Context, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*BulkArchiveExperiencesResponse, error)
+
 	// ArchiveExperienceWithResponse request
 	ArchiveExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*ArchiveExperienceResponse, error)
 
@@ -16515,6 +16607,28 @@ func (r CreateExperienceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateExperienceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type BulkArchiveExperiencesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *int
+}
+
+// Status returns HTTPResponse.Status
+func (r BulkArchiveExperiencesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r BulkArchiveExperiencesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -18840,6 +18954,23 @@ func (c *ClientWithResponses) CreateExperienceWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseCreateExperienceResponse(rsp)
+}
+
+// BulkArchiveExperiencesWithBodyWithResponse request with arbitrary body returning *BulkArchiveExperiencesResponse
+func (c *ClientWithResponses) BulkArchiveExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkArchiveExperiencesResponse, error) {
+	rsp, err := c.BulkArchiveExperiencesWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBulkArchiveExperiencesResponse(rsp)
+}
+
+func (c *ClientWithResponses) BulkArchiveExperiencesWithResponse(ctx context.Context, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*BulkArchiveExperiencesResponse, error) {
+	rsp, err := c.BulkArchiveExperiences(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseBulkArchiveExperiencesResponse(rsp)
 }
 
 // ArchiveExperienceWithResponse request returning *ArchiveExperienceResponse
@@ -21276,6 +21407,32 @@ func ParseCreateExperienceResponse(rsp *http.Response) (*CreateExperienceRespons
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseBulkArchiveExperiencesResponse parses an HTTP response from a BulkArchiveExperiencesWithResponse call
+func ParseBulkArchiveExperiencesResponse(rsp *http.Response) (*BulkArchiveExperiencesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &BulkArchiveExperiencesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest int
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	}
 

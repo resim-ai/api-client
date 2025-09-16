@@ -4,6 +4,13 @@
 
 ### Unreleased
 
+### v0.28.0 - September 16, 2025
+
+- Support for experience syncing from a config file using `resim experiences sync ...`. In short, by
+  specifying which experiences they want with which tags, systems, and test suites in a yaml file, a
+  user can use this command to easily make the required updates so that the backend matches the
+  yaml.
+
 ### v0.27.1 - September 12, 2025
 
 - Increase debug mode timeout to 30 minutes

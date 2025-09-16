@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-### v0.28.0 - September 15, 2025
+### v0.28.0 - September 16, 2025
 
 - Support for experience syncing from a config file using `resim experiences sync ...`. In short, by
   specifying which experiences they want with which tags, systems, and test suites in a yaml file, a

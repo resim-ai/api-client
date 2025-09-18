@@ -2,7 +2,6 @@ package sync
 
 import (
 	"fmt"
-	"log"
 )
 
 // A struct describing the changes we need to make to update the current database state to the state
@@ -102,9 +101,6 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 	matches := make(map[string]ExperienceMatch)
 
 	remainingCurrentExperiencesByID := byNameToByID(currentExperiencesByName)
-	log.Print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-	log.Print(len(currentExperiencesByName))
-	log.Print(len(remainingCurrentExperiencesByID))
 	for ii := range config.Experiences {
 		experience := &config.Experiences[ii]
 		// Step 1: Attempt to match by name
@@ -161,16 +157,12 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 		}
 
 	}
-	log.Print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
-	log.Print(len(remainingCurrentExperiencesByID))
 	// Step 4: Any leftover experiences should be archived
 	for _, experience := range remainingCurrentExperiencesByID {
 		if experience.Archived {
 			// No updates needed, already archived
-			log.Printf("Alreadyarchived")
 			continue
 		}
-		log.Print("ASDF")
 		archivedVersion := *experience
 		archivedVersion.Archived = true
 		checkedInsert(matches, experience.Name, ExperienceMatch{

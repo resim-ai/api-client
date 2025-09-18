@@ -4,7 +4,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-	"log"
 	"slices"
 	"testing"
 )
@@ -94,7 +93,6 @@ managedTestSuites:
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
-	log.Print(config.Experiences[0])
 	// ACTION
 	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
 
@@ -141,9 +139,6 @@ experiences:
 	match, exists := experienceUpdates.MatchedExperiencesByNewName["Test Experience"]
 	assert.True(t, exists, "Expected experience in updates")
 	assert.Same(t, currentState.ExperiencesByName["Test Experience"], match.Original, "Should be the same object (pointer equality)")
-
-	log.Print(match.Original.Locations)
-	log.Print(match.New.Locations)
 
 	assert.Equal(t, match.Original.Name, match.New.Name)
 	assert.Equal(t, match.Original.Description, match.New.Description)

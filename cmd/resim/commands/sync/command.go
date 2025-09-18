@@ -53,6 +53,7 @@ func CloneExperiences(client api.ClientWithResponsesInterface,
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
+	config.Experiences = []Experience{}
 	for _, experience := range currentState.ExperiencesByName {
 		if !experience.Archived {
 			config.Experiences = append(config.Experiences, *experience)

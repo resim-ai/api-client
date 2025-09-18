@@ -31,16 +31,16 @@ var experiencesData = `
   systems:
   - planner
   profile: arms
-  experience_id: fb7b6f11-753e-45ee-9dc2-efafa0a2ba17
-  environment_variables:
+  experienceID: fb7b6f11-753e-45ee-9dc2-efafa0a2ba17
+  environmentVariables:
   - name: ENV_LXJ
     value: vBSswt
   - name: ENV_STH
     value: lE5p2r
   - name: ENV_BLH
     value: 1zXBXC
-  cache_exempt: true
-  container_timeout_seconds: 3345
+  cacheExempt: true
+  containerTimeoutSeconds: 3345
   archived: true
 - name: AI Planning Experiment bb74f0
   description: Placeholder description tCRbvavBOA
@@ -53,14 +53,14 @@ var experiencesData = `
   systems:
   - perception
   profile: legs
-  experience_id: 792de355-4757-487f-beb9-f4debd2df98a
-  environment_variables:
+  experienceID: 792de355-4757-487f-beb9-f4debd2df98a
+  environmentVariables:
   - name: ENV_CDU
     value: dKgzGF
   - name: ENV_KZT
     value: hO8mJe
-  cache_exempt: false
-  container_timeout_seconds: 2066
+  cacheExempt: false
+  containerTimeoutSeconds: 2066
   archived: true
 - name: Planner Load Simulation 84d7cb
   description: Placeholder description ctnXbFsILO
@@ -76,14 +76,14 @@ var experiencesData = `
   - analytics
   - planner
   profile: legs
-  experience_id: 5cb51c5b-b976-47b5-928e-77d5ba616d07
-  environment_variables:
+  experienceID: 5cb51c5b-b976-47b5-928e-77d5ba616d07
+  environmentVariables:
   - name: ENV_UEE
     value: 5RKX8p
   - name: ENV_PHE
     value: Zk5DTQ
-  cache_exempt: false
-  container_timeout_seconds: 6027
+  cacheExempt: false
+  containerTimeoutSeconds: 6027
   archived: false
 - name: Planner Load Simulation ff9033
   description: Placeholder description zMzqOMGXLc
@@ -94,12 +94,12 @@ var experiencesData = `
   systems:
   - analytics
   profile: arms
-  experience_id: 08134d8b-596d-41ad-81d8-0545172376ae
-  environment_variables:
+  experienceID: 08134d8b-596d-41ad-81d8-0545172376ae
+  environmentVariables:
   - name: ENV_MIV
     value: PXrJXa
-  cache_exempt: false
-  container_timeout_seconds: 3336
+  cacheExempt: false
+  containerTimeoutSeconds: 3336
   archived: true
 - name: Planner Optimization Run 347bb5
   description: Placeholder description ElKgGrNeJW
@@ -113,12 +113,12 @@ var experiencesData = `
   - planner
   - perception
   profile: legs
-  experience_id: 0ca05584-d066-403d-9a32-9aa6a009688f
-  environment_variables:
+  experienceID: 0ca05584-d066-403d-9a32-9aa6a009688f
+  environmentVariables:
   - name: ENV_DAL
     value: ZBfAYp
-  cache_exempt: true
-  container_timeout_seconds: 3277
+  cacheExempt: true
+  containerTimeoutSeconds: 3277
   archived: true
 - name: Sensor Calibration Series aff890
   description: Placeholder description QNKSjttMzV
@@ -131,14 +131,14 @@ var experiencesData = `
   systems:
   - analytics
   profile: legs
-  experience_id: f17ae13a-0124-4cb7-8679-3b6a4a1ff78d
-  environment_variables:
+  experienceID: f17ae13a-0124-4cb7-8679-3b6a4a1ff78d
+  environmentVariables:
   - name: ENV_DRU
     value: O3wGiY
   - name: ENV_JRF
     value: qFEiPz
-  cache_exempt: false
-  container_timeout_seconds: 4009
+  cacheExempt: false
+  containerTimeoutSeconds: 4009
   archived: true
 - name: Memory Optimization Test 6758de
   description: Placeholder description yBqUJzvkIw
@@ -152,14 +152,14 @@ var experiencesData = `
   systems:
   - perception
   profile: arms
-  experience_id: e60122bf-b387-418a-87b3-3b3d31b7e1ec
-  environment_variables:
+  experienceID: e60122bf-b387-418a-87b3-3b3d31b7e1ec
+  environmentVariables:
   - name: ENV_UWO
     value: c8hMdO
   - name: ENV_PIY
     value: AbOt0o
-  cache_exempt: true
-  container_timeout_seconds: 6437
+  cacheExempt: true
+  containerTimeoutSeconds: 6437
   archived: false
 - name: AI Planning Experiment 0a8ccd
   description: Placeholder description pTisWLZraG
@@ -172,12 +172,12 @@ var experiencesData = `
   - analytics
   - perception
   profile: legs
-  experience_id: fa58c801-31a1-4e3e-8824-311cf492de98
-  environment_variables:
+  experienceID: fa58c801-31a1-4e3e-8824-311cf492de98
+  environmentVariables:
   - name: ENV_LWV
     value: HBdfPH
-  cache_exempt: true
-  container_timeout_seconds: 3664
+  cacheExempt: true
+  containerTimeoutSeconds: 3664
   archived: false
 - name: Planner Load Simulation 047e54
   description: Placeholder description PqTAsZWJpM
@@ -190,16 +190,16 @@ var experiencesData = `
   - analytics
   - perception
   profile: legs
-  experience_id: c0abb5fb-e9ce-4e09-af8b-a83547d25e69
-  environment_variables:
+  experienceID: c0abb5fb-e9ce-4e09-af8b-a83547d25e69
+  environmentVariables:
   - name: ENV_GIW
     value: S7GoQH
   - name: ENV_CDU
     value: 0AWzvI
   - name: ENV_JZY
     value: QwrSVh
-  cache_exempt: false
-  container_timeout_seconds: 3619
+  cacheExempt: false
+  containerTimeoutSeconds: 3619
   archived: true
 - name: Vision Calibration d31660
   description: Placeholder description bETJXjznMQ
@@ -216,12 +216,12 @@ var experiencesData = `
   - planner
   - perception
   profile: legs
-  experience_id: 10bc88e0-8c78-4f52-9a3f-d6cc649940a2
-  environment_variables:
+  experienceID: 10bc88e0-8c78-4f52-9a3f-d6cc649940a2
+  environmentVariables:
   - name: ENV_FRW
     value: HeXuXF
-  cache_exempt: true
-  container_timeout_seconds: 2087
+  cacheExempt: true
+  containerTimeoutSeconds: 2087
   archived: false
 - name: Perception Loop Debug 48df7e
   description: Placeholder description jgbvSQtrhJ
@@ -233,8 +233,8 @@ var experiencesData = `
   systems:
   - planner
   profile: arms
-  experience_id: 7f85e5d2-a25d-48bd-b605-b4afd57526fa
-  environment_variables:
+  experienceID: 7f85e5d2-a25d-48bd-b605-b4afd57526fa
+  environmentVariables:
   - name: ENV_IVV
     value: 13DfYb
   - name: ENV_YMQ
@@ -243,8 +243,8 @@ var experiencesData = `
     value: ga0ReD
   - name: ENV_QZY
     value: AfmvnR
-  cache_exempt: true
-  container_timeout_seconds: 2918
+  cacheExempt: true
+  containerTimeoutSeconds: 2918
   archived: false
 - name: Sensor Calibration Series 5e8cc8
   description: Placeholder description kQHaCqaCSW
@@ -256,12 +256,12 @@ var experiencesData = `
   systems:
   - perception
   profile: arms
-  experience_id: 03139286-9184-4fa3-b393-52380c085dce
-  environment_variables:
+  experienceID: 03139286-9184-4fa3-b393-52380c085dce
+  environmentVariables:
   - name: ENV_MCU
     value: esJ2vK
-  cache_exempt: true
-  container_timeout_seconds: 3964
+  cacheExempt: true
+  containerTimeoutSeconds: 3964
   archived: false
 - name: Vision Calibration b39a0f
   description: Placeholder description xlKiMNPOLq
@@ -273,12 +273,12 @@ var experiencesData = `
   systems:
   - perception
   profile: arms
-  experience_id: 850fb567-dee4-45f8-95bd-6fa1cdc95aff
-  environment_variables:
+  experienceID: 850fb567-dee4-45f8-95bd-6fa1cdc95aff
+  environmentVariables:
   - name: ENV_SEY
     value: EJRbjs
-  cache_exempt: true
-  container_timeout_seconds: 3183
+  cacheExempt: true
+  containerTimeoutSeconds: 3183
   archived: false
 - name: Perception Accuracy Test 7ed34b
   description: Placeholder description tYDMKOOFKO
@@ -291,14 +291,14 @@ var experiencesData = `
   - perception
   - planner
   profile: legs
-  experience_id: 06a56869-33b2-4063-ba91-8297d313dec5
-  environment_variables:
+  experienceID: 06a56869-33b2-4063-ba91-8297d313dec5
+  environmentVariables:
   - name: ENV_RCX
     value: JMjWtP
   - name: ENV_XQW
     value: KNPcta
-  cache_exempt: true
-  container_timeout_seconds: 3164
+  cacheExempt: true
+  containerTimeoutSeconds: 3164
   archived: false
 - name: Motion Sensor Calibration 494af6
   description: Placeholder description IGLfOsYLGm
@@ -313,14 +313,14 @@ var experiencesData = `
   systems:
   - analytics
   profile: arms
-  experience_id: 7a042f4c-00e4-4001-a678-17ad626ce39a
-  environment_variables:
+  experienceID: 7a042f4c-00e4-4001-a678-17ad626ce39a
+  environmentVariables:
   - name: ENV_GIS
     value: 3Sjopx
   - name: ENV_EAW
     value: kGmzXH
-  cache_exempt: true
-  container_timeout_seconds: 3466
+  cacheExempt: true
+  containerTimeoutSeconds: 3466
   archived: true
 - name: AI Planning Experiment 0e64fb
   description: Placeholder description QcznaTIDtz
@@ -335,14 +335,14 @@ var experiencesData = `
   - perception
   - planner
   profile: legs
-  experience_id: dcc2bb74-a111-4911-84af-29b4a67fc8e3
-  environment_variables:
+  experienceID: dcc2bb74-a111-4911-84af-29b4a67fc8e3
+  environmentVariables:
   - name: ENV_HBN
     value: PkZW0v
   - name: ENV_TQW
     value: Woq45V
-  cache_exempt: true
-  container_timeout_seconds: 4934
+  cacheExempt: true
+  containerTimeoutSeconds: 4934
   archived: true
 - name: Motion Sensor Calibration f8b226
   description: Placeholder description JqaOOUFHru
@@ -355,16 +355,16 @@ var experiencesData = `
   systems:
   - planner
   profile: arms
-  experience_id: 55aa3359-f9b0-4b72-8194-bd569bab0ef3
-  environment_variables:
+  experienceID: 55aa3359-f9b0-4b72-8194-bd569bab0ef3
+  environmentVariables:
   - name: ENV_TUP
     value: D301Ku
   - name: ENV_QZQ
     value: ZYhW4b
   - name: ENV_XBT
     value: rIrh0I
-  cache_exempt: false
-  container_timeout_seconds: 3989
+  cacheExempt: false
+  containerTimeoutSeconds: 3989
   archived: true
 - name: Sensor Calibration Series 2a0a45
   description: Placeholder description qRdpknhUEk
@@ -379,16 +379,16 @@ var experiencesData = `
   systems:
   - planner
   profile: arms
-  experience_id: 5e78c760-c153-4d35-850c-809962192725
-  environment_variables:
+  experienceID: 5e78c760-c153-4d35-850c-809962192725
+  environmentVariables:
   - name: ENV_OAO
     value: sJ2d4g
   - name: ENV_IRC
     value: s16dZs
   - name: ENV_TCK
     value: CVKGBQ
-  cache_exempt: false
-  container_timeout_seconds: 2004
+  cacheExempt: false
+  containerTimeoutSeconds: 2004
   archived: true
 - name: Regression Analysis Alpha 353bca
   description: Placeholder description KqtRXrLLNH
@@ -400,8 +400,8 @@ var experiencesData = `
   systems:
   - analytics
   profile: arms
-  experience_id: f09703c3-8cf7-47fe-b4e8-55ea0dd7be3d
-  environment_variables:
+  experienceID: f09703c3-8cf7-47fe-b4e8-55ea0dd7be3d
+  environmentVariables:
   - name: ENV_ZEL
     value: zOBH3x
   - name: ENV_WQN
@@ -410,8 +410,8 @@ var experiencesData = `
     value: 4OCX2y
   - name: ENV_ZGR
     value: Q9GFlG
-  cache_exempt: true
-  container_timeout_seconds: 3698
+  cacheExempt: true
+  containerTimeoutSeconds: 3698
   archived: true
 - name: Planner Optimization Run 2a48d6
   description: Placeholder description XMAXZwZbDH
@@ -423,12 +423,12 @@ var experiencesData = `
   systems:
   - analytics
   profile: arms
-  experience_id: 5b469853-a6f9-4215-95e1-a78c94cb4856
-  environment_variables:
+  experienceID: 5b469853-a6f9-4215-95e1-a78c94cb4856
+  environmentVariables:
   - name: ENV_LAI
     value: 06IRTT
-  cache_exempt: false
-  container_timeout_seconds: 5950
+  cacheExempt: false
+  containerTimeoutSeconds: 5950
   archived: true
 `
 
@@ -476,7 +476,7 @@ func createMockState() MockState {
 					ExperienceIDs: make(map[ExperienceID]struct{}),
 				}
 			}
-			currentState.TagSetsByName[tag].ExperienceIDs[exp.ExperienceID.ID] = struct{}{}
+			currentState.TagSetsByName[tag].ExperienceIDs[*exp.ExperienceID] = struct{}{}
 		}
 		for _, system := range exp.Systems {
 			if _, exists := currentState.SystemSetsByName[system]; !exists {
@@ -486,7 +486,7 @@ func createMockState() MockState {
 					ExperienceIDs: make(map[ExperienceID]struct{}),
 				}
 			}
-			currentState.SystemSetsByName[system].ExperienceIDs[exp.ExperienceID.ID] = struct{}{}
+			currentState.SystemSetsByName[system].ExperienceIDs[*exp.ExperienceID] = struct{}{}
 		}
 		currentState.ExperiencePages[ii%numPages] = append(currentState.ExperiencePages[ii%numPages], exp)
 	}
@@ -628,7 +628,7 @@ func ListExperiencesWithResponseMock(
 			Description:             experience.Description,
 			Locations:               experience.Locations,
 			Profile:                 *experience.Profile,
-			ExperienceID:            experience.ExperienceID.ID,
+			ExperienceID:            *experience.ExperienceID,
 			EnvironmentVariables:    *experience.EnvironmentVariables,
 			CacheExempt:             experience.CacheExempt,
 			ContainerTimeoutSeconds: *experience.ContainerTimeoutSeconds,
@@ -670,12 +670,12 @@ func ListExperiencesWithExperienceTagWithResponseMock(
 		if *params.Archived != experience.Archived {
 			continue
 		}
-		if _, contains := mockState.TagSetsByName[tag].ExperienceIDs[experience.ExperienceID.ID]; !contains {
+		if _, contains := mockState.TagSetsByName[tag].ExperienceIDs[*experience.ExperienceID]; !contains {
 			continue
 		}
 		experiences = append(experiences, api.Experience{
 			Name:         experience.Name,
-			ExperienceID: experience.ExperienceID.ID,
+			ExperienceID: *experience.ExperienceID,
 		})
 	}
 	return &api.ListExperiencesWithExperienceTagResponse{
@@ -710,12 +710,12 @@ func ListExperiencesForSystemWithResponseMock(
 		if *params.Archived != experience.Archived {
 			continue
 		}
-		if _, contains := mockState.SystemSetsByName[system].ExperienceIDs[experience.ExperienceID.ID]; !contains {
+		if _, contains := mockState.SystemSetsByName[system].ExperienceIDs[*experience.ExperienceID]; !contains {
 			continue
 		}
 		experiences = append(experiences, api.Experience{
 			Name:         experience.Name,
-			ExperienceID: experience.ExperienceID.ID,
+			ExperienceID: *experience.ExperienceID,
 		})
 	}
 	return &api.ListExperiencesForSystemResponse{
@@ -776,7 +776,7 @@ func TestGetCurrentDatabaseState(t *testing.T) {
 	// Verify that the state we fetched matches the mocked state
 	assert.Equal(t, len(currentDatabaseState.ExperiencesByName), len(mockState.ExperiencesByName))
 	for name, experience := range currentDatabaseState.ExperiencesByName {
-		assert.Equal(t, experience.ExperienceID.ID, mockState.ExperiencesByName[name].ExperienceID.ID)
+		assert.Equal(t, experience.ExperienceID, mockState.ExperiencesByName[name].ExperienceID)
 		assert.Equal(t, experience.Description, mockState.ExperiencesByName[name].Description)
 		assert.Equal(t, experience.Profile, mockState.ExperiencesByName[name].Profile)
 		assert.Equal(t, experience.Locations, mockState.ExperiencesByName[name].Locations)

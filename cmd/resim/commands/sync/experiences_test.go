@@ -11,8 +11,12 @@ import (
 
 // A helper so we can load currentStateData and configData from yaml for convenience.
 func loaderHelper(t *testing.T, currentStateData string, configData string, currentTags []string, currentSystems []string) (DatabaseState, ExperienceSyncConfig) {
-	var currentExperiences []*Experience
+	var currentExperiences []Experience
 	err := yaml.Unmarshal([]byte(currentStateData), &currentExperiences)
+	assert.NoError(t, err, "failed to unmarshal YAML")
+	err = NormalizeExperiences(currentExperiences)
+	assert.NoError(t, err, "invalid experiences")
+
 	assert.NoError(t, err, "failed to unmarshal YAML")
 	currentState := DatabaseState{
 		ExperiencesByName: map[string]*Experience{},
@@ -36,19 +40,22 @@ func loaderHelper(t *testing.T, currentStateData string, configData string, curr
 
 	}
 	// Populate the tag and system sets based off what's listed in the YAML snippet.
-	for _, exp := range currentExperiences {
+	for ii := range currentExperiences {
+		exp := &currentExperiences[ii]
 		currentState.ExperiencesByName[exp.Name] = exp
 		for _, tag := range exp.Tags {
-			currentState.TagSetsByName[tag].ExperienceIDs[exp.ExperienceID.ID] = struct{}{}
+			currentState.TagSetsByName[tag].ExperienceIDs[*exp.ExperienceID] = struct{}{}
 		}
 		for _, system := range exp.Systems {
-			currentState.SystemSetsByName[system].ExperienceIDs[exp.ExperienceID.ID] = struct{}{}
+			currentState.SystemSetsByName[system].ExperienceIDs[*exp.ExperienceID] = struct{}{}
 		}
 	}
 
 	var config ExperienceSyncConfig
 	err = yaml.Unmarshal([]byte(configData), &config)
 	assert.NoError(t, err, "failed to unmarshal YAML")
+	err = NormalizeExperiences(config.Experiences)
+	assert.NoError(t, err, "invalid experiences")
 
 	return currentState, config
 }
@@ -77,14 +84,17 @@ experiences:
     description: This is a test experience
     locations:
       - s3://my-favorite-bucket/foo
-    environment_variables:
+    environmentVariables:
       - name: ENV_VAR_1
         value: value1
-    cache_exempt: true
-    container_timeout_seconds: 7200
+    cacheExempt: true
+    containerTimeoutSeconds: 7200
+managedExperienceTags:
+managedTestSuites:
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
+	log.Print(config.Experiences[0])
 	// ACTION
 	experienceUpdates, err := computeExperienceUpdates(&config, currentState)
 
@@ -96,7 +106,7 @@ experiences:
 
 	match, exists := experienceUpdates.MatchedExperiencesByNewName[config.Experiences[0].Name]
 	assert.True(t, exists, "Expected experience in updates")
-	assert.Same(t, config.Experiences[0], match.New, "Should be the same object (pointer equality)")
+	assert.Same(t, &config.Experiences[0], match.New, "Should be the same object (pointer equality)")
 	assert.Nil(t, match.Original, "Experience is not new")
 }
 
@@ -105,14 +115,14 @@ func TestArchiveSingleExperience(t *testing.T) {
 	currentStateData := `
   - name: Test Experience
     description: This is a test experience
-    experience_id: "3dd91177-1e66-426c-bf5b-fb46fe4a0c3b"
+    experienceID: "3dd91177-1e66-426c-bf5b-fb46fe4a0c3b"
     locations:
       - s3://my-favorite-bucket/foo
-    environment_variables:
+    environmentVariables:
       - name: ENV_VAR_1
         value: value1
-    cache_exempt: true
-    container_timeout_seconds: 7200
+    cacheExempt: true
+    containerTimeoutSeconds: 7200
 `
 	configData := `
 experiences:
@@ -152,25 +162,25 @@ func TestUpdateSingleExperiencesByNameAndID(t *testing.T) {
 	currentStateData := `
   - name: experience-to-update-by-name
     description: This is a test experience
-    experience_id: "3dd91177-1e66-426c-bf5b-fb46fe4a0c3b"
+    experienceID: "3dd91177-1e66-426c-bf5b-fb46fe4a0c3b"
     locations:
       - s3://my-favorite-bucket/foo
-    environment_variables:
+    environmentVariables:
       - name: ENV_VAR_1
         value: value1
-    cache_exempt: true
-    container_timeout_seconds: 7200
-    archived: true  # This will be restured
+    cacheExempt: true
+    containerTimeoutSeconds: 7200
+    archived: true  # This will be returned
   - name: experience-to-update-by-id
     description: This is a test experience2
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
     locations:
       - s3://my-favorite-bucket/bar
-    environment_variables:
+    environmentVariables:
       - name: ENV_VAR_2
         value: value2
-    cache_exempt: false
-    container_timeout_seconds: 7200
+    cacheExempt: false
+    containerTimeoutSeconds: 7200
 `
 	configData := `
 experiences:
@@ -178,21 +188,21 @@ experiences:
     description: This is my new experience"
     locations:
       - s3://my-favorite-bucket/my-new-location
-    environment_variables:
+    environmentVariables:
       - name: ENV_VAR_1
         value: value_new
-    cache_exempt: false
-    container_timeout_seconds: 7300
+    cacheExempt: false
+    containerTimeoutSeconds: 7300
   - name: new-name-for-experience-to-update-by-id
     description: This is a test experience2
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
     locations:
       - s3://my-favorite-bucket/bar
-    environment_variables:
+    environmentVariables:
       - name: ENV_VAR_2
         value: value2
-    cache_exempt: false
-    container_timeout_seconds: 7300
+    cacheExempt: false
+    containerTimeoutSeconds: 7300
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
@@ -211,7 +221,7 @@ experiences:
 		match, exists := experienceUpdates.MatchedExperiencesByNewName[config.Experiences[i].Name]
 		assert.True(t, exists, "Expected experience in updates")
 		assert.Same(t, currentState.ExperiencesByName[originalNames[i]], match.Original, "Should be the same object (pointer equality)")
-		assert.Same(t, config.Experiences[i], match.New, "Should be the same object (pointer equality)")
+		assert.Same(t, &config.Experiences[i], match.New, "Should be the same object (pointer equality)")
 	}
 }
 
@@ -222,13 +232,19 @@ func TestFailsOnAmbiguousRenaming(t *testing.T) {
 	// indicates it's the update for current-experience. This is a failure.
 	currentStateData := `
   - name: current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some experience
+    locations: ["somewhere_over_the_rainbow"]
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
 `
 	configData := `
 experiences:
   - name: current-experience
+    description: Some experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: new-name-for-current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some experience
+    locations: ["somewhere_over_the_rainbow"]
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
@@ -239,13 +255,19 @@ experiences:
 	// SETUP
 	currentStateData = `
   - name: current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
 `
 	configData = `
 experiences:
   - name: new-name-for-current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
   - name: current-experience
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config = loaderHelper(t, currentStateData, configData, nil, nil)
 
@@ -258,12 +280,16 @@ func TestFailsOnNonExistentID(t *testing.T) {
 	// SETUP
 	currentStateData := `
   - name: current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
 experiences:
   - name: new-name-for-current-experience
-    experience_id: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    experienceID: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
@@ -276,14 +302,20 @@ func TestFailsOnDuplicateID(t *testing.T) {
 	// SETUP
 	currentStateData := `
   - name: current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
 experiences:
   - name: new-name-for-current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: other-new-name-for-current-experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
@@ -301,16 +333,24 @@ func TestFailsOnClobberingExistingWithRename(t *testing.T) {
 	// don't support this.
 	currentStateData := `
   - name: new-name
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: old-name
-    experience_id: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    experienceID: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
 experiences:
   - name: new-name
-    experience_id: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    experienceID: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: old-name
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
@@ -323,14 +363,22 @@ func TestFailsOnNameCollision(t *testing.T) {
 	// SETUP
 	currentStateData := `
   - name: new-name
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: old-name
-    experience_id: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    experienceID: "8f8e2af7-28d4-4462-8025-d313ccb61bd2"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
 experiences:
   - name: new-name
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: new-name
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
@@ -343,26 +391,38 @@ func TestAddRemoveTags(t *testing.T) {
 	// SETUP
 	currentStateData := `
   - name: Test Experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
     tags: []
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: Unrenamed Experience
-    experience_id: "62501c04-3da2-4a46-94b1-ab90e32b2059"
+    experienceID: "62501c04-3da2-4a46-94b1-ab90e32b2059"
     tags: []
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: Old regression experience
-    experience_id: "cddca442-9c25-4c06-9023-a4edfe9258a3"
+    experienceID: "cddca442-9c25-4c06-9023-a4edfe9258a3"
     tags: ["regression", "my-special-tag"]
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
-managed_experience_tags:
+managedExperienceTags:
   - regression
 experiences:
   - name: Test Experience
     tags: ["regression"]
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: Renamed Experience
-    experience_id: "62501c04-3da2-4a46-94b1-ab90e32b2059"
+    experienceID: "62501c04-3da2-4a46-94b1-ab90e32b2059"
     tags: ["regression", "my-special-tag"]
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
   - name: Old regression experience
     tags: []
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, []string{"regression", "my-special-tag"}, nil)
 
@@ -375,20 +435,20 @@ experiences:
 	tagUpdates, contains := experienceUpdates.TagUpdatesByName["regression"]
 	assert.True(t, contains, "Tag 'regression' should be contained in TagUpdatesByName")
 
-	addedDesiredExperience := slices.Contains(tagUpdates.Additions, config.Experiences[0])
+	addedDesiredExperience := slices.Contains(tagUpdates.Additions, &config.Experiences[0])
 	assert.True(t, addedDesiredExperience, "Not going to tag desired experience")
-	addedDesiredExperience = slices.Contains(tagUpdates.Additions, config.Experiences[1])
+	addedDesiredExperience = slices.Contains(tagUpdates.Additions, &config.Experiences[1])
 	assert.True(t, addedDesiredExperience, "Not going to tag desired experience")
-	removedDesiredExperience := slices.Contains(tagUpdates.Removals, config.Experiences[2])
+	removedDesiredExperience := slices.Contains(tagUpdates.Removals, &config.Experiences[2])
 	assert.True(t, removedDesiredExperience, "Not going to untag desired experience")
 
 	tagUpdates, contains = experienceUpdates.TagUpdatesByName["my-special-tag"]
 	assert.True(t, contains, "Tag 'my-special-tag' should be contained in TagUpdatesByName")
-	addedDesiredExperience = slices.Contains(tagUpdates.Additions, config.Experiences[1])
+	addedDesiredExperience = slices.Contains(tagUpdates.Additions, &config.Experiences[1])
 	assert.True(t, addedDesiredExperience, "Not going to tag desired experience")
 
 	// We should *NOT* remove the unmanaged "my-special-tag" tag
-	removedDesiredExperience = slices.Contains(tagUpdates.Removals, config.Experiences[2])
+	removedDesiredExperience = slices.Contains(tagUpdates.Removals, &config.Experiences[2])
 	assert.False(t, removedDesiredExperience, "Going to untag desired experience with unmanaged tag.")
 }
 
@@ -396,16 +456,18 @@ func TestAddSystems(t *testing.T) {
 	// SETUP
 	currentStateData := `
   - name: Test Experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
     systems: []
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
-managed_experience_systems:
-  - regression
 experiences:
   - name: Test Experience But with New Name
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
     systems: ["planner"]
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, []string{"planner"})
 
@@ -418,7 +480,7 @@ experiences:
 	systemUpdates, contains := experienceUpdates.SystemUpdatesByName["planner"]
 	assert.True(t, contains, "System 'planner' should be contained in SystemUpdatesByName")
 
-	addedDesiredExperience := slices.Contains(systemUpdates.Additions, config.Experiences[0])
+	addedDesiredExperience := slices.Contains(systemUpdates.Additions, &config.Experiences[0])
 	assert.True(t, addedDesiredExperience, "Not going to add system desired experience")
 }
 
@@ -426,18 +488,20 @@ func TestReviseTestSuite(t *testing.T) {
 	// SETUP
 	currentStateData := `
   - name: Test Experience
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
-managed_experience_systems:
-  - regression
-managed_test_suites:
+managedTestSuites:
   - name: "Nightly CI"
     experiences:
      - Test Experience But with New Name
 experiences:
   - name: Test Experience But with New Name
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 	testSuiteID := uuid.New()
@@ -455,25 +519,29 @@ experiences:
 	assert.Equal(t, update.Name, "Nightly CI")
 	assert.Equal(t, update.TestSuiteID, testSuiteID)
 	assert.Len(t, update.Experiences, 1)
-	assert.Equal(t, update.Experiences[0], config.Experiences[0])
+	assert.Equal(t, update.Experiences[0], &config.Experiences[0])
 }
 
 func TestReviseTestSuiteFailOnOldName(t *testing.T) {
 	// SETUP
 	currentStateData := `
   - name: Test Experience Old Name
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	configData := `
-managed_experience_systems:
+managedExperienceTags:
   - regression
-managed_test_suites:
+managedTestSuites:
   - name: "Nightly CI"
     experiences:
      - Test Experience Old Name
 experiences:
   - name: Test Experience But with New Name
-    experience_id: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    experienceID: "628eccf2-2621-4fdf-a8d8-c6b057ce2f0d"
+    description: Some current experience
+    locations: ["somewhere_over_the_rainbow"]
 `
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 	testSuiteID := uuid.New()

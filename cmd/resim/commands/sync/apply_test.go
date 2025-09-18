@@ -5,6 +5,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	mockapiclient "github.com/resim-ai/api-client/api/mocks"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/yaml.v3"
@@ -24,11 +25,11 @@ description: This is a test experience
 locations:
   - s3://my-favorite-bucket/foo
 profile: ""
-environment_variables:
+environmentVariables:
   - name: ENV_VAR_1
     value: value1
-cache_exempt: true
-container_timeout_seconds: 7200
+cacheExempt: true
+containerTimeoutSeconds: 7200
 `
 	creationMatch := ExperienceMatch{
 		Original: nil,
@@ -44,7 +45,7 @@ container_timeout_seconds: 7200
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, body api.CreateExperienceInput, reqEditors ...api.RequestEditorFn) (*api.CreateExperienceResponse, error) {
 		createdExperience.Name = body.Name
-		createdExperience.ExperienceID = &ExperienceIDWrapper{ID: expectedExperienceID}
+		createdExperience.ExperienceID = &expectedExperienceID
 		createdExperience.Description = body.Description
 		createdExperience.Locations = *body.Locations
 		createdExperience.Profile = body.Profile
@@ -81,7 +82,7 @@ container_timeout_seconds: 7200
 	assert.NoError(t, err)
 	assert.Equal(t, createdExperience, *creationMatch.New)
 	// Verify that the experience ID has been set
-	assert.Equal(t, creationMatch.New.ExperienceID.ID, expectedExperienceID)
+	assert.Equal(t, *creationMatch.New.ExperienceID, expectedExperienceID)
 }
 
 func TestArchiveExperience(t *testing.T) {
@@ -95,11 +96,11 @@ description: This is a test experience
 locations:
   - s3://my-favorite-bucket/foo
 profile: ""
-environment_variables:
+environmentVariables:
   - name: ENV_VAR_1
     value: value1
-cache_exempt: true
-container_timeout_seconds: 7200
+cacheExempt: true
+containerTimeoutSeconds: 7200
 `
 	archiveMatch := ExperienceMatch{
 		Original: &Experience{},
@@ -107,7 +108,7 @@ container_timeout_seconds: 7200
 	}
 	err := yaml.Unmarshal([]byte(experienceData), archiveMatch.Original)
 	assert.NoError(t, err, "failed to unmarshal YAML")
-	archiveMatch.Original.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
+	archiveMatch.Original.ExperienceID = Ptr(uuid.New())
 	*archiveMatch.New = *archiveMatch.Original
 	archiveMatch.New.Archived = true
 
@@ -117,7 +118,7 @@ container_timeout_seconds: 7200
 		New:      &Experience{},
 	}
 	*dontArchiveMatch.Original = *archiveMatch.Original
-	dontArchiveMatch.Original.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
+	dontArchiveMatch.Original.ExperienceID = Ptr(uuid.New())
 	dontArchiveMatch.Original.Name = "Don't archive me, bro"
 	*dontArchiveMatch.New = *dontArchiveMatch.Original
 
@@ -130,7 +131,7 @@ container_timeout_seconds: 7200
 		body api.BulkArchiveExperiencesInput,
 		reqEditors ...api.RequestEditorFn) (*api.BulkArchiveExperiencesResponse, error) {
 		assert.Len(t, body.ExperienceIDs, 1)
-		assert.Equal(t, body.ExperienceIDs[0], archiveMatch.Original.ExperienceID.ID)
+		assert.Equal(t, body.ExperienceIDs[0], *archiveMatch.Original.ExperienceID)
 		return &api.BulkArchiveExperiencesResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 		}, nil
@@ -159,11 +160,11 @@ description: This is a test experience
 locations:
   - s3://my-favorite-bucket/foo
 profile: ""
-environment_variables:
+environmentVariables:
   - name: ENV_VAR_1
     value: value1
-cache_exempt: true
-container_timeout_seconds: 7200
+cacheExempt: true
+containerTimeoutSeconds: 7200
 `
 	updateMatch := ExperienceMatch{
 		Original: &Experience{},
@@ -171,7 +172,7 @@ container_timeout_seconds: 7200
 	}
 	err := yaml.Unmarshal([]byte(experienceData), updateMatch.Original)
 	assert.NoError(t, err, "failed to unmarshal YAML")
-	updateMatch.Original.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
+	updateMatch.Original.ExperienceID = Ptr(uuid.New())
 	*updateMatch.New = *updateMatch.Original
 	updateMatch.Original.Archived = true
 	updateMatch.New.Archived = false
@@ -181,19 +182,20 @@ container_timeout_seconds: 7200
 	client.On("UpdateExperienceWithResponse",
 		context.Background(),
 		expectedProjectID,
-		updateMatch.Original.ExperienceID.ID,
+		*updateMatch.Original.ExperienceID,
 		mock.Anything,
 	).Return(func(ctx context.Context, projectID api.ProjectID, experienceID api.ExperienceID,
 		body api.UpdateExperienceInput,
 		reqEditors ...api.RequestEditorFn) (*api.UpdateExperienceResponse, error) {
 		updatedExperience.Name = *body.Experience.Name
-		updatedExperience.ExperienceID = &ExperienceIDWrapper{ID: experienceID}
+		updatedExperience.ExperienceID = &experienceID
 		updatedExperience.Description = *body.Experience.Description
 		updatedExperience.Locations = *body.Experience.Locations
 		updatedExperience.Profile = body.Experience.Profile
 		updatedExperience.EnvironmentVariables = body.Experience.EnvironmentVariables
 		updatedExperience.CacheExempt = *body.Experience.CacheExempt
 		updatedExperience.ContainerTimeoutSeconds = body.Experience.ContainerTimeoutSeconds
+		updatedExperience.Archived = updateMatch.New.Archived
 
 		return &api.UpdateExperienceResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
@@ -215,7 +217,7 @@ container_timeout_seconds: 7200
 	client.On("RestoreExperienceWithResponse",
 		context.Background(),
 		expectedProjectID,
-		updateMatch.Original.ExperienceID.ID,
+		*updateMatch.Original.ExperienceID,
 		mock.Anything,
 	).Return(&api.RestoreExperienceResponse{
 		HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
@@ -247,17 +249,17 @@ description: This is a test experience
 locations:
   - s3://my-favorite-bucket/foo
 profile: ""
-environment_variables:
+environmentVariables:
   - name: ENV_VAR_1
     value: value1
-cache_exempt: true
-container_timeout_seconds: 7200
+cacheExempt: true
+containerTimeoutSeconds: 7200
 `
 
 	experienceToTag := &Experience{}
 	err := yaml.Unmarshal([]byte(experienceData), experienceToTag)
 	assert.NoError(t, err, "failed to unmarshal YAML")
-	experienceToTag.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
+	experienceToTag.ExperienceID = Ptr(uuid.New())
 
 	client.On("AddTagsToExperiencesWithResponse",
 		context.Background(),
@@ -270,7 +272,7 @@ container_timeout_seconds: 7200
 		assert.Equal(t, body.ExperienceTagIDs[0], expectedTagID)
 		assert.NotEqual(t, body.Experiences, nil)
 		assert.Len(t, *body.Experiences, 1)
-		assert.Equal(t, (*body.Experiences)[0], experienceToTag.ExperienceID.ID)
+		assert.Equal(t, (*body.Experiences)[0], *experienceToTag.ExperienceID)
 		return &api.AddTagsToExperiencesResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
 		}, nil
@@ -308,23 +310,23 @@ description: This is a test experience
 locations:
   - s3://my-favorite-bucket/foo
 profile: ""
-environment_variables:
+environmentVariables:
   - name: ENV_VAR_1
     value: value1
-cache_exempt: true
-container_timeout_seconds: 7200
+cacheExempt: true
+containerTimeoutSeconds: 7200
 `
 
 	experienceToUnTag := &Experience{}
 	err := yaml.Unmarshal([]byte(experienceData), experienceToUnTag)
 	assert.NoError(t, err, "failed to unmarshal YAML")
-	experienceToUnTag.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
+	experienceToUnTag.ExperienceID = Ptr(uuid.New())
 
 	client.On("RemoveExperienceTagFromExperienceWithResponse",
 		context.Background(),
 		expectedProjectID,
 		expectedTagID,
-		experienceToUnTag.ExperienceID.ID,
+		*experienceToUnTag.ExperienceID,
 	).Return(&api.RemoveExperienceTagFromExperienceResponse{
 		HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
 	}, nil)
@@ -360,16 +362,16 @@ description: This is a test experience
 locations:
   - s3://my-favorite-bucket/foo
 profile: ""
-environment_variables:
+environmentVariables:
   - name: ENV_VAR_1
     value: value1
-cache_exempt: true
-container_timeout_seconds: 7200
+cacheExempt: true
+containerTimeoutSeconds: 7200
 `
 	experienceToAddToSystem := &Experience{}
 	err := yaml.Unmarshal([]byte(experienceData), experienceToAddToSystem)
 	assert.NoError(t, err, "failed to unmarshal YAML")
-	experienceToAddToSystem.ExperienceID = &ExperienceIDWrapper{ID: uuid.New()}
+	experienceToAddToSystem.ExperienceID = Ptr(uuid.New())
 
 	client.On("AddSystemsToExperiencesWithResponse",
 		context.Background(),
@@ -382,7 +384,7 @@ container_timeout_seconds: 7200
 		assert.Equal(t, body.SystemIDs[0], expectedSystemID)
 		assert.NotEqual(t, body.Experiences, nil)
 		assert.Len(t, *body.Experiences, 1)
-		assert.Equal(t, (*body.Experiences)[0], experienceToAddToSystem.ExperienceID.ID)
+		assert.Equal(t, (*body.Experiences)[0], *experienceToAddToSystem.ExperienceID)
 		return &api.AddSystemsToExperiencesResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
 		}, nil
@@ -420,16 +422,16 @@ description: This is a test experience
 locations:
   - s3://my-favorite-bucket/foo
 profile: ""
-environment_variables:
+environmentVariables:
   - name: ENV_VAR_1
     value: value1
-cache_exempt: true
-container_timeout_seconds: 7200
+cacheExempt: true
+containerTimeoutSeconds: 7200
 `
 	experienceToAddToTestSuite := &Experience{}
 	err := yaml.Unmarshal([]byte(experienceData), experienceToAddToTestSuite)
 	assert.NoError(t, err, "failed to unmarshal YAML")
-	experienceToAddToTestSuite.ExperienceID = &ExperienceIDWrapper{ID: expectedExperienceID}
+	experienceToAddToTestSuite.ExperienceID = &expectedExperienceID
 
 	client.On("ReviseTestSuiteWithResponse",
 		context.Background(),

@@ -143,7 +143,7 @@ func updateSingleExperience(
 
 		// Update the match with then new experience ID. This way the other updates (which
 		// reference this by pointer) will have the ID.
-		update.New.ExperienceID = &ExperienceIDWrapper{ID: response.JSON201.ExperienceID}
+		update.New.ExperienceID = &response.JSON201.ExperienceID
 		return nil
 	}
 	if update.New.ExperienceID == nil {
@@ -156,7 +156,7 @@ func updateSingleExperience(
 		return nil
 	}
 	// Update
-	experienceID := update.New.ExperienceID.ID
+	experienceID := *update.New.ExperienceID
 	if update.Original.Archived {
 		// Restore
 		response, err := client.RestoreExperienceWithResponse(context.Background(), projectID, experienceID)
@@ -217,7 +217,7 @@ func maybeArchiveExperiences(
 			// Fatal since this should *never* happen. It's a bug in the api client if so.
 			return fmt.Errorf("Trying to archive with unset experience ID")
 		}
-		experiencesToArchive = append(experiencesToArchive, update.New.ExperienceID.ID)
+		experiencesToArchive = append(experiencesToArchive, *update.New.ExperienceID)
 	}
 	if len(experiencesToArchive) == 0 {
 		return nil
@@ -266,7 +266,7 @@ func updateSingleTag(
 			if e.ExperienceID == nil {
 				return fmt.Errorf("Experience has no ID. Maybe we failed to create it? %s", e.Name)
 			}
-			experienceIDs = append(experienceIDs, e.ExperienceID.ID)
+			experienceIDs = append(experienceIDs, *e.ExperienceID)
 		}
 
 		body := api.AddTagsToExperiencesInput{
@@ -290,7 +290,7 @@ func updateSingleTag(
 		go func() {
 			if err := removeTagFromExperience(client, projectID,
 				updates.TagID,
-				removal.ExperienceID.ID); err != nil {
+				*removal.ExperienceID); err != nil {
 				errCh <- err
 			}
 			wg.Done()
@@ -320,7 +320,7 @@ func updateSingleSystem(
 			if e.ExperienceID == nil {
 				return fmt.Errorf("Experience has no ID. Maybe we failed to create it? %s", e.Name)
 			}
-			experienceIDs = append(experienceIDs, e.ExperienceID.ID)
+			experienceIDs = append(experienceIDs, *e.ExperienceID)
 		}
 		body := api.MutateSystemsToExperienceInput{
 			SystemIDs:   []SystemID{updates.SystemID},
@@ -346,7 +346,7 @@ func updateSingleTestSuite(
 	experiences := []ExperienceID{}
 
 	for _, exp := range update.Experiences {
-		experiences = append(experiences, exp.ExperienceID.ID)
+		experiences = append(experiences, *exp.ExperienceID)
 	}
 
 	body := api.ReviseTestSuiteInput{

@@ -2,6 +2,7 @@ package sync
 
 import (
 	"fmt"
+	"log"
 )
 
 // A struct describing the changes we need to make to update the current database state to the state
@@ -33,7 +34,7 @@ func computeExperienceUpdates(
 		return nil, fmt.Errorf("Failed to compute system updates: %w", err)
 	}
 
-	testSuiteUpdates, err := getTestSuiteUpdates(matchedExperiencesByNewName, config.TestSuites,
+	testSuiteUpdates, err := getTestSuiteUpdates(matchedExperiencesByNewName, config.ManagedTestSuites,
 		currentState.TestSuiteIDsByName)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to compute test suite updates: %w", err)
@@ -101,19 +102,22 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 	matches := make(map[string]ExperienceMatch)
 
 	remainingCurrentExperiencesByID := byNameToByID(currentExperiencesByName)
-
-	for _, experience := range config.Experiences {
+	log.Print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+	log.Print(len(currentExperiencesByName))
+	log.Print(len(remainingCurrentExperiencesByID))
+	for ii := range config.Experiences {
+		experience := &config.Experiences[ii]
 		// Step 1: Attempt to match by name
 		currExp, exists := currentExperiencesByName[experience.Name]
 		if exists {
 			// If the match target has already been matched with, that's a failure
-			if _, isAvailable := remainingCurrentExperiencesByID[currExp.ExperienceID.ID]; !isAvailable {
+			if _, isAvailable := remainingCurrentExperiencesByID[*currExp.ExperienceID]; !isAvailable {
 				return nil, fmt.Errorf("Experience name collision: %s", currExp.Name)
 			}
 
 			// If it exists but its ID doesn't match a hard-coded one we provide, that's a failure
 			if currExp.ExperienceID == nil || (experience.ExperienceID != nil && *experience.ExperienceID != *currExp.ExperienceID) {
-				return nil, fmt.Errorf("Multiple experiences desire the same name: %s", experience.ExperienceID.ID)
+				return nil, fmt.Errorf("Multiple experiences desire the same name: %s", *experience.ExperienceID)
 			}
 
 			// Experience exists with the same name and should be updated
@@ -125,13 +129,13 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 			if err != nil {
 				return nil, err
 			}
-			delete(remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
+			delete(remainingCurrentExperiencesByID, *currExp.ExperienceID)
 			continue
 		}
 		// Step 2: Attempt to match by ID
 		if experience.ExperienceID != nil {
 			// Check if there's still an unmatched experience with this ID:
-			currExp, exists := remainingCurrentExperiencesByID[experience.ExperienceID.ID]
+			currExp, exists := remainingCurrentExperiencesByID[*experience.ExperienceID]
 			if !exists {
 				return nil, fmt.Errorf("No existing experience available with ID. This could be due to multiple configured experiences requesting the same ID: %s", *experience.ExperienceID)
 			}
@@ -143,7 +147,7 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 			if err != nil {
 				return nil, err
 			}
-			delete(remainingCurrentExperiencesByID, currExp.ExperienceID.ID)
+			delete(remainingCurrentExperiencesByID, *currExp.ExperienceID)
 			continue
 		}
 
@@ -157,12 +161,16 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 		}
 
 	}
+	log.Print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+	log.Print(len(remainingCurrentExperiencesByID))
 	// Step 4: Any leftover experiences should be archived
 	for _, experience := range remainingCurrentExperiencesByID {
 		if experience.Archived {
-			// No updates needed
+			// No updates needed, already archived
+			log.Printf("Alreadyarchived")
 			continue
 		}
+		log.Print("ASDF")
 		archivedVersion := *experience
 		archivedVersion.Archived = true
 		checkedInsert(matches, experience.Name, ExperienceMatch{
@@ -181,7 +189,7 @@ func byNameToByID(byName map[string]*Experience) map[ExperienceID]*Experience {
 	byID := make(map[ExperienceID]*Experience)
 	for _, v := range byName {
 		if v.ExperienceID != nil {
-			byID[v.ExperienceID.ID] = v
+			byID[*v.ExperienceID] = v
 		}
 	}
 	return byID

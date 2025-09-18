@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	"io"
 	"log"
 	"net/http"

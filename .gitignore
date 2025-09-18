@@ -20,7 +20,14 @@
 # Go workspace file
 go.work
 
+
+
 cmd/resim/resim
-resim
+/resim
 
 .env.local
+
+# Emacs
+*~
+.\#*
+\#*\#

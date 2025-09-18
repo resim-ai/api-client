@@ -16,6 +16,7 @@ import (
 	"github.com/google/uuid"
 	dockerterm "github.com/moby/term"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	v1 "k8s.io/api/core/v1"
@@ -169,7 +170,7 @@ func debug(ccmd *cobra.Command, args []string) {
 	}
 
 	var pod *v1.Pod
-	for range make([]struct{}, 120) { // 120 * 5 = 10 minutes. A big image can take a long time to pull onto the host.
+	for range make([]struct{}, 360) { // 360 * 5 = 30 minutes. A big image can take a long time to pull onto the host.
 		pods, err := clientSet.CoreV1().Pods(*debugExperience.Namespace).List(ctx, listOptions)
 		if err != nil {
 			panic(err)
@@ -185,6 +186,8 @@ func debug(ccmd *cobra.Command, args []string) {
 
 	if pod == nil {
 		log.Fatal("Could not find running batch")
+	} else if pod.Status.Phase != v1.PodRunning {
+		log.Fatal("Batch took longer than 30 minutes to start")
 	}
 
 	req := clientSet.CoreV1().RESTClient().Post().

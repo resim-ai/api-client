@@ -11,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	experience_sync "github.com/resim-ai/api-client/cmd/resim/commands/sync"
+	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -72,7 +74,12 @@ var (
 		Long:  ``,
 		Run:   untagExperience,
 	}
-
+	syncExperienceCmd = &cobra.Command{
+		Use:   "sync",
+		Short: "sync - Sync experiences using a config",
+		Long:  ``,
+		Run:   syncExperience,
+	}
 	addSystemExperienceCmd = &cobra.Command{
 		Use:   "add-system",
 		Short: "add-system - Add a system as compatible with an experience",
@@ -93,6 +100,9 @@ const (
 	experienceSystemsKey              = "systems"
 	experienceNameKey                 = "name"
 	experienceKey                     = "experience"
+	experiencesConfigKey              = "experiences-config"
+	experiencesCloneKey               = "clone"
+	experiencesUpdateConfigKey        = "update-config"
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
 	experienceLocationKey             = "location"
@@ -181,6 +191,17 @@ func init() {
 	untagExperienceCmd.Flags().String(experienceIDKey, "", "The ID of the experience to untag")
 	untagExperienceCmd.MarkFlagRequired(experienceNameKey)
 	experienceCmd.AddCommand(untagExperienceCmd)
+
+	// Sync command
+	syncExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to update the experiences within")
+	syncExperienceCmd.MarkFlagRequired(experienceProjectKey)
+	syncExperienceCmd.Flags().String(experiencesConfigKey, "", "The path of the experiences config file to sync")
+	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
+	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
+	syncExperienceCmd.Flags().Bool(experiencesCloneKey, false, "Whether to clone the existing database state to the config file rather than the other way around")
+	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesUpdateConfigKey, experiencesCloneKey)
+	experienceCmd.AddCommand(syncExperienceCmd)
+
 	// Systems-related sub-commands:
 	addSystemExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the associated project")
 	addSystemExperienceCmd.MarkFlagRequired(experienceProjectKey)
@@ -647,6 +668,19 @@ pageLoop:
 		}
 	}
 	return experienceID
+}
+
+func syncExperience(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
+	configPath := viper.GetString(experiencesConfigKey)
+	updateConfig := viper.GetBool(experiencesUpdateConfigKey)
+	clone := viper.GetBool(experiencesCloneKey)
+
+	if !clone {
+		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig)
+	} else {
+		experience_sync.CloneExperiences(Client, projectID, configPath)
+	}
 }
 
 func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUID, identifier string, failWhenNotFound bool, expectArchived bool) uuid.UUID {

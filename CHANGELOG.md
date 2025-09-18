@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.28.1 - September 18, 2025
+
+- Fixes an issue where invalid URLs were constructed from `resim ingest`
+
 ### v0.28.0 - September 16, 2025
 
 - Support for experience syncing from a config file using `resim experiences sync ...`. In short, by

@@ -372,9 +372,9 @@ func maybeGenerateResimURL(projectID uuid.UUID, batchID uuid.UUID) string {
 	apiURL := viper.GetString(urlKey)
 	baseURL := ""
 	if apiURL == stagingAPIURL {
-		baseURL = "https://app.resim.io/"
+		baseURL = "https://app.resim.io"
 	} else if apiURL == prodAPIURL {
-		baseURL = "https://app.resim.ai/"
+		baseURL = "https://app.resim.ai"
 	}
 	if baseURL != "" {
 		return fmt.Sprintf("%s/projects/%s/batches/%s", baseURL, projectID.String(), batchID.String())

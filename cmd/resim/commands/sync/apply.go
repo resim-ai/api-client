@@ -168,7 +168,7 @@ func updateSingleExperience(
 			return err
 		}
 	}
-	updateMask := []string{"name", "description", "cacheExempt", "locations"}
+	updateMask := []string{"name", "description", "locations"}
 
 	// These are only updated if they're included. Otherwise they retain their current
 	// value. Users should probably include them anyway.
@@ -180,6 +180,9 @@ func updateSingleExperience(
 	}
 	if update.New.EnvironmentVariables != nil {
 		updateMask = append(updateMask, "environmentVariables")
+	}
+	if update.New.CacheExempt != nil {
+		updateMask = append(updateMask, "cacheExempt")
 	}
 
 	body := api.UpdateExperienceInput{

@@ -630,7 +630,7 @@ func ListExperiencesWithResponseMock(
 			Profile:                 *experience.Profile,
 			ExperienceID:            *experience.ExperienceID,
 			EnvironmentVariables:    *experience.EnvironmentVariables,
-			CacheExempt:             experience.CacheExempt,
+			CacheExempt:             *experience.CacheExempt,
 			ContainerTimeoutSeconds: *experience.ContainerTimeoutSeconds,
 			Archived:                experience.Archived,
 		})

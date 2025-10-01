@@ -131,6 +131,7 @@ const (
 const (
 	EXTERNALFILE MetricsDataType = "EXTERNAL_FILE"
 	STANDARD     MetricsDataType = "STANDARD"
+	VIDEO        MetricsDataType = "VIDEO"
 )
 
 // Defines values for ObjectType.
@@ -774,7 +775,7 @@ type ExperienceSyncConfig struct {
 // ExperienceSyncExperience defines model for experienceSyncExperience.
 type ExperienceSyncExperience struct {
 	Archived                bool                   `json:"archived" yaml:"archived"`
-	CacheExempt             bool                   `json:"cacheExempt" yaml:"cacheExempt"`
+	CacheExempt             *bool                  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
 	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
 	Description             string                 `json:"description" yaml:"description"`
 	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
@@ -2339,11 +2340,14 @@ type ListWorkflowsParams struct {
 	Name *string `form:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty"`
 
 	// Text Filter test suites by a text string on name and description
-	Text      *string    `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
-	Archived  *bool      `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
-	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+	Text     *string `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
+	Archived *bool   `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
+
+	// TestSuiteID Filter workflows by test suite ID
+	TestSuiteID *TestSuiteID `form:"testSuiteID,omitempty" json:"testSuiteID,omitempty" yaml:"testSuiteID,omitempty"`
+	PageSize    *PageSize    `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken   *PageToken   `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	OrderBy     *OrderBy     `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
 // ListWorkflowRunsParams defines parameters for ListWorkflowRuns.
@@ -14131,6 +14135,22 @@ func NewListWorkflowsRequest(server string, projectID ProjectID, params *ListWor
 		if params.Archived != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TestSuiteID != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "testSuiteID", runtime.ParamLocationQuery, *params.TestSuiteID); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err

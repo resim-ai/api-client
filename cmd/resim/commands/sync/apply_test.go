@@ -50,7 +50,7 @@ containerTimeoutSeconds: 7200
 		createdExperience.Locations = *body.Locations
 		createdExperience.Profile = body.Profile
 		createdExperience.EnvironmentVariables = body.EnvironmentVariables
-		createdExperience.CacheExempt = *body.CacheExempt
+		createdExperience.CacheExempt = body.CacheExempt
 		createdExperience.ContainerTimeoutSeconds = body.ContainerTimeoutSeconds
 
 		return &api.CreateExperienceResponse{
@@ -193,7 +193,7 @@ containerTimeoutSeconds: 7200
 		updatedExperience.Locations = *body.Experience.Locations
 		updatedExperience.Profile = body.Experience.Profile
 		updatedExperience.EnvironmentVariables = body.Experience.EnvironmentVariables
-		updatedExperience.CacheExempt = *body.Experience.CacheExempt
+		updatedExperience.CacheExempt = body.Experience.CacheExempt
 		updatedExperience.ContainerTimeoutSeconds = body.Experience.ContainerTimeoutSeconds
 		updatedExperience.Archived = updateMatch.New.Archived
 

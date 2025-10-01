@@ -129,7 +129,7 @@ func updateSingleExperience(
 			ContainerTimeoutSeconds: update.New.ContainerTimeoutSeconds,
 			Profile:                 update.New.Profile,
 			EnvironmentVariables:    update.New.EnvironmentVariables,
-			CacheExempt:             &update.New.CacheExempt,
+			CacheExempt:             update.New.CacheExempt,
 		}
 
 		response, err := client.CreateExperienceWithResponse(context.Background(), projectID, body)
@@ -190,7 +190,7 @@ func updateSingleExperience(
 			ContainerTimeoutSeconds: update.New.ContainerTimeoutSeconds,
 			Profile:                 update.New.Profile,
 			EnvironmentVariables:    update.New.EnvironmentVariables,
-			CacheExempt:             &update.New.CacheExempt,
+			CacheExempt:             update.New.CacheExempt,
 		},
 		UpdateMask: &updateMask,
 	}

@@ -12,5 +12,5 @@ import (
 	_ "github.com/vektra/mockery/v2"
 )
 
-//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=client.cfg.yml rerun.yml
+//go:generate go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=client.cfg.yml https://api.resim.ai/v1/openapi.yaml
 //go:generate sh -c "GODEBUG=gotypesalias=0 go run github.com/vektra/mockery/v2/"

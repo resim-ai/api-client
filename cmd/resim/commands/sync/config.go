@@ -2,39 +2,14 @@ package sync
 
 import (
 	"fmt"
-	"github.com/google/uuid"
+	"github.com/resim-ai/api-client/api"
 	"gopkg.in/yaml.v3"
 	"os"
 )
 
-type ExperienceIDWrapper struct { // For custom unmarshalling
-	ID ExperienceID
-}
-
-type Experience struct {
-	Name                    string                 `yaml:"name"`
-	Description             string                 `yaml:"description"`
-	Locations               []string               `yaml:"locations,omitempty"`
-	Tags                    []string               `yaml:"tags,omitempty"`                  // Only used on read from config
-	Systems                 []string               `yaml:"systems,omitempty"`               // Only used on read from config
-	Profile                 *string                `yaml:"profile,omitempty"`               // Optional
-	ExperienceID            *ExperienceIDWrapper   `yaml:"experience_id,omitempty"`         // Optional
-	EnvironmentVariables    *[]EnvironmentVariable `yaml:"environment_variables,omitempty"` // Optional
-	CacheExempt             bool                   `yaml:"cache_exempt,omitempty"`
-	ContainerTimeoutSeconds *int32                 `yaml:"container_timeout_seconds,omitempty"` // Optional
-	Archived                bool                   `yaml:"-"`                                   // Shouldn't be in the config
-}
-
-type TestSuite struct {
-	Name        string   `yaml:"name,omitempty"`
-	Experiences []string `yaml:"experiences,omitempty"`
-}
-
-type ExperienceSyncConfig struct {
-	Experiences           []*Experience `yaml:"experiences,omitempty"`
-	TestSuites            []TestSuite   `yaml:"managed_test_suites,omitempty"`
-	ManagedExperienceTags []string      `yaml:"managed_experience_tags,omitempty"`
-}
+type Experience = api.ExperienceSyncExperience
+type TestSuite = api.ExperienceSyncTestSuite
+type ExperienceSyncConfig = api.ExperienceSyncConfig
 
 func loadExperienceSyncConfig(path string, allowNew bool) (*ExperienceSyncConfig, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -54,39 +29,31 @@ func loadExperienceSyncConfig(path string, allowNew bool) (*ExperienceSyncConfig
 		return nil, fmt.Errorf("failed to unmarshal config: %s", err)
 	}
 	// Do some normalization and validation
-	for _, experience := range cfg.Experiences {
-		if experience.Name == "" {
-			return nil, fmt.Errorf("Empty experience name.")
-		}
-		if experience.Description == "" {
-			return nil, fmt.Errorf("Empty experience description for experience: %s", experience.Name)
-		}
-		if experience.Locations == nil || len(experience.Locations) == 0 {
-			return nil, fmt.Errorf("No locations provided for experience: %s", experience.Name)
-		}
+	if err := NormalizeExperiences(cfg.Experiences); err != nil {
+		return nil, err
 	}
 	return &cfg, nil
 }
 
-func (u *ExperienceIDWrapper) UnmarshalYAML(value *yaml.Node) error {
-	var s string
-	if err := value.Decode(&s); err != nil {
-		return err
+func normalizeExperience(experience *Experience) error {
+	if experience.Name == "" {
+		return fmt.Errorf("Empty experience name.")
 	}
-	if s == "" {
-		return nil // allow empty / missing
+	if experience.Description == "" {
+		return fmt.Errorf("Empty experience description for experience: %s", experience.Name)
 	}
-	parsed, err := uuid.Parse(s)
-	if err != nil {
-		return err
+	if len(experience.Locations) == 0 {
+		return fmt.Errorf("No locations provided for experience: %s", experience.Name)
 	}
-	u.ID = parsed
 	return nil
 }
 
-func (u ExperienceIDWrapper) MarshalYAML() (interface{}, error) {
-	if u.ID == uuid.Nil {
-		return "", nil
+func NormalizeExperiences(experiences []Experience) error {
+	for ii := range experiences {
+		err := normalizeExperience(&experiences[ii])
+		if err != nil {
+			return err
+		}
 	}
-	return u.ID.String(), nil
+	return nil
 }

@@ -3,3 +3,8 @@ output: client.gen.go
 generate:
   client: true
   models: true
+
+output-options:
+  # Force generation of un-referenced models. We need this for ExperienceSyncConfig
+  skip-prune: true
+  yaml-tags: true

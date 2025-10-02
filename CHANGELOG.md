@@ -4,6 +4,11 @@
 
 ### Unreleased
 
+### v0.29.0 - October 2, 2025
+
+- Updated the experience syncing functionality to use the released models in the openapi spec for
+  syncing. This changes the config to use camelCase rather than snake_case.
+
 ### v0.28.1 - September 18, 2025
 
 - Fixes an issue where invalid URLs were constructed from `resim ingest`

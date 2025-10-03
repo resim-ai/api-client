@@ -512,7 +512,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
 	if err != nil {
-		log.Fatal("unable to retrieve branch:", err)
+		log.Fatal("unable to retrieve branch associated with the build being run:", err)
 	}
 	branchName := branch.JSON200.Name
 	if branchName == "" {

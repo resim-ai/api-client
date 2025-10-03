@@ -170,6 +170,24 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse build ID: ", err)
 	}
 
+	build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+	if err != nil {
+		log.Fatal("unable to retrieve build:", err)
+	}
+	branchID := build.JSON200.BranchID
+	if branchID == uuid.Nil {
+		log.Fatal("build has no branch associated with it")
+	}
+
+	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
+	if err != nil {
+		log.Fatal("unable to retrieve branch:", err)
+	}
+	branchName := branch.JSON200.Name
+	if branchName == "" {
+		log.Fatal("branch has no name associated with it")
+	}
+
 	var allExperienceIDs []uuid.UUID
 	var allExperienceNames []string
 
@@ -253,6 +271,10 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		body.PoolLabels = &poolLabels
 	}
 
+	// Sync metrics2.0 config
+	if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
+		log.Fatalf("failed to sync metrics before batch: %v", err)
+	}
 	// Make the request
 	response, err := Client.CreateParameterSweepWithResponse(context.Background(), projectID, body)
 	if err != nil {

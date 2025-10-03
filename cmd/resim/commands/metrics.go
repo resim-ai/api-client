@@ -1,15 +1,10 @@
 package commands
 
 import (
-	"context"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"os"
-	"path"
-	"strings"
 
-	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

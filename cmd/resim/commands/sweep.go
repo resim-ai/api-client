@@ -273,7 +273,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 	// Sync metrics2.0 config
 	if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
-		log.Fatalf("failed to sync metrics before batch: %v", err)
+		log.Printf("failed to sync metrics before batch: %v", err)
 	}
 	// Make the request
 	response, err := Client.CreateParameterSweepWithResponse(context.Background(), projectID, body)

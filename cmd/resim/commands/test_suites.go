@@ -99,6 +99,7 @@ const (
 	testSuiteBatchNameKey               = "batch-name"
 	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 	testSuiteMetricsBuildOverrideKey    = "metrics-build-override"
+	syncMetricsConfigKey                = "--sync-metrics-config"
 )
 
 func init() {
@@ -125,7 +126,7 @@ func init() {
 	createTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	// Show on Summary
 	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
-	createTestSuiteCmd.Flags().Bool(syncMetricsKey, false, "If set, run metrics sync before creating the batch")
+	createTestSuiteCmd.Flags().Bool(syncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
 
 	// Get Test Suite

@@ -274,7 +274,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 	}
 
 	// Sync metrics2.0 config
-	if viper.GetBool(sweppSyncMetricsConfigKey) {
+	if viper.GetBool(sweepSyncMetricsConfigKey) {
 		if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}

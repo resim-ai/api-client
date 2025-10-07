@@ -85,6 +85,7 @@ func init() {
 	createSweepCmd.Flags().StringSlice(sweepPoolLabelsKey, []string{}, "Pool labels to determine where to run this parameter sweep. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
 	createSweepCmd.Flags().String(sweepAccountKey, "", "Specify a username for a CI/CD platform account to associate with this parameter sweep.")
+	createSweepCmd.Flags().Bool(syncMetricsKey, false, "If set, run metrics sync before creating the batch")
 	sweepCmd.AddCommand(createSweepCmd)
 	getSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to get the sweep from")
 	getSweepCmd.MarkFlagRequired(sweepProjectKey)
@@ -272,8 +273,10 @@ func createSweep(ccmd *cobra.Command, args []string) {
 	}
 
 	// Sync metrics2.0 config
-	if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
-		log.Printf("failed to sync metrics before batch: %v", err)
+	if viper.GetBool(syncMetricsConfigKey) {
+		if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
+			log.Fatalf("failed to sync metrics before batch: %v", err)
+		}
 	}
 	// Make the request
 	response, err := Client.CreateParameterSweepWithResponse(context.Background(), projectID, body)

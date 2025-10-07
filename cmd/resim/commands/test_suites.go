@@ -125,6 +125,7 @@ func init() {
 	createTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	// Show on Summary
 	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
+	createTestSuiteCmd.Flags().Bool(syncMetricsKey, false, "If set, run metrics sync before creating the batch")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
 
 	// Get Test Suite
@@ -627,8 +628,10 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	}
 
 	// Sync metrics2.0 config
-	if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
-		log.Printf("failed to sync metrics before batch: %v", err)
+	if viper.GetBool(syncMetricsConfigKey) {
+		if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
+			log.Fatalf("failed to sync metrics before batch: %v", err)
+		}
 	}
 
 	var batch api.Batch

@@ -99,7 +99,7 @@ const (
 	testSuiteBatchNameKey               = "batch-name"
 	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 	testSuiteMetricsBuildOverrideKey    = "metrics-build-override"
-	syncMetricsConfigKey                = "--sync-metrics-config"
+	testSuiteSyncMetricsConfigKey       = "--sync-metrics-config"
 )
 
 func init() {
@@ -126,7 +126,7 @@ func init() {
 	createTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	// Show on Summary
 	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
-	createTestSuiteCmd.Flags().Bool(syncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
+	createTestSuiteCmd.Flags().Bool(testSuiteSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
 
 	// Get Test Suite
@@ -629,7 +629,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	}
 
 	// Sync metrics2.0 config
-	if viper.GetBool(syncMetricsConfigKey) {
+	if viper.GetBool(testSuiteSyncMetricsConfigKey) {
 		if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}

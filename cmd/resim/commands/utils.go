@@ -175,7 +175,7 @@ func SyncMetricsConfig(projectID uuid.UUID, branchName string, verbose bool) err
 		})
 	}
 
-	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID.String(), branchName, configB64, templates)
+	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID.String(), configB64, templates, branchName)
 	if err != nil {
 		return fmt.Errorf("failed to sync metrics config: %w", err)
 	}

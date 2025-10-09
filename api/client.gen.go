@@ -1522,7 +1522,8 @@ type ReportStatusHistoryType struct {
 
 // RerunBatchInput defines model for rerunBatchInput.
 type RerunBatchInput struct {
-	JobIDs *[]JobID `json:"jobIDs,omitempty" yaml:"jobIDs,omitempty"`
+	JobIDs    *[]JobID `json:"jobIDs,omitempty" yaml:"jobIDs,omitempty"`
+	SyncBatch bool     `json:"syncBatch" yaml:"syncBatch"`
 }
 
 // RerunBatchOutput defines model for rerunBatchOutput.

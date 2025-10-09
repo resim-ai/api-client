@@ -24,12 +24,13 @@ var (
 )
 
 const (
-	metricsProjectKey = "project"
+	metricsProjectKey    = "project"
+	metricsBranchNameKey = "branch"
 )
 
 func init() {
 	syncMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project to sync metrics to")
-	syncMetricsCmd.Flags().String(branchNameKey, "", "The name of the branch to associate the config with")
+	syncMetricsCmd.Flags().String(metricsBranchNameKey, "", "The name of the branch to associate the config with")
 	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
 	rootCmd.AddCommand(metricsCmd)
@@ -49,7 +50,7 @@ func readFile(path string) string {
 func syncMetrics(cmd *cobra.Command, args []string) {
 	verboseMode := viper.GetBool(verboseKey)
 	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
-	branchName := viper.GetString(branchNameKey)
+	branchName := viper.GetString(metricsBranchNameKey)
 
 	if err := SyncMetricsConfig(projectID, branchName, verboseMode); err != nil {
 		log.Fatal(err)

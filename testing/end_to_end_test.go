@@ -5721,7 +5721,9 @@ func TestLogIngest(t *testing.T) {
 func TestMetricsSync(t *testing.T) {
 	ts := assert.New(t)
 	req := require.New(t)
-	t.Parallel()
+	// We want username/password auth for this particular test
+	t.Setenv(ClientID, "")
+	t.Setenv(ClientSecret, "")
 
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())

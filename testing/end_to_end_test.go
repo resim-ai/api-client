@@ -45,6 +45,8 @@ const (
 	Prod         string = "prod"
 	ClientID     string = "RESIM_CLIENT_ID"
 	ClientSecret string = "RESIM_CLIENT_SECRET"
+	username     string = "RESIM_USERNAME"
+	password     string = "RESIM_PASSWORD"
 )
 
 // CLI Constants
@@ -317,7 +319,7 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	}
 }
 
-func syncMetrics(projectName string, verbose bool) []CommandBuilder {
+func syncMetrics(projectName string, verbose bool, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
 	flags := []Flag{
@@ -325,6 +327,16 @@ func syncMetrics(projectName string, verbose bool) []CommandBuilder {
 	}
 	if verbose {
 		flags = append(flags, Flag{Name: "--verbose"})
+	}
+	// The CI fails if we use a different authentication method since it will
+	// report a different auth0 id for the user. The bff api is expecting the
+	// auth0 id reported with username/password auth. This also matches the
+	// rerun CI setup
+	if username != "" {
+		flags = append(flags, Flag{Name: "--username", Value: username})
+	}
+	if password != "" {
+		flags = append(flags, Flag{Name: "--password", Value: password})
 	}
 
 	syncCommand := CommandBuilder{Command: "sync", Flags: flags}
@@ -2556,6 +2568,7 @@ func TestProjectCreateGithub(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
+
 // Test branch creation:
 func TestBranchCreate(t *testing.T) {
 	ts := assert.New(t)
@@ -4453,6 +4466,7 @@ func TestCancelSweep(t *testing.T) {
 	// Validate that it was cancelled:
 	ts.Equal(api.ParameterSweepStatusCANCELLED, *sweep.Status)
 }
+
 // Test the metrics builds:
 func TestCreateMetricsBuild(t *testing.T) {
 	ts := assert.New(t)
@@ -5701,6 +5715,8 @@ func TestMetricsSync(t *testing.T) {
 
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	username := os.Getenv(username)
+	password := os.Getenv(password)
 	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedProject)
 	// We expect to be able to parse the project ID as a UUID
@@ -5709,7 +5725,7 @@ func TestMetricsSync(t *testing.T) {
 	req.NoError(err)
 
 	t.Run("NoConfigFiles", func(t *testing.T) {
-		output := s.runCommand(ts, syncMetrics(projectIDString, true), true)
+		output := s.runCommand(ts, syncMetrics(projectIDString, true, username, password), true)
 
 		ts.Contains(output.StdErr, "failed to find ReSim metrics config")
 	})
@@ -5750,12 +5766,12 @@ func TestMetricsSync(t *testing.T) {
 		ts.NoError(err)
 
 		// Standard behavior is exit 0 with no output
-		output := s.runCommand(ts, syncMetrics(projectIDString, false), false)
+		output := s.runCommand(ts, syncMetrics(projectIDString, false, username, password), false)
 		ts.Equal("", output.StdOut)
 		ts.Equal("", output.StdErr)
 
 		// Verbose logs a lot of info about what it is doing
-		output = s.runCommand(ts, syncMetrics(projectIDString, true), false)
+		output = s.runCommand(ts, syncMetrics(projectIDString, true, username, password), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
 		ts.Contains(output.StdOut, "Found template bar.liquid")

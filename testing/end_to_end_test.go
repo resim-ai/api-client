@@ -304,8 +304,17 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	var stdout, stderr bytes.Buffer
 	cmd := s.buildCommand(commandBuilders)
 	cmdString := cmd.String()
-	username := os.Getenv(username)
-	password := os.Getenv(password)
+	var username, password string
+	for _, b := range commandBuilders {
+		for _, f := range b.Flags {
+			switch f.Name {
+			case "--username":
+				username = f.Value
+			case "--password":
+				password = f.Value
+			}
+		}
+	}
 	// Redact sensitive information from the logs
 	if username != "" {
 		cmdString = strings.Replace(cmdString, username, "*****", 1)

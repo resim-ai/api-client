@@ -314,6 +314,20 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 		cmdString = strings.Replace(cmdString, password, "*****", 1)
 	}
 	fmt.Println("About to run command: ", cmdString)
+
+	env := os.Environ()
+	// If username/password are set, strip out client creds
+	if username != "" && password != "" {
+		newEnv := []string{}
+		for _, kv := range env {
+			if strings.HasPrefix(kv, "RESIM_CLIENT_ID=") || strings.HasPrefix(kv, "RESIM_CLIENT_SECRET=") {
+				continue // skip these
+			}
+			newEnv = append(newEnv, kv)
+		}
+		env = newEnv
+	}
+	cmd.Env = env
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -5721,9 +5735,7 @@ func TestLogIngest(t *testing.T) {
 func TestMetricsSync(t *testing.T) {
 	ts := assert.New(t)
 	req := require.New(t)
-	// We want username/password auth for this particular test
-	t.Setenv(ClientID, "")
-	t.Setenv(ClientSecret, "")
+	t.Parallel()
 
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())

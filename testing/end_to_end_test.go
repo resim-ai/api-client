@@ -45,8 +45,8 @@ const (
 	Prod         string = "prod"
 	ClientID     string = "RESIM_CLIENT_ID"
 	ClientSecret string = "RESIM_CLIENT_SECRET"
-	username     string = "RESIM_USERNAME"
-	password     string = "RESIM_PASSWORD"
+	username     string = "USERNAME"
+	password     string = "PASSWORD"
 )
 
 // CLI Constants

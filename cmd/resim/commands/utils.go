@@ -181,7 +181,7 @@ func SyncMetricsConfig(projectID uuid.UUID, branchName string, verbose bool) err
 	}
 
 	if verbose {
-		fmt.Println("Successfully synced metrics config with templates:")
+		fmt.Println("Successfully synced metrics config, and the following templates:")
 		for _, t := range templates {
 			fmt.Printf("\t%s\n", t.Name)
 		}

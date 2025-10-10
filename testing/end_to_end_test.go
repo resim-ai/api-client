@@ -303,7 +303,17 @@ func (s *EndToEndTestHelper) buildCommand(commandBuilders []CommandBuilder) *exe
 func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders []CommandBuilder, expectError bool) Output {
 	var stdout, stderr bytes.Buffer
 	cmd := s.buildCommand(commandBuilders)
-	fmt.Println("About to run command: ", cmd.String())
+	cmdString := cmd.String()
+	username := os.Getenv(username)
+	password := os.Getenv(password)
+	// Redact sensitive information from the logs
+	if username != "" {
+		cmdString = strings.Replace(cmdString, username, "*****", 1)
+	}
+	if password != "" {
+		cmdString = strings.Replace(cmdString, password, "*****", 1)
+	}
+	fmt.Println("About to run command: ", cmdString)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()

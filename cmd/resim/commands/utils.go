@@ -128,10 +128,10 @@ func SyncMetricsConfig(projectID uuid.UUID, branchName string, verbose bool) err
 
 	configFilePath := path.Join(workDir, ".resim/metrics/config.yml")
 	if verbose {
-		fmt.Printf("Looking for metrics config at %s\n", configFilePath)
+		fmt.Println("Looking for metrics config at .resim/metrics/config.yml")
 	}
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		return fmt.Errorf("failed to find ReSim metrics config at %s", configFilePath)
+		return fmt.Errorf("failed to find ReSim metrics config at %s\nAre you in the right folder?\n", configFilePath)
 	}
 	configData, err := os.ReadFile(configFilePath)
 	if err != nil {
@@ -141,12 +141,13 @@ func SyncMetricsConfig(projectID uuid.UUID, branchName string, verbose bool) err
 
 	templateDir := path.Join(workDir, ".resim/metrics/templates")
 	if verbose {
-		fmt.Printf("Looking for templates in %s\n", templateDir)
+		fmt.Println("Looking for templates in .resim/metrics/templates/")
 	}
 	files, err := os.ReadDir(templateDir)
 	if err != nil {
 		return fmt.Errorf("failed to read templates dir: %w", err)
 	}
+
 	templates := []bff.MetricsTemplate{}
 	for _, f := range files {
 		if f.IsDir() {
@@ -175,7 +176,14 @@ func SyncMetricsConfig(projectID uuid.UUID, branchName string, verbose bool) err
 		})
 	}
 
-	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID.String(), configB64, templates, branchName)
+	_, err = bff.UpdateMetricsConfig(
+		context.Background(),
+		BffClient,
+		projectID.String(),
+		configB64,
+		templates,
+		branchName,
+	)
 	if err != nil {
 		return fmt.Errorf("failed to sync metrics config: %w", err)
 	}

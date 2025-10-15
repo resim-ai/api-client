@@ -503,24 +503,6 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		log.Fatal("failed to parse build ID: ", err)
 	}
 
-	build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-	if err != nil {
-		log.Fatal("unable to retrieve build:", err)
-	}
-	branchID := build.JSON200.BranchID
-	if branchID == uuid.Nil {
-		log.Fatal("build has no branch associated with it")
-	}
-
-	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
-	if err != nil {
-		log.Fatal("unable to retrieve branch associated with the build being run:", err)
-	}
-	branchName := branch.JSON200.Name
-	if branchName == "" {
-		log.Fatal("branch has no name associated with it")
-	}
-
 	var allExperienceIDs []uuid.UUID
 	var allExperienceNames []string
 
@@ -647,7 +629,16 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	// Sync metrics2.0 config
 	if viper.GetBool(batchSyncMetricsConfigKey) {
-		if err := SyncMetricsConfig(projectID, branchName, false); err != nil {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		branchID := build.JSON200.BranchID
+		if branchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+
+		if err := SyncMetricsConfig(projectID, branchID, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}
 	}

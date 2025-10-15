@@ -51,8 +51,9 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	verboseMode := viper.GetBool(verboseKey)
 	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
 	branchName := viper.GetString(metricsBranchNameKey)
+	branchID := getBranchID(Client, projectID, branchName, true)
 
-	if err := SyncMetricsConfig(projectID, branchName, verboseMode); err != nil {
+	if err := SyncMetricsConfig(projectID, branchID, verboseMode); err != nil {
 		log.Fatal(err)
 	}
 }

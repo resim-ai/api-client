@@ -120,7 +120,16 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 	return poolLabels
 }
 
-func SyncMetricsConfig(projectID uuid.UUID, branchName string, verbose bool) error {
+func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, verbose bool) error {
+	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
+	if err != nil {
+		log.Fatal("unable to retrieve branch associated with the build being run:", err)
+	}
+	branchName := branch.JSON200.Name
+	if branchName == "" {
+		log.Fatal("branch has no name associated with it")
+	}
+
 	workDir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get working directory: %w", err)
@@ -182,7 +191,7 @@ func SyncMetricsConfig(projectID uuid.UUID, branchName string, verbose bool) err
 		projectID.String(),
 		configB64,
 		templates,
-		branchName,
+		branchName, //TODO: We should use branch ids instead of names
 	)
 	if err != nil {
 		return fmt.Errorf("failed to sync metrics config: %w", err)

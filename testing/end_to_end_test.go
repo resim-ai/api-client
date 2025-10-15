@@ -5752,10 +5752,14 @@ func TestMetricsSync(t *testing.T) {
 	password := os.Getenv(password)
 	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedProject)
+
 	// We expect to be able to parse the project ID as a UUID
 	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
-	_, err := uuid.Parse(projectIDString)
+	projectID, err := uuid.Parse(projectIDString)
 	req.NoError(err)
+
+	// create the main branch
+	output = s.runCommand(ts, createBranch(projectID, "main", "RELEASE", GithubTrue), ExpectNoError)
 
 	t.Run("NoConfigFiles", func(t *testing.T) {
 		output := s.runCommand(ts, syncMetrics(projectIDString, true, username, password), true)

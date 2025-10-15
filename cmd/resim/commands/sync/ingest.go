@@ -3,8 +3,8 @@ package sync
 import (
 	"context"
 	"fmt"
-	openapi_types "github.com/deepmap/oapi-codegen/pkg/types"
 	"github.com/google/uuid"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
@@ -99,12 +99,12 @@ func getCurrentDatabaseState(client api.ClientWithResponsesInterface,
 			continue
 		}
 		for tag, tagSet := range state.TagSetsByName {
-			if _, has_tag := tagSet.ExperienceIDs[experience.ExperienceID.ID]; has_tag {
+			if _, has_tag := tagSet.ExperienceIDs[*experience.ExperienceID]; has_tag {
 				experience.Tags = append(experience.Tags, tag)
 			}
 		}
 		for system, systemSet := range state.SystemSetsByName {
-			if _, has_system := systemSet.ExperienceIDs[experience.ExperienceID.ID]; has_system {
+			if _, has_system := systemSet.ExperienceIDs[*experience.ExperienceID]; has_system {
 				experience.Systems = append(experience.Systems, system)
 			}
 		}
@@ -253,9 +253,9 @@ func addApiExperienceToExperienceMap(experience api.Experience,
 		Description:             experience.Description,
 		Locations:               experience.Locations,
 		Profile:                 &experience.Profile,
-		ExperienceID:            &ExperienceIDWrapper{ID: experience.ExperienceID},
+		ExperienceID:            &experience.ExperienceID,
 		EnvironmentVariables:    &experience.EnvironmentVariables,
-		CacheExempt:             experience.CacheExempt,
+		CacheExempt:             &experience.CacheExempt,
 		ContainerTimeoutSeconds: &experience.ContainerTimeoutSeconds,
 		Archived:                experience.Archived,
 	}

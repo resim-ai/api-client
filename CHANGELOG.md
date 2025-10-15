@@ -7,7 +7,16 @@
 - Add a --no-archive flag for experience syncing to keep experiences from being archived if not
   listed in the config.
 
-### v0.28.0 - September 15, 2025
+### v0.29.0 - October 2, 2025
+
+- Updated the experience syncing functionality to use the released models in the openapi spec for
+  syncing. This changes the config to use camelCase rather than snake_case.
+
+### v0.28.1 - September 18, 2025
+
+- Fixes an issue where invalid URLs were constructed from `resim ingest`
+
+### v0.28.0 - September 16, 2025
 
 - Support for experience syncing from a config file using `resim experiences sync ...`. In short, by
   specifying which experiences they want with which tags, systems, and test suites in a yaml file, a

@@ -302,26 +302,24 @@ func (s *EndToEndTestHelper) buildCommand(commandBuilders []CommandBuilder) *exe
 
 func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders []CommandBuilder, expectError bool) Output {
 	var stdout, stderr bytes.Buffer
-	cmd := s.buildCommand(commandBuilders)
-	cmdString := cmd.String()
+	// Remove username/password flags inline before building the command and use env instead
 	var username, password string
-	for _, b := range commandBuilders {
-		for _, f := range b.Flags {
+	for i := range commandBuilders {
+		filtered := commandBuilders[i].Flags[:0] // reuse underlying array
+		for _, f := range commandBuilders[i].Flags {
 			switch f.Name {
 			case "--username":
 				username = f.Value
 			case "--password":
 				password = f.Value
+			default:
+				filtered = append(filtered, f)
 			}
 		}
+		commandBuilders[i].Flags = filtered
 	}
-	// Redact sensitive information from the logs
-	if username != "" {
-		cmdString = strings.Replace(cmdString, username, "*****", 1)
-	}
-	if password != "" {
-		cmdString = strings.Replace(cmdString, password, "*****", 1)
-	}
+	cmd := s.buildCommand(commandBuilders)
+	cmdString := cmd.String()
 	fmt.Println("About to run command: ", cmdString)
 
 	env := os.Environ()
@@ -334,6 +332,8 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 			}
 			newEnv = append(newEnv, kv)
 		}
+		newEnv = append(newEnv, fmt.Sprintf("RESIM_USERNAME=%s", username))
+		newEnv = append(newEnv, fmt.Sprintf("RESIM_PASSWORD=%s", password))
 		env = newEnv
 	}
 	cmd.Env = env

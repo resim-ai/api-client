@@ -7,6 +7,14 @@
 - Add a --no-archive flag for experience syncing to keep experiences from being archived if not
   listed in the config.
 
+### v0.30.0 - October 16, 2025
+
+- Update the sync metrics config functionality to accept a branch ID to associate
+  that config with.
+- Update the `batches create`, `sweeps create` and `test-suites create` with an
+  optional flag `--sync-metrics-config` to automatically sync the metrics config
+  before creating the batch, sweep, or test suite.
+
 ### v0.29.0 - October 2, 2025
 
 - Updated the experience syncing functionality to use the released models in the openapi spec for

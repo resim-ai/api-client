@@ -99,7 +99,7 @@ const (
 	testSuiteBatchNameKey               = "batch-name"
 	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 	testSuiteMetricsBuildOverrideKey    = "metrics-build-override"
-	testSuiteSyncMetricsConfigKey       = "--sync-metrics-config"
+	testSuiteSyncMetricsConfigKey       = "sync-metrics-config"
 )
 
 func init() {

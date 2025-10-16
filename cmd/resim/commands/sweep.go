@@ -67,7 +67,7 @@ const (
 	sweepExitStatusKey        = "exit-status"
 	sweepGithubKey            = "github"
 	sweepAccountKey           = "account"
-	sweepSyncMetricsConfigKey = "--sync-metrics-config"
+	sweepSyncMetricsConfigKey = "sync-metrics-config"
 )
 
 func init() {

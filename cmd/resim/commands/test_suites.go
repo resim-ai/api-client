@@ -99,6 +99,7 @@ const (
 	testSuiteBatchNameKey               = "batch-name"
 	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 	testSuiteMetricsBuildOverrideKey    = "metrics-build-override"
+	testSuiteSyncMetricsConfigKey       = "sync-metrics-config"
 )
 
 func init() {
@@ -125,6 +126,7 @@ func init() {
 	createTestSuiteCmd.Flags().String(testSuiteMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	// Show on Summary
 	createTestSuiteCmd.Flags().Bool(testSuiteShowOnSummaryKey, false, "Should latest results of this test suite be displayed on the overview dashboard?")
+	createTestSuiteCmd.Flags().Bool(testSuiteSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
 	testSuiteCmd.AddCommand(createTestSuiteCmd)
 
 	// Get Test Suite
@@ -605,6 +607,21 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	associatedAccount := GetCIEnvironmentVariableAccount()
 	if viper.IsSet(testSuiteAccountKey) {
 		associatedAccount = viper.GetString(testSuiteAccountKey)
+	}
+
+	// Sync metrics2.0 config
+	if viper.GetBool(testSuiteSyncMetricsConfigKey) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		branchID := build.JSON200.BranchID
+		if branchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+		if err := SyncMetricsConfig(projectID, branchID, false); err != nil {
+			log.Fatalf("failed to sync metrics before batch: %v", err)
+		}
 	}
 
 	var batch api.Batch

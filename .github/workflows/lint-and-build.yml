@@ -43,5 +43,7 @@ jobs:
           CONFIG: staging
           RESIM_CLIENT_ID: ${{ secrets.RESIM_CLIENT_ID }}
           RESIM_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
+          USERNAME: ${{ secrets.USERNAME }}
+          PASSWORD: ${{ secrets.PASSWORD }}
 
         run: go test -v -parallel=12 -timeout 50m -tags end_to_end -count 1 ./testing

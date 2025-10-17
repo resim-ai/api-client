@@ -33,6 +33,7 @@ type __UpdateMetricsConfigInput struct {
 	ProjectId     string            `json:"projectId"`
 	Config        string            `json:"config"`
 	TemplateFiles []MetricsTemplate `json:"templateFiles"`
+	Branch        string            `json:"branch"`
 }
 
 // GetProjectId returns __UpdateMetricsConfigInput.ProjectId, and is useful for accessing the field via an interface.
@@ -44,10 +45,13 @@ func (v *__UpdateMetricsConfigInput) GetConfig() string { return v.Config }
 // GetTemplateFiles returns __UpdateMetricsConfigInput.TemplateFiles, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { return v.TemplateFiles }
 
+// GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
+func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
 // The mutation executed by UpdateMetricsConfig.
 const UpdateMetricsConfig_Operation = `
-mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!) {
-	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles)
+mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String) {
+	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch)
 }
 `
 
@@ -57,6 +61,7 @@ func UpdateMetricsConfig(
 	projectId string,
 	config string,
 	templateFiles []MetricsTemplate,
+	branch string,
 ) (data_ *UpdateMetricsConfigResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "UpdateMetricsConfig",
@@ -65,6 +70,7 @@ func UpdateMetricsConfig(
 			ProjectId:     projectId,
 			Config:        config,
 			TemplateFiles: templateFiles,
+			Branch:        branch,
 		},
 	}
 

@@ -2,14 +2,19 @@ package commands
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
 	"github.com/compose-spec/compose-go/v2/loader"
 	compose_types "github.com/compose-spec/compose-go/v2/types"
+	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/bff"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
 )
@@ -113,4 +118,90 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 		}
 	}
 	return poolLabels
+}
+
+func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, verbose bool) error {
+	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
+	if err != nil {
+		log.Fatal("unable to retrieve branch associated with the build being run:", err)
+	}
+	branchName := branch.JSON200.Name
+	if branchName == "" {
+		log.Fatal("branch has no name associated with it")
+	}
+
+	workDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	configFilePath := path.Join(workDir, ".resim/metrics/config.yml")
+	if verbose {
+		fmt.Println("Looking for metrics config at .resim/metrics/config.yml")
+	}
+	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
+		return fmt.Errorf("failed to find ReSim metrics config at %s\nAre you in the right folder?\n", configFilePath)
+	}
+	configData, err := os.ReadFile(configFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+	configB64 := base64.StdEncoding.EncodeToString(configData)
+
+	templateDir := path.Join(workDir, ".resim/metrics/templates")
+	if verbose {
+		fmt.Println("Looking for templates in .resim/metrics/templates/")
+	}
+	files, err := os.ReadDir(templateDir)
+	if err != nil {
+		return fmt.Errorf("failed to read templates dir: %w", err)
+	}
+
+	templates := []bff.MetricsTemplate{}
+	for _, f := range files {
+		if f.IsDir() {
+			if verbose {
+				fmt.Printf("Skipping directory %s\n", f.Name())
+			}
+			continue
+		}
+		if !strings.HasSuffix(strings.ToLower(f.Name()), ".liquid") {
+			if verbose {
+				fmt.Printf("Skipping non .liquid file %s\n", f.Name())
+			}
+			continue
+		}
+		if verbose {
+			fmt.Printf("Found template %s\n", f.Name())
+		}
+		fullPath := path.Join(templateDir, f.Name())
+		contents, err := os.ReadFile(fullPath)
+		if err != nil {
+			return fmt.Errorf("failed to read template %s: %w", fullPath, err)
+		}
+		templates = append(templates, bff.MetricsTemplate{
+			Name:     f.Name(),
+			Contents: base64.StdEncoding.EncodeToString(contents),
+		})
+	}
+
+	_, err = bff.UpdateMetricsConfig(
+		context.Background(),
+		BffClient,
+		projectID.String(),
+		configB64,
+		templates,
+		branchName, //TODO: We should use branch ids instead of names
+	)
+	if err != nil {
+		return fmt.Errorf("failed to sync metrics config: %w", err)
+	}
+
+	if verbose {
+		fmt.Println("Successfully synced metrics config, and the following templates:")
+		for _, t := range templates {
+			fmt.Printf("\t%s\n", t.Name)
+		}
+	}
+	return nil
 }

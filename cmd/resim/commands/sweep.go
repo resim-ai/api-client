@@ -52,21 +52,22 @@ var (
 )
 
 const (
-	sweepProjectKey          = "project"
-	sweepBuildIDKey          = "build-id"
-	sweepExperiencesKey      = "experiences"
-	sweepExperienceTagsKey   = "experience-tags"
-	sweepIDKey               = "sweep-id"
-	sweepNameKey             = "sweep-name"
-	sweepMetricsBuildKey     = "metrics-build-id"
-	sweepMetricsSetKey       = "metrics-set"
-	sweepGridSearchConfigKey = "grid-search-config"
-	sweepParameterNameKey    = "parameter-name"
-	sweepParameterValuesKey  = "parameter-values"
-	sweepPoolLabelsKey       = "pool-labels"
-	sweepExitStatusKey       = "exit-status"
-	sweepGithubKey           = "github"
-	sweepAccountKey          = "account"
+	sweepProjectKey           = "project"
+	sweepBuildIDKey           = "build-id"
+	sweepExperiencesKey       = "experiences"
+	sweepExperienceTagsKey    = "experience-tags"
+	sweepIDKey                = "sweep-id"
+	sweepNameKey              = "sweep-name"
+	sweepMetricsBuildKey      = "metrics-build-id"
+	sweepMetricsSetKey        = "metrics-set"
+	sweepGridSearchConfigKey  = "grid-search-config"
+	sweepParameterNameKey     = "parameter-name"
+	sweepParameterValuesKey   = "parameter-values"
+	sweepPoolLabelsKey        = "pool-labels"
+	sweepExitStatusKey        = "exit-status"
+	sweepGithubKey            = "github"
+	sweepAccountKey           = "account"
+	sweepSyncMetricsConfigKey = "sync-metrics-config"
 )
 
 func init() {
@@ -85,6 +86,7 @@ func init() {
 	createSweepCmd.Flags().StringSlice(sweepPoolLabelsKey, []string{}, "Pool labels to determine where to run this parameter sweep. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
 	createSweepCmd.Flags().String(sweepAccountKey, "", "Specify a username for a CI/CD platform account to associate with this parameter sweep.")
+	createSweepCmd.Flags().Bool(sweepSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
 	sweepCmd.AddCommand(createSweepCmd)
 	getSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to get the sweep from")
 	getSweepCmd.MarkFlagRequired(sweepProjectKey)
@@ -253,6 +255,21 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		body.PoolLabels = &poolLabels
 	}
 
+	// Sync metrics2.0 config
+	if viper.GetBool(sweepSyncMetricsConfigKey) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		branchID := build.JSON200.BranchID
+		if branchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+
+		if err := SyncMetricsConfig(projectID, branchID, false); err != nil {
+			log.Fatalf("failed to sync metrics before batch: %v", err)
+		}
+	}
 	// Make the request
 	response, err := Client.CreateParameterSweepWithResponse(context.Background(), projectID, body)
 	if err != nil {

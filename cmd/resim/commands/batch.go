@@ -111,6 +111,7 @@ const (
 	batchMaxRerunAttemptsKey        = "max-rerun-attempts"
 	batchRerunMaxFailurePercentKey  = "rerun-max-failure-percent"
 	batchRerunOnStatesKey           = "rerun-on-states"
+	batchSyncMetricsConfigKey       = "sync-metrics-config"
 )
 
 func init() {
@@ -133,6 +134,7 @@ func init() {
 	createBatchCmd.Flags().String(batchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
 	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	createBatchCmd.Flags().String(batchMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
+	createBatchCmd.Flags().Bool(batchSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
 	batchCmd.AddCommand(createBatchCmd)
 
 	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
@@ -623,6 +625,22 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	if len(poolLabels) != 0 {
 		body.PoolLabels = &poolLabels
+	}
+
+	// Sync metrics2.0 config
+	if viper.GetBool(batchSyncMetricsConfigKey) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		branchID := build.JSON200.BranchID
+		if branchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+
+		if err := SyncMetricsConfig(projectID, branchID, false); err != nil {
+			log.Fatalf("failed to sync metrics before batch: %v", err)
+		}
 	}
 
 	// Make the request

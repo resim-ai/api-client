@@ -4,6 +4,10 @@
 
 ### Unreleased
 
+### v0.31.0 - October 22, 2025
+
+- Fix `--sync-metrics-config` for suites by having it on `suites run` rather than `suites create`
+
 ### v0.30.0 - October 16, 2025
 
 - Update the sync metrics config functionality to accept a branch ID to associate

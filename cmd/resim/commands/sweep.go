@@ -86,7 +86,7 @@ func init() {
 	createSweepCmd.Flags().StringSlice(sweepPoolLabelsKey, []string{}, "Pool labels to determine where to run this parameter sweep. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
 	createSweepCmd.Flags().String(sweepAccountKey, "", "Specify a username for a CI/CD platform account to associate with this parameter sweep.")
-	createSweepCmd.Flags().Bool(sweepSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
+	createSweepCmd.Flags().Bool(sweepSyncMetricsConfigKey, false, "If set, run metrics sync before creating the sweep")
 	sweepCmd.AddCommand(createSweepCmd)
 	getSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to get the sweep from")
 	getSweepCmd.MarkFlagRequired(sweepProjectKey)

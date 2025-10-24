@@ -4,8 +4,14 @@
 
 ### Unreleased
 
+### v0.32.0 - October 24, 2025
+
 - Add a --no-archive flag for experience syncing to keep experiences from being archived if not
   listed in the config.
+
+### v0.31.0 - October 22, 2025
+
+- Fix `--sync-metrics-config` for suites by having it on `suites run` rather than `suites create`
 
 ### v0.30.0 - October 16, 2025
 

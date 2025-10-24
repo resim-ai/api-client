@@ -65,7 +65,7 @@ func TestUpdateExperiencesEmpty(t *testing.T) {
 	currentState := DatabaseState{}
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -94,7 +94,7 @@ managedTestSuites:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -128,7 +128,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -202,7 +202,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -244,7 +244,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState, false)
+	_, err := computeExperienceUpdates(&config, currentState, true)
 	assert.Error(t, err)
 
 	// SETUP
@@ -267,7 +267,7 @@ experiences:
 	currentState, config = loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err = computeExperienceUpdates(&config, currentState, false)
+	_, err = computeExperienceUpdates(&config, currentState, true)
 	assert.Error(t, err)
 }
 
@@ -289,7 +289,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState, false)
+	_, err := computeExperienceUpdates(&config, currentState, true)
 	assert.Error(t, err)
 }
 
@@ -315,7 +315,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState, false)
+	_, err := computeExperienceUpdates(&config, currentState, true)
 	assert.Error(t, err)
 }
 
@@ -350,7 +350,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState, false)
+	_, err := computeExperienceUpdates(&config, currentState, true)
 	assert.Error(t, err)
 }
 
@@ -378,7 +378,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION / VERIFICATION
-	_, err := computeExperienceUpdates(&config, currentState, false)
+	_, err := computeExperienceUpdates(&config, currentState, true)
 	assert.Error(t, err)
 }
 
@@ -422,7 +422,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, []string{"regression", "my-special-tag"}, nil)
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -467,7 +467,7 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, []string{"planner"})
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -505,7 +505,7 @@ experiences:
 	}
 
 	// ACTION
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, false)
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.NoError(t, err)
@@ -545,7 +545,7 @@ experiences:
 	}
 
 	// ACTION
-	_, err := computeExperienceUpdates(&config, currentState, false)
+	_, err := computeExperienceUpdates(&config, currentState, true)
 
 	// VERIFICATION
 	assert.Error(t, err)
@@ -571,8 +571,8 @@ experiences:
 	currentState, config := loaderHelper(t, currentStateData, configData, nil, nil)
 
 	// ACTION
-	noArchive := true
-	experienceUpdates, err := computeExperienceUpdates(&config, currentState, noArchive)
+	shouldArchive := false
+	experienceUpdates, err := computeExperienceUpdates(&config, currentState, shouldArchive)
 
 	// VERIFICATION
 	assert.NoError(t, err)

@@ -679,11 +679,11 @@ func syncExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	configPath := viper.GetString(experiencesConfigKey)
 	updateConfig := viper.GetBool(experiencesUpdateConfigKey)
-	noArchive := viper.GetBool(experiencesSyncNoArchiveKey)
+	shouldArchive := !viper.GetBool(experiencesSyncNoArchiveKey)
 	clone := viper.GetBool(experiencesCloneKey)
 
 	if !clone {
-		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig, noArchive)
+		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig, shouldArchive)
 	} else {
 		experience_sync.CloneExperiences(Client, projectID, configPath)
 	}

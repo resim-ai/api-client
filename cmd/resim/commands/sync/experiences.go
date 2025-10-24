@@ -17,8 +17,9 @@ type ExperienceUpdates struct {
 // configuration.
 func computeExperienceUpdates(
 	config *ExperienceSyncConfig,
-	currentState DatabaseState) (*ExperienceUpdates, error) {
-	matchedExperiencesByNewName, err := matchExperiences(config, currentState.ExperiencesByName)
+	currentState DatabaseState,
+	shouldArchive bool) (*ExperienceUpdates, error) {
+	matchedExperiencesByNewName, err := matchExperiences(config, currentState.ExperiencesByName, shouldArchive)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to compute experience updates: %w", err)
 	}
@@ -56,7 +57,7 @@ type ExperienceMatch struct {
 
 // Perform a matching of the configured experiences to the current ones by name if possible, or by
 // ID if specified.
-func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map[string]*Experience) (map[string]ExperienceMatch, error) {
+func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map[string]*Experience, shouldArchive bool) (map[string]ExperienceMatch, error) {
 	// Our algorithm can be summarized like so:
 	//
 	// For each configured experience, we attempt to match it to an existing experience if
@@ -157,14 +158,15 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 		}
 
 	}
-	// Step 4: Any leftover experiences should be archived
+	// Step 4: Any leftover un-archived experiences should be archived or retained if
+	// shouldArchive is not set
 	for _, experience := range remainingCurrentExperiencesByID {
 		if experience.Archived {
-			// No updates needed, already archived
+			// No updates needed
 			continue
 		}
 		archivedVersion := *experience
-		archivedVersion.Archived = true
+		archivedVersion.Archived = shouldArchive
 		checkedInsert(matches, experience.Name, ExperienceMatch{
 			Original: experience,
 			New:      &archivedVersion,

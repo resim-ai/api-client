@@ -102,6 +102,7 @@ const (
 	experienceKey                     = "experience"
 	experiencesConfigKey              = "experiences-config"
 	experiencesCloneKey               = "clone"
+	experiencesSyncNoArchiveKey       = "no-archive"
 	experiencesUpdateConfigKey        = "update-config"
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
@@ -198,8 +199,12 @@ func init() {
 	syncExperienceCmd.Flags().String(experiencesConfigKey, "", "The path of the experiences config file to sync")
 	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
 	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
+	syncExperienceCmd.Flags().Bool(experiencesSyncNoArchiveKey, false, "Whether to archive experiences not listed in the config file")
+
 	syncExperienceCmd.Flags().Bool(experiencesCloneKey, false, "Whether to clone the existing database state to the config file rather than the other way around")
 	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesUpdateConfigKey, experiencesCloneKey)
+	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesSyncNoArchiveKey, experiencesCloneKey)
+
 	experienceCmd.AddCommand(syncExperienceCmd)
 
 	// Systems-related sub-commands:
@@ -674,10 +679,11 @@ func syncExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	configPath := viper.GetString(experiencesConfigKey)
 	updateConfig := viper.GetBool(experiencesUpdateConfigKey)
+	shouldArchive := !viper.GetBool(experiencesSyncNoArchiveKey)
 	clone := viper.GetBool(experiencesCloneKey)
 
 	if !clone {
-		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig)
+		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig, shouldArchive)
 	} else {
 		experience_sync.CloneExperiences(Client, projectID, configPath)
 	}

@@ -2,7 +2,9 @@
 
 ## ReSim CLI
 
-### Unreleased
+### v0.33.0 - November 3, 2025
+
+- Deprecate `--location` flag in `experiences create` and `experiences update` commands in favor of new `--locations` flag for multi-location experience support
 
 ### v0.32.0 - October 24, 2025
 
@@ -55,7 +57,7 @@
   - Configurable failure threshold with `--rerun-max-failure-percent` (default: 50.0)
   - Rerun on specific job states with `--rerun-on-states` (e.g., "Error,Warning")
   - Configurable timeout and poll interval for monitoring
-  
+
 ### v0.25.0 - August 22, 2025
 
 #### Added

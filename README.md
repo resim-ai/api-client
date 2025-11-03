@@ -15,7 +15,7 @@ For Mac OS on Apple Silicon/ARM:
 
     curl -L https://github.com/resim-ai/api-client/releases/latest/download/resim-darwin-arm64 -o resim
     chmod +x resim
-    
+
 For Mac OS on Intel:
 
     curl -L https://github.com/resim-ai/api-client/releases/latest/download/resim-darwin-amd64 -o resim
@@ -29,7 +29,6 @@ Or you can install using `go install`:
 
 When you run any command, if you don't have a cached authentication token, the CLI will prompt you to log in using a web browser.
 
-
 ### Non-Interactive Auth
 
 If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using a username and password or client credentials (a client ID and a client secret). These credentials are obtained by contacting ReSim. We will provide the most appropriate type for your environment.
@@ -42,7 +41,7 @@ Client credentials can be specified on the commandline with the `--client-id` an
 If you would like to store your credentials in a config file, the CLI will load them from `~/.resim/resim.yaml`. Make sure this file is reasonably secure - only readable by the user that will run the CLI, for example. The file is formatted as follows:
 
     ## Set ONE of the below pairs
-    
+
     # Client Credentials
     client-id: <client ID>
     client-secret: <client secret>
@@ -63,7 +62,7 @@ To get a list of available commands, just type
 
 To call a particular endpoint, use
 
-    RESIM_CLIENT_ID=<client ID> RESIM_CLIENT_SECRET=<client secret> resim create project <flags> 
+    RESIM_CLIENT_ID=<client ID> RESIM_CLIENT_SECRET=<client secret> resim create project <flags>
 
 ### Autocomplete
 
@@ -109,7 +108,7 @@ Whenever you make changes, please ensure that the end to end test is passing:
 
     go test -v -tags end_to_end -count 1 ./testing
 
-The end to end test requires several environment variables to be passed through: `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET` 
+The end to end test requires several environment variables to be passed through: `RESIM_CLIENT_ID` and `RESIM_CLIENT_SECRET`
 which must be valid client credentials for the CLI to access the deployment. `CONFIG` should be either `staging` or `prod` to
 test the staging or production deployments and for a customer development deployment the `DEPLOYMENT` name should match
 the name of your deployment.

@@ -166,6 +166,7 @@ func init() {
 	updateExperienceCmd.Flags().String(experienceNameKey, "", "New value for the name of the experience")
 	updateExperienceCmd.Flags().String(experienceDescriptionKey, "", "New value for the description of the experience")
 	updateExperienceCmd.Flags().String(experienceLocationKey, "", "New value for the location (e.g. S3 URI) of the experience (deprecated, use --locations instead)")
+	updateExperienceCmd.Flags().MarkDeprecated(experienceLocationKey, "Please use --locations flag instead")
 	updateExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
 	updateExperienceCmd.Flags().StringSlice(experienceTagsKey, []string{}, "A list of experience tag names or IDs to apply to the experience")
 	updateExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")

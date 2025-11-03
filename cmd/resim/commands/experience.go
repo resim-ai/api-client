@@ -107,6 +107,7 @@ const (
 	experienceIDKey                   = "id"
 	experienceDescriptionKey          = "description"
 	experienceLocationKey             = "location"
+	experienceLocationsKey            = "locations"
 	experienceLaunchProfileKey        = "launch-profile"
 	experienceGithubKey               = "github"
 	experienceTagKey                  = "tag"
@@ -124,7 +125,8 @@ func init() {
 	createExperienceCmd.Flags().String(experienceDescriptionKey, "", "The description of the experience")
 	createExperienceCmd.MarkFlagRequired(experienceDescriptionKey)
 	createExperienceCmd.Flags().StringSlice(experienceLocationKey, []string{}, "The location(s) of the experience, comma separated if more than one. e.g. an S3 URI for the experience folder")
-	createExperienceCmd.MarkFlagRequired(experienceLocationKey)
+	createExperienceCmd.Flags().MarkDeprecated(experienceLocationKey, "Please use --locations flag instead (e.g. --locations s3://my-bucket/my-folder,s3://my-bucket/my-other-folder)")
+	createExperienceCmd.Flags().StringSlice(experienceLocationsKey, []string{}, "The locations (e.g. S3 URIs) of the experience, comma separated if more than one")
 	createExperienceCmd.Flags().String(experienceLaunchProfileKey, "", "The UUID of the launch profile for this experience")
 	createExperienceCmd.Flags().MarkDeprecated(experienceLaunchProfileKey, "launch profiles are deprecated in favor of systems to define resource requirements")
 	createExperienceCmd.Flags().Bool(experienceGithubKey, false, "Whether to output format in github action friendly format")
@@ -163,7 +165,7 @@ func init() {
 	updateExperienceCmd.MarkFlagRequired(experienceKey)
 	updateExperienceCmd.Flags().String(experienceNameKey, "", "New value for the name of the experience")
 	updateExperienceCmd.Flags().String(experienceDescriptionKey, "", "New value for the description of the experience")
-	updateExperienceCmd.Flags().String(experienceLocationKey, "", "New value for the location of the experience, e.g. an S3 URI for the experience folder")
+	updateExperienceCmd.Flags().String(experienceLocationKey, "", "New value for the location (e.g. S3 URI) of the experience (deprecated, use --locations instead)")
 	updateExperienceCmd.Flags().StringSlice(experienceSystemsKey, []string{}, "A list of system names or IDs to register as compatible with the experience")
 	updateExperienceCmd.Flags().StringSlice(experienceTagsKey, []string{}, "A list of experience tag names or IDs to apply to the experience")
 	updateExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
@@ -244,7 +246,14 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience description")
 	}
 
-	experienceLocations := viper.GetStringSlice(experienceLocationKey)
+	var experienceLocations []string
+	// Prioritize the new locations flag over the deprecated location flag
+	if viper.IsSet(experienceLocationsKey) {
+		experienceLocations = viper.GetStringSlice(experienceLocationsKey)
+	} else if viper.IsSet(experienceLocationKey) {
+		experienceLocations = viper.GetStringSlice(experienceLocationKey)
+	}
+
 	if len(experienceLocations) == 0 {
 		log.Fatal("empty experience locations")
 	}
@@ -341,10 +350,10 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		fmt.Println("Created experience successfully!")
 		fmt.Printf("Experience ID: %s\n", experience.ExperienceID.String())
 		if isCloud && objectsCount != nil && *objectsCount > 0 {
-			fmt.Printf("ReSim found %v file(s) in experience location:\n", *objectsCount)
+			fmt.Printf("ReSim found %v file(s) in experience locations:\n", *objectsCount)
 			OutputJson(*objectsInExperience)
 		} else {
-			fmt.Println("WARNING: ReSim could not find any files in the provided location.")
+			fmt.Println("WARNING: ReSim could not find any files in the provided locations.")
 		}
 	}
 }
@@ -405,7 +414,11 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 		updateExperienceInput.Experience.Description = Ptr(viper.GetString(experienceDescriptionKey))
 		updateMask = append(updateMask, "description")
 	}
-	if viper.IsSet(experienceLocationKey) {
+	if viper.IsSet(experienceLocationsKey) {
+		locations := viper.GetStringSlice(experienceLocationsKey)
+		updateExperienceInput.Experience.Locations = &locations
+		updateMask = append(updateMask, "locations")
+	} else if viper.IsSet(experienceLocationKey) {
 		updateExperienceInput.Experience.Location = Ptr(viper.GetString(experienceLocationKey))
 		updateMask = append(updateMask, "location")
 	}

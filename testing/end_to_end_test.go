@@ -167,7 +167,7 @@ const (
 	GithubCreatedExperience    string = "experience_id="
 	EmptyExperienceName        string = "empty experience name"
 	EmptyExperienceDescription string = "empty experience description"
-	EmptyExperienceLocation    string = "empty experience location"
+	EmptyExperienceLocation    string = "empty experience locations"
 	DeprecatedLaunchProfile    string = "launch profiles are deprecated"
 	ArchivedExperience         string = "Archived experience"
 	// Batch Messages

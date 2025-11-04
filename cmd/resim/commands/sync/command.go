@@ -13,6 +13,7 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 	projectID uuid.UUID,
 	configPath string,
 	updateConfig bool,
+	shouldArchive bool,
 ) {
 	if configPath == "" {
 		log.Fatal("experiences-config not set")
@@ -25,7 +26,7 @@ func SyncExperiences(client api.ClientWithResponsesInterface,
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	experienceUpdates, err := computeExperienceUpdates(config, *currentState)
+	experienceUpdates, err := computeExperienceUpdates(config, *currentState, shouldArchive)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -53,10 +54,10 @@ func CloneExperiences(client api.ClientWithResponsesInterface,
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	config.Experiences = []*Experience{}
+	config.Experiences = []Experience{}
 	for _, experience := range currentState.ExperiencesByName {
 		if !experience.Archived {
-			config.Experiences = append(config.Experiences, experience)
+			config.Experiences = append(config.Experiences, *experience)
 		}
 	}
 	writeConfigToFile(config, configPath)

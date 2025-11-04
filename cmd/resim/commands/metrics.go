@@ -1,15 +1,10 @@
 package commands
 
 import (
-	"context"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"os"
-	"path"
-	"strings"
 
-	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -29,11 +24,13 @@ var (
 )
 
 const (
-	metricsProjectKey = "project"
+	metricsProjectKey    = "project"
+	metricsBranchNameKey = "branch"
 )
 
 func init() {
 	syncMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project to sync metrics to")
+	syncMetricsCmd.Flags().String(metricsBranchNameKey, "main", "The name of the branch to associate the config with. The default is main")
 	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
 	rootCmd.AddCommand(metricsCmd)
@@ -51,76 +48,12 @@ func readFile(path string) string {
 }
 
 func syncMetrics(cmd *cobra.Command, args []string) {
-
 	verboseMode := viper.GetBool(verboseKey)
-
 	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
+	branchName := viper.GetString(metricsBranchNameKey)
+	branchID := getBranchID(Client, projectID, branchName, true)
 
-	workDir, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("failed to get working directory: %s", err)
-	}
-
-	configFilePath := path.Join(workDir, ".resim/metrics/config.yml")
-	if verboseMode {
-		fmt.Println("Looking for metrics config at .resim/metrics/config.yml")
-	}
-
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		log.Fatalf("failed to find ReSim metrics config at %s\nAre you in the right folder?\n", configFilePath)
-	}
-
-	configFile := readFile(configFilePath)
-
-	if verboseMode {
-		fmt.Println("Looking for templates in .resim/metrics/templates/")
-	}
-	templates := []bff.MetricsTemplate{}
-	templateDir := path.Join(workDir, ".resim/metrics/templates")
-	files, err := os.ReadDir(templateDir)
-	if err != nil {
+	if err := SyncMetricsConfig(projectID, branchID, verboseMode); err != nil {
 		log.Fatal(err)
-	}
-	if len(files) == 0 {
-		if verboseMode {
-			fmt.Printf("Found 0 template files at %s\n", templateDir)
-		}
-	}
-	for _, file := range files {
-		if file.IsDir() {
-			if verboseMode {
-				fmt.Printf("Skipping directory %s\n", file.Name())
-			}
-			continue
-		}
-		if !strings.HasSuffix(strings.ToLower(file.Name()), ".liquid") {
-			if verboseMode {
-				fmt.Printf("Skipping non .liquid file %s\n", file.Name())
-			}
-			continue
-		}
-		if verboseMode {
-			fmt.Printf("Found template %s\n", file.Name())
-		}
-		contents := readFile(path.Join(workDir, ".resim/metrics/templates/", file.Name()))
-		if len(contents) == 0 {
-			if verboseMode {
-				fmt.Printf("Template %s is empty!\n", file.Name())
-			}
-		} else {
-			templates = append(templates, bff.MetricsTemplate{Name: file.Name(), Contents: contents})
-		}
-	}
-
-	_, err = bff.UpdateMetricsConfig(context.Background(), BffClient, projectID.String(), configFile, templates)
-	if err != nil {
-		log.Fatalf("Failed to sync metrics config: %s", err)
-	}
-
-	if verboseMode {
-		fmt.Println("Successfully synced metrics config, and the following templates:")
-		for _, t := range templates {
-			fmt.Printf("\t%s\n", t.Name)
-		}
 	}
 }

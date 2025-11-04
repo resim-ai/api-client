@@ -99,6 +99,7 @@ const (
 	testSuiteBatchNameKey               = "batch-name"
 	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 	testSuiteMetricsBuildOverrideKey    = "metrics-build-override"
+	testSuiteSyncMetricsConfigKey       = "sync-metrics-config"
 )
 
 func init() {
@@ -206,6 +207,8 @@ func init() {
 	runTestSuiteCmd.Flags().Int(testSuiteAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	// Optional: Metrics build override:
 	runTestSuiteCmd.Flags().String(testSuiteMetricsBuildOverrideKey, "", "An optional ID of a metrics build to override the standard metrics build in this test suite run (which will be run as an adhoc batch).")
+	// Optional: Sync metrics config
+	runTestSuiteCmd.Flags().Bool(testSuiteSyncMetricsConfigKey, false, "If set, run metrics sync before running the test suite")
 	testSuiteCmd.AddCommand(runTestSuiteCmd)
 
 	// Test Suite Batches
@@ -605,6 +608,21 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	associatedAccount := GetCIEnvironmentVariableAccount()
 	if viper.IsSet(testSuiteAccountKey) {
 		associatedAccount = viper.GetString(testSuiteAccountKey)
+	}
+
+	// Sync metrics2.0 config
+	if viper.GetBool(testSuiteSyncMetricsConfigKey) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		branchID := build.JSON200.BranchID
+		if branchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+		if err := SyncMetricsConfig(projectID, branchID, false); err != nil {
+			log.Fatalf("failed to sync metrics before batch: %v", err)
+		}
 	}
 
 	var batch api.Batch

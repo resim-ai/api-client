@@ -45,6 +45,8 @@ const (
 	Prod         string = "prod"
 	ClientID     string = "RESIM_CLIENT_ID"
 	ClientSecret string = "RESIM_CLIENT_SECRET"
+	username     string = "USERNAME"
+	password     string = "PASSWORD"
 )
 
 // CLI Constants
@@ -165,7 +167,7 @@ const (
 	GithubCreatedExperience    string = "experience_id="
 	EmptyExperienceName        string = "empty experience name"
 	EmptyExperienceDescription string = "empty experience description"
-	EmptyExperienceLocation    string = "empty experience location"
+	EmptyExperienceLocation    string = "empty experience locations"
 	DeprecatedLaunchProfile    string = "launch profiles are deprecated"
 	ArchivedExperience         string = "Archived experience"
 	// Batch Messages
@@ -304,8 +306,41 @@ func (s *EndToEndTestHelper) buildCommand(commandBuilders []CommandBuilder) *exe
 
 func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders []CommandBuilder, expectError bool) Output {
 	var stdout, stderr bytes.Buffer
+	// Remove username/password flags inline before building the command and use env instead
+	var username, password string
+	for i := range commandBuilders {
+		filtered := commandBuilders[i].Flags[:0] // reuse underlying array
+		for _, f := range commandBuilders[i].Flags {
+			switch f.Name {
+			case "--username":
+				username = f.Value
+			case "--password":
+				password = f.Value
+			default:
+				filtered = append(filtered, f)
+			}
+		}
+		commandBuilders[i].Flags = filtered
+	}
 	cmd := s.buildCommand(commandBuilders)
-	fmt.Println("About to run command: ", cmd.String())
+	cmdString := cmd.String()
+	fmt.Println("About to run command: ", cmdString)
+
+	env := os.Environ()
+	// If username/password are set, strip out client creds
+	if username != "" && password != "" {
+		newEnv := []string{}
+		for _, kv := range env {
+			if strings.HasPrefix(kv, "RESIM_CLIENT_ID=") || strings.HasPrefix(kv, "RESIM_CLIENT_SECRET=") {
+				continue // skip these
+			}
+			newEnv = append(newEnv, kv)
+		}
+		newEnv = append(newEnv, fmt.Sprintf("RESIM_USERNAME=%s", username))
+		newEnv = append(newEnv, fmt.Sprintf("RESIM_PASSWORD=%s", password))
+		env = newEnv
+	}
+	cmd.Env = env
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -321,7 +356,7 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	}
 }
 
-func syncMetrics(projectName string, verbose bool) []CommandBuilder {
+func syncMetrics(projectName string, verbose bool, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
 	flags := []Flag{
@@ -329,6 +364,16 @@ func syncMetrics(projectName string, verbose bool) []CommandBuilder {
 	}
 	if verbose {
 		flags = append(flags, Flag{Name: "--verbose"})
+	}
+	// The CI fails if we use a different authentication method since it will
+	// report a different auth0 id for the user. The bff api is expecting the
+	// auth0 id reported with username/password auth. This also matches the
+	// rerun CI setup
+	if username != "" {
+		flags = append(flags, Flag{Name: "--username", Value: username})
+	}
+	if password != "" {
+		flags = append(flags, Flag{Name: "--password", Value: password})
 	}
 
 	syncCommand := CommandBuilder{Command: "sync", Flags: flags}
@@ -2657,6 +2702,7 @@ func TestProjectCreateGithub(t *testing.T) {
 	ts.Contains(output.StdOut, ArchivedProject)
 	ts.Empty(output.StdErr)
 }
+
 // Test branch creation:
 func TestBranchCreate(t *testing.T) {
 	ts := assert.New(t)
@@ -4554,6 +4600,7 @@ func TestCancelSweep(t *testing.T) {
 	// Validate that it was cancelled:
 	ts.Equal(api.ParameterSweepStatusCANCELLED, *sweep.Status)
 }
+
 // Test the metrics builds:
 func TestCreateMetricsBuild(t *testing.T) {
 	ts := assert.New(t)
@@ -5886,15 +5933,21 @@ func TestMetricsSync(t *testing.T) {
 
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	username := os.Getenv(username)
+	password := os.Getenv(password)
 	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedProject)
+
 	// We expect to be able to parse the project ID as a UUID
 	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
-	_, err := uuid.Parse(projectIDString)
+	projectID, err := uuid.Parse(projectIDString)
 	req.NoError(err)
 
+	// create the main branch
+	output = s.runCommand(ts, createBranch(projectID, "main", "RELEASE", GithubTrue), ExpectNoError)
+
 	t.Run("NoConfigFiles", func(t *testing.T) {
-		output := s.runCommand(ts, syncMetrics(projectIDString, true), true)
+		output := s.runCommand(ts, syncMetrics(projectIDString, true, username, password), true)
 
 		ts.Contains(output.StdErr, "failed to find ReSim metrics config")
 	})
@@ -5935,12 +5988,12 @@ func TestMetricsSync(t *testing.T) {
 		ts.NoError(err)
 
 		// Standard behavior is exit 0 with no output
-		output := s.runCommand(ts, syncMetrics(projectIDString, false), false)
+		output := s.runCommand(ts, syncMetrics(projectIDString, false, username, password), false)
 		ts.Equal("", output.StdOut)
 		ts.Equal("", output.StdErr)
 
 		// Verbose logs a lot of info about what it is doing
-		output = s.runCommand(ts, syncMetrics(projectIDString, true), false)
+		output = s.runCommand(ts, syncMetrics(projectIDString, true, username, password), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
 		ts.Contains(output.StdOut, "Found template bar.liquid")

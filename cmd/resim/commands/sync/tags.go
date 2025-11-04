@@ -48,7 +48,7 @@ func getTagUpdates(matchedExperiencesByNewName map[string]ExperienceMatch,
 				updates[tag].Additions = append(updates[tag].Additions, match.New)
 				continue
 			}
-			_, alreadyTagged := tag_set.ExperienceIDs[match.Original.ExperienceID.ID]
+			_, alreadyTagged := tag_set.ExperienceIDs[*match.Original.ExperienceID]
 			if !alreadyTagged {
 				updates[tag].Additions = append(updates[tag].Additions, match.New)
 			}
@@ -58,7 +58,7 @@ func getTagUpdates(matchedExperiencesByNewName map[string]ExperienceMatch,
 			continue
 		}
 		for _, tag := range managedTags {
-			_, currentlyHasTag := currentTagSetsByName[tag].ExperienceIDs[match.Original.ExperienceID.ID]
+			_, currentlyHasTag := currentTagSetsByName[tag].ExperienceIDs[*match.Original.ExperienceID]
 			// Not the fastest, but it will do
 			if currentlyHasTag && !slices.Contains(match.New.Tags, tag) {
 				updates[tag].Removals = append(updates[tag].Removals, match.New)

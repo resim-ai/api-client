@@ -2,7 +2,31 @@
 
 ## ReSim CLI
 
-### Unreleased
+### v0.33.0 - November 3, 2025
+
+- Deprecate `--location` flag in `experiences create` and `experiences update` commands in favor of new `--locations` flag for multi-location experience support
+
+### v0.32.0 - October 24, 2025
+
+- Add a --no-archive flag for experience syncing to keep experiences from being archived if not
+  listed in the config.
+
+### v0.31.0 - October 22, 2025
+
+- Fix `--sync-metrics-config` for suites by having it on `suites run` rather than `suites create`
+
+### v0.30.0 - October 16, 2025
+
+- Update the sync metrics config functionality to accept a branch ID to associate
+  that config with.
+- Update the `batches create`, `sweeps create` and `test-suites create` with an
+  optional flag `--sync-metrics-config` to automatically sync the metrics config
+  before creating the batch, sweep, or test suite.
+
+### v0.29.0 - October 2, 2025
+
+- Updated the experience syncing functionality to use the released models in the openapi spec for
+  syncing. This changes the config to use camelCase rather than snake_case.
 
 ### v0.28.1 - September 18, 2025
 
@@ -33,7 +57,7 @@
   - Configurable failure threshold with `--rerun-max-failure-percent` (default: 50.0)
   - Rerun on specific job states with `--rerun-on-states` (e.g., "Error,Warning")
   - Configurable timeout and poll interval for monitoring
-  
+
 ### v0.25.0 - August 22, 2025
 
 #### Added

@@ -5474,6 +5474,62 @@ func TestWorkflows(t *testing.T) {
     newDesc := "new description"
     output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, &newDesc, nil, nil, nil), ExpectNoError)
     ts.Contains(output.StdOut, UpdatedWorkflow)
+
+    // Reconcile workflow suites: add, update enabled flags, and remove
+    // Create two additional test suites to exercise add/remove/toggle
+    secondSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+    output = s.runCommand(ts, createTestSuite(projectID, secondSuiteName, "second suite", systemName, []string{expName}, metricsBuildID, GithubFalse, nil), ExpectNoError)
+    ts.Contains(output.StdOut, CreatedTestSuite)
+
+    thirdSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+    output = s.runCommand(ts, createTestSuite(projectID, thirdSuiteName, "third suite", systemName, []string{expName}, metricsBuildID, GithubFalse, nil), ExpectNoError)
+    ts.Contains(output.StdOut, CreatedTestSuite)
+
+    // 1) Add thirdSuite to workflow (retain original suite enabled)
+    suitesJSON := fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":true},{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName, thirdSuiteName)
+    output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, nil, nil, &suitesJSON, nil), ExpectNoError)
+    ts.Contains(output.StdOut, UpdatedWorkflow)
+
+    // Verify both suites are present and enabled
+    output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
+    type wfGet struct {
+        Suites []struct {
+            Name    string `json:"name"`
+            Enabled bool   `json:"enabled"`
+        } `json:"suites"`
+    }
+    var wfOut wfGet
+    err = json.Unmarshal([]byte(output.StdOut), &wfOut)
+    ts.NoError(err)
+    suitesState := map[string]bool{}
+    for _, s := range wfOut.Suites {
+        suitesState[s.Name] = s.Enabled
+    }
+    ts.Equal(true, suitesState[testSuiteName])
+    ts.Equal(true, suitesState[thirdSuiteName])
+
+    // 2) Toggle original suite to disabled, add secondSuite enabled, and remove thirdSuite
+    suitesJSON = fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":false},{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName, secondSuiteName)
+    output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, nil, nil, &suitesJSON, nil), ExpectNoError)
+    ts.Contains(output.StdOut, UpdatedWorkflow)
+
+    // Verify: original suite disabled, secondSuite enabled, thirdSuite removed
+    output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
+    wfOut = wfGet{}
+    err = json.Unmarshal([]byte(output.StdOut), &wfOut)
+    ts.NoError(err)
+    suitesState = map[string]bool{}
+    for _, s := range wfOut.Suites {
+        suitesState[s.Name] = s.Enabled
+    }
+    // Present with expected enabled states
+    ts.Contains(suitesState, testSuiteName)
+    ts.Equal(false, suitesState[testSuiteName])
+    ts.Contains(suitesState, secondSuiteName)
+    ts.Equal(true, suitesState[secondSuiteName])
+    // Removed
+    _, exists := suitesState[thirdSuiteName]
+    ts.False(exists)
 }
 
 func TestBatchWithZeroTimeout(t *testing.T) {

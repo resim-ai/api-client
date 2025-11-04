@@ -129,9 +129,9 @@ func init() {
 	updateWorkflowCmd.MarkFlagRequired(workflowKey)
 	updateWorkflowCmd.Flags().String(workflowNameKey, "", "A new name for the workflow.")
 	updateWorkflowCmd.Flags().String(workflowDescriptionKey, "", "A new description for the workflow.")
-    updateWorkflowCmd.Flags().String(workflowCILinkKey, "", "A new CI workflow link.")
-    updateWorkflowCmd.Flags().String(workflowSuitesKey, "", "JSON array of objects {testSuite, enabled}. The CLI will add/remove/update suites to match this full list. testSuite may be a UUID or a test suite name.")
-    updateWorkflowCmd.Flags().String(workflowSuitesFileKey, "", "Path to a JSON file containing an array of objects {testSuite, enabled}. The CLI will add/remove/update suites to match this full list. testSuite may be a UUID or a test suite name.")
+	updateWorkflowCmd.Flags().String(workflowCILinkKey, "", "A new CI workflow link.")
+	updateWorkflowCmd.Flags().String(workflowSuitesKey, "", "JSON array of objects {testSuite, enabled}. The CLI will add/remove/update suites to match this full list. testSuite may be a UUID or a test suite name.")
+	updateWorkflowCmd.Flags().String(workflowSuitesFileKey, "", "Path to a JSON file containing an array of objects {testSuite, enabled}. The CLI will add/remove/update suites to match this full list. testSuite may be a UUID or a test suite name.")
 	updateWorkflowCmd.MarkFlagsMutuallyExclusive(workflowSuitesKey, workflowSuitesFileKey)
 	workflowCmd.AddCommand(updateWorkflowCmd)
 
@@ -379,130 +379,130 @@ func updateWorkflow(ccmd *cobra.Command, args []string) {
 		req.CiWorkflowLink = &ci
 	}
 
-    suitesSpecified := viper.IsSet(workflowSuitesKey) || viper.IsSet(workflowSuitesFileKey)
+	suitesSpecified := viper.IsSet(workflowSuitesKey) || viper.IsSet(workflowSuitesFileKey)
 
-    // If nothing set, error out
-    if req.Name == nil && req.Description == nil && req.CiWorkflowLink == nil && !suitesSpecified {
-        log.Fatal("nothing to update; provide at least one of --name, --description, --ci-link, --suites/--suites-file")
-    }
+	// If nothing set, error out
+	if req.Name == nil && req.Description == nil && req.CiWorkflowLink == nil && !suitesSpecified {
+		log.Fatal("nothing to update; provide at least one of --name, --description, --ci-link, --suites/--suites-file")
+	}
 
-    // First, update workflow metadata if provided
-    if req.Name != nil || req.Description != nil || req.CiWorkflowLink != nil {
-        resp, err := Client.UpdateWorkflowWithResponse(context.Background(), projectID, existing.WorkflowID, req)
-        if err != nil {
-            log.Fatal("failed to update workflow:", err)
-        }
-        ValidateResponse(http.StatusOK, "failed to update workflow", resp.HTTPResponse, resp.Body)
-        if resp.JSON200 == nil {
-            log.Fatal("empty response")
-        }
-    }
+	// First, update workflow metadata if provided
+	if req.Name != nil || req.Description != nil || req.CiWorkflowLink != nil {
+		resp, err := Client.UpdateWorkflowWithResponse(context.Background(), projectID, existing.WorkflowID, req)
+		if err != nil {
+			log.Fatal("failed to update workflow:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to update workflow", resp.HTTPResponse, resp.Body)
+		if resp.JSON200 == nil {
+			log.Fatal("empty response")
+		}
+	}
 
-    // Then, reconcile suites if provided
-    if suitesSpecified {
-        type suiteSpec struct {
-            TestSuite string `json:"testSuite"`
-            Enabled   bool   `json:"enabled"`
-        }
-        var specs []suiteSpec
-        if viper.IsSet(workflowSuitesFileKey) {
-            path := viper.GetString(workflowSuitesFileKey)
-            f, err := os.Open(path)
-            if err != nil {
-                log.Fatal("failed to open suites file: ", err)
-            }
-            defer f.Close()
-            dec := json.NewDecoder(f)
-            if err := dec.Decode(&specs); err != nil {
-                log.Fatal("failed to parse suites file as JSON: ", err)
-            }
-        } else {
-            raw := viper.GetString(workflowSuitesKey)
-            if err := json.Unmarshal([]byte(raw), &specs); err != nil {
-                log.Fatal("failed to parse suites JSON: ", err)
-            }
-        }
+	// Then, reconcile suites if provided
+	if suitesSpecified {
+		type suiteSpec struct {
+			TestSuite string `json:"testSuite"`
+			Enabled   bool   `json:"enabled"`
+		}
+		var specs []suiteSpec
+		if viper.IsSet(workflowSuitesFileKey) {
+			path := viper.GetString(workflowSuitesFileKey)
+			f, err := os.Open(path)
+			if err != nil {
+				log.Fatal("failed to open suites file: ", err)
+			}
+			defer f.Close()
+			dec := json.NewDecoder(f)
+			if err := dec.Decode(&specs); err != nil {
+				log.Fatal("failed to parse suites file as JSON: ", err)
+			}
+		} else {
+			raw := viper.GetString(workflowSuitesKey)
+			if err := json.Unmarshal([]byte(raw), &specs); err != nil {
+				log.Fatal("failed to parse suites JSON: ", err)
+			}
+		}
 
-        // Build desired map[id]enabled
-        desired := make(map[uuid.UUID]bool, len(specs))
-        for _, s := range specs {
-            if s.TestSuite == "" {
-                log.Fatal("suite entry missing testSuite")
-            }
-            var id uuid.UUID
-            if parsed, err := uuid.Parse(s.TestSuite); err == nil {
-                id = parsed
-            } else {
-                ts := actualGetTestSuite(projectID, s.TestSuite, nil, false)
-                if ts == nil {
-                    log.Fatal("unable to find test suite: ", s.TestSuite)
-                }
-                id = ts.TestSuiteID
-            }
-            desired[id] = s.Enabled
-        }
+		// Build desired map[id]enabled
+		desired := make(map[uuid.UUID]bool, len(specs))
+		for _, s := range specs {
+			if s.TestSuite == "" {
+				log.Fatal("suite entry missing testSuite")
+			}
+			var id uuid.UUID
+			if parsed, err := uuid.Parse(s.TestSuite); err == nil {
+				id = parsed
+			} else {
+				ts := actualGetTestSuite(projectID, s.TestSuite, nil, false)
+				if ts == nil {
+					log.Fatal("unable to find test suite: ", s.TestSuite)
+				}
+				id = ts.TestSuiteID
+			}
+			desired[id] = s.Enabled
+		}
 
-        // Fetch current suites
-        suitesResp, err := Client.ListWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID)
-        if err != nil {
-            log.Fatal("failed to list workflow suites:", err)
-        }
-        ValidateResponse(http.StatusOK, "failed to list workflow suites", suitesResp.HTTPResponse, suitesResp.Body)
+		// Fetch current suites
+		suitesResp, err := Client.ListWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID)
+		if err != nil {
+			log.Fatal("failed to list workflow suites:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list workflow suites", suitesResp.HTTPResponse, suitesResp.Body)
 
-        current := make(map[uuid.UUID]bool)
-        if suitesResp.JSON200 != nil && suitesResp.JSON200.WorkflowSuites != nil {
-            for _, ws := range suitesResp.JSON200.WorkflowSuites {
-                current[ws.TestSuite.TestSuiteID] = bool(ws.Enabled)
-            }
-        }
+		current := make(map[uuid.UUID]bool)
+		if suitesResp.JSON200 != nil && suitesResp.JSON200.WorkflowSuites != nil {
+			for _, ws := range suitesResp.JSON200.WorkflowSuites {
+				current[ws.TestSuite.TestSuiteID] = bool(ws.Enabled)
+			}
+		}
 
-        // Compute diffs
-        creates := make([]api.CreateWorkflowSuiteInput, 0)
-        updates := make([]api.UpdateWorkflowSuiteInput, 0)
-        deletes := make([]api.TestSuiteID, 0)
+		// Compute diffs
+		creates := make([]api.CreateWorkflowSuiteInput, 0)
+		updates := make([]api.UpdateWorkflowSuiteInput, 0)
+		deletes := make([]api.TestSuiteID, 0)
 
-        for id, enabled := range desired {
-            if curEnabled, ok := current[id]; !ok {
-                creates = append(creates, api.CreateWorkflowSuiteInput{TestSuiteID: api.TestSuiteID(id), Enabled: enabled})
-            } else if curEnabled != enabled {
-                updates = append(updates, api.UpdateWorkflowSuiteInput{TestSuiteID: api.TestSuiteID(id), Enabled: enabled})
-            }
-        }
-        for id := range current {
-            if _, ok := desired[id]; !ok {
-                deletes = append(deletes, api.TestSuiteID(id))
-            }
-        }
+		for id, enabled := range desired {
+			if curEnabled, ok := current[id]; !ok {
+				creates = append(creates, api.CreateWorkflowSuiteInput{TestSuiteID: api.TestSuiteID(id), Enabled: enabled})
+			} else if curEnabled != enabled {
+				updates = append(updates, api.UpdateWorkflowSuiteInput{TestSuiteID: api.TestSuiteID(id), Enabled: enabled})
+			}
+		}
+		for id := range current {
+			if _, ok := desired[id]; !ok {
+				deletes = append(deletes, api.TestSuiteID(id))
+			}
+		}
 
-        // Apply changes: create -> update -> delete
-        if len(creates) > 0 {
-            resp, err := Client.CreateWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID, api.CreateWorkflowSuitesInput{WorkflowSuites: creates})
-            if err != nil {
-                log.Fatal("failed to add workflow suites:", err)
-            }
-            ValidateResponse(http.StatusCreated, "failed to add workflow suites", resp.HTTPResponse, resp.Body)
-        }
-        if len(updates) > 0 {
-            resp, err := Client.UpdateWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID, api.UpdateWorkflowSuitesInput{WorkflowSuites: updates})
-            if err != nil {
-                log.Fatal("failed to update workflow suites:", err)
-            }
-            ValidateResponse(http.StatusOK, "failed to update workflow suites", resp.HTTPResponse, resp.Body)
-        }
-        if len(deletes) > 0 {
-            resp, err := Client.DeleteWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID, api.DeleteWorkflowSuitesInput{TestSuiteIDs: deletes})
-            if err != nil {
-                log.Fatal("failed to remove workflow suites:", err)
-            }
-            // DELETE typically returns 204 No Content
-            ValidateResponse(http.StatusNoContent, "failed to remove workflow suites", resp.HTTPResponse, resp.Body)
-        }
+		// Apply changes: create -> update -> delete
+		if len(creates) > 0 {
+			resp, err := Client.CreateWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID, api.CreateWorkflowSuitesInput{WorkflowSuites: creates})
+			if err != nil {
+				log.Fatal("failed to add workflow suites:", err)
+			}
+			ValidateResponse(http.StatusCreated, "failed to add workflow suites", resp.HTTPResponse, resp.Body)
+		}
+		if len(updates) > 0 {
+			resp, err := Client.UpdateWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID, api.UpdateWorkflowSuitesInput{WorkflowSuites: updates})
+			if err != nil {
+				log.Fatal("failed to update workflow suites:", err)
+			}
+			ValidateResponse(http.StatusOK, "failed to update workflow suites", resp.HTTPResponse, resp.Body)
+		}
+		if len(deletes) > 0 {
+			resp, err := Client.DeleteWorkflowSuitesWithResponse(context.Background(), projectID, existing.WorkflowID, api.DeleteWorkflowSuitesInput{TestSuiteIDs: deletes})
+			if err != nil {
+				log.Fatal("failed to remove workflow suites:", err)
+			}
+			// DELETE typically returns 204 No Content
+			ValidateResponse(http.StatusNoContent, "failed to remove workflow suites", resp.HTTPResponse, resp.Body)
+		}
 
-        fmt.Println("Reconciled workflow suites successfully!")
-    }
+		fmt.Println("Reconciled workflow suites successfully!")
+	}
 
-    fmt.Println("Updated workflow successfully!")
-    fmt.Println("workflow ID:", existing.WorkflowID.String())
+	fmt.Println("Updated workflow successfully!")
+	fmt.Println("workflow ID:", existing.WorkflowID.String())
 }
 
 func createWorkflowRun(ccmd *cobra.Command, args []string) {

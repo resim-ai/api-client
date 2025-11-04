@@ -5430,15 +5430,23 @@ func TestWorkflows(t *testing.T) {
     expLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
     output = s.runCommand(ts, createExperience(projectID, expName, "description", expLocation, []string{systemName}, EmptySlice, nil, nil, []string{}, GithubFalse), ExpectNoError)
     ts.Contains(output.StdOut, CreatedExperience)
-    output = s.runCommand(ts, createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubFalse), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedMetricsBuild)
+    output = s.runCommand(ts, createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubTrue), ExpectNoError)
     ts.Contains(output.StdOut, GithubCreatedMetricsBuild)
     metricsBuildID := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
 
+    // Track created test suites by name -> ID for later validation
+    suiteNameToID := map[string]string{}
+
     // Create a test suite needed for workflow
     testSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
-    output = s.runCommand(ts, createTestSuite(projectID, testSuiteName, "workflow test suite", systemName, []string{expName}, metricsBuildID, GithubFalse, nil), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedTestSuite)
+    output = s.runCommand(ts, createTestSuite(projectID, testSuiteName, "workflow test suite", systemName, []string{expName}, metricsBuildID, GithubTrue, nil), ExpectNoError)
+    ts.Contains(output.StdOut, GithubCreatedTestSuite)
+    // Parse and store the created test suite ID
+    testSuiteIDRevisionString := output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
+    parts := strings.Split(testSuiteIDRevisionString, "/")
+    ts.Len(parts, 2)
+    uuid.MustParse(parts[0])
+    suiteNameToID[testSuiteName] = parts[0]
 
     // Create workflow with one enabled suite
     suitesSpec := fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName)
@@ -5469,7 +5477,22 @@ func TestWorkflows(t *testing.T) {
     runID := runs[0].WorkflowRunID
     output = s.runCommand(ts, getWorkflowRunCmd(projectID, workflowName, runID), ExpectNoError)
     // Should print workflow run test suites JSON array
-    ts.Contains(output.StdOut, testSuiteName)
+    // We want to check for the test suite ID, not the name.
+    // Output is a JSON array of WorkflowRunTestSuite objects, containing TestSuiteID fields.
+    var suites []struct {
+        TestSuiteID string `json:"testSuiteID"`
+    }
+    err = json.Unmarshal([]byte(output.StdOut), &suites)
+    ts.NoError(err)
+    expectedSuiteID := suiteNameToID[testSuiteName]
+    found := false
+    for _, runSuite := range suites {
+        if runSuite.TestSuiteID == expectedSuiteID {
+            found = true
+            break
+        }
+    }
+    ts.True(found, "test suite ID %s not found in workflow run test suites", expectedSuiteID)
 
     // Update workflow: change description and ensure success
     newDesc := "new description"

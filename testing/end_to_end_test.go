@@ -5432,7 +5432,8 @@ func TestWorkflows(t *testing.T) {
     ts.Contains(output.StdOut, CreatedExperience)
     output = s.runCommand(ts, createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubFalse), ExpectNoError)
     ts.Contains(output.StdOut, CreatedMetricsBuild)
-    metricsBuildID := strings.TrimSpace(strings.TrimPrefix(output.StdOut, CreatedMetricsBuild+"\nmetrics_build_id="))
+    ts.Contains(output.StdOut, GithubCreatedMetricsBuild)
+    metricsBuildID := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
 
     // Create a test suite needed for workflow
     testSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())

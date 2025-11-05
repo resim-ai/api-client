@@ -2,7 +2,7 @@
 
 ## ReSim CLI
 
-### v0.34.0 - November 4, 2025
+### v0.34.0 - November 5, 2025
 
 - Adds support for **Workflows** in the ReSim CLI. Workflows are described in more detail in the [ReSim Docs](https://docs.resim.ai/guides/workflows/)
   - `workflows create`: create a workflow with a description and a set of suites using `--suites` or `--suites-file` (array of `{testSuite, enabled}`; `testSuite` may be a name or UUID)

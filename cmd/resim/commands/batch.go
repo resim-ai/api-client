@@ -1016,12 +1016,25 @@ func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID
 	if len(jobIDs) > 0 {
 		rerunInput.JobIDs = &jobIDs
 	}
-	response, err := Client.RerunBatchWithResponse(context.Background(), projectID, batchID, rerunInput)
-	if err != nil {
-		log.Fatal("failed to rerun batch:", err)
+
+	maxRetries := 3
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		response, err := Client.RerunBatchWithResponse(context.Background(), projectID, batchID, rerunInput)
+		if err != nil {
+			log.Fatal("failed to rerun batch:", err)
+		}
+		if response != nil && response.StatusCode() == http.StatusConflict {
+			if attempt == maxRetries {
+				log.Fatal("failed to rerun batch: max retries reached")
+			}
+			log.Printf("existing batch run is cleaning up, retrying (%d/%d)...", attempt+1, maxRetries)
+			time.Sleep(30 * time.Second)
+			continue
+		}
+		ValidateResponse(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
+		return response
 	}
-	ValidateResponse(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
-	return response
+	return nil
 }
 
 func rerunBatch(ccmd *cobra.Command, args []string) {

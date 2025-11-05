@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.33.1 - November 5, 2025
+
+- Fixes bug in `batch supervise` where it couldn't handle final batch cleanup before rerunning.
+
 ### v0.33.0 - November 3, 2025
 
 - Deprecate `--location` flag in `experiences create` and `experiences update` commands in favor of new `--locations` flag for multi-location experience support

@@ -1404,7 +1404,6 @@ func (s *CommandsSuite) TestSuperviseBatch_RerunFails_MaxAttemptsReached() {
 	s.Equal(api.BatchStatusERROR, *result.Batch.Status)
 }
 
-
 func (s *CommandsSuite) TestBatchRerun_ConflictShouldRetry() {
 	projectID := uuid.New()
 	batchID := uuid.New()

@@ -437,7 +437,12 @@ func actualSuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 			}
 		}
 
-		response := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs)
+		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second)
+		if err != nil {
+			return &SuperviseResult{
+				Error: err,
+			}
+		}
 		newBatchID := response.JSON200.BatchID
 		fmt.Printf("Submitted rerun batch: %s\n", newBatchID.String())
 
@@ -1008,7 +1013,7 @@ func cancelBatch(ccmd *cobra.Command, args []string) {
 	fmt.Println("Batch cancelled successfully!")
 }
 
-func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID) *api.RerunBatchResponse {
+func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration) (*api.RerunBatchResponse, error) {
 	// Start with an empty list of job IDs
 	rerunInput := api.RerunBatchInput{
 		JobIDs: &[]uuid.UUID{},
@@ -1019,22 +1024,26 @@ func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID
 
 	maxRetries := 3
 	for attempt := 1; attempt <= maxRetries; attempt++ {
+		log.Printf("attempting to rerun batch (%d/%d)...", attempt, maxRetries)
 		response, err := Client.RerunBatchWithResponse(context.Background(), projectID, batchID, rerunInput)
 		if err != nil {
-			log.Fatal("failed to rerun batch:", err)
+			return nil, fmt.Errorf("failed to rerun batch: %v", err)
 		}
 		if response != nil && response.StatusCode() == http.StatusConflict {
 			if attempt == maxRetries {
-				log.Fatal("failed to rerun batch: max retries reached")
+				return nil, fmt.Errorf("failed to rerun batch: max retries reached (%d/%d)", attempt, maxRetries)
 			}
-			log.Printf("existing batch run is cleaning up, retrying (%d/%d)...", attempt+1, maxRetries)
-			time.Sleep(30 * time.Second)
+			log.Println("existing batch run is cleaning up, retrying...")
+			time.Sleep(conflictRetryDelay)
 			continue
 		}
-		ValidateResponse(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
-		return response
+		err = ValidateResponseSafe(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return response, nil
 	}
-	return nil
+	return nil, fmt.Errorf("failed to rerun batch: unknown error")
 }
 
 func rerunBatch(ccmd *cobra.Command, args []string) {
@@ -1050,6 +1059,9 @@ func rerunBatch(ccmd *cobra.Command, args []string) {
 		jobIDs = append(jobIDs, jobID)
 	}
 
-	submitBatchRerun(projectID, *batch.BatchID, jobIDs)
+	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, 30*time.Second)
+	if err != nil {
+		log.Fatal(err)
+	}
 	fmt.Println("Batch rerun successfully!")
 }

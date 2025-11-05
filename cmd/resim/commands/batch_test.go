@@ -1403,3 +1403,75 @@ func (s *CommandsSuite) TestSuperviseBatch_RerunFails_MaxAttemptsReached() {
 	s.NotNil(result.Batch)
 	s.Equal(api.BatchStatusERROR, *result.Batch.Status)
 }
+
+func (s *CommandsSuite) TestBatchRerun_ConflictShouldRetry() {
+	projectID := uuid.New()
+	batchID := uuid.New()
+	rerunBatchID := uuid.New()
+	jobID := uuid.New()
+
+	// Mock the rerun batch submission - first call returns 409 Conflict
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusConflict, // First attempt: conflict
+			},
+		}, nil).Once()
+
+	// Mock the rerun batch submission - second call returns 200 OK
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusOK, // Second attempt: success
+			},
+			JSON200: &api.RerunBatchOutput{
+				BatchID: &rerunBatchID,
+			},
+		}, nil).Once()
+
+	// Call submitBatchRerun directly
+	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second)
+
+	// Should succeed with no error after retrying
+	s.NoError(err)
+	s.NotNil(response)
+	s.NotNil(response.JSON200)
+	s.Equal(rerunBatchID, *response.JSON200.BatchID)
+}
+
+func (s *CommandsSuite) TestBatchRerun_ConflictMaxRetriesReached() {
+	projectID := uuid.New()
+	batchID := uuid.New()
+	jobID := uuid.New()
+
+	// Mock the rerun batch submission - all 3 attempts return 409 Conflict
+	// This will exhaust all retries and return an error
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusConflict, // First attempt: conflict
+			},
+		}, nil).Once()
+
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusConflict, // Second attempt: conflict
+			},
+		}, nil).Once()
+
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{
+				StatusCode: http.StatusConflict, // Third attempt: conflict (max retries reached)
+			},
+		}, nil).Once()
+
+	// Call submitBatchRerun directly
+	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second)
+
+	// Should return an error after max retries are reached
+	s.Error(err)
+	s.Nil(response)
+	s.Contains(err.Error(), "max retries reached")
+}

@@ -10,6 +10,10 @@
   - `workflows runs create|list|get`: run a workflow with a specific build (supports `--parameter`, `--pool-labels`, `--account`, and `--allowable-failure-percent`), list runs, or get a run’s suite results
   - `workflows update`: update metadata (name/description/ci-link) and reconcile suites to match a full desired list passed via `--suites`/`--suites-file` (adds missing suites, toggles `enabled`, removes suites not present)
 
+### v0.33.1 - November 5, 2025
+
+- Fixes bug in `batch supervise` where it couldn't handle final batch cleanup before rerunning.
+
 ### v0.33.0 - November 3, 2025
 
 - Deprecate `--location` flag in `experiences create` and `experiences update` commands in favor of new `--locations` flag for multi-location experience support

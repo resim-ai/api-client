@@ -1024,7 +1024,7 @@ func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID
 
 	maxRetries := 3
 	for attempt := 1; attempt <= maxRetries; attempt++ {
-		log.Printf("attempting to rerun batch (%d/%d)...", attempt, maxRetries)
+		log.Printf("Attempting to rerun batch (%d/%d)...", attempt, maxRetries)
 		response, err := Client.RerunBatchWithResponse(context.Background(), projectID, batchID, rerunInput)
 		if err != nil {
 			return nil, fmt.Errorf("failed to rerun batch: %v", err)
@@ -1033,7 +1033,7 @@ func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID
 			if attempt == maxRetries {
 				return nil, fmt.Errorf("failed to rerun batch: max retries reached (%d/%d)", attempt, maxRetries)
 			}
-			log.Println("existing batch run is cleaning up, retrying...")
+			log.Println("Existing batch run is cleaning up. Retrying...")
 			time.Sleep(conflictRetryDelay)
 			continue
 		}

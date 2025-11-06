@@ -1942,7 +1942,7 @@ type ListBatchesParams struct {
 	// Search Filter based on branch_id, build_id, system_id, created_at, status, metrics_status, batch_id
 	Search *string `form:"search,omitempty" json:"search,omitempty" yaml:"search,omitempty"`
 
-	// Text Filter batches by a text string on batch name
+	// Text Filter batches by a text string on batch name and build version
 	Text      *string    `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`

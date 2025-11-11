@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### v0.35.0 - November 5, 2025
+
+- Adds `config-path` and `templates-path` to the metrics sync command to specify where to find the metrics config and templates files.
+- Adds `metrics-config-path` and -metrics-templates-path` to the `batch run` `test-suites run` and `sweeps create` commands to specify where to find the metrics config and templates files.
+
 ### v0.34.0 - November 5, 2025
 
 - Adds support for **Workflows** in the ReSim CLI. Workflows are described in more detail in the [ReSim Docs](https://docs.resim.ai/guides/workflows/)

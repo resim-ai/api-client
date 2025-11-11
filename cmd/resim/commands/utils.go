@@ -137,7 +137,7 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 
 	configFilePath := path.Join(workDir, configPath)
 	if verbose {
-		fmt.Println("Looking for metrics config at ", configPath)
+		fmt.Println("Looking for metrics config at", configPath)
 	}
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		return fmt.Errorf("failed to find ReSim metrics config at %s\nAre you in the right folder?\n", configFilePath)
@@ -150,7 +150,7 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 
 	templateDir := path.Join(workDir, templatesPath)
 	if verbose {
-		fmt.Println("Looking for templates in ", templatesPath)
+		fmt.Println("Looking for templates in", templatesPath)
 	}
 	files, err := os.ReadDir(templateDir)
 	if err != nil {

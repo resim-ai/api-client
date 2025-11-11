@@ -120,7 +120,7 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 	return poolLabels
 }
 
-func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, verbose bool) error {
+func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath string, templatesPath string, verbose bool) error {
 	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
 	if err != nil {
 		log.Fatal("unable to retrieve branch associated with the build being run:", err)
@@ -135,9 +135,9 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, verbose bool) er
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
 
-	configFilePath := path.Join(workDir, ".resim/metrics/config.yml")
+	configFilePath := path.Join(workDir, configPath)
 	if verbose {
-		fmt.Println("Looking for metrics config at .resim/metrics/config.yml")
+		fmt.Println("Looking for metrics config at ", configPath)
 	}
 	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
 		return fmt.Errorf("failed to find ReSim metrics config at %s\nAre you in the right folder?\n", configFilePath)
@@ -148,9 +148,9 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, verbose bool) er
 	}
 	configB64 := base64.StdEncoding.EncodeToString(configData)
 
-	templateDir := path.Join(workDir, ".resim/metrics/templates")
+	templateDir := path.Join(workDir, templatesPath)
 	if verbose {
-		fmt.Println("Looking for templates in .resim/metrics/templates/")
+		fmt.Println("Looking for templates in ", templatesPath)
 	}
 	files, err := os.ReadDir(templateDir)
 	if err != nil {

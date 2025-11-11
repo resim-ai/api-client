@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
@@ -136,6 +137,9 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 	}
 
 	configFilePath := path.Join(workDir, configPath)
+	if filepath.IsAbs(configPath) {
+		configFilePath = configPath
+	}
 	if verbose {
 		fmt.Println("Looking for metrics config at", configPath)
 	}
@@ -149,6 +153,9 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 	configB64 := base64.StdEncoding.EncodeToString(configData)
 
 	templateDir := path.Join(workDir, templatesPath)
+	if filepath.IsAbs(templatesPath) {
+		templateDir = templatesPath
+	}
 	if verbose {
 		fmt.Println("Looking for templates in", templatesPath)
 	}

@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.35.0 - November 13, 2025
+
+- Adds support for supervising & auto-retrying failed jobs from workflow runs like `batch supervise`. See `workflows runs supervise` for more details.
+
 ### v0.34.0 - November 13, 2025
 
 - Adds support for **Workflows** in the ReSim CLI. Workflows are described in more detail in the [ReSim Docs](https://docs.resim.ai/guides/workflows/)

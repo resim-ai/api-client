@@ -106,7 +106,7 @@ const (
 	batchWaitTimeoutKey             = "wait-timeout"
 	batchWaitPollKey                = "poll-every"
 	batchSlackOutputKey             = "slack"
-	batchSyncWithTestSuiteKey        = "sync-with-test-suite"
+	batchSyncWithTestSuiteKey       = "sync-with-test-suite"
 	batchAllowableFailurePercentKey = "allowable-failure-percent"
 	batchTestIDsKey                 = "test-ids"
 	batchMaxRerunAttemptsKey        = "max-rerun-attempts"
@@ -1018,7 +1018,7 @@ func cancelBatch(ccmd *cobra.Command, args []string) {
 func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration, syncWithTestSuite bool) (*api.RerunBatchResponse, error) {
 	// Start with an empty list of job IDs
 	rerunInput := api.RerunBatchInput{
-		JobIDs: &[]uuid.UUID{},
+		JobIDs:    &[]uuid.UUID{},
 		SyncBatch: syncWithTestSuite,
 	}
 	if len(jobIDs) > 0 {

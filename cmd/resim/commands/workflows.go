@@ -803,7 +803,7 @@ func actualSuperviseWorkflowRun(projectID uuid.UUID, workflowID uuid.UUID, runID
 	// Extract batch IDs
 	batchIDs := make([]uuid.UUID, 0, len(workflowRun.WorkflowRunTestSuites))
 	for _, suite := range workflowRun.WorkflowRunTestSuites {
-		batchIDs = append(batchIDs, uuid.UUID(suite.BatchID))
+		batchIDs = append(batchIDs, suite.BatchID)
 	}
 
 	log.Printf("Supervising %d batches in parallel...\n", len(batchIDs))
@@ -889,56 +889,6 @@ func superviseWorkflowRun(ccmd *cobra.Command, args []string) {
 		log.Fatal(result.Error)
 	}
 
-	// Determine exit code based on results
-	// Priority: 1 (internal error) > 6 (timeout) > 2 (ERROR) > 5 (CANCELLED) > 0 (SUCCEEDED)
-	hasTimeout := false
-	hasError := false
-	hasCancelled := false
-	allSucceeded := true
-
-	for _, res := range result.Results {
-		if res.Error != nil {
-			if timeoutErr, ok := res.Error.(*TimeoutError); ok {
-				hasTimeout = true
-				log.Printf("Batch timed out: %v\n", timeoutErr.message)
-			} else {
-				// Internal error
-				log.Fatal(res.Error)
-			}
-		} else if res.Batch != nil && res.Batch.Status != nil {
-			switch *res.Batch.Status {
-			case api.BatchStatusSUCCEEDED:
-				// Continue checking other batches
-			case api.BatchStatusERROR:
-				hasError = true
-				allSucceeded = false
-			case api.BatchStatusCANCELLED:
-				hasCancelled = true
-				allSucceeded = false
-			default:
-				allSucceeded = false
-			}
-		} else {
-			allSucceeded = false
-		}
-	}
-
-	// Exit with appropriate code based on priority
-	if hasTimeout {
-		log.Println("One or more batches timed out")
-		os.Exit(6)
-	}
-	if hasError {
-		os.Exit(2)
-	}
-	if hasCancelled {
-		os.Exit(5)
-	}
-	if allSucceeded {
-		log.Println("All batches completed successfully")
-		os.Exit(0)
-	}
-
-	// Fallback (shouldn't happen)
-	log.Fatal("unknown workflow run status")
+	// Exit with appropriate code based on results
+	exitWithBatchStatus(result.Results, false)
 }

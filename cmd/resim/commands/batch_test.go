@@ -384,7 +384,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_Valid() {
 func (s *CommandsSuite) TestGetSuperviseParams_InvalidMaxRerunAttempts() {
 	// Set up viper with invalid max rerun attempts
 	viper.Set(batchProjectKey, "test-project")
-	viper.Set(batchMaxRerunAttemptsKey, 0) // Invalid: must be at least 1
+	viper.Set(batchMaxRerunAttemptsKey, -1) // Invalid: must be at least 0
 	viper.Set(batchRerunMaxFailurePercentKey, 50.0)
 	viper.Set(batchRerunOnStatesKey, "Error")
 
@@ -411,7 +411,7 @@ func (s *CommandsSuite) TestGetSuperviseParams_InvalidMaxRerunAttempts() {
 
 	s.Error(err)
 	s.Nil(params)
-	s.Contains(err.Error(), "max-rerun-attempts must be at least 1")
+	s.Contains(err.Error(), "max-rerun-attempts must be at least 0")
 }
 
 func (s *CommandsSuite) TestGetSuperviseParams_InvalidFailurePercent() {

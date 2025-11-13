@@ -1430,7 +1430,7 @@ func (s *CommandsSuite) TestBatchRerun_ConflictShouldRetry() {
 		}, nil).Once()
 
 	// Call submitBatchRerun directly
-	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second)
+	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second, false)
 
 	// Should succeed with no error after retrying
 	s.NoError(err)
@@ -1468,7 +1468,7 @@ func (s *CommandsSuite) TestBatchRerun_ConflictMaxRetriesReached() {
 		}, nil).Once()
 
 	// Call submitBatchRerun directly
-	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second)
+	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second, false)
 
 	// Should return an error after max retries are reached
 	s.Error(err)

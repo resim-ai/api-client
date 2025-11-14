@@ -890,5 +890,5 @@ func superviseWorkflowRun(ccmd *cobra.Command, args []string) {
 	}
 
 	// Exit with appropriate code based on results
-	exitWithBatchStatus(result.Results, false)
+	exitWithBatchStatus(result.Results, false, true)
 }

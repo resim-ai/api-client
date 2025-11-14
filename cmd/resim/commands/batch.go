@@ -471,7 +471,7 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 
 	// Exit with appropriate code based on final status
 	results := []*SuperviseResult{result}
-	exitWithBatchStatus(results, false)
+	exitWithBatchStatus(results, false, true)
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {
@@ -795,7 +795,7 @@ func getBatch(ccmd *cobra.Command, args []string) {
 
 	if viper.GetBool(batchExitStatusKey) {
 		// Exit with appropriate code based on status (including extended statuses)
-		exitWithSingleBatchStatus(batch, nil, true)
+		exitWithSingleBatchStatus(batch, nil, true, false)
 	}
 	if viper.GetBool(batchSlackOutputKey) {
 		OutputJson(batchToSlackWebhookPayload(batch))
@@ -820,7 +820,7 @@ func (e *TimeoutError) IsTimeout() bool {
 // exitWithBatchStatus determines and executes the appropriate exit code based on batch status(es)
 // It handles both single batch and multiple batch scenarios.
 // Priority: 1 (internal error) > 6 (timeout) > 2 (ERROR) > 5 (CANCELLED) > 3 (SUBMITTED) > 4 (RUNNING) > 0 (SUCCEEDED)
-func exitWithBatchStatus(results []*SuperviseResult, includeExtendedStatuses bool) {
+func exitWithBatchStatus(results []*SuperviseResult, includeExtendedStatuses bool, shouldLog bool) {
 	hasTimeout := false
 	hasError := false
 	hasCancelled := false
@@ -868,9 +868,9 @@ func exitWithBatchStatus(results []*SuperviseResult, includeExtendedStatuses boo
 
 	// Exit with appropriate code based on priority
 	if hasTimeout {
-		if isMultiple {
+		if shouldLog && isMultiple {
 			log.Println("One or more batches timed out")
-		} else {
+		} else if shouldLog {
 			log.Println("Batch timed out")
 		}
 		os.Exit(6)
@@ -890,9 +890,9 @@ func exitWithBatchStatus(results []*SuperviseResult, includeExtendedStatuses boo
 		}
 	}
 	if allSucceeded {
-		if isMultiple {
+		if shouldLog && isMultiple {
 			log.Println("All batches completed successfully")
-		} else {
+		} else if shouldLog {
 			log.Println("Batch Completed Successfully")
 		}
 		os.Exit(0)
@@ -903,7 +903,7 @@ func exitWithBatchStatus(results []*SuperviseResult, includeExtendedStatuses boo
 }
 
 // exitWithSingleBatchStatus is a convenience function for single batch exit code determination
-func exitWithSingleBatchStatus(batch *api.Batch, err error, includeExtendedStatuses bool) {
+func exitWithSingleBatchStatus(batch *api.Batch, err error, includeExtendedStatuses bool, shouldLog bool) {
 	if err != nil {
 		if timeoutErr, ok := err.(*TimeoutError); ok {
 			log.Println("Batch timed out:", timeoutErr.message)
@@ -920,7 +920,7 @@ func exitWithSingleBatchStatus(batch *api.Batch, err error, includeExtendedStatu
 	results := []*SuperviseResult{
 		{Batch: batch, Error: nil},
 	}
-	exitWithBatchStatus(results, includeExtendedStatuses)
+	exitWithBatchStatus(results, includeExtendedStatuses, shouldLog)
 }
 
 func waitForBatchCompletion(projectID uuid.UUID, batchID string, batchName string, timeout time.Duration, pollInterval time.Duration) (*api.Batch, error) {
@@ -968,7 +968,7 @@ func waitBatch(ccmd *cobra.Command, args []string) {
 	}
 
 	// Exit with appropriate code based on final status
-	exitWithSingleBatchStatus(batch, err, false)
+	exitWithSingleBatchStatus(batch, err, false, true)
 }
 
 func testsBatch(ccmd *cobra.Command, args []string) {

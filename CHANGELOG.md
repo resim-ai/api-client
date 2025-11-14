@@ -2,18 +2,19 @@
 
 ## ReSim CLI
 
-### v0.35.0 - November 5, 2025
+### v0.35.0 - November 14, 2025
 
 - Adds `config-path` and `templates-path` to the metrics sync command to specify where to find the metrics config and templates files.
 - Adds `metrics-config-path` and -metrics-templates-path` to the `batch create` `test-suites run` and `sweeps create` commands to specify where to find the metrics config and templates files.
 
-### v0.34.0 - November 5, 2025
+### v0.34.0 - November 13, 2025
 
 - Adds support for **Workflows** in the ReSim CLI. Workflows are described in more detail in the [ReSim Docs](https://docs.resim.ai/guides/workflows/)
   - `workflows create`: create a workflow with a description and a set of suites using `--suites` or `--suites-file` (array of `{testSuite, enabled}`; `testSuite` may be a name or UUID)
   - `workflows list|get`: list workflows for a project or retrieve a single workflow and its suites
   - `workflows runs create|list|get`: run a workflow with a specific build (supports `--parameter`, `--pool-labels`, `--account`, and `--allowable-failure-percent`), list runs, or get a run’s suite results
   - `workflows update`: update metadata (name/description/ci-link) and reconcile suites to match a full desired list passed via `--suites`/`--suites-file` (adds missing suites, toggles `enabled`, removes suites not present)
+- Adds support for rerunning a batch by synchronizing with a test suite, which will add any new tests.
 
 ### v0.33.1 - November 5, 2025
 

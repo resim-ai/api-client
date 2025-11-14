@@ -106,6 +106,7 @@ const (
 	batchWaitTimeoutKey             = "wait-timeout"
 	batchWaitPollKey                = "poll-every"
 	batchSlackOutputKey             = "slack"
+	batchSyncWithTestSuiteKey       = "sync-with-test-suite"
 	batchAllowableFailurePercentKey = "allowable-failure-percent"
 	batchTestIDsKey                 = "test-ids"
 	batchMaxRerunAttemptsKey        = "max-rerun-attempts"
@@ -188,6 +189,7 @@ func init() {
 	rerunBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to rerun tests for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this reruns the most recent batch with that name.")
 	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
 	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided, only the batch-metrics phase will be rerun.")
+	rerunBatchCmd.Flags().Bool(batchSyncWithTestSuiteKey, false, "If set, re-runs the batch with the latest test suite revision, adding any additional experiences from the test suite to the batch.")
 	batchCmd.AddCommand(rerunBatchCmd)
 
 	superviseBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to supervise")
@@ -441,7 +443,7 @@ func actualSuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 			}
 		}
 
-		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second)
+		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second, false)
 		if err != nil {
 			return &SuperviseResult{
 				Error: err,
@@ -1019,10 +1021,11 @@ func cancelBatch(ccmd *cobra.Command, args []string) {
 	fmt.Println("Batch cancelled successfully!")
 }
 
-func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration) (*api.RerunBatchResponse, error) {
+func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration, syncWithTestSuite bool) (*api.RerunBatchResponse, error) {
 	// Start with an empty list of job IDs
 	rerunInput := api.RerunBatchInput{
-		JobIDs: &[]uuid.UUID{},
+		JobIDs:    &[]uuid.UUID{},
+		SyncBatch: syncWithTestSuite,
 	}
 	if len(jobIDs) > 0 {
 		rerunInput.JobIDs = &jobIDs
@@ -1065,7 +1068,7 @@ func rerunBatch(ccmd *cobra.Command, args []string) {
 		jobIDs = append(jobIDs, jobID)
 	}
 
-	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, 30*time.Second)
+	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, 30*time.Second, viper.GetBool(batchSyncWithTestSuiteKey))
 	if err != nil {
 		log.Fatal(err)
 	}

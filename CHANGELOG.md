@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.36.0 - November 14, 2025
+
+- Adds support for supervising & auto-retrying failed jobs from workflow runs like `batch supervise`. See `workflows runs supervise` for more details.
+
 ### v0.35.0 - November 14, 2025
 
 - Adds `config-path` and `templates-path` to the metrics sync command to specify where to find the metrics config and templates files.

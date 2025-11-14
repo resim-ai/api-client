@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -78,6 +80,13 @@ var (
 		Long:  ``,
 		Run:   getWorkflowRun,
 	}
+
+	superviseWorkflowRunCmd = &cobra.Command{
+		Use:   "supervise",
+		Short: "supervise - waits on workflow run completion and reruns failed tests",
+		Long:  `Awaits workflow run completion with rerun capability and returns an exit code corresponding to the final workflow run status. 1 = internal error, 0 = SUCCEEDED, 2=ERROR, 5=CANCELLED, 6=timed out)`,
+		Run:   superviseWorkflowRun,
+	}
 )
 
 const (
@@ -94,6 +103,11 @@ const (
 	workflowAccountKey                 = "account"
 	workflowAllowableFailurePercentKey = "allowable-failure-percent"
 	workflowRunIDKey                   = "run-id"
+	workflowMaxRerunAttemptsKey        = "max-rerun-attempts"
+	workflowRerunMaxFailurePercentKey  = "rerun-max-failure-percent"
+	workflowRerunOnStatesKey           = "rerun-on-states"
+	workflowWaitTimeoutKey             = "wait-timeout"
+	workflowWaitPollKey                = "poll-every"
 )
 
 func init() {
@@ -166,6 +180,23 @@ func init() {
 	listWorkflowRunsCmd.MarkFlagRequired(workflowProjectKey)
 	listWorkflowRunsCmd.Flags().String(workflowKey, "", "The name or ID of the workflow to list runs for.")
 	listWorkflowRunsCmd.MarkFlagRequired(workflowKey)
+
+	// Workflow Runs - Supervise
+	superviseWorkflowRunCmd.Flags().String(workflowProjectKey, "", "The name or ID of the project.")
+	superviseWorkflowRunCmd.MarkFlagRequired(workflowProjectKey)
+	superviseWorkflowRunCmd.Flags().String(workflowKey, "", "The name or ID of the workflow.")
+	superviseWorkflowRunCmd.MarkFlagRequired(workflowKey)
+	superviseWorkflowRunCmd.Flags().String(workflowRunIDKey, "", "The ID of the workflow run to supervise.")
+	superviseWorkflowRunCmd.MarkFlagRequired(workflowRunIDKey)
+	superviseWorkflowRunCmd.Flags().Int(workflowMaxRerunAttemptsKey, 0, "Maximum number of rerun attempts for failed tests")
+	superviseWorkflowRunCmd.MarkFlagRequired(workflowMaxRerunAttemptsKey)
+	superviseWorkflowRunCmd.Flags().Float64(workflowRerunMaxFailurePercentKey, 50, "Maximum percentage of failed jobs before stopping (1-100)")
+	superviseWorkflowRunCmd.MarkFlagRequired(workflowRerunMaxFailurePercentKey)
+	superviseWorkflowRunCmd.Flags().String(workflowRerunOnStatesKey, "", "States to trigger rerun on (e.g. Warning, Error, Blocker)")
+	superviseWorkflowRunCmd.MarkFlagRequired(workflowRerunOnStatesKey)
+	superviseWorkflowRunCmd.Flags().String(workflowWaitTimeoutKey, "1h", "Amount of time to wait for a workflow run to finish, expressed in Golang duration string.")
+	superviseWorkflowRunCmd.Flags().String(workflowWaitPollKey, "30s", "Interval between checking workflow run status, expressed in Golang duration string.")
+	workflowRunsCmd.AddCommand(superviseWorkflowRunCmd)
 
 	rootCmd.AddCommand(workflowCmd)
 }
@@ -675,4 +706,189 @@ func actualGetWorkflow(projectID uuid.UUID, workflowKeyRaw string, expectArchive
 
 	log.Fatal("unable to find workflow: ", workflowKeyRaw)
 	return api.Workflow{}
+}
+
+// superviseWorkflowRunBatch supervises a single batch from a workflow run
+func superviseWorkflowRunBatch(projectID uuid.UUID, batchID uuid.UUID, params *SuperviseParams) *SuperviseResult {
+	// Create a new params struct with the batch ID
+	batchParams := &SuperviseParams{
+		ProjectID:                params.ProjectID,
+		MaxRerunAttempts:         params.MaxRerunAttempts,
+		RerunMaxFailurePercent:   params.RerunMaxFailurePercent,
+		UndesiredConflatedStates: params.UndesiredConflatedStates,
+		Timeout:                  params.Timeout,
+		PollInterval:             params.PollInterval,
+		BatchID:                  batchID.String(),
+		BatchName:                "",
+	}
+
+	// Supervise the batch by calling the underlying functions directly
+	var batch *api.Batch
+	for attempt := 0; attempt <= batchParams.MaxRerunAttempts; attempt++ {
+		var err error
+		batch, err = waitForBatchCompletion(batchParams.ProjectID, batchParams.BatchID, batchParams.BatchName, batchParams.Timeout, batchParams.PollInterval)
+
+		// Check timeout
+		if err != nil {
+			if timeoutErr, ok := err.(*TimeoutError); ok {
+				return &SuperviseResult{
+					Error: timeoutErr,
+				}
+			} else {
+				return &SuperviseResult{
+					Error: fmt.Errorf("error retrieving batch: %v", err),
+				}
+			}
+		}
+
+		log.Printf("Batch %s completed with status: %s\n", batchID.String(), *batch.Status)
+
+		// Check if rerun is required (includes max attempts check)
+		matchingJobIDs := getMatchingJobIDs(batch, batchParams, attempt)
+		if len(matchingJobIDs) == 0 {
+			return &SuperviseResult{
+				Batch: batch,
+			}
+		}
+
+		response, err := submitBatchRerun(batchParams.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second, false)
+		if err != nil {
+			return &SuperviseResult{
+				Error: err,
+			}
+		}
+		newBatchID := response.JSON200.BatchID
+		log.Printf("Submitted rerun batch: %s\n", newBatchID.String())
+
+		// Update batch ID for next iteration
+		batchParams.BatchID = newBatchID.String()
+		batchParams.BatchName = "" // Clear batch name since we're using ID now
+	}
+
+	// This should never happen, but we'll return the batch if we get here
+	return &SuperviseResult{
+		Batch: batch,
+	}
+}
+
+// WorkflowSuperviseResult contains aggregated results from supervising all batches in a workflow run
+type WorkflowSuperviseResult struct {
+	Results []*SuperviseResult
+	Error   error
+}
+
+// actualSuperviseWorkflowRun supervises all batches in a workflow run in parallel
+func actualSuperviseWorkflowRun(projectID uuid.UUID, workflowID uuid.UUID, runID uuid.UUID, params *SuperviseParams) *WorkflowSuperviseResult {
+	// Get the workflow run
+	resp, err := Client.GetWorkflowRunWithResponse(context.Background(), projectID, workflowID, api.WorkflowRunID(runID))
+	if err != nil {
+		return &WorkflowSuperviseResult{
+			Error: fmt.Errorf("failed to get workflow run: %v", err),
+		}
+	}
+	ValidateResponse(http.StatusOK, "failed to get workflow run", resp.HTTPResponse, resp.Body)
+	if resp.JSON200 == nil {
+		return &WorkflowSuperviseResult{
+			Error: fmt.Errorf("empty workflow run response"),
+		}
+	}
+
+	workflowRun := resp.JSON200
+	if len(workflowRun.WorkflowRunTestSuites) == 0 {
+		return &WorkflowSuperviseResult{
+			Error: fmt.Errorf("workflow run has no batches"),
+		}
+	}
+
+	// Extract batch IDs
+	batchIDs := make([]uuid.UUID, 0, len(workflowRun.WorkflowRunTestSuites))
+	for _, suite := range workflowRun.WorkflowRunTestSuites {
+		batchIDs = append(batchIDs, suite.BatchID)
+	}
+
+	log.Printf("Supervising %d batches in parallel...\n", len(batchIDs))
+
+	// Supervise all batches in parallel
+	var wg sync.WaitGroup
+	results := make([]*SuperviseResult, len(batchIDs))
+	resultsMutex := &sync.Mutex{}
+
+	for i, batchID := range batchIDs {
+		wg.Add(1)
+		go func(idx int, bid uuid.UUID) {
+			defer wg.Done()
+			log.Printf("Supervising batch %d/%d: %s\n", idx+1, len(batchIDs), bid.String())
+			result := superviseWorkflowRunBatch(projectID, bid, params)
+			resultsMutex.Lock()
+			results[idx] = result
+			resultsMutex.Unlock()
+			if result.Error != nil {
+				log.Printf("Batch %s supervision error: %v\n", bid.String(), result.Error)
+			} else if result.Batch != nil {
+				log.Printf("Batch %s supervision completed with status: %s\n", bid.String(), *result.Batch.Status)
+			}
+		}(i, batchID)
+	}
+
+	wg.Wait()
+
+	return &WorkflowSuperviseResult{
+		Results: results,
+	}
+}
+
+func superviseWorkflowRun(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(workflowProjectKey))
+	wf := actualGetWorkflow(projectID, viper.GetString(workflowKey), false)
+
+	runID, err := uuid.Parse(viper.GetString(workflowRunIDKey))
+	if err != nil {
+		log.Fatal("failed to parse run ID: ", err)
+	}
+
+	maxRerunAttempts := viper.GetInt(workflowMaxRerunAttemptsKey)
+	rerunMaxFailurePercent := viper.GetFloat64(workflowRerunMaxFailurePercentKey)
+	rerunOnStates := viper.GetString(workflowRerunOnStatesKey)
+
+	// Validate rerun-max-failure-percent <= 0.0 or > 100.0
+	if rerunMaxFailurePercent <= 0.0 || rerunMaxFailurePercent > 100 {
+		log.Fatalf("rerun-max-failure-percent must be greater than 0 and less than 100, got: %f", rerunMaxFailurePercent)
+	}
+
+	if maxRerunAttempts < 0 {
+		log.Fatalf("max-rerun-attempts must be at least 0, got: %d", maxRerunAttempts)
+	}
+
+	// Parse rerun states
+	conflatedStates := parseRerunStates(rerunOnStates)
+
+	// Parse timeout and poll interval
+	pollInterval, err := time.ParseDuration(viper.GetString(workflowWaitPollKey))
+	if err != nil {
+		log.Fatalf("failed to parse poll interval: %v", err)
+	}
+	timeout, err := time.ParseDuration(viper.GetString(workflowWaitTimeoutKey))
+	if err != nil {
+		log.Fatalf("failed to parse timeout: %v", err)
+	}
+
+	params := &SuperviseParams{
+		ProjectID:                projectID,
+		MaxRerunAttempts:         maxRerunAttempts,
+		RerunMaxFailurePercent:   rerunMaxFailurePercent,
+		UndesiredConflatedStates: conflatedStates,
+		Timeout:                  timeout,
+		PollInterval:             pollInterval,
+		BatchID:                  "", // Not used for workflow supervise
+		BatchName:                "", // Not used for workflow supervise
+	}
+
+	result := actualSuperviseWorkflowRun(projectID, wf.WorkflowID, runID, params)
+
+	if result.Error != nil {
+		log.Fatal(result.Error)
+	}
+
+	// Exit with appropriate code based on results
+	exitWithBatchStatus(result.Results, false, true)
 }

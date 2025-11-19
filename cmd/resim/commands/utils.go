@@ -140,13 +140,35 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 	if filepath.IsAbs(configPath) {
 		configFilePath = configPath
 	}
+
+	// Try to find the config file, supporting both .yml and .yaml extensions
+	foundPath := ""
+	if _, err := os.Stat(configFilePath); err == nil {
+		foundPath = configFilePath
+	} else if os.IsNotExist(err) {
+		// Try alternate extension
+		if strings.HasSuffix(configFilePath, ".yml") {
+			altPath := strings.TrimSuffix(configFilePath, ".yml") + ".yaml"
+			if _, err := os.Stat(altPath); err == nil {
+				foundPath = altPath
+			}
+		} else if strings.HasSuffix(configFilePath, ".yaml") {
+			altPath := strings.TrimSuffix(configFilePath, ".yaml") + ".yml"
+			if _, err := os.Stat(altPath); err == nil {
+				foundPath = altPath
+			}
+		}
+	}
+
+	if foundPath == "" {
+		return fmt.Errorf("failed to find ReSim metrics config at %s (or .yaml variant). Are you in the right folder?", configFilePath)
+	}
+
 	if verbose {
-		fmt.Println("Looking for metrics config at", configPath)
+		fmt.Printf("Looking for metrics config at %s (found: %s)\n", configPath, foundPath)
 	}
-	if _, err := os.Stat(configFilePath); os.IsNotExist(err) {
-		return fmt.Errorf("failed to find ReSim metrics config at %s\nAre you in the right folder?\n", configFilePath)
-	}
-	configData, err := os.ReadFile(configFilePath)
+
+	configData, err := os.ReadFile(foundPath)
 	if err != nil {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -156,40 +178,53 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 	if filepath.IsAbs(templatesPath) {
 		templateDir = templatesPath
 	}
-	if verbose {
-		fmt.Println("Looking for templates in", templatesPath)
-	}
-	files, err := os.ReadDir(templateDir)
-	if err != nil {
-		return fmt.Errorf("failed to read templates dir: %w", err)
-	}
 
 	templates := []bff.MetricsTemplate{}
-	for _, f := range files {
-		if f.IsDir() {
-			if verbose {
-				fmt.Printf("Skipping directory %s\n", f.Name())
-			}
-			continue
-		}
-		if !strings.HasSuffix(strings.ToLower(f.Name()), ".liquid") {
-			if verbose {
-				fmt.Printf("Skipping non .liquid file %s\n", f.Name())
-			}
-			continue
-		}
+
+	// Check if templates directory exists - it's optional
+	if _, err := os.Stat(templateDir); os.IsNotExist(err) {
 		if verbose {
-			fmt.Printf("Found template %s\n", f.Name())
+			fmt.Printf("Templates directory not found at %s, skipping templates\n", templatesPath)
 		}
-		fullPath := path.Join(templateDir, f.Name())
-		contents, err := os.ReadFile(fullPath)
+	} else if err != nil {
+		// Some other error occurred
+		return fmt.Errorf("failed to stat templates dir: %w", err)
+	} else {
+		// Directory exists, read templates
+		if verbose {
+			fmt.Println("Looking for templates in", templatesPath)
+		}
+		files, err := os.ReadDir(templateDir)
 		if err != nil {
-			return fmt.Errorf("failed to read template %s: %w", fullPath, err)
+			return fmt.Errorf("failed to read templates dir: %w", err)
 		}
-		templates = append(templates, bff.MetricsTemplate{
-			Name:     f.Name(),
-			Contents: base64.StdEncoding.EncodeToString(contents),
-		})
+
+		for _, f := range files {
+			if f.IsDir() {
+				if verbose {
+					fmt.Printf("Skipping directory %s\n", f.Name())
+				}
+				continue
+			}
+			if !strings.HasSuffix(strings.ToLower(f.Name()), ".liquid") {
+				if verbose {
+					fmt.Printf("Skipping non .liquid file %s\n", f.Name())
+				}
+				continue
+			}
+			if verbose {
+				fmt.Printf("Found template %s\n", f.Name())
+			}
+			fullPath := path.Join(templateDir, f.Name())
+			contents, err := os.ReadFile(fullPath)
+			if err != nil {
+				return fmt.Errorf("failed to read template %s: %w", fullPath, err)
+			}
+			templates = append(templates, bff.MetricsTemplate{
+				Name:     f.Name(),
+				Contents: base64.StdEncoding.EncodeToString(contents),
+			})
+		}
 	}
 
 	_, err = bff.UpdateMetricsConfig(
@@ -205,7 +240,12 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 	}
 
 	if verbose {
-		fmt.Println("Successfully synced metrics config, and the following templates:")
+		fmt.Print("Successfully synced metrics config")
+		if len(templates) > 0 {
+			fmt.Println(", and the following templates:")
+		} else {
+			fmt.Println(".")
+		}
 		for _, t := range templates {
 			fmt.Printf("\t%s\n", t.Name)
 		}

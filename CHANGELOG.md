@@ -2,7 +2,7 @@
 
 ## ReSim CLI
 
-### v0.37.0 - November 19, 2025
+### v0.37.0 - November 24, 2025
 
 - Metrics syncing commands such as `metrics sync`, or the `--sync-metrics-config` flag on batch launch, now accept both yaml and yml file extensions. It also will skip uploading templates, if the templates directory is missing.
 

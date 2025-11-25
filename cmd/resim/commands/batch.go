@@ -682,8 +682,6 @@ func getBatchStatusText(batch *api.Batch) string {
 			return "was cancelled"
 		case api.BatchStatusSUBMITTED, api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
 			return "is running"
-		default:
-			return "ran"
 		}
 	}
 	return "ran"

@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.37.0 - November 24, 2025
+
+- Metrics syncing commands such as `metrics sync`, or the `--sync-metrics-config` flag on batch launch, now accept both yaml and yml file extensions. It also will skip uploading templates, if the templates directory is missing.
+
 ### v0.36.0 - November 14, 2025
 
 - Adds support for supervising & auto-retrying failed jobs from workflow runs like `batch supervise`. See `workflows runs supervise` for more details.

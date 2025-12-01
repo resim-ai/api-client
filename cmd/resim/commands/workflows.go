@@ -108,6 +108,7 @@ const (
 	workflowRerunOnStatesKey           = "rerun-on-states"
 	workflowWaitTimeoutKey             = "wait-timeout"
 	workflowWaitPollKey                = "poll-every"
+	workflowGithubKey                  = "github"
 )
 
 func init() {
@@ -153,6 +154,9 @@ func init() {
 	// Common flags for runs subcommands are added on each subcommand
 	workflowRunsCmd.AddCommand(createWorkflowRunCmd)
 	workflowRunsCmd.AddCommand(listWorkflowRunsCmd)
+	workflowRunsCmd.AddCommand(getWorkflowRunCmd)
+	workflowRunsCmd.AddCommand(superviseWorkflowRunCmd)
+
 	// Workflow Runs - Get
 	getWorkflowRunCmd.Flags().String(workflowProjectKey, "", "The name or ID of the project.")
 	getWorkflowRunCmd.MarkFlagRequired(workflowProjectKey)
@@ -160,7 +164,7 @@ func init() {
 	getWorkflowRunCmd.MarkFlagRequired(workflowKey)
 	getWorkflowRunCmd.Flags().String(workflowRunIDKey, "", "The ID of the workflow run to get.")
 	getWorkflowRunCmd.MarkFlagRequired(workflowRunIDKey)
-	workflowRunsCmd.AddCommand(getWorkflowRunCmd)
+
 	workflowCmd.AddCommand(workflowRunsCmd)
 
 	// Workflow Runs - Create
@@ -174,6 +178,7 @@ func init() {
 	createWorkflowRunCmd.Flags().StringSlice(workflowPoolLabelsKey, []string{}, "Pool labels to determine where to run this workflow. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
 	createWorkflowRunCmd.Flags().String(workflowAccountKey, "", "Specify a username for a CI/CD platform account to associate with this workflow run.")
 	createWorkflowRunCmd.Flags().Int(workflowAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the run successfully completed. Defaults to 0.")
+	createWorkflowRunCmd.Flags().Bool(workflowGithubKey, false, "Whether to output format in github action friendly format")
 
 	// Workflow Runs - List
 	listWorkflowRunsCmd.Flags().String(workflowProjectKey, "", "The name or ID of the project.")
@@ -196,7 +201,6 @@ func init() {
 	superviseWorkflowRunCmd.MarkFlagRequired(workflowRerunOnStatesKey)
 	superviseWorkflowRunCmd.Flags().String(workflowWaitTimeoutKey, "1h", "Amount of time to wait for a workflow run to finish, expressed in Golang duration string.")
 	superviseWorkflowRunCmd.Flags().String(workflowWaitPollKey, "30s", "Interval between checking workflow run status, expressed in Golang duration string.")
-	workflowRunsCmd.AddCommand(superviseWorkflowRunCmd)
 
 	rootCmd.AddCommand(workflowCmd)
 }
@@ -538,6 +542,7 @@ func updateWorkflow(ccmd *cobra.Command, args []string) {
 
 func createWorkflowRun(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(workflowProjectKey))
+	workflowGithub := viper.GetBool(workflowGithubKey)
 	wf := actualGetWorkflow(projectID, viper.GetString(workflowKey), false)
 
 	buildID, err := uuid.Parse(viper.GetString(workflowBuildIDKey))
@@ -594,8 +599,14 @@ func createWorkflowRun(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	run := *resp.JSON201
-	fmt.Println("Created workflow run successfully!")
-	fmt.Println("workflow run ID:", run.WorkflowRunID.String())
+	if !workflowGithub {
+		fmt.Println("Created workflow run successfully!")
+	}
+	if !workflowGithub {
+		fmt.Println("workflow run ID:", run.WorkflowRunID.String())
+	} else {
+		fmt.Printf("workflow_run_id=%s\n", run.WorkflowRunID.String())
+	}
 }
 
 func listWorkflowRuns(ccmd *cobra.Command, args []string) {

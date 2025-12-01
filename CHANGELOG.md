@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.39.0 - December 1, 2025
+
+- `workflows runs create` supports a `--github` flag to use in CI.
+
 ### v0.38.0 - November 25, 2025
 
 - Adds support for markdown output from the `batch get` command.

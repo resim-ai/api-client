@@ -601,8 +601,6 @@ func createWorkflowRun(ccmd *cobra.Command, args []string) {
 	run := *resp.JSON201
 	if !workflowGithub {
 		fmt.Println("Created workflow run successfully!")
-	}
-	if !workflowGithub {
 		fmt.Println("workflow run ID:", run.WorkflowRunID.String())
 	} else {
 		fmt.Printf("workflow_run_id=%s\n", run.WorkflowRunID.String())

@@ -3924,10 +3924,10 @@ func TestBatchAndLogs(t *testing.T) {
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	ts.NoError(err)
-	ts.Len(logs, 8)
+	ts.Len(logs, 10)
 	for _, log := range logs {
 		ts.Equal(testID2, *log.JobID)
-		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto"}, *log.FileName)
+		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, *log.FileName)
 	}
 
 	// Download a single test log
@@ -3938,14 +3938,14 @@ func TestBatchAndLogs(t *testing.T) {
 
 	// Download all test logs:
 	output = s.runCommand(ts, downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
-	ts.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 log(s) to %s", tempDir))
+	ts.Contains(output.StdOut, fmt.Sprintf("Downloaded 10 log(s) to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)
 	ts.NoError(err)
-	ts.Len(files, 8)
+	ts.Len(files, 10)
 	for _, file := range files {
-		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto"}, file.Name())
+		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:

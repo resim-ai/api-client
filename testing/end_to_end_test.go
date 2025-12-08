@@ -3927,7 +3927,7 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.Len(logs, 8)
 	for _, log := range logs {
 		ts.Equal(testID2, *log.JobID)
-		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto"}, *log.FileName)
+		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, *log.FileName)
 	}
 
 	// Download a single test log
@@ -3945,7 +3945,7 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.NoError(err)
 	ts.Len(files, 8)
 	for _, file := range files {
-		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto"}, file.Name())
+		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:

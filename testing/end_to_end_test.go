@@ -3938,7 +3938,7 @@ func TestBatchAndLogs(t *testing.T) {
 
 	// Download all test logs:
 	output = s.runCommand(ts, downloadLogs(projectID, batchIDString, testID2.String(), tempDir, []string{}), ExpectNoError)
-	ts.Contains(output.StdOut, fmt.Sprintf("Downloaded 8 log(s) to %s", tempDir))
+	ts.Contains(output.StdOut, fmt.Sprintf("Downloaded 10 log(s) to %s", tempDir))
 
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)

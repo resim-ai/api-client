@@ -3924,7 +3924,7 @@ func TestBatchAndLogs(t *testing.T) {
 	var logs []api.JobLog
 	err = json.Unmarshal([]byte(output.StdOut), &logs)
 	ts.NoError(err)
-	ts.Len(logs, 8)
+	ts.Len(logs, 10)
 	for _, log := range logs {
 		ts.Equal(testID2, *log.JobID)
 		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, *log.FileName)
@@ -3943,7 +3943,7 @@ func TestBatchAndLogs(t *testing.T) {
 	// Check that the logs were downloaded and unzipped:
 	files, err := os.ReadDir(tempDir)
 	ts.NoError(err)
-	ts.Len(files, 8)
+	ts.Len(files, 10)
 	for _, file := range files {
 		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, file.Name())
 	}

@@ -645,15 +645,23 @@ func listWorkflowRuns(ccmd *cobra.Command, args []string) {
 	OutputJson(runs)
 }
 
-func workflowRunToSlackWebhookPayload(projectID uuid.UUID, workflowRun *api.WorkflowRun) *slack.WebhookMessage {
+func workflowRunToSlackWebhookPayload(projectID uuid.UUID, workflowRun *api.WorkflowRun, workflowName string) *slack.WebhookMessage {
 	if workflowRun == nil || len(workflowRun.WorkflowRunTestSuites) == 0 {
-		// Return empty payload if no batches
-		return &slack.WebhookMessage{
-			Blocks: &slack.Blocks{BlockSet: []slack.Block{}},
-		}
+		// if workflow is empty, error out
+		log.Fatal("Received empty workflow run")
 	}
 
 	var allBlocks []slack.Block
+
+	// Add header block with workflow name
+	headerText := fmt.Sprintf("*Workflow %s ran the following batches*", workflowName)
+	headerBlock := slack.NewTextBlockObject("mrkdwn", headerText, false, false)
+	headerSectionBlock := slack.NewSectionBlock(headerBlock, nil, nil)
+	allBlocks = append(allBlocks, headerSectionBlock)
+
+	// Add divider after header
+	allBlocks = append(allBlocks, slack.NewDividerBlock())
+
 	validBatchCount := 0
 
 	for _, suite := range workflowRun.WorkflowRunTestSuites {
@@ -663,85 +671,28 @@ func workflowRunToSlackWebhookPayload(projectID uuid.UUID, workflowRun *api.Work
 		}
 
 		// Safely get the batch for this suite
-		batch, err := safeGetBatch(projectID, suite.BatchID)
-		if err != nil || batch == nil {
-			// Skip batches that don't exist (404) or other errors
-			continue
-		}
-
-		// Get Slack payload for this batch
-		batchPayload := batchToSlackWebhookPayload(batch)
-		if batchPayload == nil || batchPayload.Blocks == nil {
-			continue
-		}
+		batch := actualGetBatch(projectID, suite.BatchID.String(), "")
 
 		// Add divider before each batch except the first valid one
 		if validBatchCount > 0 {
 			allBlocks = append(allBlocks, slack.NewDividerBlock())
 		}
 
-		// Add all blocks from this batch, making block_ids unique
-		for _, block := range batchPayload.Blocks.BlockSet {
-			// Make block_id unique by appending batch index
-			uniqueBlock := makeBlockIDUnique(block, validBatchCount)
-			allBlocks = append(allBlocks, uniqueBlock)
-		}
+		// Get Slack blocks for this batch with unique ID suffix
+		batchBlocks := batchToSlackBlocks(batch, fmt.Sprintf("_%d", validBatchCount))
+		allBlocks = append(allBlocks, batchBlocks...)
 
 		validBatchCount++
 	}
 
 	// Return empty payload if no valid batches were found
 	if validBatchCount == 0 {
-		return &slack.WebhookMessage{
-			Blocks: &slack.Blocks{BlockSet: []slack.Block{}},
-		}
+		log.Fatal("no valid batches found")
 	}
 
 	return &slack.WebhookMessage{
 		Blocks: &slack.Blocks{BlockSet: allBlocks},
 	}
-}
-
-// safeGetBatch retrieves a batch and returns an error instead of calling log.Fatal
-func safeGetBatch(projectID uuid.UUID, batchID uuid.UUID) (*api.Batch, error) {
-	response, err := Client.GetBatchWithResponse(context.Background(), projectID, batchID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to retrieve batch: %v", err)
-	}
-
-	// Use ValidateResponseSafe to handle 404s gracefully
-	if err := ValidateResponseSafe(http.StatusOK, "unable to retrieve batch", response.HTTPResponse, response.Body); err != nil {
-		return nil, err
-	}
-
-	return response.JSON200, nil
-}
-
-// makeBlockIDUnique modifies a block's block_id to be unique by appending an index
-func makeBlockIDUnique(block slack.Block, index int) slack.Block {
-	// Use type assertion to access block_id field
-	switch b := block.(type) {
-	case *slack.SectionBlock:
-		if b.BlockID != "" {
-			newBlock := *b
-			newBlock.BlockID = fmt.Sprintf("%s_%d", b.BlockID, index)
-			return &newBlock
-		}
-	case *slack.RichTextBlock:
-		if b.BlockID != "" {
-			newBlock := *b
-			newBlock.BlockID = fmt.Sprintf("%s_%d", b.BlockID, index)
-			return &newBlock
-		}
-	case *slack.DividerBlock:
-		if b.BlockID != "" {
-			newBlock := *b
-			newBlock.BlockID = fmt.Sprintf("%s_%d", b.BlockID, index)
-			return &newBlock
-		}
-	}
-	// Return original block if no block_id or type not handled
-	return block
 }
 
 func getWorkflowRun(ccmd *cobra.Command, args []string) {
@@ -767,7 +718,8 @@ func getWorkflowRun(ccmd *cobra.Command, args []string) {
 	}
 
 	if viper.GetBool(workflowRunSlackOutputKey) {
-		payload := workflowRunToSlackWebhookPayload(projectID, resp.JSON200)
+		payload := workflowRunToSlackWebhookPayload(projectID, resp.JSON200, wf.Name)
+
 		OutputJson(payload)
 	} else {
 		OutputJson(resp.JSON200.WorkflowRunTestSuites)

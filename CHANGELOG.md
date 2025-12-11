@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.40.0 - December 11, 2025
+
+- `workflows runs get` supports a `--slack` flag that provides a slack payload to provide to a webhook for notification from CI
+
 ### v0.39.0 - December 1, 2025
 
 - `workflows runs create` supports a `--github` flag to use in CI.

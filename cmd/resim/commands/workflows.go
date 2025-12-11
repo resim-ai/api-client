@@ -14,6 +14,7 @@ import (
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
+	"github.com/slack-go/slack"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -109,6 +110,7 @@ const (
 	workflowWaitTimeoutKey             = "wait-timeout"
 	workflowWaitPollKey                = "poll-every"
 	workflowGithubKey                  = "github"
+	workflowRunSlackOutputKey          = "slack"
 )
 
 func init() {
@@ -164,6 +166,7 @@ func init() {
 	getWorkflowRunCmd.MarkFlagRequired(workflowKey)
 	getWorkflowRunCmd.Flags().String(workflowRunIDKey, "", "The ID of the workflow run to get.")
 	getWorkflowRunCmd.MarkFlagRequired(workflowRunIDKey)
+	getWorkflowRunCmd.Flags().Bool(workflowRunSlackOutputKey, false, "If set, output workflow run summary as a Slack webhook payload")
 
 	workflowCmd.AddCommand(workflowRunsCmd)
 
@@ -642,6 +645,56 @@ func listWorkflowRuns(ccmd *cobra.Command, args []string) {
 	OutputJson(runs)
 }
 
+func workflowRunToSlackWebhookPayload(projectID uuid.UUID, workflowRun *api.WorkflowRun, workflowName string) *slack.WebhookMessage {
+	if workflowRun == nil || len(workflowRun.WorkflowRunTestSuites) == 0 {
+		// if workflow is empty, error out
+		log.Fatal("Received empty workflow run")
+	}
+
+	var allBlocks []slack.Block
+
+	// Add header block with workflow name
+	headerText := fmt.Sprintf("*Workflow %s ran the following batches*", workflowName)
+	headerBlock := slack.NewTextBlockObject("mrkdwn", headerText, false, false)
+	headerSectionBlock := slack.NewSectionBlock(headerBlock, nil, nil)
+	allBlocks = append(allBlocks, headerSectionBlock)
+
+	// Add divider after header
+	allBlocks = append(allBlocks, slack.NewDividerBlock())
+
+	validBatchCount := 0
+
+	for _, suite := range workflowRun.WorkflowRunTestSuites {
+		// Skip if batch ID is nil UUID (disabled/skipped test suite)
+		if suite.BatchID == uuid.Nil {
+			continue
+		}
+
+		// Safely get the batch for this suite
+		batch := actualGetBatch(projectID, suite.BatchID.String(), "")
+
+		// Add divider before each batch except the first valid one
+		if validBatchCount > 0 {
+			allBlocks = append(allBlocks, slack.NewDividerBlock())
+		}
+
+		// Get Slack blocks for this batch with unique ID suffix
+		batchBlocks := batchToSlackBlocks(batch, fmt.Sprintf("_%d", validBatchCount))
+		allBlocks = append(allBlocks, batchBlocks...)
+
+		validBatchCount++
+	}
+
+	// Return empty payload if no valid batches were found
+	if validBatchCount == 0 {
+		log.Fatal("no valid batches found")
+	}
+
+	return &slack.WebhookMessage{
+		Blocks: &slack.Blocks{BlockSet: allBlocks},
+	}
+}
+
 func getWorkflowRun(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(workflowProjectKey))
 	wf := actualGetWorkflow(projectID, viper.GetString(workflowKey), false)
@@ -663,7 +716,14 @@ func getWorkflowRun(ccmd *cobra.Command, args []string) {
 		fmt.Println("no suite runs")
 		return
 	}
-	OutputJson(resp.JSON200.WorkflowRunTestSuites)
+
+	if viper.GetBool(workflowRunSlackOutputKey) {
+		payload := workflowRunToSlackWebhookPayload(projectID, resp.JSON200, wf.Name)
+
+		OutputJson(payload)
+	} else {
+		OutputJson(resp.JSON200.WorkflowRunTestSuites)
+	}
 }
 
 func actualGetWorkflow(projectID uuid.UUID, workflowKeyRaw string, expectArchived bool) api.Workflow {

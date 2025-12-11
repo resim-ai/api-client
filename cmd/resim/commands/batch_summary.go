@@ -127,8 +127,9 @@ func getBatchStatusCounts(batch *api.Batch) *BatchStatusCounts {
 	}
 }
 
-func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
-	blocks := &slack.Blocks{BlockSet: make([]slack.Block, 2)}
+// batchToSlackBlocks converts a batch to Slack blocks with an optional ID suffix for uniqueness
+func batchToSlackBlocks(batch *api.Batch, idSuffix string) []slack.Block {
+	blocks := make([]slack.Block, 2)
 
 	metadata := getBatchMetadata(batch)
 	statusCounts := getBatchStatusCounts(batch)
@@ -137,7 +138,9 @@ func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
 	// Intro text
 	introText := fmt.Sprintf("The <%s|%s> *<%s|run>* for <%s|%s> %s with the following breakdown:", metadata.SuiteUrl, metadata.Suite.Name, metadata.BatchUrl, metadata.SystemUrl, metadata.System.Name, statusText)
 	introTextBlock := slack.NewTextBlockObject("mrkdwn", introText, false, false)
-	blocks.BlockSet[0] = slack.NewSectionBlock(introTextBlock, nil, nil)
+	introSectionBlock := slack.NewSectionBlock(introTextBlock, nil, nil)
+	introSectionBlock.BlockID = "intro" + idSuffix
+	blocks[0] = introSectionBlock
 
 	// List section - only include non-zero counts
 	boldStyle := slack.RichTextSectionTextStyle{Bold: true}
@@ -169,12 +172,19 @@ func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
 	}
 
 	listBlock := slack.NewRichTextList("bullet", 0, listElements...)
-	blocks.BlockSet[1] = slack.NewRichTextBlock("list", listBlock)
+	richTextBlock := slack.NewRichTextBlock("list", listBlock)
+	richTextBlock.BlockID = "list" + idSuffix
+	blocks[1] = richTextBlock
 
-	webhookPayload := slack.WebhookMessage{
-		Blocks: blocks,
+	return blocks
+}
+
+// batchToSlackWebhookPayload converts a batch to a Slack webhook message payload
+func batchToSlackWebhookPayload(batch *api.Batch) *slack.WebhookMessage {
+	blocks := batchToSlackBlocks(batch, "")
+	return &slack.WebhookMessage{
+		Blocks: &slack.Blocks{BlockSet: blocks},
 	}
-	return &webhookPayload
 }
 
 func batchToMarkdown(batch *api.Batch) string {

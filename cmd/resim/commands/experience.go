@@ -2,10 +2,12 @@ package commands
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -115,6 +117,7 @@ const (
 	experienceTimeoutKey              = "timeout"
 	experienceProfileKey              = "profile"
 	experienceEnvironnmentVariableKey = "environment-variable"
+	experienceCustomFieldKey          = "custom-field"
 )
 
 func init() {
@@ -135,6 +138,7 @@ func init() {
 	createExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
 	createExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	createExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables to set in the build container for this experience")
+	createExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Multiple values for the same field name are allowed.")
 	createExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(createExperienceCmd)
 
@@ -172,6 +176,7 @@ func init() {
 	updateExperienceCmd.Flags().Duration(experienceTimeoutKey, 1*time.Hour, "The timeout for the experience container. Default is 1 hour. Please use GoLang duration format e.g. 1h, 1m, 1s, etc.")
 	updateExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	updateExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables of the form NAME=VALUE to set in the build container for this experience. To remove all environment variables, set the flag to an string.")
+	updateExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Replaces all existing custom fields.")
 	updateExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	experienceCmd.AddCommand(updateExperienceCmd)
@@ -312,6 +317,15 @@ func createExperience(ccmd *cobra.Command, args []string) {
 			experienceTagIDs = append(experienceTagIDs, experienceTagID)
 		}
 		body.ExperienceTagIDs = &experienceTagIDs
+	}
+
+	if viper.IsSet(experienceCustomFieldKey) {
+		customFieldInputs := viper.GetStringSlice(experienceCustomFieldKey)
+		customFields, err := parseCustomFields(customFieldInputs)
+		if err != nil {
+			log.Fatal("failed to parse custom fields: ", err)
+		}
+		body.CustomFields = &customFields
 	}
 
 	response, err := Client.CreateExperienceWithResponse(context.Background(), projectID, body)
@@ -475,6 +489,16 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 		}
 		updateExperienceInput.Experience.ExperienceTagIDs = &experienceTagIDs
 		updateMask = append(updateMask, "experienceTagIDs")
+	}
+
+	if viper.IsSet(experienceCustomFieldKey) {
+		customFieldInputs := viper.GetStringSlice(experienceCustomFieldKey)
+		customFields, err := parseCustomFields(customFieldInputs)
+		if err != nil {
+			log.Fatal("failed to parse custom fields: ", err)
+		}
+		updateExperienceInput.Experience.CustomFields = &customFields
+		updateMask = append(updateMask, "customFields")
 	}
 
 	updateExperienceInput.UpdateMask = Ptr(updateMask)
@@ -713,4 +737,149 @@ func getExperienceID(client api.ClientWithResponsesInterface, projectID uuid.UUI
 		}
 	}
 	return experienceID
+}
+
+// parseCustomFields parses custom field inputs in format "name=value" or "name:type=value"
+// and returns a slice of CustomFieldDefinition. Values for the same field name are grouped together, as a
+// custom field can have multiple values. If a type is not specified, it is inferred from the value.
+func parseCustomFields(inputs []string) ([]api.CustomFieldDefinition, error) {
+	// Map to collect values by field name, as a field can have multiple values
+	fieldMap := make(map[string]*api.CustomFieldDefinition)
+
+	for _, input := range inputs {
+		customFieldInput, err := parseCustomFieldInput(input)
+		if err != nil {
+			return nil, err
+		}
+
+		data, exists := fieldMap[customFieldInput.name]
+		if exists {
+			if customFieldInput.fieldType != data.Type {
+				return nil, fmt.Errorf("custom field %s has type %s, but a value of type %s was provided",
+					customFieldInput.name, data.Type, customFieldInput.fieldType)
+			}
+		} else {
+			data = &api.CustomFieldDefinition{Name: customFieldInput.name, Type: customFieldInput.fieldType}
+			fieldMap[customFieldInput.name] = data
+		}
+		data.Values = append(data.Values, customFieldInput.value)
+	}
+
+	// Convert map to slice of CustomFieldDefinition
+	result := make([]api.CustomFieldDefinition, 0, len(fieldMap))
+	for name, data := range fieldMap {
+		result = append(result, api.CustomFieldDefinition{
+			Name:   name,
+			Values: data.Values,
+			Type:   data.Type,
+		})
+	}
+
+	return result, nil
+}
+
+// struct to represent a single custom field input such as "name=value" or "name:text=value"
+type customFieldInput struct {
+	name string
+	// the specified or inferred type of the field
+	fieldType api.CustomFieldValueType
+	value     string
+}
+
+// parseCustomFieldInput parses a single custom field input string.
+// Supports formats: "name=value" or "name:type=value"
+func parseCustomFieldInput(input string) (customFieldInput, error) {
+	// First, find the '=' to separate name[:type] from value
+	eqIdx := strings.Index(input, "=")
+	if eqIdx == -1 {
+		return customFieldInput{}, fmt.Errorf("invalid custom field format: %s (expected 'name=value' or 'name:type=value')", input)
+	}
+
+	nameOrNameType := input[:eqIdx]
+	value := input[eqIdx+1:]
+
+	// Check if there's a type specifier (name:type)
+	colonIdx := strings.Index(nameOrNameType, ":")
+	if colonIdx == -1 {
+		// type not specified by the user, so let's infer it
+		inferredType := inferCustomFieldType(value)
+		return customFieldInput{name: nameOrNameType, value: value, fieldType: inferredType}, nil
+	} else {
+		name := nameOrNameType[:colonIdx]
+		typeStr := nameOrNameType[colonIdx+1:]
+		fieldType, valid := parseCustomFieldType(typeStr)
+		if !valid {
+			return customFieldInput{}, fmt.Errorf("invalid custom field type: %s (expected text|number|timestamp|json)", typeStr)
+		}
+		return customFieldInput{name: name, value: value, fieldType: fieldType}, nil
+	}
+}
+
+// parseCustomFieldType converts a type string to CustomFieldValueType
+func parseCustomFieldType(typeStr string) (api.CustomFieldValueType, bool) {
+	switch strings.ToLower(typeStr) {
+	case "text":
+		return api.CustomFieldValueTypeText, true
+	case "number":
+		return api.CustomFieldValueTypeNumber, true
+	case "timestamp":
+		return api.CustomFieldValueTypeTimestamp, true
+	case "json":
+		return api.CustomFieldValueTypeJson, true
+	default:
+		return "", false
+	}
+}
+
+// inferCustomFieldType attempts to infer the type from a value string.
+// Priority: timestamp > number > json > text
+func inferCustomFieldType(value string) api.CustomFieldValueType {
+	// Try timestamp (ISO 8601 formats)
+	if isTimestamp(value) {
+		return api.CustomFieldValueTypeTimestamp
+	}
+
+	// Try number
+	if isNumber(value) {
+		return api.CustomFieldValueTypeNumber
+	}
+
+	// Try JSON (objects or arrays only, not primitives such as numbers and booleans)
+	if isJSON(value) {
+		return api.CustomFieldValueTypeJson
+	}
+
+	// Default to text
+	return api.CustomFieldValueTypeText
+}
+
+// isTimestamp checks if a string is a valid RFC3339 timestamp
+func isTimestamp(value string) bool {
+	formats := []string{time.RFC3339, time.RFC3339Nano}
+	for _, format := range formats {
+		if _, err := time.Parse(format, value); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+// isNumber checks if a string is a valid number (integer or float)
+func isNumber(value string) bool {
+	_, err := strconv.ParseFloat(value, 64)
+	return err == nil
+}
+
+// isJSON checks if a string is valid JSON (object or array only)
+func isJSON(value string) bool {
+	trimmed := strings.TrimSpace(value)
+	if len(trimmed) == 0 {
+		return false
+	}
+	// Only consider objects and arrays as JSON type, not primitives
+	if trimmed[0] != '{' && trimmed[0] != '[' {
+		return false
+	}
+	var js json.RawMessage
+	return json.Unmarshal([]byte(value), &js) == nil
 }

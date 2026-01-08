@@ -59,6 +59,17 @@ const (
 	ONEFAILING  CompareBatchesStatusFilter = "ONE_FAILING"
 )
 
+// Defines values for ConflatedBatchStatus.
+const (
+	ConflatedBatchStatusBLOCKER   ConflatedBatchStatus = "BLOCKER"
+	ConflatedBatchStatusCANCELLED ConflatedBatchStatus = "CANCELLED"
+	ConflatedBatchStatusCOMPLETE  ConflatedBatchStatus = "COMPLETE"
+	ConflatedBatchStatusERROR     ConflatedBatchStatus = "ERROR"
+	ConflatedBatchStatusRUNNING   ConflatedBatchStatus = "RUNNING"
+	ConflatedBatchStatusSUBMITTED ConflatedBatchStatus = "SUBMITTED"
+	ConflatedBatchStatusWARNING   ConflatedBatchStatus = "WARNING"
+)
+
 // Defines values for ConflatedJobStatus.
 const (
 	ConflatedJobStatusBLOCKER   ConflatedJobStatus = "BLOCKER"
@@ -68,6 +79,14 @@ const (
 	ConflatedJobStatusQUEUED    ConflatedJobStatus = "QUEUED"
 	ConflatedJobStatusRUNNING   ConflatedJobStatus = "RUNNING"
 	ConflatedJobStatusWARNING   ConflatedJobStatus = "WARNING"
+)
+
+// Defines values for CustomFieldValueType.
+const (
+	CustomFieldValueTypeJson      CustomFieldValueType = "json"
+	CustomFieldValueTypeNumber    CustomFieldValueType = "number"
+	CustomFieldValueTypeText      CustomFieldValueType = "text"
+	CustomFieldValueTypeTimestamp CustomFieldValueType = "timestamp"
 )
 
 // Defines values for EventTimestampType.
@@ -177,6 +196,11 @@ const (
 	ListExperienceTagsParamsOrderByTimestamp ListExperienceTagsParamsOrderBy = "timestamp"
 )
 
+// AddAssetsToBuildInput defines model for addAssetsToBuildInput.
+type AddAssetsToBuildInput struct {
+	Assets []AssetBuildLinkInput `json:"assets" yaml:"assets"`
+}
+
 // AddSuitesToExperiencesInput defines model for addSuitesToExperiencesInput.
 type AddSuitesToExperiencesInput struct {
 	AllExperiences *bool                  `json:"allExperiences,omitempty" yaml:"allExperiences,omitempty"`
@@ -199,6 +223,43 @@ type Architecture string
 // Archived defines model for archived.
 type Archived = bool
 
+// Asset defines model for asset.
+type Asset struct {
+	Archived      bool          `json:"archived" yaml:"archived"`
+	AssetID       AssetID       `json:"assetID" yaml:"assetID"`
+	AssetRevision AssetRevision `json:"assetRevision" yaml:"assetRevision"`
+
+	// CacheExempt If true, the asset will not be cached.
+	CacheExempt       bool      `json:"cacheExempt" yaml:"cacheExempt"`
+	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
+	Description       string    `json:"description" yaml:"description"`
+	Locations         []string  `json:"locations" yaml:"locations"`
+	MountFolder       string    `json:"mountFolder" yaml:"mountFolder"`
+	Name              string    `json:"name" yaml:"name"`
+	OrgID             OrgID     `json:"orgID" yaml:"orgID"`
+	ProjectID         ProjectID `json:"projectID" yaml:"projectID"`
+	UserID            UserID    `json:"userID" yaml:"userID"`
+	Version           string    `json:"version" yaml:"version"`
+}
+
+// AssetBuildLinkInput defines model for assetBuildLinkInput.
+type AssetBuildLinkInput struct {
+	AssetID       AssetID       `json:"assetID" yaml:"assetID"`
+	AssetRevision AssetRevision `json:"assetRevision" yaml:"assetRevision"`
+}
+
+// AssetBuildReference defines model for assetBuildReference.
+type AssetBuildReference struct {
+	AssetRevision *AssetRevision `json:"assetRevision,omitempty" yaml:"assetRevision,omitempty"`
+	BuildID       *BuildID       `json:"buildID,omitempty" yaml:"buildID,omitempty"`
+}
+
+// AssetID defines model for assetID.
+type AssetID = openapi_types.UUID
+
+// AssetRevision defines model for assetRevision.
+type AssetRevision = int64
+
 // AssociatedAccount defines model for associatedAccount.
 type AssociatedAccount = string
 
@@ -207,11 +268,13 @@ type Batch struct {
 	AdhocTestSuite          *bool                   `json:"adhocTestSuite,omitempty" yaml:"adhocTestSuite,omitempty"`
 	AllowableFailurePercent *int                    `json:"allowable_failure_percent,omitempty" yaml:"allowable_failure_percent,omitempty"`
 	AssociatedAccount       AssociatedAccount       `json:"associatedAccount" yaml:"associatedAccount"`
+	AssociatedSweepID       *ParameterSweepID       `json:"associatedSweepID,omitempty" yaml:"associatedSweepID,omitempty"`
 	BatchID                 *BatchID                `json:"batchID,omitempty" yaml:"batchID,omitempty"`
 	BatchMetricsStatus      *MetricStatus           `json:"batchMetricsStatus,omitempty" yaml:"batchMetricsStatus,omitempty"`
 	BatchType               *BatchType              `json:"batchType,omitempty" yaml:"batchType,omitempty"`
 	BranchID                *BranchID               `json:"branchID,omitempty" yaml:"branchID,omitempty"`
 	BuildID                 *BuildID                `json:"buildID,omitempty" yaml:"buildID,omitempty"`
+	ConflatedStatus         *ConflatedBatchStatus   `json:"conflatedStatus,omitempty" yaml:"conflatedStatus,omitempty"`
 	CreationTimestamp       *Timestamp              `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
 	Description             *string                 `json:"description,omitempty" yaml:"description,omitempty"`
 	ExecutionError          *ExecutionError         `json:"executionError,omitempty" yaml:"executionError,omitempty"`
@@ -400,6 +463,13 @@ type Build struct {
 	Version         BuildVersion `json:"version" yaml:"version"`
 }
 
+// BuildAssetLink defines model for buildAssetLink.
+type BuildAssetLink struct {
+	Asset                 Asset     `json:"asset" yaml:"asset"`
+	BuildID               BuildID   `json:"buildID" yaml:"buildID"`
+	LinkCreationTimestamp Timestamp `json:"linkCreationTimestamp" yaml:"linkCreationTimestamp"`
+}
+
 // BuildDescription The description of the build. May be a SHA or commit message.
 type BuildDescription = string
 
@@ -459,11 +529,25 @@ type CompareBatchesOutput struct {
 // CompareBatchesStatusFilter defines model for compareBatchesStatusFilter.
 type CompareBatchesStatusFilter string
 
+// ConflatedBatchStatus defines model for conflatedBatchStatus.
+type ConflatedBatchStatus string
+
 // ConflatedJobStatus defines model for conflatedJobStatus.
 type ConflatedJobStatus string
 
 // ContainerName defines model for containerName.
 type ContainerName = string
+
+// CreateAssetInput defines model for createAssetInput.
+type CreateAssetInput struct {
+	// CacheExempt If true, the asset will not be cached.
+	CacheExempt *bool    `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+	Description string   `json:"description" yaml:"description"`
+	Locations   []string `json:"locations" yaml:"locations"`
+	MountFolder string   `json:"mountFolder" yaml:"mountFolder"`
+	Name        string   `json:"name" yaml:"name"`
+	Version     string   `json:"version" yaml:"version"`
+}
 
 // CreateBranchInput defines model for createBranchInput.
 type CreateBranchInput struct {
@@ -521,11 +605,14 @@ type CreateBuildForSystemInput1 = interface{}
 // CreateExperienceInput defines model for createExperienceInput.
 type CreateExperienceInput struct {
 	// CacheExempt If true, the experience will not be cached.
-	CacheExempt             *bool                  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
-	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
-	Description             string                 `json:"description" yaml:"description"`
-	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
-	ExperienceTagIDs        *[]ExperienceTagID     `json:"experienceTagIDs,omitempty" yaml:"experienceTagIDs,omitempty"`
+	CacheExempt             *bool  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+	ContainerTimeoutSeconds *int32 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
+
+	// CustomFields Custom field key/value pairs to associate with the experience. Field names are case-insensitive. Each field can have multiple values.
+	CustomFields         *[]CustomFieldDefinition `json:"customFields,omitempty" yaml:"customFields,omitempty"`
+	Description          string                   `json:"description" yaml:"description"`
+	EnvironmentVariables *[]EnvironmentVariable   `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
+	ExperienceTagIDs     *[]ExperienceTagID       `json:"experienceTagIDs,omitempty" yaml:"experienceTagIDs,omitempty"`
 
 	// Location [DEPRECATED] This field was previously used to define an experience's location. Experiences can now be defined with multiple locations, using the locations field. This field will be removed in a later release.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -626,6 +713,18 @@ type CreateWorkflowSuitesOutput struct {
 	WorkflowSuites []CreateWorkflowSuiteOutput `json:"workflowSuites" yaml:"workflowSuites"`
 }
 
+// CustomFieldDefinition defines model for customFieldDefinition.
+type CustomFieldDefinition struct {
+	Name string               `json:"name" yaml:"name"`
+	Type CustomFieldValueType `json:"type" yaml:"type"`
+
+	// Values Array of field values. For 'text' type, use plain strings. For 'number' type, use string representations of numbers (e.g., "32"). For 'timestamp' type, use ISO 8601 format strings. For 'json' type, use JSON string representations of objects or arrays.
+	Values []string `json:"values" yaml:"values"`
+}
+
+// CustomFieldValueType defines model for customFieldValueType.
+type CustomFieldValueType string
+
 // CustomMetric defines model for customMetric.
 type CustomMetric struct {
 	Name  string  `json:"name" yaml:"name"`
@@ -716,13 +815,16 @@ type ExecutionStep string
 
 // Experience defines model for experience.
 type Experience struct {
-	Archived                bool                  `json:"archived" yaml:"archived"`
-	CacheExempt             bool                  `json:"cacheExempt" yaml:"cacheExempt"`
-	ContainerTimeoutSeconds int32                 `json:"containerTimeoutSeconds" yaml:"containerTimeoutSeconds"`
-	CreationTimestamp       Timestamp             `json:"creationTimestamp" yaml:"creationTimestamp"`
-	Description             string                `json:"description" yaml:"description"`
-	EnvironmentVariables    []EnvironmentVariable `json:"environmentVariables" yaml:"environmentVariables"`
-	ExperienceID            ExperienceID          `json:"experienceID" yaml:"experienceID"`
+	Archived                bool      `json:"archived" yaml:"archived"`
+	CacheExempt             bool      `json:"cacheExempt" yaml:"cacheExempt"`
+	ContainerTimeoutSeconds int32     `json:"containerTimeoutSeconds" yaml:"containerTimeoutSeconds"`
+	CreationTimestamp       Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
+
+	// CustomFields Custom field key/value pairs associated with the experience.
+	CustomFields         []CustomFieldDefinition `json:"customFields" yaml:"customFields"`
+	Description          string                  `json:"description" yaml:"description"`
+	EnvironmentVariables []EnvironmentVariable   `json:"environmentVariables" yaml:"environmentVariables"`
+	ExperienceID         ExperienceID            `json:"experienceID" yaml:"experienceID"`
 
 	// Location [DEPRECATED] This field was previously used to report an experience's location. Experiences can now be defined with multiple locations, this field will display the first location; this field will be removed in a future version.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -982,9 +1084,35 @@ type ListAllJobsOutput struct {
 	Total         *int    `json:"total,omitempty" yaml:"total,omitempty"`
 }
 
+// ListAssetBuildsOutput defines model for listAssetBuildsOutput.
+type ListAssetBuildsOutput struct {
+	Builds        []AssetBuildReference `json:"builds" yaml:"builds"`
+	NextPageToken string                `json:"nextPageToken" yaml:"nextPageToken"`
+	Total         int                   `json:"total" yaml:"total"`
+}
+
+// ListAssetRevisionsOutput defines model for listAssetRevisionsOutput.
+type ListAssetRevisionsOutput struct {
+	Assets        []Asset `json:"assets" yaml:"assets"`
+	NextPageToken string  `json:"nextPageToken" yaml:"nextPageToken"`
+	Total         int     `json:"total" yaml:"total"`
+}
+
+// ListAssetsOutput defines model for listAssetsOutput.
+type ListAssetsOutput struct {
+	Assets        []Asset `json:"assets" yaml:"assets"`
+	NextPageToken string  `json:"nextPageToken" yaml:"nextPageToken"`
+	Total         int     `json:"total" yaml:"total"`
+}
+
 // ListBatchErrorsOutput defines model for listBatchErrorsOutput.
 type ListBatchErrorsOutput struct {
 	Errors *[]ExecutionError `json:"errors,omitempty" yaml:"errors,omitempty"`
+}
+
+// ListBatchLogStreamsOutput defines model for listBatchLogStreamsOutput.
+type ListBatchLogStreamsOutput struct {
+	LogStreams []LogStream `json:"logStreams" yaml:"logStreams"`
 }
 
 // ListBatchLogsOutput defines model for listBatchLogsOutput.
@@ -1024,11 +1152,23 @@ type ListBranchesOutput struct {
 	NextPageToken *string   `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
 }
 
+// ListBuildAssetsOutput defines model for listBuildAssetsOutput.
+type ListBuildAssetsOutput struct {
+	Assets        []BuildAssetLink `json:"assets" yaml:"assets"`
+	NextPageToken string           `json:"nextPageToken" yaml:"nextPageToken"`
+	Total         int              `json:"total" yaml:"total"`
+}
+
 // ListBuildsOutput defines model for listBuildsOutput.
 type ListBuildsOutput struct {
 	Builds        []Build `json:"builds" yaml:"builds"`
 	NextPageToken string  `json:"nextPageToken" yaml:"nextPageToken"`
 	Total         int     `json:"total" yaml:"total"`
+}
+
+// ListExperienceCustomFieldsOutput defines model for listExperienceCustomFieldsOutput.
+type ListExperienceCustomFieldsOutput struct {
+	CustomFields []CustomFieldDefinition `json:"customFields" yaml:"customFields"`
 }
 
 // ListExperienceTagsOutput defines model for listExperienceTagsOutput.
@@ -1223,6 +1363,13 @@ type LogID = openapi_types.UUID
 
 // LogLocation defines model for logLocation.
 type LogLocation = string
+
+// LogStream defines model for logStream.
+type LogStream struct {
+	BatchID BatchID  `json:"batchID" yaml:"batchID"`
+	JobID   *JobID   `json:"jobID,omitempty" yaml:"jobID,omitempty"`
+	LogName FileName `json:"logName" yaml:"logName"`
+}
 
 // LogType defines model for logType.
 type LogType string
@@ -1438,6 +1585,11 @@ type ReferenceBatchSummary struct {
 	NewTests   int64 `json:"newTests" yaml:"newTests"`
 }
 
+// RemoveAssetsFromBuildInput defines model for removeAssetsFromBuildInput.
+type RemoveAssetsFromBuildInput struct {
+	Assets []AssetBuildLinkInput `json:"assets" yaml:"assets"`
+}
+
 // Report defines model for report.
 type Report struct {
 	AssociatedAccount       AssociatedAccount       `json:"associatedAccount" yaml:"associatedAccount"`
@@ -1535,6 +1687,13 @@ type RerunBatchOutput struct {
 
 // RespectRevisionBoundary defines model for respectRevisionBoundary.
 type RespectRevisionBoundary = bool
+
+// ReviseAssetInput defines model for reviseAssetInput.
+type ReviseAssetInput struct {
+	Locations   []string `json:"locations" yaml:"locations"`
+	MountFolder *string  `json:"mountFolder,omitempty" yaml:"mountFolder,omitempty"`
+	Version     string   `json:"version" yaml:"version"`
+}
 
 // ReviseTestSuiteInput defines model for reviseTestSuiteInput.
 type ReviseTestSuiteInput struct {
@@ -1692,6 +1851,12 @@ type Timestamp = time.Time
 // TriggeredVia defines model for triggeredVia.
 type TriggeredVia string
 
+// UpdateAssetInput defines model for updateAssetInput.
+type UpdateAssetInput struct {
+	Description *string `json:"description,omitempty" yaml:"description,omitempty"`
+	Name        *string `json:"name,omitempty" yaml:"name,omitempty"`
+}
+
 // UpdateBatchInput defines model for updateBatchInput.
 type UpdateBatchInput struct {
 	Description string `json:"description" yaml:"description"`
@@ -1723,11 +1888,14 @@ type UpdateEventInput struct {
 // UpdateExperienceFields defines model for updateExperienceFields.
 type UpdateExperienceFields struct {
 	// CacheExempt If true, the experience will not be cached.
-	CacheExempt             *bool                  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
-	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
-	Description             *string                `json:"description,omitempty" yaml:"description,omitempty"`
-	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
-	ExperienceTagIDs        *[]ExperienceTagID     `json:"experienceTagIDs,omitempty" yaml:"experienceTagIDs,omitempty"`
+	CacheExempt             *bool  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+	ContainerTimeoutSeconds *int32 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
+
+	// CustomFields Custom field key/value pairs to associate with the experience. Field names are case-insensitive. Each field can have multiple values. When updating, this replaces all existing custom fields.
+	CustomFields         *[]CustomFieldDefinition `json:"customFields,omitempty" yaml:"customFields,omitempty"`
+	Description          *string                  `json:"description,omitempty" yaml:"description,omitempty"`
+	EnvironmentVariables *[]EnvironmentVariable   `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
+	ExperienceTagIDs     *[]ExperienceTagID       `json:"experienceTagIDs,omitempty" yaml:"experienceTagIDs,omitempty"`
 
 	// Location [DEPRECATED] This field was previously used to define an experience's location. Experiences can now be defined with multiple locations, using the locations field. This field will be removed in a future version.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -1937,6 +2105,38 @@ type ListProjectsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
+// ListAssetsParams defines parameters for ListAssets.
+type ListAssetsParams struct {
+	Archived *bool `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
+
+	// Name Filter assets by name
+	Name *string `form:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty"`
+
+	// Text Filter assets by name or description
+	Text      *string    `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+}
+
+// ListBuildsForAssetParams defines parameters for ListBuildsForAsset.
+type ListBuildsForAssetParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
+
+// ListAssetRevisionsParams defines parameters for ListAssetRevisions.
+type ListAssetRevisionsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
+
+// ListBuildsForAssetRevisionParams defines parameters for ListBuildsForAssetRevision.
+type ListBuildsForAssetRevisionParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
+
 // ListBatchesParams defines parameters for ListBatches.
 type ListBatchesParams struct {
 	// Search Filter based on branch_id, build_id, system_id, created_at, status, metrics_status, batch_id
@@ -2139,6 +2339,12 @@ type ListBuildsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
+// ListAssetsForBuildParams defines parameters for ListAssetsForBuild.
+type ListAssetsForBuildParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
+
 // ListExperienceTagsParams defines parameters for ListExperienceTags.
 type ListExperienceTagsParams struct {
 	// Name Filter experience tags by name. It is recommended to use orderBy=rank, so you get the most relevant results first.
@@ -2168,11 +2374,20 @@ type ListExperiencesParams struct {
 	Text *string `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
 
 	// Search A search query. Supports searching by tag_id, test_suite_id, archived, profile, and system_id
-	Search    *string            `form:"search,omitempty" json:"search,omitempty" yaml:"search,omitempty"`
-	Archived  *bool              `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
-	PageSize  *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken *PageToken         `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
-	OrderBy   *OrderBy           `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+	Search   *string `form:"search,omitempty" json:"search,omitempty" yaml:"search,omitempty"`
+	Archived *bool   `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
+
+	// IncludeCustomFields If true, includes customFields in the response. Defaults to false to avoid performance issues when listing many experiences.
+	IncludeCustomFields *bool              `form:"includeCustomFields,omitempty" json:"includeCustomFields,omitempty" yaml:"includeCustomFields,omitempty"`
+	PageSize            *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken           *PageToken         `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	OrderBy             *OrderBy           `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+}
+
+// ListExperienceCustomFieldsParams defines parameters for ListExperienceCustomFields.
+type ListExperienceCustomFieldsParams struct {
+	// Type List of custom field types to filter by.
+	Type *[]CustomFieldValueType `form:"type,omitempty" json:"type,omitempty" yaml:"type,omitempty"`
 }
 
 // ListExperienceTagsForExperienceParams defines parameters for ListExperienceTagsForExperience.
@@ -2330,9 +2545,12 @@ type ListBuildsForSystemParams struct {
 // ListExperiencesForSystemParams defines parameters for ListExperiencesForSystem.
 type ListExperiencesForSystemParams struct {
 	// Archived Filter experiences by archived status
-	Archived  *bool      `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	Archived *bool `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
+
+	// IncludeCustomFields If true, includes customFields in the response. Defaults to false to avoid performance issues when listing many experiences.
+	IncludeCustomFields *bool      `form:"includeCustomFields,omitempty" json:"includeCustomFields,omitempty" yaml:"includeCustomFields,omitempty"`
+	PageSize            *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken           *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 }
 
 // ListWorkflowsParams defines parameters for ListWorkflows.
@@ -2371,6 +2589,15 @@ type CreateProjectJSONRequestBody = CreateProjectInput
 // UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
 type UpdateProjectJSONRequestBody = UpdateProjectInput
 
+// CreateAssetJSONRequestBody defines body for CreateAsset for application/json ContentType.
+type CreateAssetJSONRequestBody = CreateAssetInput
+
+// UpdateAssetJSONRequestBody defines body for UpdateAsset for application/json ContentType.
+type UpdateAssetJSONRequestBody = UpdateAssetInput
+
+// ReviseAssetJSONRequestBody defines body for ReviseAsset for application/json ContentType.
+type ReviseAssetJSONRequestBody = ReviseAssetInput
+
 // CreateBatchJSONRequestBody defines body for CreateBatch for application/json ContentType.
 type CreateBatchJSONRequestBody = BatchInput
 
@@ -2394,6 +2621,12 @@ type CreateBuildForBranchJSONRequestBody = CreateBuildForBranchInput
 
 // UpdateBuildJSONRequestBody defines body for UpdateBuild for application/json ContentType.
 type UpdateBuildJSONRequestBody = UpdateBuildInput
+
+// RemoveAssetsFromBuildJSONRequestBody defines body for RemoveAssetsFromBuild for application/json ContentType.
+type RemoveAssetsFromBuildJSONRequestBody = RemoveAssetsFromBuildInput
+
+// AddAssetsToBuildJSONRequestBody defines body for AddAssetsToBuild for application/json ContentType.
+type AddAssetsToBuildJSONRequestBody = AddAssetsToBuildInput
 
 // CreateExperienceTagJSONRequestBody defines body for CreateExperienceTag for application/json ContentType.
 type CreateExperienceTagJSONRequestBody = CreateExperienceTagInput
@@ -2945,6 +3178,45 @@ type ClientInterface interface {
 
 	UpdateProject(ctx context.Context, projectID ProjectID, body UpdateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListAssets request
+	ListAssets(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateAssetWithBody request with any body
+	CreateAssetWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateAsset(ctx context.Context, projectID ProjectID, body CreateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetAsset request
+	GetAsset(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateAssetWithBody request with any body
+	UpdateAssetWithBody(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateAsset(ctx context.Context, projectID ProjectID, assetID AssetID, body UpdateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ArchiveAsset request
+	ArchiveAsset(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBuildsForAsset request
+	ListBuildsForAsset(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListBuildsForAssetParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RestoreAsset request
+	RestoreAsset(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAssetRevisions request
+	ListAssetRevisions(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListAssetRevisionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ReviseAssetWithBody request with any body
+	ReviseAssetWithBody(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ReviseAsset(ctx context.Context, projectID ProjectID, assetID AssetID, body ReviseAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetAssetRevision request
+	GetAssetRevision(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBuildsForAssetRevision request
+	ListBuildsForAssetRevision(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, params *ListBuildsForAssetRevisionParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListBatches request
 	ListBatches(ctx context.Context, projectID ProjectID, params *ListBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3001,6 +3273,9 @@ type ClientInterface interface {
 
 	UpdateEvent(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, eventID EventID, body UpdateEventJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetLogStream request
+	GetLogStream(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListJobLogsForJob request
 	ListJobLogsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3030,6 +3305,9 @@ type ClientInterface interface {
 
 	// ListBatchLogsForBatch request
 	ListBatchLogsForBatch(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListBatchLogStreams request
+	ListBatchLogStreams(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteBatchLog request
 	DeleteBatchLog(ctx context.Context, projectID ProjectID, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3108,6 +3386,19 @@ type ClientInterface interface {
 
 	UpdateBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body UpdateBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// RemoveAssetsFromBuildWithBody request with any body
+	RemoveAssetsFromBuildWithBody(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RemoveAssetsFromBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body RemoveAssetsFromBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAssetsForBuild request
+	ListAssetsForBuild(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// AddAssetsToBuildWithBody request with any body
+	AddAssetsToBuildWithBody(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	AddAssetsToBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body AddAssetsToBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListExperienceTags request
 	ListExperienceTags(ctx context.Context, projectID ProjectID, params *ListExperienceTagsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3153,6 +3444,9 @@ type ClientInterface interface {
 	BulkArchiveExperiencesWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	BulkArchiveExperiences(ctx context.Context, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListExperienceCustomFields request
+	ListExperienceCustomFields(ctx context.Context, projectID ProjectID, params *ListExperienceCustomFieldsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ArchiveExperience request
 	ArchiveExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3533,6 +3827,174 @@ func (c *Client) UpdateProject(ctx context.Context, projectID ProjectID, body Up
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListAssets(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAssetsRequest(c.Server, projectID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateAssetWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateAssetRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateAsset(ctx context.Context, projectID ProjectID, body CreateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateAssetRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetAsset(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAssetRequest(c.Server, projectID, assetID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateAssetWithBody(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateAssetRequestWithBody(c.Server, projectID, assetID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateAsset(ctx context.Context, projectID ProjectID, assetID AssetID, body UpdateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateAssetRequest(c.Server, projectID, assetID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ArchiveAsset(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveAssetRequest(c.Server, projectID, assetID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBuildsForAsset(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListBuildsForAssetParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBuildsForAssetRequest(c.Server, projectID, assetID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RestoreAsset(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRestoreAssetRequest(c.Server, projectID, assetID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAssetRevisions(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListAssetRevisionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAssetRevisionsRequest(c.Server, projectID, assetID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReviseAssetWithBody(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReviseAssetRequestWithBody(c.Server, projectID, assetID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ReviseAsset(ctx context.Context, projectID ProjectID, assetID AssetID, body ReviseAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewReviseAssetRequest(c.Server, projectID, assetID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetAssetRevision(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAssetRevisionRequest(c.Server, projectID, assetID, assetRevision)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBuildsForAssetRevision(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, params *ListBuildsForAssetRevisionParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBuildsForAssetRevisionRequest(c.Server, projectID, assetID, assetRevision, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListBatches(ctx context.Context, projectID ProjectID, params *ListBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchesRequest(c.Server, projectID, params)
 	if err != nil {
@@ -3773,6 +4235,18 @@ func (c *Client) UpdateEvent(ctx context.Context, projectID ProjectID, batchID B
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetLogStream(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLogStreamRequest(c.Server, projectID, batchID, jobID, logName)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListJobLogsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListJobLogsForJobRequest(c.Server, projectID, batchID, jobID, params)
 	if err != nil {
@@ -3883,6 +4357,18 @@ func (c *Client) ListMetricsDataForMetricsDataIDs(ctx context.Context, projectID
 
 func (c *Client) ListBatchLogsForBatch(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchLogsForBatchRequest(c.Server, projectID, batchID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListBatchLogStreams(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBatchLogStreamsRequest(c.Server, projectID, batchID)
 	if err != nil {
 		return nil, err
 	}
@@ -4217,6 +4703,66 @@ func (c *Client) UpdateBuild(ctx context.Context, projectID ProjectID, buildID B
 	return c.Client.Do(req)
 }
 
+func (c *Client) RemoveAssetsFromBuildWithBody(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveAssetsFromBuildRequestWithBody(c.Server, projectID, buildID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RemoveAssetsFromBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body RemoveAssetsFromBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRemoveAssetsFromBuildRequest(c.Server, projectID, buildID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAssetsForBuild(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAssetsForBuildRequest(c.Server, projectID, buildID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddAssetsToBuildWithBody(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddAssetsToBuildRequestWithBody(c.Server, projectID, buildID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) AddAssetsToBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body AddAssetsToBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewAddAssetsToBuildRequest(c.Server, projectID, buildID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListExperienceTags(ctx context.Context, projectID ProjectID, params *ListExperienceTagsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListExperienceTagsRequest(c.Server, projectID, params)
 	if err != nil {
@@ -4411,6 +4957,18 @@ func (c *Client) BulkArchiveExperiencesWithBody(ctx context.Context, projectID P
 
 func (c *Client) BulkArchiveExperiences(ctx context.Context, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewBulkArchiveExperiencesRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListExperienceCustomFields(ctx context.Context, projectID ProjectID, params *ListExperienceCustomFieldsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListExperienceCustomFieldsRequest(c.Server, projectID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -5908,6 +6466,712 @@ func NewUpdateProjectRequestWithBody(server string, projectID ProjectID, content
 	return req, nil
 }
 
+// NewListAssetsRequest generates requests for ListAssets
+func NewListAssetsRequest(server string, projectID ProjectID, params *ListAssetsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Archived != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "archived", runtime.ParamLocationQuery, *params.Archived); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateAssetRequest calls the generic CreateAsset builder with application/json body
+func NewCreateAssetRequest(server string, projectID ProjectID, body CreateAssetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateAssetRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateAssetRequestWithBody generates requests for CreateAsset with any type of body
+func NewCreateAssetRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetAssetRequest generates requests for GetAsset
+func NewGetAssetRequest(server string, projectID ProjectID, assetID AssetID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUpdateAssetRequest calls the generic UpdateAsset builder with application/json body
+func NewUpdateAssetRequest(server string, projectID ProjectID, assetID AssetID, body UpdateAssetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateAssetRequestWithBody(server, projectID, assetID, "application/json", bodyReader)
+}
+
+// NewUpdateAssetRequestWithBody generates requests for UpdateAsset with any type of body
+func NewUpdateAssetRequestWithBody(server string, projectID ProjectID, assetID AssetID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewArchiveAssetRequest generates requests for ArchiveAsset
+func NewArchiveAssetRequest(server string, projectID ProjectID, assetID AssetID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s/archive", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBuildsForAssetRequest generates requests for ListBuildsForAsset
+func NewListBuildsForAssetRequest(server string, projectID ProjectID, assetID AssetID, params *ListBuildsForAssetParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s/builds", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRestoreAssetRequest generates requests for RestoreAsset
+func NewRestoreAssetRequest(server string, projectID ProjectID, assetID AssetID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s/restore", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListAssetRevisionsRequest generates requests for ListAssetRevisions
+func NewListAssetRevisionsRequest(server string, projectID ProjectID, assetID AssetID, params *ListAssetRevisionsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s/revisions", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewReviseAssetRequest calls the generic ReviseAsset builder with application/json body
+func NewReviseAssetRequest(server string, projectID ProjectID, assetID AssetID, body ReviseAssetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewReviseAssetRequestWithBody(server, projectID, assetID, "application/json", bodyReader)
+}
+
+// NewReviseAssetRequestWithBody generates requests for ReviseAsset with any type of body
+func NewReviseAssetRequestWithBody(server string, projectID ProjectID, assetID AssetID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s/revisions", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetAssetRevisionRequest generates requests for GetAssetRevision
+func NewGetAssetRevisionRequest(server string, projectID ProjectID, assetID AssetID, assetRevision AssetRevision) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "assetRevision", runtime.ParamLocationPath, assetRevision)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s/revisions/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBuildsForAssetRevisionRequest generates requests for ListBuildsForAssetRevision
+func NewListBuildsForAssetRevisionRequest(server string, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, params *ListBuildsForAssetRevisionParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "assetID", runtime.ParamLocationPath, assetID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "assetRevision", runtime.ParamLocationPath, assetRevision)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/assets/%s/revisions/%s/builds", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListBatchesRequest generates requests for ListBatches
 func NewListBatchesRequest(server string, projectID ProjectID, params *ListBatchesParams) (*http.Request, error) {
 	var err error
@@ -7141,6 +8405,61 @@ func NewUpdateEventRequestWithBody(server string, projectID ProjectID, batchID B
 	return req, nil
 }
 
+// NewGetLogStreamRequest generates requests for GetLogStream
+func NewGetLogStreamRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam3 string
+
+	pathParam3, err = runtime.StyleParamWithLocation("simple", false, "logName", runtime.ParamLocationPath, logName)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/logStream/%s", pathParam0, pathParam1, pathParam2, pathParam3)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListJobLogsForJobRequest generates requests for ListJobLogsForJob
 func NewListJobLogsForJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams) (*http.Request, error) {
 	var err error
@@ -7998,6 +9317,47 @@ func NewListBatchLogsForBatchRequest(server string, projectID ProjectID, batchID
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListBatchLogStreamsRequest generates requests for ListBatchLogStreams
+func NewListBatchLogStreamsRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/logs/streams", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -9546,6 +10906,193 @@ func NewUpdateBuildRequestWithBody(server string, projectID ProjectID, buildID B
 	return req, nil
 }
 
+// NewRemoveAssetsFromBuildRequest calls the generic RemoveAssetsFromBuild builder with application/json body
+func NewRemoveAssetsFromBuildRequest(server string, projectID ProjectID, buildID BuildID, body RemoveAssetsFromBuildJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRemoveAssetsFromBuildRequestWithBody(server, projectID, buildID, "application/json", bodyReader)
+}
+
+// NewRemoveAssetsFromBuildRequestWithBody generates requests for RemoveAssetsFromBuild with any type of body
+func NewRemoveAssetsFromBuildRequestWithBody(server string, projectID ProjectID, buildID BuildID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "buildID", runtime.ParamLocationPath, buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/builds/%s/assets", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListAssetsForBuildRequest generates requests for ListAssetsForBuild
+func NewListAssetsForBuildRequest(server string, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "buildID", runtime.ParamLocationPath, buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/builds/%s/assets", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewAddAssetsToBuildRequest calls the generic AddAssetsToBuild builder with application/json body
+func NewAddAssetsToBuildRequest(server string, projectID ProjectID, buildID BuildID, body AddAssetsToBuildJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewAddAssetsToBuildRequestWithBody(server, projectID, buildID, "application/json", bodyReader)
+}
+
+// NewAddAssetsToBuildRequestWithBody generates requests for AddAssetsToBuild with any type of body
+func NewAddAssetsToBuildRequestWithBody(server string, projectID ProjectID, buildID BuildID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "buildID", runtime.ParamLocationPath, buildID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/builds/%s/assets", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListExperienceTagsRequest generates requests for ListExperienceTags
 func NewListExperienceTagsRequest(server string, projectID ProjectID, params *ListExperienceTagsParams) (*http.Request, error) {
 	var err error
@@ -10164,6 +11711,22 @@ func NewListExperiencesRequest(server string, projectID ProjectID, params *ListE
 
 		}
 
+		if params.IncludeCustomFields != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeCustomFields", runtime.ParamLocationQuery, *params.IncludeCustomFields); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -10313,6 +11876,62 @@ func NewBulkArchiveExperiencesRequestWithBody(server string, projectID ProjectID
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListExperienceCustomFieldsRequest generates requests for ListExperienceCustomFields
+func NewListExperienceCustomFieldsRequest(server string, projectID ProjectID, params *ListExperienceCustomFieldsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/experiences/customfields", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Type != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "type", runtime.ParamLocationQuery, *params.Type); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -13837,6 +15456,22 @@ func NewListExperiencesForSystemRequest(server string, projectID ProjectID, syst
 
 		}
 
+		if params.IncludeCustomFields != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeCustomFields", runtime.ParamLocationQuery, *params.IncludeCustomFields); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -15131,6 +16766,45 @@ type ClientWithResponsesInterface interface {
 
 	UpdateProjectWithResponse(ctx context.Context, projectID ProjectID, body UpdateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateProjectResponse, error)
 
+	// ListAssetsWithResponse request
+	ListAssetsWithResponse(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*ListAssetsResponse, error)
+
+	// CreateAssetWithBodyWithResponse request with any body
+	CreateAssetWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAssetResponse, error)
+
+	CreateAssetWithResponse(ctx context.Context, projectID ProjectID, body CreateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAssetResponse, error)
+
+	// GetAssetWithResponse request
+	GetAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*GetAssetResponse, error)
+
+	// UpdateAssetWithBodyWithResponse request with any body
+	UpdateAssetWithBodyWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateAssetResponse, error)
+
+	UpdateAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, body UpdateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateAssetResponse, error)
+
+	// ArchiveAssetWithResponse request
+	ArchiveAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*ArchiveAssetResponse, error)
+
+	// ListBuildsForAssetWithResponse request
+	ListBuildsForAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListBuildsForAssetParams, reqEditors ...RequestEditorFn) (*ListBuildsForAssetResponse, error)
+
+	// RestoreAssetWithResponse request
+	RestoreAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*RestoreAssetResponse, error)
+
+	// ListAssetRevisionsWithResponse request
+	ListAssetRevisionsWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListAssetRevisionsParams, reqEditors ...RequestEditorFn) (*ListAssetRevisionsResponse, error)
+
+	// ReviseAssetWithBodyWithResponse request with any body
+	ReviseAssetWithBodyWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReviseAssetResponse, error)
+
+	ReviseAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, body ReviseAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*ReviseAssetResponse, error)
+
+	// GetAssetRevisionWithResponse request
+	GetAssetRevisionWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, reqEditors ...RequestEditorFn) (*GetAssetRevisionResponse, error)
+
+	// ListBuildsForAssetRevisionWithResponse request
+	ListBuildsForAssetRevisionWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, params *ListBuildsForAssetRevisionParams, reqEditors ...RequestEditorFn) (*ListBuildsForAssetRevisionResponse, error)
+
 	// ListBatchesWithResponse request
 	ListBatchesWithResponse(ctx context.Context, projectID ProjectID, params *ListBatchesParams, reqEditors ...RequestEditorFn) (*ListBatchesResponse, error)
 
@@ -15187,6 +16861,9 @@ type ClientWithResponsesInterface interface {
 
 	UpdateEventWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, eventID EventID, body UpdateEventJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEventResponse, error)
 
+	// GetLogStreamWithResponse request
+	GetLogStreamWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*GetLogStreamResponse, error)
+
 	// ListJobLogsForJobWithResponse request
 	ListJobLogsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*ListJobLogsForJobResponse, error)
 
@@ -15216,6 +16893,9 @@ type ClientWithResponsesInterface interface {
 
 	// ListBatchLogsForBatchWithResponse request
 	ListBatchLogsForBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*ListBatchLogsForBatchResponse, error)
+
+	// ListBatchLogStreamsWithResponse request
+	ListBatchLogStreamsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchLogStreamsResponse, error)
 
 	// DeleteBatchLogWithResponse request
 	DeleteBatchLogWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteBatchLogResponse, error)
@@ -15294,6 +16974,19 @@ type ClientWithResponsesInterface interface {
 
 	UpdateBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body UpdateBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateBuildResponse, error)
 
+	// RemoveAssetsFromBuildWithBodyWithResponse request with any body
+	RemoveAssetsFromBuildWithBodyWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveAssetsFromBuildResponse, error)
+
+	RemoveAssetsFromBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body RemoveAssetsFromBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveAssetsFromBuildResponse, error)
+
+	// ListAssetsForBuildWithResponse request
+	ListAssetsForBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*ListAssetsForBuildResponse, error)
+
+	// AddAssetsToBuildWithBodyWithResponse request with any body
+	AddAssetsToBuildWithBodyWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddAssetsToBuildResponse, error)
+
+	AddAssetsToBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body AddAssetsToBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*AddAssetsToBuildResponse, error)
+
 	// ListExperienceTagsWithResponse request
 	ListExperienceTagsWithResponse(ctx context.Context, projectID ProjectID, params *ListExperienceTagsParams, reqEditors ...RequestEditorFn) (*ListExperienceTagsResponse, error)
 
@@ -15339,6 +17032,9 @@ type ClientWithResponsesInterface interface {
 	BulkArchiveExperiencesWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*BulkArchiveExperiencesResponse, error)
 
 	BulkArchiveExperiencesWithResponse(ctx context.Context, projectID ProjectID, body BulkArchiveExperiencesJSONRequestBody, reqEditors ...RequestEditorFn) (*BulkArchiveExperiencesResponse, error)
+
+	// ListExperienceCustomFieldsWithResponse request
+	ListExperienceCustomFieldsWithResponse(ctx context.Context, projectID ProjectID, params *ListExperienceCustomFieldsParams, reqEditors ...RequestEditorFn) (*ListExperienceCustomFieldsResponse, error)
 
 	// ArchiveExperienceWithResponse request
 	ArchiveExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*ArchiveExperienceResponse, error)
@@ -15753,6 +17449,246 @@ func (r UpdateProjectResponse) StatusCode() int {
 	return 0
 }
 
+type ListAssetsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAssetsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAssetsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAssetsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateAssetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Asset
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateAssetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateAssetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetAssetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Asset
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAssetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAssetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UpdateAssetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Asset
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateAssetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateAssetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ArchiveAssetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ArchiveAssetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ArchiveAssetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBuildsForAssetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAssetBuildsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBuildsForAssetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBuildsForAssetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RestoreAssetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RestoreAssetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RestoreAssetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAssetRevisionsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAssetRevisionsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAssetRevisionsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAssetRevisionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ReviseAssetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Asset
+}
+
+// Status returns HTTPResponse.Status
+func (r ReviseAssetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ReviseAssetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetAssetRevisionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Asset
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAssetRevisionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAssetRevisionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBuildsForAssetRevisionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAssetBuildsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBuildsForAssetRevisionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBuildsForAssetRevisionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListBatchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -16104,6 +18040,27 @@ func (r UpdateEventResponse) StatusCode() int {
 	return 0
 }
 
+type GetLogStreamResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLogStreamResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLogStreamResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListJobLogsForJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -16317,6 +18274,28 @@ func (r ListBatchLogsForBatchResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListBatchLogsForBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBatchLogStreamsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBatchLogStreamsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBatchLogStreamsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBatchLogStreamsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -16826,6 +18805,70 @@ func (r UpdateBuildResponse) StatusCode() int {
 	return 0
 }
 
+type RemoveAssetsFromBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r RemoveAssetsFromBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RemoveAssetsFromBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAssetsForBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBuildAssetsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAssetsForBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAssetsForBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type AddAssetsToBuildResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r AddAssetsToBuildResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r AddAssetsToBuildResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListExperienceTagsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -17080,6 +19123,28 @@ func (r BulkArchiveExperiencesResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r BulkArchiveExperiencesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListExperienceCustomFieldsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListExperienceCustomFieldsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListExperienceCustomFieldsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListExperienceCustomFieldsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -18858,6 +20923,129 @@ func (c *ClientWithResponses) UpdateProjectWithResponse(ctx context.Context, pro
 	return ParseUpdateProjectResponse(rsp)
 }
 
+// ListAssetsWithResponse request returning *ListAssetsResponse
+func (c *ClientWithResponses) ListAssetsWithResponse(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*ListAssetsResponse, error) {
+	rsp, err := c.ListAssets(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAssetsResponse(rsp)
+}
+
+// CreateAssetWithBodyWithResponse request with arbitrary body returning *CreateAssetResponse
+func (c *ClientWithResponses) CreateAssetWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAssetResponse, error) {
+	rsp, err := c.CreateAssetWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateAssetResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateAssetWithResponse(ctx context.Context, projectID ProjectID, body CreateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAssetResponse, error) {
+	rsp, err := c.CreateAsset(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateAssetResponse(rsp)
+}
+
+// GetAssetWithResponse request returning *GetAssetResponse
+func (c *ClientWithResponses) GetAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*GetAssetResponse, error) {
+	rsp, err := c.GetAsset(ctx, projectID, assetID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAssetResponse(rsp)
+}
+
+// UpdateAssetWithBodyWithResponse request with arbitrary body returning *UpdateAssetResponse
+func (c *ClientWithResponses) UpdateAssetWithBodyWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateAssetResponse, error) {
+	rsp, err := c.UpdateAssetWithBody(ctx, projectID, assetID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateAssetResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, body UpdateAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateAssetResponse, error) {
+	rsp, err := c.UpdateAsset(ctx, projectID, assetID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateAssetResponse(rsp)
+}
+
+// ArchiveAssetWithResponse request returning *ArchiveAssetResponse
+func (c *ClientWithResponses) ArchiveAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*ArchiveAssetResponse, error) {
+	rsp, err := c.ArchiveAsset(ctx, projectID, assetID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseArchiveAssetResponse(rsp)
+}
+
+// ListBuildsForAssetWithResponse request returning *ListBuildsForAssetResponse
+func (c *ClientWithResponses) ListBuildsForAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListBuildsForAssetParams, reqEditors ...RequestEditorFn) (*ListBuildsForAssetResponse, error) {
+	rsp, err := c.ListBuildsForAsset(ctx, projectID, assetID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBuildsForAssetResponse(rsp)
+}
+
+// RestoreAssetWithResponse request returning *RestoreAssetResponse
+func (c *ClientWithResponses) RestoreAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, reqEditors ...RequestEditorFn) (*RestoreAssetResponse, error) {
+	rsp, err := c.RestoreAsset(ctx, projectID, assetID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRestoreAssetResponse(rsp)
+}
+
+// ListAssetRevisionsWithResponse request returning *ListAssetRevisionsResponse
+func (c *ClientWithResponses) ListAssetRevisionsWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, params *ListAssetRevisionsParams, reqEditors ...RequestEditorFn) (*ListAssetRevisionsResponse, error) {
+	rsp, err := c.ListAssetRevisions(ctx, projectID, assetID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAssetRevisionsResponse(rsp)
+}
+
+// ReviseAssetWithBodyWithResponse request with arbitrary body returning *ReviseAssetResponse
+func (c *ClientWithResponses) ReviseAssetWithBodyWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReviseAssetResponse, error) {
+	rsp, err := c.ReviseAssetWithBody(ctx, projectID, assetID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReviseAssetResponse(rsp)
+}
+
+func (c *ClientWithResponses) ReviseAssetWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, body ReviseAssetJSONRequestBody, reqEditors ...RequestEditorFn) (*ReviseAssetResponse, error) {
+	rsp, err := c.ReviseAsset(ctx, projectID, assetID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseReviseAssetResponse(rsp)
+}
+
+// GetAssetRevisionWithResponse request returning *GetAssetRevisionResponse
+func (c *ClientWithResponses) GetAssetRevisionWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, reqEditors ...RequestEditorFn) (*GetAssetRevisionResponse, error) {
+	rsp, err := c.GetAssetRevision(ctx, projectID, assetID, assetRevision, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAssetRevisionResponse(rsp)
+}
+
+// ListBuildsForAssetRevisionWithResponse request returning *ListBuildsForAssetRevisionResponse
+func (c *ClientWithResponses) ListBuildsForAssetRevisionWithResponse(ctx context.Context, projectID ProjectID, assetID AssetID, assetRevision AssetRevision, params *ListBuildsForAssetRevisionParams, reqEditors ...RequestEditorFn) (*ListBuildsForAssetRevisionResponse, error) {
+	rsp, err := c.ListBuildsForAssetRevision(ctx, projectID, assetID, assetRevision, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBuildsForAssetRevisionResponse(rsp)
+}
+
 // ListBatchesWithResponse request returning *ListBatchesResponse
 func (c *ClientWithResponses) ListBatchesWithResponse(ctx context.Context, projectID ProjectID, params *ListBatchesParams, reqEditors ...RequestEditorFn) (*ListBatchesResponse, error) {
 	rsp, err := c.ListBatches(ctx, projectID, params, reqEditors...)
@@ -19034,6 +21222,15 @@ func (c *ClientWithResponses) UpdateEventWithResponse(ctx context.Context, proje
 	return ParseUpdateEventResponse(rsp)
 }
 
+// GetLogStreamWithResponse request returning *GetLogStreamResponse
+func (c *ClientWithResponses) GetLogStreamWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*GetLogStreamResponse, error) {
+	rsp, err := c.GetLogStream(ctx, projectID, batchID, jobID, logName, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLogStreamResponse(rsp)
+}
+
 // ListJobLogsForJobWithResponse request returning *ListJobLogsForJobResponse
 func (c *ClientWithResponses) ListJobLogsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*ListJobLogsForJobResponse, error) {
 	rsp, err := c.ListJobLogsForJob(ctx, projectID, batchID, jobID, params, reqEditors...)
@@ -19122,6 +21319,15 @@ func (c *ClientWithResponses) ListBatchLogsForBatchWithResponse(ctx context.Cont
 		return nil, err
 	}
 	return ParseListBatchLogsForBatchResponse(rsp)
+}
+
+// ListBatchLogStreamsWithResponse request returning *ListBatchLogStreamsResponse
+func (c *ClientWithResponses) ListBatchLogStreamsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*ListBatchLogStreamsResponse, error) {
+	rsp, err := c.ListBatchLogStreams(ctx, projectID, batchID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBatchLogStreamsResponse(rsp)
 }
 
 // DeleteBatchLogWithResponse request returning *DeleteBatchLogResponse
@@ -19363,6 +21569,49 @@ func (c *ClientWithResponses) UpdateBuildWithResponse(ctx context.Context, proje
 	return ParseUpdateBuildResponse(rsp)
 }
 
+// RemoveAssetsFromBuildWithBodyWithResponse request with arbitrary body returning *RemoveAssetsFromBuildResponse
+func (c *ClientWithResponses) RemoveAssetsFromBuildWithBodyWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RemoveAssetsFromBuildResponse, error) {
+	rsp, err := c.RemoveAssetsFromBuildWithBody(ctx, projectID, buildID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveAssetsFromBuildResponse(rsp)
+}
+
+func (c *ClientWithResponses) RemoveAssetsFromBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body RemoveAssetsFromBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveAssetsFromBuildResponse, error) {
+	rsp, err := c.RemoveAssetsFromBuild(ctx, projectID, buildID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRemoveAssetsFromBuildResponse(rsp)
+}
+
+// ListAssetsForBuildWithResponse request returning *ListAssetsForBuildResponse
+func (c *ClientWithResponses) ListAssetsForBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*ListAssetsForBuildResponse, error) {
+	rsp, err := c.ListAssetsForBuild(ctx, projectID, buildID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAssetsForBuildResponse(rsp)
+}
+
+// AddAssetsToBuildWithBodyWithResponse request with arbitrary body returning *AddAssetsToBuildResponse
+func (c *ClientWithResponses) AddAssetsToBuildWithBodyWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddAssetsToBuildResponse, error) {
+	rsp, err := c.AddAssetsToBuildWithBody(ctx, projectID, buildID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddAssetsToBuildResponse(rsp)
+}
+
+func (c *ClientWithResponses) AddAssetsToBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body AddAssetsToBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*AddAssetsToBuildResponse, error) {
+	rsp, err := c.AddAssetsToBuild(ctx, projectID, buildID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseAddAssetsToBuildResponse(rsp)
+}
+
 // ListExperienceTagsWithResponse request returning *ListExperienceTagsResponse
 func (c *ClientWithResponses) ListExperienceTagsWithResponse(ctx context.Context, projectID ProjectID, params *ListExperienceTagsParams, reqEditors ...RequestEditorFn) (*ListExperienceTagsResponse, error) {
 	rsp, err := c.ListExperienceTags(ctx, projectID, params, reqEditors...)
@@ -19509,6 +21758,15 @@ func (c *ClientWithResponses) BulkArchiveExperiencesWithResponse(ctx context.Con
 		return nil, err
 	}
 	return ParseBulkArchiveExperiencesResponse(rsp)
+}
+
+// ListExperienceCustomFieldsWithResponse request returning *ListExperienceCustomFieldsResponse
+func (c *ClientWithResponses) ListExperienceCustomFieldsWithResponse(ctx context.Context, projectID ProjectID, params *ListExperienceCustomFieldsParams, reqEditors ...RequestEditorFn) (*ListExperienceCustomFieldsResponse, error) {
+	rsp, err := c.ListExperienceCustomFields(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListExperienceCustomFieldsResponse(rsp)
 }
 
 // ArchiveExperienceWithResponse request returning *ArchiveExperienceResponse
@@ -20541,6 +22799,272 @@ func ParseUpdateProjectResponse(rsp *http.Response) (*UpdateProjectResponse, err
 	return response, nil
 }
 
+// ParseListAssetsResponse parses an HTTP response from a ListAssetsWithResponse call
+func ParseListAssetsResponse(rsp *http.Response) (*ListAssetsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAssetsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAssetsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateAssetResponse parses an HTTP response from a CreateAssetWithResponse call
+func ParseCreateAssetResponse(rsp *http.Response) (*CreateAssetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateAssetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Asset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetAssetResponse parses an HTTP response from a GetAssetWithResponse call
+func ParseGetAssetResponse(rsp *http.Response) (*GetAssetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAssetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Asset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateAssetResponse parses an HTTP response from a UpdateAssetWithResponse call
+func ParseUpdateAssetResponse(rsp *http.Response) (*UpdateAssetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateAssetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Asset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseArchiveAssetResponse parses an HTTP response from a ArchiveAssetWithResponse call
+func ParseArchiveAssetResponse(rsp *http.Response) (*ArchiveAssetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ArchiveAssetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListBuildsForAssetResponse parses an HTTP response from a ListBuildsForAssetWithResponse call
+func ParseListBuildsForAssetResponse(rsp *http.Response) (*ListBuildsForAssetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBuildsForAssetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAssetBuildsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRestoreAssetResponse parses an HTTP response from a RestoreAssetWithResponse call
+func ParseRestoreAssetResponse(rsp *http.Response) (*RestoreAssetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RestoreAssetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListAssetRevisionsResponse parses an HTTP response from a ListAssetRevisionsWithResponse call
+func ParseListAssetRevisionsResponse(rsp *http.Response) (*ListAssetRevisionsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAssetRevisionsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAssetRevisionsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseReviseAssetResponse parses an HTTP response from a ReviseAssetWithResponse call
+func ParseReviseAssetResponse(rsp *http.Response) (*ReviseAssetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ReviseAssetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Asset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetAssetRevisionResponse parses an HTTP response from a GetAssetRevisionWithResponse call
+func ParseGetAssetRevisionResponse(rsp *http.Response) (*GetAssetRevisionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAssetRevisionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Asset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBuildsForAssetRevisionResponse parses an HTTP response from a ListBuildsForAssetRevisionWithResponse call
+func ParseListBuildsForAssetRevisionResponse(rsp *http.Response) (*ListBuildsForAssetRevisionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBuildsForAssetRevisionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAssetBuildsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListBatchesResponse parses an HTTP response from a ListBatchesWithResponse call
 func ParseListBatchesResponse(rsp *http.Response) (*ListBatchesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -20947,6 +23471,22 @@ func ParseUpdateEventResponse(rsp *http.Response) (*UpdateEventResponse, error) 
 	return response, nil
 }
 
+// ParseGetLogStreamResponse parses an HTTP response from a GetLogStreamWithResponse call
+func ParseGetLogStreamResponse(rsp *http.Response) (*GetLogStreamResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLogStreamResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseListJobLogsForJobResponse parses an HTTP response from a ListJobLogsForJobWithResponse call
 func ParseListJobLogsForJobResponse(rsp *http.Response) (*ListJobLogsForJobResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -21187,6 +23727,32 @@ func ParseListBatchLogsForBatchResponse(rsp *http.Response) (*ListBatchLogsForBa
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListBatchLogsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListBatchLogStreamsResponse parses an HTTP response from a ListBatchLogStreamsWithResponse call
+func ParseListBatchLogStreamsResponse(rsp *http.Response) (*ListBatchLogStreamsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBatchLogStreamsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBatchLogStreamsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -21765,6 +24331,64 @@ func ParseUpdateBuildResponse(rsp *http.Response) (*UpdateBuildResponse, error) 
 	return response, nil
 }
 
+// ParseRemoveAssetsFromBuildResponse parses an HTTP response from a RemoveAssetsFromBuildWithResponse call
+func ParseRemoveAssetsFromBuildResponse(rsp *http.Response) (*RemoveAssetsFromBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RemoveAssetsFromBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListAssetsForBuildResponse parses an HTTP response from a ListAssetsForBuildWithResponse call
+func ParseListAssetsForBuildResponse(rsp *http.Response) (*ListAssetsForBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAssetsForBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBuildAssetsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseAddAssetsToBuildResponse parses an HTTP response from a AddAssetsToBuildWithResponse call
+func ParseAddAssetsToBuildResponse(rsp *http.Response) (*AddAssetsToBuildResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &AddAssetsToBuildResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseListExperienceTagsResponse parses an HTTP response from a ListExperienceTagsWithResponse call
 func ParseListExperienceTagsResponse(rsp *http.Response) (*ListExperienceTagsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -22027,6 +24651,32 @@ func ParseBulkArchiveExperiencesResponse(rsp *http.Response) (*BulkArchiveExperi
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest int
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListExperienceCustomFieldsResponse parses an HTTP response from a ListExperienceCustomFieldsWithResponse call
+func ParseListExperienceCustomFieldsResponse(rsp *http.Response) (*ListExperienceCustomFieldsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListExperienceCustomFieldsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListExperienceCustomFieldsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

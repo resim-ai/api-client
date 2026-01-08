@@ -29,6 +29,159 @@ func (_m *ClientInterface) EXPECT() *ClientInterface_Expecter {
 	return &ClientInterface_Expecter{mock: &_m.Mock}
 }
 
+// AddAssetsToBuild provides a mock function with given fields: ctx, projectID, buildID, body, reqEditors
+func (_m *ClientInterface) AddAssetsToBuild(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, body api.AddAssetsToBuildInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, buildID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddAssetsToBuild")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.AddAssetsToBuildInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, buildID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.AddAssetsToBuildInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, buildID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, api.AddAssetsToBuildInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, buildID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_AddAssetsToBuild_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddAssetsToBuild'
+type ClientInterface_AddAssetsToBuild_Call struct {
+	*mock.Call
+}
+
+// AddAssetsToBuild is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - buildID uuid.UUID
+//   - body api.AddAssetsToBuildInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) AddAssetsToBuild(ctx interface{}, projectID interface{}, buildID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_AddAssetsToBuild_Call {
+	return &ClientInterface_AddAssetsToBuild_Call{Call: _e.mock.On("AddAssetsToBuild",
+		append([]interface{}{ctx, projectID, buildID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_AddAssetsToBuild_Call) Run(run func(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, body api.AddAssetsToBuildInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_AddAssetsToBuild_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(api.AddAssetsToBuildInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_AddAssetsToBuild_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_AddAssetsToBuild_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_AddAssetsToBuild_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.AddAssetsToBuildInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_AddAssetsToBuild_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddAssetsToBuildWithBody provides a mock function with given fields: ctx, projectID, buildID, contentType, body, reqEditors
+func (_m *ClientInterface) AddAssetsToBuildWithBody(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, buildID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddAssetsToBuildWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, buildID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, buildID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, buildID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_AddAssetsToBuildWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddAssetsToBuildWithBody'
+type ClientInterface_AddAssetsToBuildWithBody_Call struct {
+	*mock.Call
+}
+
+// AddAssetsToBuildWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - buildID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) AddAssetsToBuildWithBody(ctx interface{}, projectID interface{}, buildID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_AddAssetsToBuildWithBody_Call {
+	return &ClientInterface_AddAssetsToBuildWithBody_Call{Call: _e.mock.On("AddAssetsToBuildWithBody",
+		append([]interface{}{ctx, projectID, buildID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_AddAssetsToBuildWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_AddAssetsToBuildWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_AddAssetsToBuildWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_AddAssetsToBuildWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_AddAssetsToBuildWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_AddAssetsToBuildWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddExperienceTagToExperience provides a mock function with given fields: ctx, projectID, experienceTagID, experienceID, reqEditors
 func (_m *ClientInterface) AddExperienceTagToExperience(ctx context.Context, projectID uuid.UUID, experienceTagID uuid.UUID, experienceID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -863,6 +1016,81 @@ func (_c *ClientInterface_AddTestSuitesToExperiencesWithBody_Call) RunAndReturn(
 	return _c
 }
 
+// ArchiveAsset provides a mock function with given fields: ctx, projectID, assetID, reqEditors
+func (_m *ClientInterface) ArchiveAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ArchiveAsset")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ArchiveAsset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ArchiveAsset'
+type ClientInterface_ArchiveAsset_Call struct {
+	*mock.Call
+}
+
+// ArchiveAsset is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ArchiveAsset(ctx interface{}, projectID interface{}, assetID interface{}, reqEditors ...interface{}) *ClientInterface_ArchiveAsset_Call {
+	return &ClientInterface_ArchiveAsset_Call{Call: _e.mock.On("ArchiveAsset",
+		append([]interface{}{ctx, projectID, assetID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ArchiveAsset_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_ArchiveAsset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveAsset_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ArchiveAsset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveAsset_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ArchiveAsset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ArchiveExperience provides a mock function with given fields: ctx, projectID, experienceID, reqEditors
 func (_m *ClientInterface) ArchiveExperience(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -1536,6 +1764,157 @@ func (_c *ClientInterface_CompareBatches_Call) Return(_a0 *http.Response, _a1 er
 }
 
 func (_c *ClientInterface_CompareBatches_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.CompareBatchesParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CompareBatches_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateAsset provides a mock function with given fields: ctx, projectID, body, reqEditors
+func (_m *ClientInterface) CreateAsset(ctx context.Context, projectID uuid.UUID, body api.CreateAssetInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAsset")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateAssetInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateAssetInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, api.CreateAssetInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateAsset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAsset'
+type ClientInterface_CreateAsset_Call struct {
+	*mock.Call
+}
+
+// CreateAsset is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - body api.CreateAssetInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateAsset(ctx interface{}, projectID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateAsset_Call {
+	return &ClientInterface_CreateAsset_Call{Call: _e.mock.On("CreateAsset",
+		append([]interface{}{ctx, projectID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateAsset_Call) Run(run func(ctx context.Context, projectID uuid.UUID, body api.CreateAssetInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateAsset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(api.CreateAssetInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateAsset_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateAsset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateAsset_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.CreateAssetInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateAsset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateAssetWithBody provides a mock function with given fields: ctx, projectID, contentType, body, reqEditors
+func (_m *ClientInterface) CreateAssetWithBody(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAssetWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateAssetWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAssetWithBody'
+type ClientInterface_CreateAssetWithBody_Call struct {
+	*mock.Call
+}
+
+// CreateAssetWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateAssetWithBody(ctx interface{}, projectID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateAssetWithBody_Call {
+	return &ClientInterface_CreateAssetWithBody_Call{Call: _e.mock.On("CreateAssetWithBody",
+		append([]interface{}{ctx, projectID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateAssetWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateAssetWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), args[3].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateAssetWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateAssetWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateAssetWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateAssetWithBody_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -4954,6 +5333,157 @@ func (_c *ClientInterface_DeleteWorkflowSuitesWithBody_Call) RunAndReturn(run fu
 	return _c
 }
 
+// GetAsset provides a mock function with given fields: ctx, projectID, assetID, reqEditors
+func (_m *ClientInterface) GetAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAsset")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetAsset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAsset'
+type ClientInterface_GetAsset_Call struct {
+	*mock.Call
+}
+
+// GetAsset is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetAsset(ctx interface{}, projectID interface{}, assetID interface{}, reqEditors ...interface{}) *ClientInterface_GetAsset_Call {
+	return &ClientInterface_GetAsset_Call{Call: _e.mock.On("GetAsset",
+		append([]interface{}{ctx, projectID, assetID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetAsset_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetAsset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetAsset_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetAsset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetAsset_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetAsset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAssetRevision provides a mock function with given fields: ctx, projectID, assetID, assetRevision, reqEditors
+func (_m *ClientInterface) GetAssetRevision(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, assetRevision int64, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, assetRevision)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAssetRevision")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, int64, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, assetRevision, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, int64, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, assetRevision, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, int64, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, assetRevision, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetAssetRevision_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAssetRevision'
+type ClientInterface_GetAssetRevision_Call struct {
+	*mock.Call
+}
+
+// GetAssetRevision is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - assetRevision int64
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetAssetRevision(ctx interface{}, projectID interface{}, assetID interface{}, assetRevision interface{}, reqEditors ...interface{}) *ClientInterface_GetAssetRevision_Call {
+	return &ClientInterface_GetAssetRevision_Call{Call: _e.mock.On("GetAssetRevision",
+		append([]interface{}{ctx, projectID, assetID, assetRevision}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetAssetRevision_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, assetRevision int64, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetAssetRevision_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(int64), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetAssetRevision_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetAssetRevision_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetAssetRevision_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, int64, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetAssetRevision_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetBatch provides a mock function with given fields: ctx, projectID, batchID, reqEditors
 func (_m *ClientInterface) GetBatch(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -5858,6 +6388,83 @@ func (_c *ClientInterface_GetJobLog_Call) Return(_a0 *http.Response, _a1 error) 
 }
 
 func (_c *ClientInterface_GetJobLog_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetJobLog_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetLogStream provides a mock function with given fields: ctx, projectID, batchID, jobID, logName, reqEditors
+func (_m *ClientInterface) GetLogStream(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, logName string, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, jobID, logName)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLogStream")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, logName, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, logName, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, logName, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetLogStream_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLogStream'
+type ClientInterface_GetLogStream_Call struct {
+	*mock.Call
+}
+
+// GetLogStream is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - jobID uuid.UUID
+//   - logName string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetLogStream(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, logName interface{}, reqEditors ...interface{}) *ClientInterface_GetLogStream_Call {
+	return &ClientInterface_GetLogStream_Call{Call: _e.mock.On("GetLogStream",
+		append([]interface{}{ctx, projectID, batchID, jobID, logName}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetLogStream_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, logName string, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetLogStream_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetLogStream_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetLogStream_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetLogStream_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetLogStream_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -7212,6 +7819,233 @@ func (_c *ClientInterface_ListAllJobs_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// ListAssetRevisions provides a mock function with given fields: ctx, projectID, assetID, params, reqEditors
+func (_m *ClientInterface) ListAssetRevisions(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, params *api.ListAssetRevisionsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAssetRevisions")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetRevisionsParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetRevisionsParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetRevisionsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAssetRevisions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAssetRevisions'
+type ClientInterface_ListAssetRevisions_Call struct {
+	*mock.Call
+}
+
+// ListAssetRevisions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - params *api.ListAssetRevisionsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAssetRevisions(ctx interface{}, projectID interface{}, assetID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListAssetRevisions_Call {
+	return &ClientInterface_ListAssetRevisions_Call{Call: _e.mock.On("ListAssetRevisions",
+		append([]interface{}{ctx, projectID, assetID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAssetRevisions_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, params *api.ListAssetRevisionsParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAssetRevisions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.ListAssetRevisionsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAssetRevisions_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAssetRevisions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAssetRevisions_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetRevisionsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAssetRevisions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAssets provides a mock function with given fields: ctx, projectID, params, reqEditors
+func (_m *ClientInterface) ListAssets(ctx context.Context, projectID uuid.UUID, params *api.ListAssetsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAssets")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListAssetsParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListAssetsParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *api.ListAssetsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAssets_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAssets'
+type ClientInterface_ListAssets_Call struct {
+	*mock.Call
+}
+
+// ListAssets is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - params *api.ListAssetsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAssets(ctx interface{}, projectID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListAssets_Call {
+	return &ClientInterface_ListAssets_Call{Call: _e.mock.On("ListAssets",
+		append([]interface{}{ctx, projectID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAssets_Call) Run(run func(ctx context.Context, projectID uuid.UUID, params *api.ListAssetsParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAssets_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*api.ListAssetsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAssets_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAssets_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAssets_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListAssetsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAssets_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAssetsForBuild provides a mock function with given fields: ctx, projectID, buildID, params, reqEditors
+func (_m *ClientInterface) ListAssetsForBuild(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, params *api.ListAssetsForBuildParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, buildID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAssetsForBuild")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetsForBuildParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, buildID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetsForBuildParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, buildID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetsForBuildParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, buildID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAssetsForBuild_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAssetsForBuild'
+type ClientInterface_ListAssetsForBuild_Call struct {
+	*mock.Call
+}
+
+// ListAssetsForBuild is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - buildID uuid.UUID
+//   - params *api.ListAssetsForBuildParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAssetsForBuild(ctx interface{}, projectID interface{}, buildID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListAssetsForBuild_Call {
+	return &ClientInterface_ListAssetsForBuild_Call{Call: _e.mock.On("ListAssetsForBuild",
+		append([]interface{}{ctx, projectID, buildID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAssetsForBuild_Call) Run(run func(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, params *api.ListAssetsForBuildParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAssetsForBuild_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.ListAssetsForBuildParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAssetsForBuild_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAssetsForBuild_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAssetsForBuild_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListAssetsForBuildParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAssetsForBuild_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListBatchAccounts provides a mock function with given fields: ctx, projectID, params, reqEditors
 func (_m *ClientInterface) ListBatchAccounts(ctx context.Context, projectID uuid.UUID, params *api.ListBatchAccountsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -7358,6 +8192,81 @@ func (_c *ClientInterface_ListBatchErrors_Call) Return(_a0 *http.Response, _a1 e
 }
 
 func (_c *ClientInterface_ListBatchErrors_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListBatchErrors_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListBatchLogStreams provides a mock function with given fields: ctx, projectID, batchID, reqEditors
+func (_m *ClientInterface) ListBatchLogStreams(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListBatchLogStreams")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListBatchLogStreams_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListBatchLogStreams'
+type ClientInterface_ListBatchLogStreams_Call struct {
+	*mock.Call
+}
+
+// ListBatchLogStreams is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListBatchLogStreams(ctx interface{}, projectID interface{}, batchID interface{}, reqEditors ...interface{}) *ClientInterface_ListBatchLogStreams_Call {
+	return &ClientInterface_ListBatchLogStreams_Call{Call: _e.mock.On("ListBatchLogStreams",
+		append([]interface{}{ctx, projectID, batchID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListBatchLogStreams_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListBatchLogStreams_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListBatchLogStreams_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListBatchLogStreams_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListBatchLogStreams_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListBatchLogStreams_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -8350,6 +9259,159 @@ func (_c *ClientInterface_ListBuilds_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
+// ListBuildsForAsset provides a mock function with given fields: ctx, projectID, assetID, params, reqEditors
+func (_m *ClientInterface) ListBuildsForAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, params *api.ListBuildsForAssetParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListBuildsForAsset")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListBuildsForAssetParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListBuildsForAssetParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListBuildsForAssetParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListBuildsForAsset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListBuildsForAsset'
+type ClientInterface_ListBuildsForAsset_Call struct {
+	*mock.Call
+}
+
+// ListBuildsForAsset is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - params *api.ListBuildsForAssetParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListBuildsForAsset(ctx interface{}, projectID interface{}, assetID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListBuildsForAsset_Call {
+	return &ClientInterface_ListBuildsForAsset_Call{Call: _e.mock.On("ListBuildsForAsset",
+		append([]interface{}{ctx, projectID, assetID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListBuildsForAsset_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, params *api.ListBuildsForAssetParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListBuildsForAsset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.ListBuildsForAssetParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListBuildsForAsset_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListBuildsForAsset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListBuildsForAsset_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListBuildsForAssetParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListBuildsForAsset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListBuildsForAssetRevision provides a mock function with given fields: ctx, projectID, assetID, assetRevision, params, reqEditors
+func (_m *ClientInterface) ListBuildsForAssetRevision(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, assetRevision int64, params *api.ListBuildsForAssetRevisionParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, assetRevision, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListBuildsForAssetRevision")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, int64, *api.ListBuildsForAssetRevisionParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, assetRevision, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, int64, *api.ListBuildsForAssetRevisionParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, assetRevision, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, int64, *api.ListBuildsForAssetRevisionParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, assetRevision, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListBuildsForAssetRevision_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListBuildsForAssetRevision'
+type ClientInterface_ListBuildsForAssetRevision_Call struct {
+	*mock.Call
+}
+
+// ListBuildsForAssetRevision is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - assetRevision int64
+//   - params *api.ListBuildsForAssetRevisionParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListBuildsForAssetRevision(ctx interface{}, projectID interface{}, assetID interface{}, assetRevision interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListBuildsForAssetRevision_Call {
+	return &ClientInterface_ListBuildsForAssetRevision_Call{Call: _e.mock.On("ListBuildsForAssetRevision",
+		append([]interface{}{ctx, projectID, assetID, assetRevision, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListBuildsForAssetRevision_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, assetRevision int64, params *api.ListBuildsForAssetRevisionParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListBuildsForAssetRevision_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(int64), args[4].(*api.ListBuildsForAssetRevisionParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListBuildsForAssetRevision_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListBuildsForAssetRevision_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListBuildsForAssetRevision_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, int64, *api.ListBuildsForAssetRevisionParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListBuildsForAssetRevision_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListBuildsForBranches provides a mock function with given fields: ctx, projectID, branchID, params, reqEditors
 func (_m *ClientInterface) ListBuildsForBranches(ctx context.Context, projectID uuid.UUID, branchID []uuid.UUID, params *api.ListBuildsForBranchesParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -8652,6 +9714,81 @@ func (_c *ClientInterface_ListEventsForJob_Call) Return(_a0 *http.Response, _a1 
 }
 
 func (_c *ClientInterface_ListEventsForJob_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListEventsForJobParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListEventsForJob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListExperienceCustomFields provides a mock function with given fields: ctx, projectID, params, reqEditors
+func (_m *ClientInterface) ListExperienceCustomFields(ctx context.Context, projectID uuid.UUID, params *api.ListExperienceCustomFieldsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListExperienceCustomFields")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListExperienceCustomFieldsParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListExperienceCustomFieldsParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *api.ListExperienceCustomFieldsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListExperienceCustomFields_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListExperienceCustomFields'
+type ClientInterface_ListExperienceCustomFields_Call struct {
+	*mock.Call
+}
+
+// ListExperienceCustomFields is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - params *api.ListExperienceCustomFieldsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListExperienceCustomFields(ctx interface{}, projectID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListExperienceCustomFields_Call {
+	return &ClientInterface_ListExperienceCustomFields_Call{Call: _e.mock.On("ListExperienceCustomFields",
+		append([]interface{}{ctx, projectID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListExperienceCustomFields_Call) Run(run func(ctx context.Context, projectID uuid.UUID, params *api.ListExperienceCustomFieldsParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListExperienceCustomFields_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*api.ListExperienceCustomFieldsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListExperienceCustomFields_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListExperienceCustomFields_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListExperienceCustomFields_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListExperienceCustomFieldsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListExperienceCustomFields_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -11313,6 +12450,159 @@ func (_c *ClientInterface_ListWorkflows_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// RemoveAssetsFromBuild provides a mock function with given fields: ctx, projectID, buildID, body, reqEditors
+func (_m *ClientInterface) RemoveAssetsFromBuild(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, body api.RemoveAssetsFromBuildInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, buildID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveAssetsFromBuild")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.RemoveAssetsFromBuildInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, buildID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.RemoveAssetsFromBuildInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, buildID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, api.RemoveAssetsFromBuildInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, buildID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_RemoveAssetsFromBuild_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveAssetsFromBuild'
+type ClientInterface_RemoveAssetsFromBuild_Call struct {
+	*mock.Call
+}
+
+// RemoveAssetsFromBuild is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - buildID uuid.UUID
+//   - body api.RemoveAssetsFromBuildInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) RemoveAssetsFromBuild(ctx interface{}, projectID interface{}, buildID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_RemoveAssetsFromBuild_Call {
+	return &ClientInterface_RemoveAssetsFromBuild_Call{Call: _e.mock.On("RemoveAssetsFromBuild",
+		append([]interface{}{ctx, projectID, buildID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_RemoveAssetsFromBuild_Call) Run(run func(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, body api.RemoveAssetsFromBuildInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_RemoveAssetsFromBuild_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(api.RemoveAssetsFromBuildInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_RemoveAssetsFromBuild_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_RemoveAssetsFromBuild_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_RemoveAssetsFromBuild_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.RemoveAssetsFromBuildInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_RemoveAssetsFromBuild_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveAssetsFromBuildWithBody provides a mock function with given fields: ctx, projectID, buildID, contentType, body, reqEditors
+func (_m *ClientInterface) RemoveAssetsFromBuildWithBody(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, buildID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveAssetsFromBuildWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, buildID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, buildID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, buildID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_RemoveAssetsFromBuildWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveAssetsFromBuildWithBody'
+type ClientInterface_RemoveAssetsFromBuildWithBody_Call struct {
+	*mock.Call
+}
+
+// RemoveAssetsFromBuildWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - buildID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) RemoveAssetsFromBuildWithBody(ctx interface{}, projectID interface{}, buildID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_RemoveAssetsFromBuildWithBody_Call {
+	return &ClientInterface_RemoveAssetsFromBuildWithBody_Call{Call: _e.mock.On("RemoveAssetsFromBuildWithBody",
+		append([]interface{}{ctx, projectID, buildID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_RemoveAssetsFromBuildWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, buildID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_RemoveAssetsFromBuildWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_RemoveAssetsFromBuildWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_RemoveAssetsFromBuildWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_RemoveAssetsFromBuildWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_RemoveAssetsFromBuildWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RemoveExperienceTagFromExperience provides a mock function with given fields: ctx, projectID, experienceTagID, experienceID, reqEditors
 func (_m *ClientInterface) RemoveExperienceTagFromExperience(ctx context.Context, projectID uuid.UUID, experienceTagID uuid.UUID, experienceID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -11998,6 +13288,81 @@ func (_c *ClientInterface_RerunBatchWithBody_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// RestoreAsset provides a mock function with given fields: ctx, projectID, assetID, reqEditors
+func (_m *ClientInterface) RestoreAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RestoreAsset")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_RestoreAsset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RestoreAsset'
+type ClientInterface_RestoreAsset_Call struct {
+	*mock.Call
+}
+
+// RestoreAsset is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) RestoreAsset(ctx interface{}, projectID interface{}, assetID interface{}, reqEditors ...interface{}) *ClientInterface_RestoreAsset_Call {
+	return &ClientInterface_RestoreAsset_Call{Call: _e.mock.On("RestoreAsset",
+		append([]interface{}{ctx, projectID, assetID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_RestoreAsset_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_RestoreAsset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_RestoreAsset_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_RestoreAsset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_RestoreAsset_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_RestoreAsset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // RestoreExperience provides a mock function with given fields: ctx, projectID, experienceID, reqEditors
 func (_m *ClientInterface) RestoreExperience(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -12144,6 +13509,159 @@ func (_c *ClientInterface_RestoreTestSuite_Call) Return(_a0 *http.Response, _a1 
 }
 
 func (_c *ClientInterface_RestoreTestSuite_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_RestoreTestSuite_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ReviseAsset provides a mock function with given fields: ctx, projectID, assetID, body, reqEditors
+func (_m *ClientInterface) ReviseAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, body api.ReviseAssetInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReviseAsset")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.ReviseAssetInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.ReviseAssetInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, api.ReviseAssetInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ReviseAsset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReviseAsset'
+type ClientInterface_ReviseAsset_Call struct {
+	*mock.Call
+}
+
+// ReviseAsset is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - body api.ReviseAssetInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ReviseAsset(ctx interface{}, projectID interface{}, assetID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_ReviseAsset_Call {
+	return &ClientInterface_ReviseAsset_Call{Call: _e.mock.On("ReviseAsset",
+		append([]interface{}{ctx, projectID, assetID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ReviseAsset_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, body api.ReviseAssetInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_ReviseAsset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(api.ReviseAssetInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ReviseAsset_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ReviseAsset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ReviseAsset_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.ReviseAssetInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ReviseAsset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ReviseAssetWithBody provides a mock function with given fields: ctx, projectID, assetID, contentType, body, reqEditors
+func (_m *ClientInterface) ReviseAssetWithBody(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ReviseAssetWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ReviseAssetWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ReviseAssetWithBody'
+type ClientInterface_ReviseAssetWithBody_Call struct {
+	*mock.Call
+}
+
+// ReviseAssetWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ReviseAssetWithBody(ctx interface{}, projectID interface{}, assetID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_ReviseAssetWithBody_Call {
+	return &ClientInterface_ReviseAssetWithBody_Call{Call: _e.mock.On("ReviseAssetWithBody",
+		append([]interface{}{ctx, projectID, assetID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ReviseAssetWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_ReviseAssetWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ReviseAssetWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ReviseAssetWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ReviseAssetWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ReviseAssetWithBody_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -12297,6 +13815,159 @@ func (_c *ClientInterface_ReviseTestSuiteWithBody_Call) Return(_a0 *http.Respons
 }
 
 func (_c *ClientInterface_ReviseTestSuiteWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ReviseTestSuiteWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateAsset provides a mock function with given fields: ctx, projectID, assetID, body, reqEditors
+func (_m *ClientInterface) UpdateAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, body api.UpdateAssetInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAsset")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.UpdateAssetInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.UpdateAssetInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, api.UpdateAssetInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_UpdateAsset_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAsset'
+type ClientInterface_UpdateAsset_Call struct {
+	*mock.Call
+}
+
+// UpdateAsset is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - body api.UpdateAssetInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) UpdateAsset(ctx interface{}, projectID interface{}, assetID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_UpdateAsset_Call {
+	return &ClientInterface_UpdateAsset_Call{Call: _e.mock.On("UpdateAsset",
+		append([]interface{}{ctx, projectID, assetID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_UpdateAsset_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, body api.UpdateAssetInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_UpdateAsset_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(api.UpdateAssetInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_UpdateAsset_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_UpdateAsset_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_UpdateAsset_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.UpdateAssetInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_UpdateAsset_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateAssetWithBody provides a mock function with given fields: ctx, projectID, assetID, contentType, body, reqEditors
+func (_m *ClientInterface) UpdateAssetWithBody(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, assetID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAssetWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, assetID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, assetID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, assetID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_UpdateAssetWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAssetWithBody'
+type ClientInterface_UpdateAssetWithBody_Call struct {
+	*mock.Call
+}
+
+// UpdateAssetWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - assetID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) UpdateAssetWithBody(ctx interface{}, projectID interface{}, assetID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_UpdateAssetWithBody_Call {
+	return &ClientInterface_UpdateAssetWithBody_Call{Call: _e.mock.On("UpdateAssetWithBody",
+		append([]interface{}{ctx, projectID, assetID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_UpdateAssetWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_UpdateAssetWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_UpdateAssetWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_UpdateAssetWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_UpdateAssetWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_UpdateAssetWithBody_Call {
 	_c.Call.Return(run)
 	return _c
 }

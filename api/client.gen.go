@@ -876,17 +876,18 @@ type ExperienceSyncConfig struct {
 
 // ExperienceSyncExperience defines model for experienceSyncExperience.
 type ExperienceSyncExperience struct {
-	Archived                bool                   `json:"archived" yaml:"archived"`
-	CacheExempt             *bool                  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
-	ContainerTimeoutSeconds *int32                 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
-	Description             string                 `json:"description" yaml:"description"`
-	EnvironmentVariables    *[]EnvironmentVariable `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
-	ExperienceID            *ExperienceID          `json:"experienceID,omitempty" yaml:"experienceID,omitempty"`
-	Locations               []string               `json:"locations" yaml:"locations"`
-	Name                    ExperienceName         `json:"name" yaml:"name"`
-	Profile                 *Profile               `json:"profile,omitempty" yaml:"profile,omitempty"`
-	Systems                 []string               `json:"systems" yaml:"systems"`
-	Tags                    []ExperienceTagName    `json:"tags" yaml:"tags"`
+	Archived                bool                     `json:"archived" yaml:"archived"`
+	CacheExempt             *bool                    `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+	ContainerTimeoutSeconds *int32                   `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
+	CustomFields            *[]CustomFieldDefinition `json:"customFields,omitempty" yaml:"customFields,omitempty"`
+	Description             string                   `json:"description" yaml:"description"`
+	EnvironmentVariables    *[]EnvironmentVariable   `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
+	ExperienceID            *ExperienceID            `json:"experienceID,omitempty" yaml:"experienceID,omitempty"`
+	Locations               []string                 `json:"locations" yaml:"locations"`
+	Name                    ExperienceName           `json:"name" yaml:"name"`
+	Profile                 *Profile                 `json:"profile,omitempty" yaml:"profile,omitempty"`
+	Systems                 []string                 `json:"systems" yaml:"systems"`
+	Tags                    []ExperienceTagName      `json:"tags" yaml:"tags"`
 }
 
 // ExperienceSyncTestSuite defines model for experienceSyncTestSuite.

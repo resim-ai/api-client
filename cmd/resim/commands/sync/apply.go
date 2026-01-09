@@ -3,15 +3,16 @@ package sync
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/resim-ai/api-client/api"
-	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
-	"github.com/schollz/progressbar/v3"
 	"log"
 	"maps"
 	"net/http"
 	"slices"
 	"sync"
+
+	"github.com/google/uuid"
+	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
+	"github.com/schollz/progressbar/v3"
 )
 
 // Apply the given ExperienceUpdates to the backend by calling the relevant endpoints.
@@ -130,6 +131,7 @@ func updateSingleExperience(
 			Profile:                 update.New.Profile,
 			EnvironmentVariables:    update.New.EnvironmentVariables,
 			CacheExempt:             update.New.CacheExempt,
+			CustomFields:            update.New.CustomFields,
 		}
 
 		response, err := client.CreateExperienceWithResponse(context.Background(), projectID, body)
@@ -168,7 +170,7 @@ func updateSingleExperience(
 			return err
 		}
 	}
-	updateMask := []string{"name", "description", "locations"}
+	updateMask := []string{"name", "description", "locations", "customFields"}
 
 	// These are only updated if they're included. Otherwise they retain their current
 	// value. Users should probably include them anyway.
@@ -194,6 +196,7 @@ func updateSingleExperience(
 			Profile:                 update.New.Profile,
 			EnvironmentVariables:    update.New.EnvironmentVariables,
 			CacheExempt:             update.New.CacheExempt,
+			CustomFields:            update.New.CustomFields,
 		},
 		UpdateMask: &updateMask,
 	}

@@ -226,9 +226,9 @@ const (
 	BranchNotFoundReport            string = "not found"
 	FailedToParseMetricsBuildReport string = "failed to parse metrics-build ID"
 	// Workflow Messages
-	CreatedWorkflow             string = "Created workflow successfully!"
-	UpdatedWorkflow             string = "Updated workflow successfully!"
-	CreatedWorkflowRun          string = "Created workflow run successfully!"
+	CreatedWorkflow    string = "Created workflow successfully!"
+	UpdatedWorkflow    string = "Updated workflow successfully!"
+	CreatedWorkflowRun string = "Created workflow run successfully!"
 	// Log Ingest Messages
 	LogIngested string = "Ingested log successfully!"
 )
@@ -1076,7 +1076,7 @@ func listMetricsBuilds(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{metricsBuildsCommand, listCommand}
 }
 
-func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, tags []string, timeout *time.Duration, profile *string, envVars []string, github bool) []CommandBuilder {
+func createExperience(projectID uuid.UUID, name string, description string, location string, systems []string, tags []string, timeout *time.Duration, profile *string, envVars []string, customFields []string, github bool) []CommandBuilder {
 	// We build a create experience command with the name, description, location flags
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
@@ -1130,6 +1130,12 @@ func createExperience(projectID uuid.UUID, name string, description string, loca
 		createCommand.Flags = append(createCommand.Flags, Flag{
 			Name:  "--environment-variable",
 			Value: envVar,
+		})
+	}
+	for _, customField := range customFields {
+		createCommand.Flags = append(createCommand.Flags, Flag{
+			Name:  "--custom-field",
+			Value: customField,
 		})
 	}
 	if github {
@@ -1217,7 +1223,7 @@ func listExperiences(projectID uuid.UUID) []CommandBuilder {
 	return []CommandBuilder{experienceCommand, listCommand}
 }
 
-func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, systems []string, tags []string, timeout *time.Duration, profile *string, envVars []string) []CommandBuilder {
+func updateExperience(projectID uuid.UUID, experienceKey string, name *string, description *string, location *string, systems []string, tags []string, timeout *time.Duration, profile *string, envVars []string, customFields []string) []CommandBuilder {
 	experienceCommand := CommandBuilder{
 		Command: "experiences",
 	}
@@ -1280,6 +1286,12 @@ func updateExperience(projectID uuid.UUID, experienceKey string, name *string, d
 		updateCommand.Flags = append(updateCommand.Flags, Flag{
 			Name:  "--environment-variable",
 			Value: envVar,
+		})
+	}
+	for _, customField := range customFields {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{
+			Name:  "--custom-field",
+			Value: customField,
 		})
 	}
 	return []CommandBuilder{experienceCommand, updateCommand}
@@ -2061,99 +2073,99 @@ func createTestSuite(projectID uuid.UUID, name string, description string, syste
 
 // Workflow helpers
 func createWorkflow(projectID uuid.UUID, name string, description string, suitesJSON string, suitesFile string) []CommandBuilder {
-    workflowsCommand := CommandBuilder{Command: "workflows"}
-    createCommand := CommandBuilder{
-        Command: "create",
-        Flags: []Flag{
-            {Name: "--project", Value: projectID.String()},
-            {Name: "--name", Value: name},
-            {Name: "--description", Value: description},
-        },
-    }
-    if suitesJSON != "" {
-        createCommand.Flags = append(createCommand.Flags, Flag{Name: "--suites", Value: suitesJSON})
-    }
-    if suitesFile != "" {
-        createCommand.Flags = append(createCommand.Flags, Flag{Name: "--suites-file", Value: suitesFile})
-    }
-    return []CommandBuilder{workflowsCommand, createCommand}
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{Name: "--project", Value: projectID.String()},
+			{Name: "--name", Value: name},
+			{Name: "--description", Value: description},
+		},
+	}
+	if suitesJSON != "" {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--suites", Value: suitesJSON})
+	}
+	if suitesFile != "" {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--suites-file", Value: suitesFile})
+	}
+	return []CommandBuilder{workflowsCommand, createCommand}
 }
 
 func updateWorkflowCmd(projectID uuid.UUID, workflowKey string, name *string, description *string, ciLink *string, suitesJSON *string, suitesFile *string) []CommandBuilder {
-    workflowsCommand := CommandBuilder{Command: "workflows"}
-    updateCommand := CommandBuilder{
-        Command: "update",
-        Flags: []Flag{
-            {Name: "--project", Value: projectID.String()},
-            {Name: "--workflow", Value: workflowKey},
-        },
-    }
-    if name != nil {
-        updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--name", Value: *name})
-    }
-    if description != nil {
-        updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--description", Value: *description})
-    }
-    if ciLink != nil {
-        updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--ci-link", Value: *ciLink})
-    }
-    if suitesJSON != nil {
-        updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--suites", Value: *suitesJSON})
-    }
-    if suitesFile != nil {
-        updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--suites-file", Value: *suitesFile})
-    }
-    return []CommandBuilder{workflowsCommand, updateCommand}
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	updateCommand := CommandBuilder{
+		Command: "update",
+		Flags: []Flag{
+			{Name: "--project", Value: projectID.String()},
+			{Name: "--workflow", Value: workflowKey},
+		},
+	}
+	if name != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--name", Value: *name})
+	}
+	if description != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--description", Value: *description})
+	}
+	if ciLink != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--ci-link", Value: *ciLink})
+	}
+	if suitesJSON != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--suites", Value: *suitesJSON})
+	}
+	if suitesFile != nil {
+		updateCommand.Flags = append(updateCommand.Flags, Flag{Name: "--suites-file", Value: *suitesFile})
+	}
+	return []CommandBuilder{workflowsCommand, updateCommand}
 }
 
 func listWorkflowsCmd(projectID uuid.UUID) []CommandBuilder {
-    workflowsCommand := CommandBuilder{Command: "workflows"}
-    listCommand := CommandBuilder{Command: "list", Flags: []Flag{{Name: "--project", Value: projectID.String()}}}
-    return []CommandBuilder{workflowsCommand, listCommand}
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	listCommand := CommandBuilder{Command: "list", Flags: []Flag{{Name: "--project", Value: projectID.String()}}}
+	return []CommandBuilder{workflowsCommand, listCommand}
 }
 
 func getWorkflowCmd(projectID uuid.UUID, workflowKey string) []CommandBuilder {
-    workflowsCommand := CommandBuilder{Command: "workflows"}
-    getCommand := CommandBuilder{Command: "get", Flags: []Flag{{Name: "--project", Value: projectID.String()}, {Name: "--workflow", Value: workflowKey}}}
-    return []CommandBuilder{workflowsCommand, getCommand}
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	getCommand := CommandBuilder{Command: "get", Flags: []Flag{{Name: "--project", Value: projectID.String()}, {Name: "--workflow", Value: workflowKey}}}
+	return []CommandBuilder{workflowsCommand, getCommand}
 }
 
 func runWorkflowCmd(projectID uuid.UUID, workflowKey string, buildID uuid.UUID, parameters map[string]string, poolLabels []string, associatedAccount string, allowableFailurePercent *int) []CommandBuilder {
-    workflowsCommand := CommandBuilder{Command: "workflows"}
-    runsCommand := CommandBuilder{Command: "runs"}
-    createCommand := CommandBuilder{
-        Command: "create",
-        Flags: []Flag{
-            {Name: "--project", Value: projectID.String()},
-            {Name: "--workflow", Value: workflowKey},
-            {Name: "--build-id", Value: buildID.String()},
-            {Name: "--account", Value: associatedAccount},
-        },
-    }
-    for key, val := range parameters {
-        createCommand.Flags = append(createCommand.Flags, Flag{Name: "--parameter", Value: fmt.Sprintf("%s=%s", key, val)})
-    }
-    if len(poolLabels) > 0 {
-        createCommand.Flags = append(createCommand.Flags, Flag{Name: "--pool-labels", Value: strings.Join(poolLabels, ",")})
-    }
-    if allowableFailurePercent != nil {
-        createCommand.Flags = append(createCommand.Flags, Flag{Name: "--allowable-failure-percent", Value: fmt.Sprintf("%d", *allowableFailurePercent)})
-    }
-    return []CommandBuilder{workflowsCommand, runsCommand, createCommand}
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	runsCommand := CommandBuilder{Command: "runs"}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{Name: "--project", Value: projectID.String()},
+			{Name: "--workflow", Value: workflowKey},
+			{Name: "--build-id", Value: buildID.String()},
+			{Name: "--account", Value: associatedAccount},
+		},
+	}
+	for key, val := range parameters {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--parameter", Value: fmt.Sprintf("%s=%s", key, val)})
+	}
+	if len(poolLabels) > 0 {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--pool-labels", Value: strings.Join(poolLabels, ",")})
+	}
+	if allowableFailurePercent != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--allowable-failure-percent", Value: fmt.Sprintf("%d", *allowableFailurePercent)})
+	}
+	return []CommandBuilder{workflowsCommand, runsCommand, createCommand}
 }
 
 func listWorkflowRunsCmd(projectID uuid.UUID, workflowKey string) []CommandBuilder {
-    workflowsCommand := CommandBuilder{Command: "workflows"}
-    runsCommand := CommandBuilder{Command: "runs"}
-    listCommand := CommandBuilder{Command: "list", Flags: []Flag{{Name: "--project", Value: projectID.String()}, {Name: "--workflow", Value: workflowKey}}}
-    return []CommandBuilder{workflowsCommand, runsCommand, listCommand}
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	runsCommand := CommandBuilder{Command: "runs"}
+	listCommand := CommandBuilder{Command: "list", Flags: []Flag{{Name: "--project", Value: projectID.String()}, {Name: "--workflow", Value: workflowKey}}}
+	return []CommandBuilder{workflowsCommand, runsCommand, listCommand}
 }
 
 func getWorkflowRunCmd(projectID uuid.UUID, workflowKey string, runID uuid.UUID) []CommandBuilder {
-    workflowsCommand := CommandBuilder{Command: "workflows"}
-    runsCommand := CommandBuilder{Command: "runs"}
-    getCommand := CommandBuilder{Command: "get", Flags: []Flag{{Name: "--project", Value: projectID.String()}, {Name: "--workflow", Value: workflowKey}, {Name: "--run-id", Value: runID.String()}}}
-    return []CommandBuilder{workflowsCommand, runsCommand, getCommand}
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	runsCommand := CommandBuilder{Command: "runs"}
+	getCommand := CommandBuilder{Command: "get", Flags: []Flag{{Name: "--project", Value: projectID.String()}, {Name: "--workflow", Value: workflowKey}, {Name: "--run-id", Value: runID.String()}}}
+	return []CommandBuilder{workflowsCommand, runsCommand, getCommand}
 }
 
 func reviseTestSuite(projectID uuid.UUID, testSuite string, name *string, description *string, systemID *string, experiences *[]string, metricsBuildID *string, showOnSummary *bool, metricsSetName *string, github bool) []CommandBuilder {
@@ -2868,13 +2880,13 @@ func TestSystems(t *testing.T) {
 
 	// Create and tag a couple of experiences:
 	experience1Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experience1Name, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experience1Name, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience1IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experience1IDString)
 	experience2Name := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experience2Name, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experience2Name, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experience2IDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -3429,7 +3441,11 @@ func TestExperienceCreate(t *testing.T) {
 	timeout := time.Duration(timeoutSeconds) * time.Second
 	profile := "test-profile"
 	envVars := []string{"ENV_VAR1=value1", "ENV_VAR2=value2"}
-	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", "location", systemNames, EmptySlice, &timeout, &profile, envVars, GithubTrue), ExpectNoError)
+	customFields := []string{"hello=world", "number=32", "the_time=2025-10-05T23:13:23Z", `custom json field={"foo": "bar"}`}
+	output = s.runCommand(ts,
+		createExperience(projectID, experienceName, "description", "location", systemNames, EmptySlice,
+			&timeout, &profile, envVars, customFields, GithubTrue),
+		ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// Get the experience ID from the create output
@@ -3473,9 +3489,27 @@ func TestExperienceCreate(t *testing.T) {
 	ts.Equal(profile, experience.Profile)
 	ts.Equal(len(envVars), len(experience.EnvironmentVariables))
 
+	// validate the custom fields came back
+	ts.Equal(len(customFields), len(experience.CustomFields))
+	ts.Equal("custom json field", experience.CustomFields[0].Name)
+	ts.Equal(`{"foo": "bar"}`, experience.CustomFields[0].Values[0])
+	ts.Equal(api.CustomFieldValueTypeJson, experience.CustomFields[0].Type)
+
+	ts.Equal("hello", experience.CustomFields[1].Name)
+	ts.Equal("world", experience.CustomFields[1].Values[0])
+	ts.Equal(api.CustomFieldValueTypeText, experience.CustomFields[1].Type)
+
+	ts.Equal("number", experience.CustomFields[2].Name)
+	ts.Equal("32", experience.CustomFields[2].Values[0])
+	ts.Equal(api.CustomFieldValueTypeNumber, experience.CustomFields[2].Type)
+
+	ts.Equal("the_time", experience.CustomFields[3].Name)
+	ts.Equal("2025-10-05T23:13:23Z", experience.CustomFields[3].Values[0])
+	ts.Equal(api.CustomFieldValueTypeTimestamp, experience.CustomFields[3].Type)
+
 	// Create an experience with multiple locations
 	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", "location1,location2", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", "location1,location2", EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	experienceIDString2 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -3507,7 +3541,7 @@ func TestExperienceCreateGithub(t *testing.T) {
 	projectID := uuid.MustParse(projectIDString)
 
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", "location", EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
@@ -3571,7 +3605,7 @@ func TestExperienceUpdate(t *testing.T) {
 	originalTimeout := time.Duration(originalTimeoutSeconds) * time.Second
 	originalProfile := "original-profile"
 	originalEnvVars := []string{"ORIGINAL_ENV_VAR1=value1", "ORIGINAL_ENV_VAR2=value2"}
-	output = s.runCommand(ts, createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, EmptySlice, &originalTimeout, &originalProfile, originalEnvVars, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName, originalDescription, originalLocation, EmptySlice, EmptySlice, &originalTimeout, &originalProfile, originalEnvVars, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 
@@ -3593,36 +3627,61 @@ func TestExperienceUpdate(t *testing.T) {
 
 	// 1. Update the experience name alone and verify
 	newName := "updated-experience-name"
-	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, Ptr(newName), nil, nil, EmptySlice, EmptySlice, nil, nil, nil), ExpectNoError)
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, Ptr(newName), nil, nil, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice), ExpectNoError)
 	s.verifyExperienceUpdate(ts, projectID, experienceIDString, newName, originalDescription, originalLocation, originalTimeoutSeconds, originalProfile, originalEnvVars)
 
 	// 2. Update the description alone and verify
 	newDescription := "updated description"
-	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, Ptr(newDescription), nil, EmptySlice, EmptySlice, nil, nil, nil), ExpectNoError)
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, Ptr(newDescription), nil, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice), ExpectNoError)
 	s.verifyExperienceUpdate(ts, projectID, experienceIDString, newName, newDescription, originalLocation, originalTimeoutSeconds, originalProfile, originalEnvVars)
 
 	// 3. Update the location alone and verify
 	newLocation := "updated location"
-	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, Ptr(newLocation), EmptySlice, EmptySlice, nil, nil, nil), ExpectNoError)
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, Ptr(newLocation), EmptySlice, EmptySlice, nil, nil, nil, EmptySlice), ExpectNoError)
 	s.verifyExperienceUpdate(ts, projectID, experienceIDString, newName, newDescription, newLocation, originalTimeoutSeconds, originalProfile, originalEnvVars)
 
 	// 4. Update the timeout alone and verify
 	newTimeoutSeconds := int32(300)
 	newTimeout := time.Duration(newTimeoutSeconds) * time.Second
-	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, nil, EmptySlice, EmptySlice, &newTimeout, nil, nil), ExpectNoError)
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, nil, EmptySlice, EmptySlice, &newTimeout, nil, nil, EmptySlice), ExpectNoError)
 	s.verifyExperienceUpdate(ts, projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds, originalProfile, originalEnvVars)
 
 	// 5. Update the profile alone and verify
 	newProfile := "updated-profile"
-	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, nil, EmptySlice, EmptySlice, nil, &newProfile, nil), ExpectNoError)
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, nil, EmptySlice, EmptySlice, nil, &newProfile, nil, EmptySlice), ExpectNoError)
 	s.verifyExperienceUpdate(ts, projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds, newProfile, originalEnvVars)
 
 	// 6. Update the environment variables alone and verify
 	newEnvVars := []string{"UPDATED_ENV_VAR1=value1", "UPDATED_ENV_VAR2=value2"}
-	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, nil, EmptySlice, EmptySlice, nil, nil, newEnvVars), ExpectNoError)
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, nil, EmptySlice, EmptySlice, nil, nil, newEnvVars, EmptySlice), ExpectNoError)
 	s.verifyExperienceUpdate(ts, projectID, experienceIDString, newName, newDescription, newLocation, newTimeoutSeconds, newProfile, newEnvVars)
 
-	// 7. Update the name, description, location, timeout, profile, and environment variables and verify
+	// 7. Update the custom fields alone and verify
+	customFields := []string{"hello=world", "number=32", "the_time=2025-10-05T23:13:23Z", `custom json field={"foo": "bar"}`}
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, nil, nil, nil, EmptySlice, EmptySlice, nil, nil, nil, customFields), ExpectNoError)
+	output = s.runCommand(ts, getExperience(projectID, experienceIDString), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &experience)
+	ts.NoError(err)
+
+	// validate the custom fields came back
+	ts.Equal(len(customFields), len(experience.CustomFields))
+	ts.Equal("custom json field", experience.CustomFields[0].Name)
+	ts.Equal(`{"foo": "bar"}`, experience.CustomFields[0].Values[0])
+	ts.Equal(api.CustomFieldValueTypeJson, experience.CustomFields[0].Type)
+
+	ts.Equal("hello", experience.CustomFields[1].Name)
+	ts.Equal("world", experience.CustomFields[1].Values[0])
+	ts.Equal(api.CustomFieldValueTypeText, experience.CustomFields[1].Type)
+
+	ts.Equal("number", experience.CustomFields[2].Name)
+	ts.Equal("32", experience.CustomFields[2].Values[0])
+	ts.Equal(api.CustomFieldValueTypeNumber, experience.CustomFields[2].Type)
+
+	ts.Equal("the_time", experience.CustomFields[3].Name)
+	ts.Equal("2025-10-05T23:13:23Z", experience.CustomFields[3].Values[0])
+	ts.Equal(api.CustomFieldValueTypeTimestamp, experience.CustomFields[3].Type)
+
+	// 8. Update the name, description, location, timeout, profile, and environment variables and verify
 	finalName := "final-experience-name"
 	finalDescription := "final description"
 	finalLocation := "final location"
@@ -3630,7 +3689,7 @@ func TestExperienceUpdate(t *testing.T) {
 	finalTimeout := time.Duration(finalTimeoutSeconds) * time.Second
 	finalProfile := "final-profile"
 	finalEnvVars := []string{"FINAL_ENV_VAR1=value1", "FINAL_ENV_VAR2=value2"}
-	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, &finalName, &finalDescription, &finalLocation, EmptySlice, EmptySlice, &finalTimeout, &finalProfile, finalEnvVars), ExpectNoError)
+	output = s.runCommand(ts, updateExperience(projectID, experienceIDString, &finalName, &finalDescription, &finalLocation, EmptySlice, EmptySlice, &finalTimeout, &finalProfile, finalEnvVars, EmptySlice), ExpectNoError)
 	s.verifyExperienceUpdate(ts, projectID, experienceIDString, finalName, finalDescription, finalLocation, finalTimeoutSeconds, finalProfile, finalEnvVars)
 
 	// Archive the project:
@@ -3654,7 +3713,7 @@ func TestBatchAndLogs(t *testing.T) {
 	// First create two experiences:
 	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/test-object/", s.Config.E2EBucket)
-	output = s.runCommand(ts, createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -3662,7 +3721,7 @@ func TestBatchAndLogs(t *testing.T) {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -4003,14 +4062,14 @@ func TestRerunBatch(t *testing.T) {
 	// First create two experiences:
 	experienceName1 := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/test-object/", s.Config.E2EBucket)
-	output = s.runCommand(ts, createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
 	experienceIDString1 := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 
 	experienceName2 := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -4185,7 +4244,7 @@ func TestParameterizedBatch(t *testing.T) {
 	// First create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -4287,7 +4346,7 @@ func TestCreateSweepParameterNameAndValues(t *testing.T) {
 	// create two experiences:
 	experienceName1 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(ts, createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName1, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -4295,7 +4354,7 @@ func TestCreateSweepParameterNameAndValues(t *testing.T) {
 	experienceID1 := uuid.MustParse(experienceIDString1)
 
 	experienceName2 := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName2, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -4507,7 +4566,7 @@ func TestCancelSweep(t *testing.T) {
 	// create an experience:
 	experienceName := fmt.Sprintf("sweep-test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -4996,7 +5055,7 @@ func TestTestSuites(t *testing.T) {
 	for i := 0; i < NUM_EXPERIENCES; i++ {
 		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-		output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, EmptySlice, nil, nil, []string{}, GithubTrue), ExpectNoError)
+		output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, EmptySlice, nil, nil, []string{}, EmptySlice, GithubTrue), ExpectNoError)
 		ts.Contains(output.StdOut, GithubCreatedExperience)
 		ts.Empty(output.StdErr)
 		// We expect to be able to parse the experience ID as a UUID
@@ -5243,7 +5302,7 @@ func TestReports(t *testing.T) {
 	for i := 0; i < NUM_EXPERIENCES; i++ {
 		experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 		experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-		output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, EmptySlice, nil, nil, []string{}, GithubTrue), ExpectNoError)
+		output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, []string{systemName}, EmptySlice, nil, nil, []string{}, EmptySlice, GithubTrue), ExpectNoError)
 		ts.Contains(output.StdOut, GithubCreatedExperience)
 		ts.Empty(output.StdErr)
 		// We expect to be able to parse the experience ID as a UUID
@@ -5393,167 +5452,167 @@ func TestReports(t *testing.T) {
 }
 
 func TestWorkflows(t *testing.T) {
-    ts := assert.New(t)
-    t.Parallel()
-    fmt.Println("Testing workflows and runs")
+	ts := assert.New(t)
+	t.Parallel()
+	fmt.Println("Testing workflows and runs")
 
-    // Create a project
-    projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
-    output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
-    ts.Contains(output.StdOut, GithubCreatedProject)
-    projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
-    projectID := uuid.MustParse(projectIDString)
+	// Create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
 
-    // Create a system
-    systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
-    output = s.runCommand(ts, createSystem(projectIDString, systemName, "system for workflows", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedSystem)
+	// Create a system
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "system for workflows", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubFalse), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedSystem)
 
-    // Create a branch
-    branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
-    output = s.runCommand(ts, createBranch(projectID, branchName, "RELEASE", GithubFalse), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedBranch)
+	// Create a branch
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(ts, createBranch(projectID, branchName, "RELEASE", GithubFalse), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedBranch)
 
-    // Create a build
-    output = s.runCommand(ts, createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", []string{}, "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedBuild)
-    buildIDString := output.StdOut[len(CreatedBuild)+len(" ") : len(output.StdOut)-1]
-    // Above slice may not be reliable; instead, get by fetching the build list and parsing. Simpler: just list builds and pick latest.
-    // Fallback to parsing via reports/test suites patterns when Github flag prints ID directly. For simplicity in E2E, create again with github to capture ID.
-    output = s.runCommand(ts, createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", []string{}, "1.0.1", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
-    ts.Contains(output.StdOut, GithubCreatedBuild)
-    buildIDString = output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
-    buildID := uuid.MustParse(buildIDString)
+	// Create a build
+	output = s.runCommand(ts, createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", []string{}, "1.0.0", GithubFalse, AutoCreateBranchFalse), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedBuild)
+	buildIDString := output.StdOut[len(CreatedBuild)+len(" ") : len(output.StdOut)-1]
+	// Above slice may not be reliable; instead, get by fetching the build list and parsing. Simpler: just list builds and pick latest.
+	// Fallback to parsing via reports/test suites patterns when Github flag prints ID directly. For simplicity in E2E, create again with github to capture ID.
+	output = s.runCommand(ts, createBuild(projectName, branchName, systemName, "description", "public.ecr.aws/docker/library/hello-world:latest", []string{}, "1.0.1", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedBuild)
+	buildIDString = output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	buildID := uuid.MustParse(buildIDString)
 
-    // Create experiences and a metrics build to make a test suite
-    expName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-    expLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-    output = s.runCommand(ts, createExperience(projectID, expName, "description", expLocation, []string{systemName}, EmptySlice, nil, nil, []string{}, GithubFalse), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedExperience)
-    output = s.runCommand(ts, createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubTrue), ExpectNoError)
-    ts.Contains(output.StdOut, GithubCreatedMetricsBuild)
-    metricsBuildID := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
+	// Create experiences and a metrics build to make a test suite
+	expName := fmt.Sprintf("test-experience-%s", uuid.New().String())
+	expLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
+	output = s.runCommand(ts, createExperience(projectID, expName, "description", expLocation, []string{systemName}, EmptySlice, nil, nil, []string{}, EmptySlice, GithubFalse), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedExperience)
+	output = s.runCommand(ts, createMetricsBuild(projectID, "metrics-build", "public.ecr.aws/docker/library/hello-world:latest", "1.0.0", EmptySlice, GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedMetricsBuild)
+	metricsBuildID := output.StdOut[len(GithubCreatedMetricsBuild) : len(output.StdOut)-1]
 
-    // Track created test suites by name -> ID for later validation
-    suiteNameToID := map[string]string{}
+	// Track created test suites by name -> ID for later validation
+	suiteNameToID := map[string]string{}
 
-    // Create a test suite needed for workflow
-    testSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
-    output = s.runCommand(ts, createTestSuite(projectID, testSuiteName, "workflow test suite", systemName, []string{expName}, metricsBuildID, GithubTrue, nil), ExpectNoError)
-    ts.Contains(output.StdOut, GithubCreatedTestSuite)
-    // Parse and store the created test suite ID
-    testSuiteIDRevisionString := output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
-    parts := strings.Split(testSuiteIDRevisionString, "/")
-    ts.Len(parts, 2)
-    uuid.MustParse(parts[0])
-    suiteNameToID[testSuiteName] = parts[0]
+	// Create a test suite needed for workflow
+	testSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+	output = s.runCommand(ts, createTestSuite(projectID, testSuiteName, "workflow test suite", systemName, []string{expName}, metricsBuildID, GithubTrue, nil), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedTestSuite)
+	// Parse and store the created test suite ID
+	testSuiteIDRevisionString := output.StdOut[len(GithubCreatedTestSuite) : len(output.StdOut)-1]
+	parts := strings.Split(testSuiteIDRevisionString, "/")
+	ts.Len(parts, 2)
+	uuid.MustParse(parts[0])
+	suiteNameToID[testSuiteName] = parts[0]
 
-    // Create workflow with one enabled suite
-    suitesSpec := fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName)
-    workflowName := fmt.Sprintf("test-workflow-%s", uuid.New().String())
-    output = s.runCommand(ts, createWorkflow(projectID, workflowName, "desc", suitesSpec, ""), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedWorkflow)
+	// Create workflow with one enabled suite
+	suitesSpec := fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName)
+	workflowName := fmt.Sprintf("test-workflow-%s", uuid.New().String())
+	output = s.runCommand(ts, createWorkflow(projectID, workflowName, "desc", suitesSpec, ""), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedWorkflow)
 
-    // List workflows and ensure present
-    output = s.runCommand(ts, listWorkflowsCmd(projectID), ExpectNoError)
-    ts.Contains(output.StdOut, workflowName)
-    ts.Contains(output.StdOut, testSuiteName)
+	// List workflows and ensure present
+	output = s.runCommand(ts, listWorkflowsCmd(projectID), ExpectNoError)
+	ts.Contains(output.StdOut, workflowName)
+	ts.Contains(output.StdOut, testSuiteName)
 
-    // Get workflow
-    output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
-    ts.Contains(output.StdOut, workflowName)
-    ts.Contains(output.StdOut, testSuiteName)
+	// Get workflow
+	output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
+	ts.Contains(output.StdOut, workflowName)
+	ts.Contains(output.StdOut, testSuiteName)
 
-    // Run workflow
-    output = s.runCommand(ts, runWorkflowCmd(projectID, workflowName, buildID, map[string]string{"p1": "v1"}, []string{}, AssociatedAccount, Ptr(0)), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedWorkflowRun)
-    // Parse workflow run ID from github path is not printed; we will list runs
-    output = s.runCommand(ts, listWorkflowRunsCmd(projectID, workflowName), ExpectNoError)
-    var runs []api.WorkflowRun
-    err := json.Unmarshal([]byte(output.StdOut), &runs)
-    ts.NoError(err)
-    ts.NotEmpty(runs)
-    // Get one run
-    runID := runs[0].WorkflowRunID
-    output = s.runCommand(ts, getWorkflowRunCmd(projectID, workflowName, runID), ExpectNoError)
-    // Should print workflow run test suites JSON array
-    // We want to check for the test suite ID, not the name.
-    // Output is a JSON array of WorkflowRunTestSuite objects, containing TestSuiteID fields.
-    var suites []struct {
-        TestSuiteID string `json:"testSuiteID"`
-    }
-    err = json.Unmarshal([]byte(output.StdOut), &suites)
-    ts.NoError(err)
-    expectedSuiteID := suiteNameToID[testSuiteName]
-    found := false
-    for _, runSuite := range suites {
-        if runSuite.TestSuiteID == expectedSuiteID {
-            found = true
-            break
-        }
-    }
-    ts.True(found, "test suite ID %s not found in workflow run test suites", expectedSuiteID)
+	// Run workflow
+	output = s.runCommand(ts, runWorkflowCmd(projectID, workflowName, buildID, map[string]string{"p1": "v1"}, []string{}, AssociatedAccount, Ptr(0)), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedWorkflowRun)
+	// Parse workflow run ID from github path is not printed; we will list runs
+	output = s.runCommand(ts, listWorkflowRunsCmd(projectID, workflowName), ExpectNoError)
+	var runs []api.WorkflowRun
+	err := json.Unmarshal([]byte(output.StdOut), &runs)
+	ts.NoError(err)
+	ts.NotEmpty(runs)
+	// Get one run
+	runID := runs[0].WorkflowRunID
+	output = s.runCommand(ts, getWorkflowRunCmd(projectID, workflowName, runID), ExpectNoError)
+	// Should print workflow run test suites JSON array
+	// We want to check for the test suite ID, not the name.
+	// Output is a JSON array of WorkflowRunTestSuite objects, containing TestSuiteID fields.
+	var suites []struct {
+		TestSuiteID string `json:"testSuiteID"`
+	}
+	err = json.Unmarshal([]byte(output.StdOut), &suites)
+	ts.NoError(err)
+	expectedSuiteID := suiteNameToID[testSuiteName]
+	found := false
+	for _, runSuite := range suites {
+		if runSuite.TestSuiteID == expectedSuiteID {
+			found = true
+			break
+		}
+	}
+	ts.True(found, "test suite ID %s not found in workflow run test suites", expectedSuiteID)
 
-    // Update workflow: change description and ensure success
-    newDesc := "new description"
-    output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, &newDesc, nil, nil, nil), ExpectNoError)
-    ts.Contains(output.StdOut, UpdatedWorkflow)
+	// Update workflow: change description and ensure success
+	newDesc := "new description"
+	output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, &newDesc, nil, nil, nil), ExpectNoError)
+	ts.Contains(output.StdOut, UpdatedWorkflow)
 
-    // Reconcile workflow suites: add, update enabled flags, and remove
-    // Create two additional test suites to exercise add/remove/toggle
-    secondSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
-    output = s.runCommand(ts, createTestSuite(projectID, secondSuiteName, "second suite", systemName, []string{expName}, metricsBuildID, GithubFalse, nil), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedTestSuite)
+	// Reconcile workflow suites: add, update enabled flags, and remove
+	// Create two additional test suites to exercise add/remove/toggle
+	secondSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+	output = s.runCommand(ts, createTestSuite(projectID, secondSuiteName, "second suite", systemName, []string{expName}, metricsBuildID, GithubFalse, nil), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedTestSuite)
 
-    thirdSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
-    output = s.runCommand(ts, createTestSuite(projectID, thirdSuiteName, "third suite", systemName, []string{expName}, metricsBuildID, GithubFalse, nil), ExpectNoError)
-    ts.Contains(output.StdOut, CreatedTestSuite)
+	thirdSuiteName := fmt.Sprintf("test-suite-%s", uuid.New().String())
+	output = s.runCommand(ts, createTestSuite(projectID, thirdSuiteName, "third suite", systemName, []string{expName}, metricsBuildID, GithubFalse, nil), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedTestSuite)
 
-    // 1) Add thirdSuite to workflow (retain original suite enabled)
-    suitesJSON := fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":true},{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName, thirdSuiteName)
-    output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, nil, nil, &suitesJSON, nil), ExpectNoError)
-    ts.Contains(output.StdOut, UpdatedWorkflow)
+	// 1) Add thirdSuite to workflow (retain original suite enabled)
+	suitesJSON := fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":true},{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName, thirdSuiteName)
+	output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, nil, nil, &suitesJSON, nil), ExpectNoError)
+	ts.Contains(output.StdOut, UpdatedWorkflow)
 
-    // Verify both suites are present and enabled
-    output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
-    type wfGet struct {
-        Suites []struct {
-            Name    string `json:"name"`
-            Enabled bool   `json:"enabled"`
-        } `json:"suites"`
-    }
-    var wfOut wfGet
-    err = json.Unmarshal([]byte(output.StdOut), &wfOut)
-    ts.NoError(err)
-    suitesState := map[string]bool{}
-    for _, s := range wfOut.Suites {
-        suitesState[s.Name] = s.Enabled
-    }
-    ts.Equal(true, suitesState[testSuiteName])
-    ts.Equal(true, suitesState[thirdSuiteName])
+	// Verify both suites are present and enabled
+	output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
+	type wfGet struct {
+		Suites []struct {
+			Name    string `json:"name"`
+			Enabled bool   `json:"enabled"`
+		} `json:"suites"`
+	}
+	var wfOut wfGet
+	err = json.Unmarshal([]byte(output.StdOut), &wfOut)
+	ts.NoError(err)
+	suitesState := map[string]bool{}
+	for _, s := range wfOut.Suites {
+		suitesState[s.Name] = s.Enabled
+	}
+	ts.Equal(true, suitesState[testSuiteName])
+	ts.Equal(true, suitesState[thirdSuiteName])
 
-    // 2) Toggle original suite to disabled, add secondSuite enabled, and remove thirdSuite
-    suitesJSON = fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":false},{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName, secondSuiteName)
-    output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, nil, nil, &suitesJSON, nil), ExpectNoError)
-    ts.Contains(output.StdOut, UpdatedWorkflow)
+	// 2) Toggle original suite to disabled, add secondSuite enabled, and remove thirdSuite
+	suitesJSON = fmt.Sprintf("[{\"testSuite\":\"%s\",\"enabled\":false},{\"testSuite\":\"%s\",\"enabled\":true}]", testSuiteName, secondSuiteName)
+	output = s.runCommand(ts, updateWorkflowCmd(projectID, workflowName, nil, nil, nil, &suitesJSON, nil), ExpectNoError)
+	ts.Contains(output.StdOut, UpdatedWorkflow)
 
-    // Verify: original suite disabled, secondSuite enabled, thirdSuite removed
-    output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
-    wfOut = wfGet{}
-    err = json.Unmarshal([]byte(output.StdOut), &wfOut)
-    ts.NoError(err)
-    suitesState = map[string]bool{}
-    for _, s := range wfOut.Suites {
-        suitesState[s.Name] = s.Enabled
-    }
-    // Present with expected enabled states
-    ts.Contains(suitesState, testSuiteName)
-    ts.Equal(false, suitesState[testSuiteName])
-    ts.Contains(suitesState, secondSuiteName)
-    ts.Equal(true, suitesState[secondSuiteName])
-    // Removed
-    _, exists := suitesState[thirdSuiteName]
-    ts.False(exists)
+	// Verify: original suite disabled, secondSuite enabled, thirdSuite removed
+	output = s.runCommand(ts, getWorkflowCmd(projectID, workflowName), ExpectNoError)
+	wfOut = wfGet{}
+	err = json.Unmarshal([]byte(output.StdOut), &wfOut)
+	ts.NoError(err)
+	suitesState = map[string]bool{}
+	for _, s := range wfOut.Suites {
+		suitesState[s.Name] = s.Enabled
+	}
+	// Present with expected enabled states
+	ts.Contains(suitesState, testSuiteName)
+	ts.Equal(false, suitesState[testSuiteName])
+	ts.Contains(suitesState, secondSuiteName)
+	ts.Equal(true, suitesState[secondSuiteName])
+	// Removed
+	_, exists := suitesState[thirdSuiteName]
+	ts.False(exists)
 }
 
 func TestBatchWithZeroTimeout(t *testing.T) {
@@ -5573,7 +5632,7 @@ func TestBatchWithZeroTimeout(t *testing.T) {
 	// Create an experience
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	experienceIDString := output.StdOut[len(GithubCreatedExperience) : len(output.StdOut)-1]
 	uuid.MustParse(experienceIDString)
@@ -6114,7 +6173,7 @@ func TestCancelBatch(t *testing.T) {
 	// First create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
 	experienceLocation := fmt.Sprintf("s3://%s/experiences/%s/", s.Config.E2EBucket, uuid.New())
-	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 	// We expect to be able to parse the experience ID as a UUID
@@ -6247,7 +6306,7 @@ func TestDebug(t *testing.T) {
 
 	// create an experience:
 	experienceName := fmt.Sprintf("test-experience-%s", uuid.New().String())
-	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, GithubTrue), ExpectNoError)
+	output = s.runCommand(ts, createExperience(projectID, experienceName, "description", experienceLocation, EmptySlice, EmptySlice, nil, nil, nil, EmptySlice, GithubTrue), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedExperience)
 	ts.Empty(output.StdErr)
 

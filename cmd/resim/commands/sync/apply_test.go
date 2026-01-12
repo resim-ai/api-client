@@ -2,6 +2,9 @@ package sync
 
 import (
 	"context"
+	"net/http"
+	"testing"
+
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	mockapiclient "github.com/resim-ai/api-client/api/mocks"
@@ -9,8 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/yaml.v3"
-	"net/http"
-	"testing"
 )
 
 func TestCreateExperience(t *testing.T) {
@@ -28,6 +29,12 @@ profile: ""
 environmentVariables:
   - name: ENV_VAR_1
     value: value1
+customFields:
+  - name: foo
+    type: text
+    values:
+      - bar
+      - baz
 cacheExempt: true
 containerTimeoutSeconds: 7200
 `
@@ -52,6 +59,7 @@ containerTimeoutSeconds: 7200
 		createdExperience.EnvironmentVariables = body.EnvironmentVariables
 		createdExperience.CacheExempt = body.CacheExempt
 		createdExperience.ContainerTimeoutSeconds = body.ContainerTimeoutSeconds
+		createdExperience.CustomFields = body.CustomFields
 
 		return &api.CreateExperienceResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
@@ -64,6 +72,7 @@ containerTimeoutSeconds: 7200
 				EnvironmentVariables:    *body.EnvironmentVariables,
 				CacheExempt:             *body.CacheExempt,
 				ContainerTimeoutSeconds: *body.ContainerTimeoutSeconds,
+				CustomFields:            *body.CustomFields,
 				Archived:                false,
 			},
 		}, nil
@@ -163,6 +172,12 @@ profile: ""
 environmentVariables:
   - name: ENV_VAR_1
     value: value1
+customFields:
+  - name: foo
+    type: text
+    values:
+      - bar
+      - baz
 cacheExempt: true
 containerTimeoutSeconds: 7200
 `
@@ -195,6 +210,7 @@ containerTimeoutSeconds: 7200
 		updatedExperience.EnvironmentVariables = body.Experience.EnvironmentVariables
 		updatedExperience.CacheExempt = body.Experience.CacheExempt
 		updatedExperience.ContainerTimeoutSeconds = body.Experience.ContainerTimeoutSeconds
+		updatedExperience.CustomFields = body.Experience.CustomFields
 		updatedExperience.Archived = updateMatch.New.Archived
 
 		return &api.UpdateExperienceResponse{
@@ -208,6 +224,7 @@ containerTimeoutSeconds: 7200
 				EnvironmentVariables:    *body.Experience.EnvironmentVariables,
 				CacheExempt:             *body.Experience.CacheExempt,
 				ContainerTimeoutSeconds: *body.Experience.ContainerTimeoutSeconds,
+				CustomFields:            *body.Experience.CustomFields,
 				Archived:                false,
 			},
 		}, nil

@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### v0.41.0 - January 12, 2025
+
+- The `experiences sync` command will now sync custom fields defined in your experience config
+- Adds `--custom-field` flag to `experiences create` and `experiences update` commands for attaching custom fields to experiences
+
 ### v0.40.0 - December 11, 2025
 
 - `workflows runs get` supports a `--slack` flag that provides a slack payload to provide to a webhook for notification from CI

@@ -158,19 +158,21 @@ func matchExperiences(config *ExperienceSyncConfig, currentExperiencesByName map
 		}
 
 	}
-	// Step 4: Any leftover un-archived experiences should be archived or retained if
-	// shouldArchive is not set
-	for _, experience := range remainingCurrentExperiencesByID {
-		if experience.Archived {
-			// No updates needed
-			continue
+	// Step 4: If shouldArchive is set, any leftover un-archived experiences should be archived. Else, we can ignore them
+
+	if shouldArchive {
+		for _, experience := range remainingCurrentExperiencesByID {
+			if experience.Archived {
+				// No updates needed
+				continue
+			}
+			archivedVersion := *experience
+			archivedVersion.Archived = shouldArchive
+			checkedInsert(matches, experience.Name, ExperienceMatch{
+				Original: experience,
+				New:      &archivedVersion,
+			})
 		}
-		archivedVersion := *experience
-		archivedVersion.Archived = shouldArchive
-		checkedInsert(matches, experience.Name, ExperienceMatch{
-			Original: experience,
-			New:      &archivedVersion,
-		})
 	}
 	return matches, nil
 }

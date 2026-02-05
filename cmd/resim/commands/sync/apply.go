@@ -187,6 +187,12 @@ func updateSingleExperience(
 		updateMask = append(updateMask, "cacheExempt")
 	}
 
+	if update.New.CustomFields == nil || len(*update.New.CustomFields) == 0 {
+		// We need to ensure the pointer is not nil, and the value it points to is also not nil. Otherwise,
+		// `omitEmpty` on this field will transform it into `null`, which is an invalid request.
+		update.New.CustomFields = &[]api.CustomFieldDefinition{}
+	}
+
 	body := api.UpdateExperienceInput{
 		Experience: &api.UpdateExperienceFields{
 			Name:                    &update.New.Name,
@@ -202,9 +208,9 @@ func updateSingleExperience(
 	}
 	response, err := client.UpdateExperienceWithResponse(context.Background(), projectID, experienceID, body)
 	if err != nil {
-		return fmt.Errorf("failed to update experience: %s", err)
+		return fmt.Errorf(`failed to update experience "%s" (id %s): %w`, update.Original.Name, experienceID, err)
 	}
-	err = utils.ValidateResponseSafe(http.StatusOK, "failed to update experience", response.HTTPResponse, response.Body)
+	err = utils.ValidateResponseSafe(http.StatusOK, fmt.Sprintf(`failed to update experience "%s" (id %s)`, update.Original.Name, experienceID), response.HTTPResponse, response.Body)
 	return err
 }
 

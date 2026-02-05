@@ -3,12 +3,13 @@ package sync
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
-	"net/http"
 )
 
 type ExperienceID = api.ExperienceID
@@ -258,6 +259,7 @@ func addApiExperienceToExperienceMap(experience api.Experience,
 		CacheExempt:             &experience.CacheExempt,
 		ContainerTimeoutSeconds: &experience.ContainerTimeoutSeconds,
 		Archived:                experience.Archived,
+		CustomFields:            &experience.CustomFields,
 	}
 }
 
@@ -270,10 +272,11 @@ func fetchAllExperiences(client api.ClientWithResponsesInterface,
 	for {
 		response, err := client.ListExperiencesWithResponse(
 			context.Background(), projectID, &api.ListExperiencesParams{
-				PageSize:  Ptr(100),
-				PageToken: pageToken,
-				Archived:  Ptr(archived),
-				OrderBy:   Ptr("timestamp"),
+				PageSize:            Ptr(100),
+				PageToken:           pageToken,
+				Archived:            Ptr(archived),
+				OrderBy:             Ptr("timestamp"),
+				IncludeCustomFields: Ptr(true),
 			})
 		if err != nil {
 			return nil, fmt.Errorf("failed to list experiences: %s", err)

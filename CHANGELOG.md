@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.42.0 - February 5, 2025
+
+- Fixes an error related to custom fields when using the `experiences sync` command
+
 ### v0.41.0 - January 12, 2025
 
 - The `experiences sync` command will now sync custom fields defined in your experience config

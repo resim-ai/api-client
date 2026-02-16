@@ -134,7 +134,7 @@ func init() {
 	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	createBatchCmd.Flags().String(batchMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	createBatchCmd.Flags().Bool(batchSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
-	createBatchCmd.Flags().StringSlice(batchMetricsConfigPath, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
+	createBatchCmd.Flags().StringSlice(batchMetricsConfigPath, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
 	createBatchCmd.Flags().String(batchMetricsTemplatesPath, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates. Only used if sync-metrics-config is set to true")
 	batchCmd.AddCommand(createBatchCmd)
 

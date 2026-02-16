@@ -338,6 +338,48 @@ func TestMergeConfigFiles(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to parse config file")
 	})
+
+	t.Run("Glob pattern merges multiple files", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		os.WriteFile(fmt.Sprintf("%s/a.yml", tmpDir), []byte("version: 1\ntopics:\n  t1:\n    type: float\n"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/b.yml", tmpDir), []byte("topics:\n  t2:\n    type: int\n"), 0644)
+
+		globPattern := fmt.Sprintf("%s/*.yml", tmpDir)
+		data, err := mergeConfigFiles([]string{globPattern}, false)
+		assert.NoError(t, err)
+		content := string(data)
+		assert.Contains(t, content, "t1")
+		assert.Contains(t, content, "t2")
+	})
+
+	t.Run("Mixed literal and glob paths", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		subDir := fmt.Sprintf("%s/sub", tmpDir)
+		os.Mkdir(subDir, 0755)
+
+		baseFile := fmt.Sprintf("%s/base.yml", tmpDir)
+		os.WriteFile(baseFile, []byte("version: 1\ntopics:\n  t_base:\n    type: float\n"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/ext1.yml", subDir), []byte("topics:\n  t_ext1:\n    type: int\n"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/ext2.yml", subDir), []byte("metrics:\n  m_ext2:\n    topic: t_base\n"), 0644)
+
+		data, err := mergeConfigFiles([]string{baseFile, fmt.Sprintf("%s/*.yml", subDir)}, false)
+		assert.NoError(t, err)
+		content := string(data)
+		assert.Contains(t, content, "t_base")
+		assert.Contains(t, content, "t_ext1")
+		assert.Contains(t, content, "m_ext2")
+	})
+
+	t.Run("Glob with duplicate keys across files returns error", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		os.WriteFile(fmt.Sprintf("%s/a.yml", tmpDir), []byte("topics:\n  dup:\n    type: float\n"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/b.yml", tmpDir), []byte("topics:\n  dup:\n    type: int\n"), 0644)
+
+		globPattern := fmt.Sprintf("%s/*.yml", tmpDir)
+		_, err := mergeConfigFiles([]string{globPattern}, false)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "duplicate topic name")
+	})
 }
 
 func TestResolveConfigPath(t *testing.T) {
@@ -346,10 +388,10 @@ func TestResolveConfigPath(t *testing.T) {
 		file := fmt.Sprintf("%s/config.yml", tmpDir)
 		os.WriteFile(file, []byte("version: 1"), 0644)
 
-		// Use absolute path since resolveConfigPath joins with cwd
 		resolved, err := resolveConfigPath(file)
 		assert.NoError(t, err)
-		assert.Equal(t, file, resolved)
+		assert.Len(t, resolved, 1)
+		assert.Equal(t, file, resolved[0])
 	})
 
 	t.Run(".yaml fallback found", func(t *testing.T) {
@@ -357,11 +399,11 @@ func TestResolveConfigPath(t *testing.T) {
 		yamlFile := fmt.Sprintf("%s/config.yaml", tmpDir)
 		os.WriteFile(yamlFile, []byte("version: 1"), 0644)
 
-		// Ask for .yml but .yaml exists
 		ymlPath := fmt.Sprintf("%s/config.yml", tmpDir)
 		resolved, err := resolveConfigPath(ymlPath)
 		assert.NoError(t, err)
-		assert.Equal(t, yamlFile, resolved)
+		assert.Len(t, resolved, 1)
+		assert.Equal(t, yamlFile, resolved[0])
 	})
 
 	t.Run("Absolute path used as-is", func(t *testing.T) {
@@ -371,13 +413,46 @@ func TestResolveConfigPath(t *testing.T) {
 
 		resolved, err := resolveConfigPath(file)
 		assert.NoError(t, err)
-		assert.Equal(t, file, resolved)
+		assert.Len(t, resolved, 1)
+		assert.Equal(t, file, resolved[0])
 	})
 
 	t.Run("Missing file returns error", func(t *testing.T) {
 		_, err := resolveConfigPath("/nonexistent/path/config.yml")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to find ReSim metrics config")
+	})
+
+	t.Run("Glob matches multiple files sorted", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		os.WriteFile(fmt.Sprintf("%s/c.yml", tmpDir), []byte("version: 1"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/a.yml", tmpDir), []byte("version: 1"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/b.yml", tmpDir), []byte("version: 1"), 0644)
+
+		resolved, err := resolveConfigPath(fmt.Sprintf("%s/*.yml", tmpDir))
+		assert.NoError(t, err)
+		assert.Len(t, resolved, 3)
+		assert.Equal(t, fmt.Sprintf("%s/a.yml", tmpDir), resolved[0])
+		assert.Equal(t, fmt.Sprintf("%s/b.yml", tmpDir), resolved[1])
+		assert.Equal(t, fmt.Sprintf("%s/c.yml", tmpDir), resolved[2])
+	})
+
+	t.Run("Glob matches single file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		os.WriteFile(fmt.Sprintf("%s/only.yml", tmpDir), []byte("version: 1"), 0644)
+
+		resolved, err := resolveConfigPath(fmt.Sprintf("%s/only*.yml", tmpDir))
+		assert.NoError(t, err)
+		assert.Len(t, resolved, 1)
+		assert.Equal(t, fmt.Sprintf("%s/only.yml", tmpDir), resolved[0])
+	})
+
+	t.Run("Glob with no matches returns error", func(t *testing.T) {
+		tmpDir := t.TempDir()
+
+		_, err := resolveConfigPath(fmt.Sprintf("%s/*.yml", tmpDir))
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "matched no files")
 	})
 }
 

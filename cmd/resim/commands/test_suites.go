@@ -211,7 +211,7 @@ func init() {
 	runTestSuiteCmd.Flags().String(testSuiteMetricsBuildOverrideKey, "", "An optional ID of a metrics build to override the standard metrics build in this test suite run (which will be run as an adhoc batch).")
 	// Optional: Sync metrics config
 	runTestSuiteCmd.Flags().Bool(testSuiteSyncMetricsConfigKey, false, "If set, run metrics sync before running the test suite")
-	runTestSuiteCmd.Flags().StringSlice(testSuitesMetricsConfigPathKey, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
+	runTestSuiteCmd.Flags().StringSlice(testSuitesMetricsConfigPathKey, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
 	runTestSuiteCmd.Flags().String(testSuitesMetricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates. Only used if sync-metrics-config is set to true")
 
 	testSuiteCmd.AddCommand(runTestSuiteCmd)

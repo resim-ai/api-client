@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
@@ -65,10 +66,15 @@ func mergeConfigs(configs []MetricsConfig) (MetricsConfig, error) {
 	return result, nil
 }
 
-func resolveConfigPath(configPath string) (string, error) {
+// containsGlobChars returns true if the path contains glob metacharacters.
+func containsGlobChars(path string) bool {
+	return strings.ContainsAny(path, "*?[")
+}
+
+func resolveConfigPath(configPath string) ([]string, error) {
 	workDir, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("failed to get working directory: %w", err)
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
 	}
 
 	filePath := path.Join(workDir, configPath)
@@ -76,47 +82,67 @@ func resolveConfigPath(configPath string) (string, error) {
 		filePath = configPath
 	}
 
+	// If the path contains glob characters, expand with filepath.Glob
+	if containsGlobChars(filePath) {
+		matches, err := filepath.Glob(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid glob pattern %q: %w", configPath, err)
+		}
+		if len(matches) == 0 {
+			return nil, fmt.Errorf("glob pattern %q matched no files", configPath)
+		}
+		sort.Strings(matches)
+		return matches, nil
+	}
+
+	// Literal path: check if file exists
 	if _, err := os.Stat(filePath); err == nil {
-		return filePath, nil
+		return []string{filePath}, nil
 	}
 
 	// Try alternate extension
 	if strings.HasSuffix(filePath, ".yml") {
 		altPath := strings.TrimSuffix(filePath, ".yml") + ".yaml"
 		if _, err := os.Stat(altPath); err == nil {
-			return altPath, nil
+			return []string{altPath}, nil
 		}
 	} else if strings.HasSuffix(filePath, ".yaml") {
 		altPath := strings.TrimSuffix(filePath, ".yaml") + ".yml"
 		if _, err := os.Stat(altPath); err == nil {
-			return altPath, nil
+			return []string{altPath}, nil
 		}
 	}
 
-	return "", fmt.Errorf("failed to find ReSim metrics config at %s (or .yaml variant). Are you in the right folder?", filePath)
+	return nil, fmt.Errorf("failed to find ReSim metrics config at %s (or .yaml variant). Are you in the right folder?", filePath)
 }
 
 func mergeConfigFiles(paths []string, verbose bool) ([]byte, error) {
-	configs := make([]MetricsConfig, 0, len(paths))
-
+	// First pass: expand all paths (including globs) into a flat list of resolved files
+	var resolvedFiles []string
 	for _, p := range paths {
 		resolved, err := resolveConfigPath(p)
 		if err != nil {
 			return nil, err
 		}
-
-		if verbose {
-			fmt.Printf("Looking for metrics config at %s (found: %s)\n", p, resolved)
+		for _, r := range resolved {
+			if verbose {
+				fmt.Printf("Looking for metrics config at %s (found: %s)\n", p, r)
+			}
 		}
+		resolvedFiles = append(resolvedFiles, resolved...)
+	}
 
-		data, err := os.ReadFile(resolved)
+	// Second pass: read, parse, and collect configs
+	configs := make([]MetricsConfig, 0, len(resolvedFiles))
+	for _, filePath := range resolvedFiles {
+		data, err := os.ReadFile(filePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read config file %s: %w", resolved, err)
+			return nil, fmt.Errorf("failed to read config file %s: %w", filePath, err)
 		}
 
 		var cfg MetricsConfig
 		if err := yaml.Unmarshal(data, &cfg); err != nil {
-			return nil, fmt.Errorf("failed to parse config file %s: %w", resolved, err)
+			return nil, fmt.Errorf("failed to parse config file %s: %w", filePath, err)
 		}
 
 		configs = append(configs, cfg)

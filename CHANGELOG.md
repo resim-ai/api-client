@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.43.0 - February 16, 2025
+
+- Adds support for linux-arm64 release targets.
+
 ### v0.42.0 - February 5, 2025
 
 - Fixes an error related to custom fields when using the `experiences sync` command

@@ -4,11 +4,16 @@ This repository contains the ReSim API command-line interface (CLI).  It is writ
 
 ## Installation
 
-Pre-built binaries are available for linux-amd64, darwin-amd64 (Mac OS) and darwin-arm64 (Mac OS on Apple Silicon/ARM):
+Pre-built binaries are available for linux-amd64, linux-arm64, darwin-amd64 (Mac OS) and darwin-arm64 (Mac OS on Apple Silicon/ARM):
 
 For Linux on AMD64:
 
     curl -L https://github.com/resim-ai/api-client/releases/latest/download/resim-linux-amd64 -o resim
+    chmod +x resim
+
+For Linux on ARM64:
+
+    curl -L https://github.com/resim-ai/api-client/releases/latest/download/resim-linux-arm64 -o resim
     chmod +x resim
 
 For Mac OS on Apple Silicon/ARM:

@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.43.0 - February 16, 2026
+
+- The `metrics sync` command and `--sync-metrics-config` flag on `batches create`, `sweeps create`, and `test-suites run` now accept multiple config files via repeated `--config-path` / `--metrics-config-path` flags (or comma-separated). Files are merged before syncing: topics, metrics, and metrics sets are combined additively with duplicate key detection, and the version from the last file wins.
+
 ### v0.42.0 - February 5, 2025
 
 - Fixes an error related to custom fields when using the `experiences sync` command

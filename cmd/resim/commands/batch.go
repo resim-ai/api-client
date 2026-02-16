@@ -134,7 +134,7 @@ func init() {
 	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	createBatchCmd.Flags().String(batchMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
 	createBatchCmd.Flags().Bool(batchSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
-	createBatchCmd.Flags().String(batchMetricsConfigPath, ".resim/metrics/config.yml", "The path to the metrics config file. Default is .resim/metrics/config.yml. Only used if sync-metrics-config is set to true")
+	createBatchCmd.Flags().StringSlice(batchMetricsConfigPath, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
 	createBatchCmd.Flags().String(batchMetricsTemplatesPath, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates. Only used if sync-metrics-config is set to true")
 	batchCmd.AddCommand(createBatchCmd)
 
@@ -623,9 +623,9 @@ func createBatch(ccmd *cobra.Command, args []string) {
 			log.Fatal("build has no branch associated with it")
 		}
 
-		metricsConfigPath := viper.GetString(batchMetricsConfigPath)
+		metricsConfigPaths := viper.GetStringSlice(batchMetricsConfigPath)
 		metricsTemplatesPath := viper.GetString(batchMetricsTemplatesPath)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPath, metricsTemplatesPath, false); err != nil {
+		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}
 	}

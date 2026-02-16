@@ -186,6 +186,201 @@ func TestParseBuildSpecWithProfiles(t *testing.T) {
 	assert.Contains(t, buildSpec.Services, "entrypoint-orchestrator") // no profile
 }
 
+func TestMergeConfigs(t *testing.T) {
+	tests := []struct {
+		name        string
+		configs     []MetricsConfig
+		expected    MetricsConfig
+		shouldError bool
+		errContains string
+	}{
+		{
+			name: "Single config returned as-is",
+			configs: []MetricsConfig{
+				{
+					Version: 1,
+					Topics:  map[string]interface{}{"topic_a": map[string]interface{}{"type": "float"}},
+					Metrics: map[string]interface{}{"metric_a": map[string]interface{}{"topic": "topic_a"}},
+					MetricsSets: map[string]interface{}{"set_a": map[string]interface{}{
+						"metrics": []interface{}{"metric_a"},
+					}},
+				},
+			},
+			expected: MetricsConfig{
+				Version: 1,
+				Topics:  map[string]interface{}{"topic_a": map[string]interface{}{"type": "float"}},
+				Metrics: map[string]interface{}{"metric_a": map[string]interface{}{"topic": "topic_a"}},
+				MetricsSets: map[string]interface{}{"set_a": map[string]interface{}{
+					"metrics": []interface{}{"metric_a"},
+				}},
+			},
+		},
+		{
+			name: "Two configs with disjoint entries merge correctly",
+			configs: []MetricsConfig{
+				{
+					Version: 1,
+					Topics:  map[string]interface{}{"topic_a": "val_a"},
+					Metrics: map[string]interface{}{"metric_a": "val_a"},
+				},
+				{
+					Version:     2,
+					Topics:      map[string]interface{}{"topic_b": "val_b"},
+					Metrics:     map[string]interface{}{"metric_b": "val_b"},
+					MetricsSets: map[string]interface{}{"set_b": "val_b"},
+				},
+			},
+			expected: MetricsConfig{
+				Version:     2,
+				Topics:      map[string]interface{}{"topic_a": "val_a", "topic_b": "val_b"},
+				Metrics:     map[string]interface{}{"metric_a": "val_a", "metric_b": "val_b"},
+				MetricsSets: map[string]interface{}{"set_b": "val_b"},
+			},
+		},
+		{
+			name: "Duplicate topic name causes error",
+			configs: []MetricsConfig{
+				{Topics: map[string]interface{}{"dup_topic": "a"}},
+				{Topics: map[string]interface{}{"dup_topic": "b"}},
+			},
+			shouldError: true,
+			errContains: "duplicate topic name",
+		},
+		{
+			name: "Duplicate metric name causes error",
+			configs: []MetricsConfig{
+				{Metrics: map[string]interface{}{"dup_metric": "a"}},
+				{Metrics: map[string]interface{}{"dup_metric": "b"}},
+			},
+			shouldError: true,
+			errContains: "duplicate metric name",
+		},
+		{
+			name: "Duplicate metrics set name causes error",
+			configs: []MetricsConfig{
+				{MetricsSets: map[string]interface{}{"dup_set": "a"}},
+				{MetricsSets: map[string]interface{}{"dup_set": "b"}},
+			},
+			shouldError: true,
+			errContains: "duplicate metrics set name",
+		},
+		{
+			name: "Version from last config wins",
+			configs: []MetricsConfig{
+				{Version: 1},
+				{Version: 3},
+			},
+			expected: MetricsConfig{
+				Version:     3,
+				Topics:      map[string]interface{}{},
+				Metrics:     map[string]interface{}{},
+				MetricsSets: map[string]interface{}{},
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := mergeConfigs(tc.configs)
+			if tc.shouldError {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tc.errContains)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected.Version, result.Version)
+				assert.Equal(t, tc.expected.Topics, result.Topics)
+				assert.Equal(t, tc.expected.Metrics, result.Metrics)
+				assert.Equal(t, tc.expected.MetricsSets, result.MetricsSets)
+			}
+		})
+	}
+}
+
+func TestMergeConfigFiles(t *testing.T) {
+	t.Run("Single file backwards compatible", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file1 := fmt.Sprintf("%s/config.yml", tmpDir)
+		os.WriteFile(file1, []byte("version: 1\ntopics:\n  t1:\n    type: float\n"), 0644)
+
+		data, err := mergeConfigFiles([]string{file1}, false)
+		assert.NoError(t, err)
+		assert.Contains(t, string(data), "t1")
+	})
+
+	t.Run("Two files with additive content", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file1 := fmt.Sprintf("%s/a.yml", tmpDir)
+		file2 := fmt.Sprintf("%s/b.yml", tmpDir)
+		os.WriteFile(file1, []byte("version: 1\ntopics:\n  t1:\n    type: float\nmetrics:\n  m1:\n    topic: t1\n"), 0644)
+		os.WriteFile(file2, []byte("topics:\n  t2:\n    type: int\nmetrics:\n  m2:\n    topic: t2\n"), 0644)
+
+		data, err := mergeConfigFiles([]string{file1, file2}, false)
+		assert.NoError(t, err)
+		content := string(data)
+		assert.Contains(t, content, "t1")
+		assert.Contains(t, content, "t2")
+		assert.Contains(t, content, "m1")
+		assert.Contains(t, content, "m2")
+	})
+
+	t.Run("File not found returns error", func(t *testing.T) {
+		_, err := mergeConfigFiles([]string{"/nonexistent/path/config.yml"}, false)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to find ReSim metrics config")
+	})
+
+	t.Run("Invalid YAML returns error", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file1 := fmt.Sprintf("%s/bad.yml", tmpDir)
+		os.WriteFile(file1, []byte(":\n  :\n  invalid: [yaml: {"), 0644)
+
+		_, err := mergeConfigFiles([]string{file1}, false)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to parse config file")
+	})
+}
+
+func TestResolveConfigPath(t *testing.T) {
+	t.Run("Relative .yml found", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file := fmt.Sprintf("%s/config.yml", tmpDir)
+		os.WriteFile(file, []byte("version: 1"), 0644)
+
+		// Use absolute path since resolveConfigPath joins with cwd
+		resolved, err := resolveConfigPath(file)
+		assert.NoError(t, err)
+		assert.Equal(t, file, resolved)
+	})
+
+	t.Run(".yaml fallback found", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		yamlFile := fmt.Sprintf("%s/config.yaml", tmpDir)
+		os.WriteFile(yamlFile, []byte("version: 1"), 0644)
+
+		// Ask for .yml but .yaml exists
+		ymlPath := fmt.Sprintf("%s/config.yml", tmpDir)
+		resolved, err := resolveConfigPath(ymlPath)
+		assert.NoError(t, err)
+		assert.Equal(t, yamlFile, resolved)
+	})
+
+	t.Run("Absolute path used as-is", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file := fmt.Sprintf("%s/config.yml", tmpDir)
+		os.WriteFile(file, []byte("version: 1"), 0644)
+
+		resolved, err := resolveConfigPath(file)
+		assert.NoError(t, err)
+		assert.Equal(t, file, resolved)
+	})
+
+	t.Run("Missing file returns error", func(t *testing.T) {
+		_, err := resolveConfigPath("/nonexistent/path/config.yml")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to find ReSim metrics config")
+	})
+}
+
 func TestAddMetrics2PoolLabels(t *testing.T) {
 	poolLabels := []api.PoolLabel{}
 	AddMetrics2PoolLabels(&poolLabels)

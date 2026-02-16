@@ -33,7 +33,7 @@ const (
 func init() {
 	syncMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project to sync metrics to")
 	syncMetricsCmd.Flags().String(metricsBranchNameKey, "main", "The name of the branch to associate the config with. The default is main")
-	syncMetricsCmd.Flags().String(metricsConfigPathKey, ".resim/metrics/config.yml", "The path to the metrics config file. Default is .resim/metrics/config.yml")
+	syncMetricsCmd.Flags().StringSlice(metricsConfigPathKey, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Can be specified multiple times or comma-separated. Files are merged in order. Default is .resim/metrics/config.yml")
 	syncMetricsCmd.Flags().String(metricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates")
 	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
@@ -56,10 +56,10 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
 	branchName := viper.GetString(metricsBranchNameKey)
 	branchID := getBranchID(Client, projectID, branchName, true)
-	configPath := viper.GetString(metricsConfigPathKey)
+	configPaths := viper.GetStringSlice(metricsConfigPathKey)
 	templatesPath := viper.GetString(metricsTemplatesPathKey)
 
-	if err := SyncMetricsConfig(projectID, branchID, configPath, templatesPath, verboseMode); err != nil {
+	if err := SyncMetricsConfig(projectID, branchID, configPaths, templatesPath, verboseMode); err != nil {
 		log.Fatal(err)
 	}
 }

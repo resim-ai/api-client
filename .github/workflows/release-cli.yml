@@ -27,6 +27,7 @@ jobs:
       run: |
         cd cmd/resim
         GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-amd64
+        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-arm64
         GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-arm64
         GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-amd64
       env:

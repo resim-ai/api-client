@@ -89,7 +89,7 @@ func init() {
 	createSweepCmd.MarkFlagsMutuallyExclusive(sweepParameterNameKey, sweepGridSearchConfigKey)
 	createSweepCmd.Flags().String(sweepAccountKey, "", "Specify a username for a CI/CD platform account to associate with this parameter sweep.")
 	createSweepCmd.Flags().Bool(sweepSyncMetricsConfigKey, false, "If set, run metrics sync before creating the sweep")
-	createSweepCmd.Flags().String(sweepMetricsConfigPathKey, ".resim/metrics/config.yml", "The path to the metrics config file. Default is .resim/metrics/config.yml. Only used if sync-metrics-config is set to true")
+	createSweepCmd.Flags().StringSlice(sweepMetricsConfigPathKey, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
 	createSweepCmd.Flags().String(sweepMetricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates. Only used if sync-metrics-config is set to true")
 	sweepCmd.AddCommand(createSweepCmd)
 	getSweepCmd.Flags().String(sweepProjectKey, "", "The name or ID of the project to get the sweep from")
@@ -270,9 +270,9 @@ func createSweep(ccmd *cobra.Command, args []string) {
 			log.Fatal("build has no branch associated with it")
 		}
 
-		metricsConfigPath := viper.GetString(sweepMetricsConfigPathKey)
+		metricsConfigPaths := viper.GetStringSlice(sweepMetricsConfigPathKey)
 		metricsTemplatesPath := viper.GetString(sweepMetricsTemplatesPathKey)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPath, metricsTemplatesPath, false); err != nil {
+		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}
 	}

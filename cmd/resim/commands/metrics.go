@@ -24,16 +24,19 @@ var (
 )
 
 const (
-	metricsProjectKey       = "project"
-	metricsBranchNameKey    = "branch"
-	metricsConfigPathKey    = "config-path"
-	metricsTemplatesPathKey = "templates-path"
+	metricsProjectKey         = "project"
+	metricsBranchNameKey      = "branch"
+	metricsConfigPathKey      = "config-path"
+	metricsConfigPathAliasKey = "metrics-config-path"
+	metricsTemplatesPathKey   = "templates-path"
 )
 
 func init() {
 	syncMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project to sync metrics to")
 	syncMetricsCmd.Flags().String(metricsBranchNameKey, "main", "The name of the branch to associate the config with. The default is main")
-	syncMetricsCmd.Flags().String(metricsConfigPathKey, ".resim/metrics/config.yml", "The path to the metrics config file. Default is .resim/metrics/config.yml")
+	syncMetricsCmd.Flags().StringSlice(metricsConfigPathAliasKey, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Default is .resim/metrics/config.yml")
+	syncMetricsCmd.Flags().StringSlice(metricsConfigPathKey, []string{".resim/metrics/config.yml"}, "Deprecated: use --metrics-config-path instead")
+	syncMetricsCmd.Flags().MarkDeprecated(metricsConfigPathKey, "use --metrics-config-path instead")
 	syncMetricsCmd.Flags().String(metricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates")
 	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
@@ -56,10 +59,15 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
 	branchName := viper.GetString(metricsBranchNameKey)
 	branchID := getBranchID(Client, projectID, branchName, true)
-	configPath := viper.GetString(metricsConfigPathKey)
+
+	// Prefer --metrics-config-path if explicitly set; fall back to deprecated --config-path
+	configPaths := viper.GetStringSlice(metricsConfigPathAliasKey)
+	if cmd.Flags().Changed(metricsConfigPathKey) && !cmd.Flags().Changed(metricsConfigPathAliasKey) {
+		configPaths = viper.GetStringSlice(metricsConfigPathKey)
+	}
 	templatesPath := viper.GetString(metricsTemplatesPathKey)
 
-	if err := SyncMetricsConfig(projectID, branchID, configPath, templatesPath, verboseMode); err != nil {
+	if err := SyncMetricsConfig(projectID, branchID, configPaths, templatesPath, verboseMode); err != nil {
 		log.Fatal(err)
 	}
 }

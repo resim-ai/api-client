@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.44.0 - February 16, 2026
+
+- The `metrics sync` command and `--sync-metrics-config` flag on `batches create`, `sweeps create`, and `test-suites run` now accept multiple config files via repeated `--metrics-config-path` flags (or comma-separated), with glob pattern support (e.g. `metrics/*.yml`). Files are merged before syncing: topics, metrics, and metrics sets are combined additively with duplicate key detection. All config files must declare the same version or an error is returned.
+- The `metrics sync` command now uses `--metrics-config-path` as the primary flag name for consistency with other commands. The previous `--config-path` flag is deprecated but still works.
 ### v0.43.0 - February 16, 2025
 
 - Adds support for linux-arm64 release targets.

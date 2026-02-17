@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/compose-spec/compose-go/v2/cli"
@@ -18,7 +19,149 @@ import (
 	"github.com/resim-ai/api-client/bff"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v3"
 )
+
+type MetricsConfig struct {
+	Version     int                    `yaml:"version"`
+	Topics      map[string]interface{} `yaml:"topics"`
+	Metrics     map[string]interface{} `yaml:"metrics"`
+	MetricsSets map[string]interface{} `yaml:"metrics sets"`
+}
+
+func mergeConfigs(configs []MetricsConfig) (MetricsConfig, error) {
+	result := MetricsConfig{
+		Topics:      make(map[string]interface{}),
+		Metrics:     make(map[string]interface{}),
+		MetricsSets: make(map[string]interface{}),
+	}
+
+	for i, cfg := range configs {
+		if i == 0 {
+			result.Version = cfg.Version
+		} else if cfg.Version != result.Version {
+			return MetricsConfig{}, fmt.Errorf("conflicting versions across config files: %d and %d", result.Version, cfg.Version)
+		}
+
+		for k, v := range cfg.Topics {
+			if _, exists := result.Topics[k]; exists {
+				return MetricsConfig{}, fmt.Errorf("duplicate topic name %q found across config files", k)
+			}
+			result.Topics[k] = v
+		}
+
+		for k, v := range cfg.Metrics {
+			if _, exists := result.Metrics[k]; exists {
+				return MetricsConfig{}, fmt.Errorf("duplicate metric name %q found across config files", k)
+			}
+			result.Metrics[k] = v
+		}
+
+		for k, v := range cfg.MetricsSets {
+			if _, exists := result.MetricsSets[k]; exists {
+				return MetricsConfig{}, fmt.Errorf("duplicate metrics set name %q found across config files", k)
+			}
+			result.MetricsSets[k] = v
+		}
+	}
+
+	return result, nil
+}
+
+// containsGlobChars returns true if the path contains glob metacharacters.
+func containsGlobChars(path string) bool {
+	return strings.ContainsAny(path, "*?[")
+}
+
+func resolveConfigPath(configPath string) ([]string, error) {
+	workDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
+	}
+
+	filePath := path.Join(workDir, configPath)
+	if filepath.IsAbs(configPath) {
+		filePath = configPath
+	}
+
+	// If the path contains glob characters, expand with filepath.Glob
+	if containsGlobChars(filePath) {
+		matches, err := filepath.Glob(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid glob pattern %q: %w", configPath, err)
+		}
+		if len(matches) == 0 {
+			return nil, fmt.Errorf("glob pattern %q matched no files", configPath)
+		}
+		sort.Strings(matches)
+		return matches, nil
+	}
+
+	// Literal path: check if file exists
+	if _, err := os.Stat(filePath); err == nil {
+		return []string{filePath}, nil
+	}
+
+	// Try alternate extension
+	if strings.HasSuffix(filePath, ".yml") {
+		altPath := strings.TrimSuffix(filePath, ".yml") + ".yaml"
+		if _, err := os.Stat(altPath); err == nil {
+			return []string{altPath}, nil
+		}
+	} else if strings.HasSuffix(filePath, ".yaml") {
+		altPath := strings.TrimSuffix(filePath, ".yaml") + ".yml"
+		if _, err := os.Stat(altPath); err == nil {
+			return []string{altPath}, nil
+		}
+	}
+
+	return nil, fmt.Errorf("failed to find ReSim metrics config at %s (or .yaml variant). Are you in the right folder?", filePath)
+}
+
+func mergeConfigFiles(paths []string, verbose bool) ([]byte, error) {
+	// First pass: expand all paths (including globs) into a flat list of resolved files
+	var resolvedFiles []string
+	for _, p := range paths {
+		resolved, err := resolveConfigPath(p)
+		if err != nil {
+			return nil, err
+		}
+		for _, r := range resolved {
+			if verbose {
+				fmt.Printf("Looking for metrics config at %s (found: %s)\n", p, r)
+			}
+		}
+		resolvedFiles = append(resolvedFiles, resolved...)
+	}
+
+	// Second pass: read, parse, and collect configs
+	configs := make([]MetricsConfig, 0, len(resolvedFiles))
+	for _, filePath := range resolvedFiles {
+		data, err := os.ReadFile(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read config file %s: %w", filePath, err)
+		}
+
+		var cfg MetricsConfig
+		if err := yaml.Unmarshal(data, &cfg); err != nil {
+			return nil, fmt.Errorf("failed to parse config file %s: %w", filePath, err)
+		}
+
+		configs = append(configs, cfg)
+	}
+
+	merged, err := mergeConfigs(configs)
+	if err != nil {
+		return nil, err
+	}
+
+	out, err := yaml.Marshal(&merged)
+	if err != nil {
+		return nil, fmt.Errorf("failed to serialize merged config: %w", err)
+	}
+
+	return out, nil
+}
 
 const METRICS_2_POOL_LABEL = "resim:metrics2"
 
@@ -121,7 +264,7 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 	return poolLabels
 }
 
-func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath string, templatesPath string, verbose bool) error {
+func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []string, templatesPath string, verbose bool) error {
 	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
 	if err != nil {
 		log.Fatal("unable to retrieve branch associated with the build being run:", err)
@@ -131,48 +274,16 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPath strin
 		log.Fatal("branch has no name associated with it")
 	}
 
+	configData, err := mergeConfigFiles(configPaths, verbose)
+	if err != nil {
+		return fmt.Errorf("failed to process metrics config files: %w", err)
+	}
+	configB64 := base64.StdEncoding.EncodeToString(configData)
+
 	workDir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("failed to get working directory: %w", err)
 	}
-
-	configFilePath := path.Join(workDir, configPath)
-	if filepath.IsAbs(configPath) {
-		configFilePath = configPath
-	}
-
-	// Try to find the config file, supporting both .yml and .yaml extensions
-	foundPath := ""
-	if _, err := os.Stat(configFilePath); err == nil {
-		foundPath = configFilePath
-	} else if os.IsNotExist(err) {
-		// Try alternate extension
-		if strings.HasSuffix(configFilePath, ".yml") {
-			altPath := strings.TrimSuffix(configFilePath, ".yml") + ".yaml"
-			if _, err := os.Stat(altPath); err == nil {
-				foundPath = altPath
-			}
-		} else if strings.HasSuffix(configFilePath, ".yaml") {
-			altPath := strings.TrimSuffix(configFilePath, ".yaml") + ".yml"
-			if _, err := os.Stat(altPath); err == nil {
-				foundPath = altPath
-			}
-		}
-	}
-
-	if foundPath == "" {
-		return fmt.Errorf("failed to find ReSim metrics config at %s (or .yaml variant). Are you in the right folder?", configFilePath)
-	}
-
-	if verbose {
-		fmt.Printf("Looking for metrics config at %s (found: %s)\n", configPath, foundPath)
-	}
-
-	configData, err := os.ReadFile(foundPath)
-	if err != nil {
-		return fmt.Errorf("failed to read config file: %w", err)
-	}
-	configB64 := base64.StdEncoding.EncodeToString(configData)
 
 	templateDir := path.Join(workDir, templatesPath)
 	if filepath.IsAbs(templatesPath) {

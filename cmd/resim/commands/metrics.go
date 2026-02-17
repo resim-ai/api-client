@@ -2,6 +2,7 @@ package commands
 
 import (
 	"encoding/base64"
+	"fmt"
 	"log"
 	"os"
 
@@ -28,13 +29,14 @@ const (
 	metricsProjectKey       = "project"
 	metricsBranchNameKey    = "branch"
 	metricsConfigPathKey    = "metrics-config-path"
+	metricsConfigPathDeprecatedKey   = "config-path"
 	metricsTemplatesPathKey = "templates-path"
 )
 
 // normalizeMetricsConfigPath translates the deprecated --config-path flag
 // to the canonical --metrics-config-path so either name works transparently.
 func normalizeMetricsConfigPath(f *pflag.FlagSet, name string) pflag.NormalizedName {
-	if name == "config-path" {
+	if name == metricsConfigPathDeprecatedKey {
 		name = metricsConfigPathKey
 	}
 	return pflag.NormalizedName(name)
@@ -44,8 +46,6 @@ func init() {
 	syncMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project to sync metrics to")
 	syncMetricsCmd.Flags().String(metricsBranchNameKey, "main", "The name of the branch to associate the config with. The default is main")
 	syncMetricsCmd.Flags().StringSlice(metricsConfigPathKey, []string{".resim/metrics/config.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Default is .resim/metrics/config.yml")
-	syncMetricsCmd.Flags().StringSlice("config-path", []string{".resim/metrics/config.yml"}, "Deprecated: use --metrics-config-path instead")
-	syncMetricsCmd.Flags().MarkDeprecated("config-path", "use --metrics-config-path instead")
 	syncMetricsCmd.Flags().String(metricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates")
 	syncMetricsCmd.Flags().SetNormalizeFunc(normalizeMetricsConfigPath)
 	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
@@ -65,6 +65,11 @@ func readFile(path string) string {
 }
 
 func syncMetrics(cmd *cobra.Command, args []string) {
+	// Warn if deprecated flag name was used
+	if cmd.Flags().Changed(metricsConfigPathDeprecatedKey) {
+		fmt.Fprintf(os.Stderr, "warning: flag --%s has been deprecated, use --%s instead\n", metricsConfigPathDeprecatedKey, metricsConfigPathKey)
+	}
+	
 	verboseMode := viper.GetBool(verboseKey)
 	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
 	branchName := viper.GetString(metricsBranchNameKey)

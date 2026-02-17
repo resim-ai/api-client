@@ -24,11 +24,11 @@ var (
 )
 
 const (
-	metricsProjectKey            = "project"
-	metricsBranchNameKey         = "branch"
-	metricsConfigPathKey         = "config-path"
-	metricsConfigPathAliasKey    = "metrics-config-path"
-	metricsTemplatesPathKey      = "templates-path"
+	metricsProjectKey         = "project"
+	metricsBranchNameKey      = "branch"
+	metricsConfigPathKey      = "config-path"
+	metricsConfigPathAliasKey = "metrics-config-path"
+	metricsTemplatesPathKey   = "templates-path"
 )
 
 func init() {

@@ -465,6 +465,29 @@ func TestResolveConfigPath(t *testing.T) {
 	})
 }
 
+func TestContainsGlobChars(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected bool
+	}{
+		{"Asterisk wildcard", "metrics/*.yml", true},
+		{"Question mark wildcard", "metrics/config?.yml", true},
+		{"Bracket pattern", "metrics/config[12].yml", true},
+		{"Double star glob", "metrics/**/*.yml", true},
+		{"No glob chars", "metrics/config.yml", false},
+		{"Empty string", "", false},
+		{"Absolute path no glob", "/home/user/.resim/metrics/config.yml", false},
+		{"Absolute path with glob", "/home/user/.resim/metrics/*.yml", true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, containsGlobChars(tc.path))
+		})
+	}
+}
+
 func TestAddMetrics2PoolLabels(t *testing.T) {
 	poolLabels := []api.PoolLabel{}
 	AddMetrics2PoolLabels(&poolLabels)

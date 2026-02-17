@@ -224,14 +224,14 @@ func TestMergeConfigs(t *testing.T) {
 					Metrics: map[string]interface{}{"metric_a": "val_a"},
 				},
 				{
-					Version:     2,
+					Version:     1,
 					Topics:      map[string]interface{}{"topic_b": "val_b"},
 					Metrics:     map[string]interface{}{"metric_b": "val_b"},
 					MetricsSets: map[string]interface{}{"set_b": "val_b"},
 				},
 			},
 			expected: MetricsConfig{
-				Version:     2,
+				Version:     1,
 				Topics:      map[string]interface{}{"topic_a": "val_a", "topic_b": "val_b"},
 				Metrics:     map[string]interface{}{"metric_a": "val_a", "metric_b": "val_b"},
 				MetricsSets: map[string]interface{}{"set_b": "val_b"},
@@ -265,13 +265,22 @@ func TestMergeConfigs(t *testing.T) {
 			errContains: "duplicate metrics set name",
 		},
 		{
-			name: "Version from last config wins",
+			name: "Mismatched versions cause error",
 			configs: []MetricsConfig{
 				{Version: 1},
 				{Version: 3},
 			},
+			shouldError: true,
+			errContains: "conflicting versions",
+		},
+		{
+			name: "Same version across configs is fine",
+			configs: []MetricsConfig{
+				{Version: 1},
+				{Version: 1},
+			},
 			expected: MetricsConfig{
-				Version:     3,
+				Version:     1,
 				Topics:      map[string]interface{}{},
 				Metrics:     map[string]interface{}{},
 				MetricsSets: map[string]interface{}{},
@@ -312,7 +321,7 @@ func TestMergeConfigFiles(t *testing.T) {
 		file1 := fmt.Sprintf("%s/a.yml", tmpDir)
 		file2 := fmt.Sprintf("%s/b.yml", tmpDir)
 		os.WriteFile(file1, []byte("version: 1\ntopics:\n  t1:\n    type: float\nmetrics:\n  m1:\n    topic: t1\n"), 0644)
-		os.WriteFile(file2, []byte("topics:\n  t2:\n    type: int\nmetrics:\n  m2:\n    topic: t2\n"), 0644)
+		os.WriteFile(file2, []byte("version: 1\ntopics:\n  t2:\n    type: int\nmetrics:\n  m2:\n    topic: t2\n"), 0644)
 
 		data, err := mergeConfigFiles([]string{file1, file2}, false)
 		assert.NoError(t, err)
@@ -342,7 +351,7 @@ func TestMergeConfigFiles(t *testing.T) {
 	t.Run("Glob pattern merges multiple files", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		os.WriteFile(fmt.Sprintf("%s/a.yml", tmpDir), []byte("version: 1\ntopics:\n  t1:\n    type: float\n"), 0644)
-		os.WriteFile(fmt.Sprintf("%s/b.yml", tmpDir), []byte("topics:\n  t2:\n    type: int\n"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/b.yml", tmpDir), []byte("version: 1\ntopics:\n  t2:\n    type: int\n"), 0644)
 
 		globPattern := fmt.Sprintf("%s/*.yml", tmpDir)
 		data, err := mergeConfigFiles([]string{globPattern}, false)
@@ -359,8 +368,8 @@ func TestMergeConfigFiles(t *testing.T) {
 
 		baseFile := fmt.Sprintf("%s/base.yml", tmpDir)
 		os.WriteFile(baseFile, []byte("version: 1\ntopics:\n  t_base:\n    type: float\n"), 0644)
-		os.WriteFile(fmt.Sprintf("%s/ext1.yml", subDir), []byte("topics:\n  t_ext1:\n    type: int\n"), 0644)
-		os.WriteFile(fmt.Sprintf("%s/ext2.yml", subDir), []byte("metrics:\n  m_ext2:\n    topic: t_base\n"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/ext1.yml", subDir), []byte("version: 1\ntopics:\n  t_ext1:\n    type: int\n"), 0644)
+		os.WriteFile(fmt.Sprintf("%s/ext2.yml", subDir), []byte("version: 1\nmetrics:\n  m_ext2:\n    topic: t_base\n"), 0644)
 
 		data, err := mergeConfigFiles([]string{baseFile, fmt.Sprintf("%s/*.yml", subDir)}, false)
 		assert.NoError(t, err)

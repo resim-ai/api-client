@@ -36,9 +36,11 @@ func mergeConfigs(configs []MetricsConfig) (MetricsConfig, error) {
 		MetricsSets: make(map[string]interface{}),
 	}
 
-	for _, cfg := range configs {
-		if cfg.Version != 0 {
+	for i, cfg := range configs {
+		if i == 0 {
 			result.Version = cfg.Version
+		} else if cfg.Version != result.Version {
+			return MetricsConfig{}, fmt.Errorf("conflicting versions across config files: %d and %d", result.Version, cfg.Version)
 		}
 
 		for k, v := range cfg.Topics {

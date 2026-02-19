@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.45.0 - February 19, 2026
+
+- Metrics config files now support a `global` section with `skip-if-no-data` setting. When set, `skip-if-no-data` is applied to every metric in that file. The setting is scoped per file, so each config file can have its own global value. Per-metric `skip-if-no-data` values take precedence over the global setting. The `global` section is removed from the merged config before syncing.
+
 ### v0.44.0 - February 16, 2026
 
 - The `metrics sync` command and `--sync-metrics-config` flag on `batches create`, `sweeps create`, and `test-suites run` now accept multiple config files via repeated `--metrics-config-path` flags (or comma-separated), with glob pattern support (e.g. `metrics/*.yml`). Files are merged before syncing: topics, metrics, and metrics sets are combined additively with duplicate key detection. All config files must declare the same version or an error is returned.

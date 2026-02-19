@@ -7,6 +7,7 @@ import (
 
 	"github.com/resim-ai/api-client/api"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/yaml.v3"
 )
 
 func TestParseParameterString(t *testing.T) {
@@ -184,6 +185,71 @@ func TestParseBuildSpecWithProfiles(t *testing.T) {
 	assert.Contains(t, buildSpec.Services, "orchestrator")            // profile2
 	assert.NotContains(t, buildSpec.Services, "command-orchestrator") // profile1
 	assert.Contains(t, buildSpec.Services, "entrypoint-orchestrator") // no profile
+}
+
+func boolPtr(b bool) *bool {
+	return &b
+}
+
+func TestApplyGlobalSettings(t *testing.T) {
+	t.Run("Global skip-if-no-data true adds to all metrics", func(t *testing.T) {
+		config := MetricsConfig{
+			Global: &MetricsGlobal{SkipIfNoData: boolPtr(true)},
+			Metrics: map[string]interface{}{
+				"metric_a": map[string]interface{}{"type": "test"},
+				"metric_b": map[string]interface{}{"type": "test"},
+			},
+		}
+		applyGlobalSettings(&config)
+		assert.Equal(t, true, config.Metrics["metric_a"].(map[string]interface{})["skip-if-no-data"])
+		assert.Equal(t, true, config.Metrics["metric_b"].(map[string]interface{})["skip-if-no-data"])
+		assert.Nil(t, config.Global)
+	})
+
+	t.Run("Global skip-if-no-data false adds to all metrics", func(t *testing.T) {
+		config := MetricsConfig{
+			Global: &MetricsGlobal{SkipIfNoData: boolPtr(false)},
+			Metrics: map[string]interface{}{
+				"metric_a": map[string]interface{}{"type": "test"},
+			},
+		}
+		applyGlobalSettings(&config)
+		assert.Equal(t, false, config.Metrics["metric_a"].(map[string]interface{})["skip-if-no-data"])
+		assert.Nil(t, config.Global)
+	})
+
+	t.Run("Per-metric skip-if-no-data is not overridden by global", func(t *testing.T) {
+		config := MetricsConfig{
+			Global: &MetricsGlobal{SkipIfNoData: boolPtr(true)},
+			Metrics: map[string]interface{}{
+				"metric_a": map[string]interface{}{"type": "test", "skip-if-no-data": false},
+				"metric_b": map[string]interface{}{"type": "test"},
+			},
+		}
+		applyGlobalSettings(&config)
+		assert.Equal(t, false, config.Metrics["metric_a"].(map[string]interface{})["skip-if-no-data"])
+		assert.Equal(t, true, config.Metrics["metric_b"].(map[string]interface{})["skip-if-no-data"])
+	})
+
+	t.Run("No global section means no changes", func(t *testing.T) {
+		config := MetricsConfig{
+			Metrics: map[string]interface{}{
+				"metric_a": map[string]interface{}{"type": "test"},
+			},
+		}
+		applyGlobalSettings(&config)
+		_, exists := config.Metrics["metric_a"].(map[string]interface{})["skip-if-no-data"]
+		assert.False(t, exists)
+	})
+
+	t.Run("Global section is cleared after applying", func(t *testing.T) {
+		config := MetricsConfig{
+			Global:  &MetricsGlobal{SkipIfNoData: boolPtr(true)},
+			Metrics: map[string]interface{}{},
+		}
+		applyGlobalSettings(&config)
+		assert.Nil(t, config.Global)
+	})
 }
 
 func TestMergeConfigs(t *testing.T) {
@@ -388,6 +454,61 @@ func TestMergeConfigFiles(t *testing.T) {
 		_, err := mergeConfigFiles([]string{globPattern}, false)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "duplicate topic name")
+	})
+
+	t.Run("File with global produces metrics with skip-if-no-data", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file1 := fmt.Sprintf("%s/config.yml", tmpDir)
+		os.WriteFile(file1, []byte("version: 1\nglobal:\n  skip-if-no-data: true\nmetrics:\n  my_metric:\n    type: test\n"), 0644)
+
+		data, err := mergeConfigFiles([]string{file1}, false)
+		assert.NoError(t, err)
+		content := string(data)
+		assert.Contains(t, content, "skip-if-no-data: true")
+		assert.NotContains(t, content, "global")
+	})
+
+	t.Run("Global is scoped per file", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		// File with global
+		file1 := fmt.Sprintf("%s/a.yml", tmpDir)
+		os.WriteFile(file1, []byte("version: 1\nglobal:\n  skip-if-no-data: true\nmetrics:\n  m1:\n    type: test\n"), 0644)
+		// File without global
+		file2 := fmt.Sprintf("%s/b.yml", tmpDir)
+		os.WriteFile(file2, []byte("version: 1\nmetrics:\n  m2:\n    type: test\n"), 0644)
+
+		data, err := mergeConfigFiles([]string{file1, file2}, false)
+		assert.NoError(t, err)
+
+		var result MetricsConfig
+		yaml.Unmarshal(data, &result)
+		// m1 (from file with global) should have skip-if-no-data
+		m1 := result.Metrics["m1"].(map[string]interface{})
+		assert.Equal(t, true, m1["skip-if-no-data"])
+		// m2 (from file without global) should NOT have skip-if-no-data
+		m2 := result.Metrics["m2"].(map[string]interface{})
+		_, exists := m2["skip-if-no-data"]
+		assert.False(t, exists)
+		// global section should not appear in output
+		assert.NotContains(t, string(data), "global:")
+	})
+
+	t.Run("Different global values across files are allowed", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file1 := fmt.Sprintf("%s/a.yml", tmpDir)
+		os.WriteFile(file1, []byte("version: 1\nglobal:\n  skip-if-no-data: true\nmetrics:\n  m1:\n    type: test\n"), 0644)
+		file2 := fmt.Sprintf("%s/b.yml", tmpDir)
+		os.WriteFile(file2, []byte("version: 1\nglobal:\n  skip-if-no-data: false\nmetrics:\n  m2:\n    type: test\n"), 0644)
+
+		data, err := mergeConfigFiles([]string{file1, file2}, false)
+		assert.NoError(t, err)
+
+		var result MetricsConfig
+		yaml.Unmarshal(data, &result)
+		m1 := result.Metrics["m1"].(map[string]interface{})
+		assert.Equal(t, true, m1["skip-if-no-data"])
+		m2 := result.Metrics["m2"].(map[string]interface{})
+		assert.Equal(t, false, m2["skip-if-no-data"])
 	})
 }
 

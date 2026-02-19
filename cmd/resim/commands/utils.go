@@ -22,11 +22,36 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type MetricsGlobal struct {
+	SkipIfNoData *bool `yaml:"skip-if-no-data"`
+}
+
 type MetricsConfig struct {
 	Version     int                    `yaml:"version"`
+	Global      *MetricsGlobal         `yaml:"global,omitempty"`
 	Topics      map[string]interface{} `yaml:"topics"`
 	Metrics     map[string]interface{} `yaml:"metrics"`
 	MetricsSets map[string]interface{} `yaml:"metrics sets"`
+}
+
+func applyGlobalSettings(config *MetricsConfig) {
+	if config.Global == nil {
+		return
+	}
+	if config.Global.SkipIfNoData != nil {
+		for name, v := range config.Metrics {
+			metricMap, ok := v.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			// Only set if the metric doesn't already have it explicitly
+			if _, exists := metricMap["skip-if-no-data"]; !exists {
+				metricMap["skip-if-no-data"] = *config.Global.SkipIfNoData
+			}
+			config.Metrics[name] = metricMap
+		}
+	}
+	config.Global = nil
 }
 
 func mergeConfigs(configs []MetricsConfig) (MetricsConfig, error) {
@@ -147,6 +172,7 @@ func mergeConfigFiles(paths []string, verbose bool) ([]byte, error) {
 			return nil, fmt.Errorf("failed to parse config file %s: %w", filePath, err)
 		}
 
+		applyGlobalSettings(&cfg)
 		configs = append(configs, cfg)
 	}
 

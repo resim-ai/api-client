@@ -381,7 +381,7 @@ func syncMetrics(projectName string, verbose bool, username string, password str
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
-func debugMetricsCommand(projectName string, emissionsFile string, configPath string, templatesPath string) []CommandBuilder {
+func debugMetricsCommand(projectName string, emissionsFile string, configPath string, templatesPath string, metricsSetName string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 	debugCommand := CommandBuilder{
 		Command: "debug",
@@ -390,6 +390,7 @@ func debugMetricsCommand(projectName string, emissionsFile string, configPath st
 			{Name: "--emissions-file", Value: emissionsFile},
 			{Name: "--metrics-config-path", Value: configPath},
 			{Name: "--templates-path", Value: templatesPath},
+			{Name: "--metrics-set", Value: metricsSetName},
 		},
 	}
 	return []CommandBuilder{metricsCommand, debugCommand}
@@ -6152,6 +6153,43 @@ func TestMetricsSync(t *testing.T) {
 		ts.Contains(output.StdOut, "Found template bar.liquid")
 		ts.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
 	})
+}
+
+func TestMetricsDebug(t *testing.T) {
+	ts := assert.New(t)
+	req := require.New(t)
+	t.Parallel()
+
+	// Create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedProject)
+
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	_, err := uuid.Parse(projectIDString)
+	req.NoError(err)
+
+	// Use the checked-in test fixtures at testing/.resim/
+	// Resolve absolute paths so the CLI finds them regardless of cwd
+	absConfigPath, err := filepath.Abs(".resim/metrics/config.yml")
+	req.NoError(err)
+	absTemplatesPath, err := filepath.Abs(".resim/metrics/templates")
+	req.NoError(err)
+	absEmissionsPath, err := filepath.Abs(".resim/emissions.resim.jsonl")
+	req.NoError(err)
+
+	output = s.runCommand(ts, debugMetricsCommand(
+		projectIDString,
+		absEmissionsPath,
+		absConfigPath,
+		absTemplatesPath,
+		"woot",
+	), ExpectNoError)
+
+	ts.Contains(output.StdOut, "Creating debug dashboard...")
+	ts.Contains(output.StdOut, "Dashboard created:")
+	ts.Contains(output.StdOut, "Dashboard is ready!")
+	ts.Regexp(regexp.MustCompile(`/projects/.+/debug/.+`), output.StdOut)
 }
 
 func checkBatchComplete(ts *assert.Assertions, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {

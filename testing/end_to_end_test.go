@@ -381,6 +381,20 @@ func syncMetrics(projectName string, verbose bool, username string, password str
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
+func debugMetricsCommand(projectName string, emissionsFile string, configPath string, templatesPath string) []CommandBuilder {
+	metricsCommand := CommandBuilder{Command: "metrics"}
+	debugCommand := CommandBuilder{
+		Command: "debug",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--emissions-file", Value: emissionsFile},
+			{Name: "--metrics-config-path", Value: configPath},
+			{Name: "--templates-path", Value: templatesPath},
+		},
+	}
+	return []CommandBuilder{metricsCommand, debugCommand}
+}
+
 func createProject(projectName string, description string, github bool) []CommandBuilder {
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{

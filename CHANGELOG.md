@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.45.0 - February 21, 2026
+
+- Adds `metrics debug` command for creating debug dashboards. Accepts an emissions file, metrics config, metrics set, and optional templates, then waits for the dashboard to be ready and prints its URL. Supports optional `--branch` flag. Note: debug dashboards are ephemeral and may be cleaned up after 24 hours.
+
 ### v0.44.0 - February 16, 2026
 
 - The `metrics sync` command and `--sync-metrics-config` flag on `batches create`, `sweeps create`, and `test-suites run` now accept multiple config files via repeated `--metrics-config-path` flags (or comma-separated), with glob pattern support (e.g. `metrics/*.yml`). Files are merged before syncing: topics, metrics, and metrics sets are combined additively with duplicate key detection. All config files must declare the same version or an error is returned.

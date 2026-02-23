@@ -9,9 +9,14 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/bff"
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
+
+func testSpinner() *Spinner {
+	return NewSpinner(&cobra.Command{})
+}
 
 func TestSyncMetricsCmdHasMetricsConfigPathFlag(t *testing.T) {
 	flag := syncMetricsCmd.Flags().Lookup("metrics-config-path")
@@ -57,12 +62,17 @@ func (m *mockGraphQLClient) MakeRequest(ctx context.Context, req *graphql.Reques
 // withGetDashboardResponse is a helper that configures a mock call to return a
 // specific GetDashboard response by populating the resp.Data pointer.
 func withGetDashboardResponse(lastRanAt string) func(args mock.Arguments) {
+	return withGetDashboardResponseFull(lastRanAt, false)
+}
+
+func withGetDashboardResponseFull(lastRanAt string, isStale bool) func(args mock.Arguments) {
 	return func(args mock.Arguments) {
 		resp := args.Get(2).(*graphql.Response)
 		data := resp.Data.(*bff.GetDashboardResponse)
 		data.Dashboard = bff.GetDashboardDashboard{
 			Id:        "test-dashboard-id",
 			Name:      "test-dashboard",
+			IsStale:   isStale,
 			LastRanAt: lastRanAt,
 		}
 	}
@@ -79,7 +89,7 @@ func TestWaitForDashboardReady_ImmediateSuccess(t *testing.T) {
 		Run(withGetDashboardResponse("2026-02-20T12:00:00Z")).
 		Return(nil).Once()
 
-	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond)
+	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond, testSpinner())
 	assert.NoError(t, err)
 	mockClient.AssertExpectations(t)
 }
@@ -97,7 +107,7 @@ func TestWaitForDashboardReady_TransitionFromStale(t *testing.T) {
 		Run(withGetDashboardResponse("2026-02-20T12:00:00Z")).
 		Return(nil).Once()
 
-	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond)
+	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond, testSpinner())
 	assert.NoError(t, err)
 	mockClient.AssertExpectations(t)
 }
@@ -110,7 +120,7 @@ func TestWaitForDashboardReady_Timeout(t *testing.T) {
 		Run(withGetDashboardResponse("")).
 		Return(nil).Maybe()
 
-	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 100*time.Millisecond, 30*time.Millisecond)
+	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 100*time.Millisecond, 30*time.Millisecond, testSpinner())
 	assert.Error(t, err)
 
 	timeoutErr, ok := err.(*TimeoutError)
@@ -124,9 +134,22 @@ func TestWaitForDashboardReady_APIError(t *testing.T) {
 	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetDashboardRequest), mock.Anything).
 		Return(fmt.Errorf("connection refused")).Once()
 
-	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond)
+	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond, testSpinner())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "connection refused")
+	mockClient.AssertExpectations(t)
+}
+
+func TestWaitForDashboardReady_IsStale(t *testing.T) {
+	mockClient := new(mockGraphQLClient)
+
+	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetDashboardRequest), mock.Anything).
+		Run(withGetDashboardResponseFull("", true)).
+		Return(nil).Once()
+
+	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond, testSpinner())
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to process")
 	mockClient.AssertExpectations(t)
 }
 

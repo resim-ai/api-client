@@ -2,9 +2,13 @@
 
 ## ReSim CLI
 
-### v0.45.0 - February 21, 2026
+### v0.46.0 - February 21, 2026
 
 - Adds `metrics debug` command for creating debug dashboards. Accepts an emissions file, metrics config, metrics set, and optional templates, then waits for the dashboard to be ready and prints its URL. Supports optional `--branch` flag. Note: debug dashboards are ephemeral and may be cleaned up after 24 hours.
+
+### v0.45.0 - February 19, 2026
+
+- Metrics config files now support a `global` section with `skip-if-no-data` setting. When set, `skip-if-no-data` is applied to every metric in that file. The setting is scoped per file, so each config file can have its own global value. Per-metric `skip-if-no-data` values take precedence over the global setting. The `global` section is removed from the merged config before syncing.
 
 ### v0.44.0 - February 16, 2026
 

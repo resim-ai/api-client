@@ -51,6 +51,27 @@ var (
 		Long:  ``,
 		Run:   listBuilds,
 	}
+
+	listAssetsForBuildCmd = &cobra.Command{
+		Use:   "list-assets",
+		Short: "list-assets - List assets linked to a build",
+		Long:  ``,
+		Run:   listAssetsForBuild,
+	}
+
+	addAssetsToBuildCmd = &cobra.Command{
+		Use:   "add-assets",
+		Short: "add-assets - Link assets to a build",
+		Long:  ``,
+		Run:   addAssetsToBuild,
+	}
+
+	removeAssetsFromBuildCmd = &cobra.Command{
+		Use:   "remove-assets",
+		Short: "remove-assets - Unlink assets from a build",
+		Long:  ``,
+		Run:   removeAssetsFromBuild,
+	}
 )
 
 const (
@@ -70,6 +91,7 @@ const (
 	buildEnvFilesKey         = "env-files"
 	buildUseOsEnvKey         = "use-os-env"
 	composeProfilesKey       = "compose-profiles"
+	buildAssetsKey           = "assets"
 )
 
 func init() {
@@ -117,10 +139,37 @@ func init() {
 	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
 	getBuildCmd.MarkFlagRequired(buildBuildIDKey)
 	getBuildCmd.Flags().Bool(buildShowBuildSpecKey, false, "Print the build spec only, formatted as YAML.")
+	createBuildCmd.Flags().String(buildAssetsKey, "", "Comma-separated list of asset references to link to the build. Each entry can be: name, name:revision, uuid, or uuid:revision. When revision is omitted, the latest revision is used.")
+
+	// List assets for build
+	listAssetsForBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
+	listAssetsForBuildCmd.MarkFlagRequired(buildProjectKey)
+	listAssetsForBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to list assets for")
+	listAssetsForBuildCmd.MarkFlagRequired(buildBuildIDKey)
+
+	// Add assets to build
+	addAssetsToBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
+	addAssetsToBuildCmd.MarkFlagRequired(buildProjectKey)
+	addAssetsToBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to add assets to")
+	addAssetsToBuildCmd.MarkFlagRequired(buildBuildIDKey)
+	addAssetsToBuildCmd.Flags().String(buildAssetsKey, "", "Comma-separated list of asset references to link. Each entry can be: name, name:revision, uuid, or uuid:revision. When revision is omitted, the latest revision is used.")
+	addAssetsToBuildCmd.MarkFlagRequired(buildAssetsKey)
+
+	// Remove assets from build
+	removeAssetsFromBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")
+	removeAssetsFromBuildCmd.MarkFlagRequired(buildProjectKey)
+	removeAssetsFromBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to remove assets from")
+	removeAssetsFromBuildCmd.MarkFlagRequired(buildBuildIDKey)
+	removeAssetsFromBuildCmd.Flags().String(buildAssetsKey, "", "Comma-separated list of asset references to unlink. Each entry can be: name, name:revision, uuid, or uuid:revision. When revision is omitted, the latest revision is used.")
+	removeAssetsFromBuildCmd.MarkFlagRequired(buildAssetsKey)
+
 	buildCmd.AddCommand(createBuildCmd)
 	buildCmd.AddCommand(listBuildsCmd)
 	buildCmd.AddCommand(updateBuildCmd)
 	buildCmd.AddCommand(getBuildCmd)
+	buildCmd.AddCommand(listAssetsForBuildCmd)
+	buildCmd.AddCommand(addAssetsToBuildCmd)
+	buildCmd.AddCommand(removeAssetsFromBuildCmd)
 
 	rootCmd.AddCommand(buildCmd)
 }
@@ -376,6 +425,24 @@ func createBuild(ccmd *cobra.Command, args []string) {
 		log.Fatal("no build ID")
 	}
 
+	// Link assets if specified
+	if viper.IsSet(buildAssetsKey) && viper.GetString(buildAssetsKey) != "" {
+		assetLinks := resolveAssetReferences(Client, projectID, viper.GetString(buildAssetsKey))
+		if len(assetLinks) > 0 {
+			addBody := api.AddAssetsToBuildJSONRequestBody{
+				Assets: assetLinks,
+			}
+			addResp, addErr := Client.AddAssetsToBuildWithResponse(context.Background(), projectID, build.BuildID, addBody)
+			if addErr != nil {
+				log.Fatal("failed to add assets to build:", addErr)
+			}
+			ValidateResponse(http.StatusNoContent, "failed to add assets to build", addResp.HTTPResponse, addResp.Body)
+			if !buildGithub {
+				fmt.Printf("Linked %d asset(s) to build.\n", len(assetLinks))
+			}
+		}
+	}
+
 	// Report the results back to the user
 	if buildGithub {
 		fmt.Printf("build_id=%s\n", build.BuildID.String())
@@ -496,4 +563,61 @@ func getBuildIDFromImageURIAndVersion(client api.ClientWithResponsesInterface, p
 		log.Fatal("failed to find build with image URI and version: ", imageURI, version)
 	}
 	return uuid.Nil
+}
+
+func listAssetsForBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+	buildID := getBuildID(Client, projectID, viper.GetString(buildBuildIDKey))
+
+	response, err := Client.ListAssetsForBuildWithResponse(context.Background(), projectID, buildID)
+	if err != nil {
+		log.Fatal("unable to list assets for build:", err)
+	}
+	ValidateResponse(http.StatusOK, "unable to list assets for build", response.HTTPResponse, response.Body)
+
+	if response.JSON200 == nil || len(*response.JSON200) == 0 {
+		fmt.Println("no assets linked to build")
+		return
+	}
+	OutputJson(*response.JSON200)
+}
+
+func addAssetsToBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+	buildID := getBuildID(Client, projectID, viper.GetString(buildBuildIDKey))
+
+	assetLinks := resolveAssetReferences(Client, projectID, viper.GetString(buildAssetsKey))
+	if len(assetLinks) == 0 {
+		log.Fatal("no valid asset references provided")
+	}
+
+	body := api.AddAssetsToBuildJSONRequestBody{
+		Assets: assetLinks,
+	}
+	response, err := Client.AddAssetsToBuildWithResponse(context.Background(), projectID, buildID, body)
+	if err != nil {
+		log.Fatal("failed to add assets to build:", err)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to add assets to build", response.HTTPResponse, response.Body)
+	fmt.Printf("Linked %d asset(s) to build successfully!\n", len(assetLinks))
+}
+
+func removeAssetsFromBuild(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(buildProjectKey))
+	buildID := getBuildID(Client, projectID, viper.GetString(buildBuildIDKey))
+
+	assetLinks := resolveAssetReferences(Client, projectID, viper.GetString(buildAssetsKey))
+	if len(assetLinks) == 0 {
+		log.Fatal("no valid asset references provided")
+	}
+
+	body := api.RemoveAssetsFromBuildJSONRequestBody{
+		Assets: assetLinks,
+	}
+	response, err := Client.RemoveAssetsFromBuildWithResponse(context.Background(), projectID, buildID, body)
+	if err != nil {
+		log.Fatal("failed to remove assets from build:", err)
+	}
+	ValidateResponse(http.StatusNoContent, "failed to remove assets from build", response.HTTPResponse, response.Body)
+	fmt.Printf("Unlinked %d asset(s) from build successfully!\n", len(assetLinks))
 }

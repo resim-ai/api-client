@@ -590,7 +590,7 @@ func (s *CommandsSuite) TestAddAssetsToBuild() {
 				body.Assets[0].AssetRevision == int64(1)
 		})).Return(
 		&api.AddAssetsToBuildResponse{
-			HTTPResponse: &http.Response{StatusCode: http.StatusNoContent},
+			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
 		}, nil)
 
 	addAssetsToBuild(nil, nil)

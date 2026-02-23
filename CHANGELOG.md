@@ -2,6 +2,12 @@
 
 ## ReSim CLI
 
+### v0.46.0 - February 23, 2026
+
+- Adds a new `assets` command with full CRUD and lifecycle support: `create`, `list`, `get`, `update`, `revise`, `archive`, `restore`, and `builds` (to list linked builds). Assets are versioned resources that can be linked to builds and follow the same revision model as test suites.
+- The `builds` command now supports managing asset links via new `add-assets`, `remove-assets`, and `list-assets` subcommands.
+- The `builds create` command now accepts an optional `--assets` flag to link asset revisions at build creation time. Asset references support flexible formats: `name` (latest revision), `name:revision` (pinned), `uuid` (latest revision), or `uuid:revision` (pinned).
+
 ### v0.45.0 - February 19, 2026
 
 - Metrics config files now support a `global` section with `skip-if-no-data` setting. When set, `skip-if-no-data` is applied to every metric in that file. The setting is scoped per file, so each config file can have its own global value. Per-metric `skip-if-no-data` values take precedence over the global setting. The `global` section is removed from the merged config before syncing.

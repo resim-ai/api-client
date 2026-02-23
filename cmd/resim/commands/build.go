@@ -436,7 +436,7 @@ func createBuild(ccmd *cobra.Command, args []string) {
 			if addErr != nil {
 				log.Fatal("failed to add assets to build:", addErr)
 			}
-			ValidateResponse(http.StatusNoContent, "failed to add assets to build", addResp.HTTPResponse, addResp.Body)
+			ValidateResponse(http.StatusCreated, "failed to add assets to build", addResp.HTTPResponse, addResp.Body)
 			if !buildGithub {
 				fmt.Printf("Linked %d asset(s) to build.\n", len(assetLinks))
 			}
@@ -598,7 +598,7 @@ func addAssetsToBuild(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to add assets to build:", err)
 	}
-	ValidateResponse(http.StatusNoContent, "failed to add assets to build", response.HTTPResponse, response.Body)
+	ValidateResponse(http.StatusCreated, "failed to add assets to build", response.HTTPResponse, response.Body)
 	fmt.Printf("Linked %d asset(s) to build successfully!\n", len(assetLinks))
 }
 

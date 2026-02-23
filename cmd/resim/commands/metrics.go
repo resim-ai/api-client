@@ -155,8 +155,8 @@ func debugMetrics(cmd *cobra.Command, args []string) {
 	fmt.Printf("Dashboard created: %s\n", dashboardID)
 
 	// Poll until ready
-	fmt.Printf("Waiting for dashboard to be ready (polling every %s)...\n", pollInterval)
-	err = waitForDashboardReady(context.Background(), BffClient, dashboardID, timeout, pollInterval)
+	s := NewSpinner(cmd)
+	err = waitForDashboardReady(context.Background(), BffClient, dashboardID, timeout, pollInterval, s)
 	if err != nil {
 		if _, ok := err.(*TimeoutError); ok {
 			log.Fatalf("Timed out waiting for dashboard to be ready: %v", err)
@@ -164,31 +164,39 @@ func debugMetrics(cmd *cobra.Command, args []string) {
 		log.Fatalf("Error waiting for dashboard: %v", err)
 	}
 
-	fmt.Println("Dashboard is ready!")
-
 	appURL := inferAppURL(viper.GetString(urlKey))
 	fmt.Printf("%s/projects/%s/debug/%s\n", appURL, projectID.String(), dashboardID)
 }
 
-func waitForDashboardReady(ctx context.Context, client graphql.Client, dashboardID string, timeout time.Duration, pollInterval time.Duration) error {
+func waitForDashboardReady(ctx context.Context, client graphql.Client, dashboardID string, timeout time.Duration, pollInterval time.Duration, s *Spinner) error {
 	startTime := time.Now()
+	s.Start("Waiting for dashboard to be ready...")
 
 	for {
 		resp, err := bff.GetDashboard(ctx, client, dashboardID)
 		if err != nil {
+			s.Stop(nil)
 			return fmt.Errorf("failed to get dashboard: %w", err)
 		}
 
+		if resp.Dashboard.IsStale {
+			s.Stop(nil)
+			return fmt.Errorf("dashboard %s failed to process", dashboardID)
+		}
+
 		if resp.Dashboard.LastRanAt != "" {
+			msg := "Dashboard is ready!\n"
+			s.Stop(&msg)
 			return nil
 		}
 
 		elapsed := time.Since(startTime)
 		if elapsed >= timeout {
+			s.Stop(nil)
 			return &TimeoutError{message: fmt.Sprintf("timeout after %v waiting for dashboard %s to be ready", timeout, dashboardID)}
 		}
 
-		fmt.Printf("Waiting... (%s elapsed)\n", elapsed.Round(time.Second))
+		s.Update(fmt.Sprintf("Waiting for dashboard to be ready (%s elapsed)...", elapsed.Round(time.Second)))
 		time.Sleep(pollInterval)
 	}
 }

@@ -6510,7 +6510,7 @@ func TestAssetLifecycle(t *testing.T) {
 	output = s.runCommand(ts, createAssetCommand(projectName, assetName, "test asset description", assetLocation, "/data/test", "v1.0"), ExpectNoError)
 	ts.Contains(output.StdOut, "Created asset successfully!")
 	ts.Contains(output.StdOut, "Asset ID:")
-	ts.Contains(output.StdOut, "Asset Revision: 1")
+	ts.Contains(output.StdOut, "Asset Revision: 0")
 
 	// Get the asset by name
 	output = s.runCommand(ts, getAssetCommand(projectName, assetName), ExpectNoError)
@@ -6518,7 +6518,7 @@ func TestAssetLifecycle(t *testing.T) {
 	err := json.Unmarshal([]byte(output.StdOut), &asset)
 	ts.NoError(err)
 	ts.Equal(assetName, asset.Name)
-	ts.Equal(int64(1), asset.AssetRevision)
+	ts.Equal(int64(0), asset.AssetRevision)
 	ts.Equal("v1.0", asset.Version)
 	assetID := asset.AssetID
 
@@ -6540,14 +6540,15 @@ func TestAssetLifecycle(t *testing.T) {
 	newLocation := fmt.Sprintf("s3://%s/test-asset-v2/", s.Config.E2EBucket)
 	output = s.runCommand(ts, reviseAssetCommand(projectName, assetName, newLocation, "v2.0"), ExpectNoError)
 	ts.Contains(output.StdOut, "Revised asset successfully!")
-	ts.Contains(output.StdOut, "Asset Revision: 2")
+	ts.Contains(output.StdOut, "Asset Revision: 1")
+
 
 	// Get all revisions
 	output = s.runCommand(ts, getAssetAllRevisionsCommand(projectName, assetName), ExpectNoError)
 	var revisions []api.Asset
 	err = json.Unmarshal([]byte(output.StdOut), &revisions)
 	ts.NoError(err)
-	ts.GreaterOrEqual(len(revisions), 2)
+	ts.Equal(len(revisions), 2)
 
 	// Get specific revision 1
 	output = s.runCommand(ts, getAssetRevisionCommand(projectName, assetName, "1"), ExpectNoError)
@@ -6555,7 +6556,7 @@ func TestAssetLifecycle(t *testing.T) {
 	err = json.Unmarshal([]byte(output.StdOut), &rev1)
 	ts.NoError(err)
 	ts.Equal(int64(1), rev1.AssetRevision)
-	ts.Equal("v1.0", rev1.Version)
+	ts.Equal("v2.0", rev1.Version)
 
 	// Set up build infrastructure for linking tests
 	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())

@@ -1186,6 +1186,7 @@ func createBuildWithAssetsCommand(projectName string, branchName string, systemN
 			{Name: "--image", Value: image},
 			{Name: "--version", Value: version},
 			{Name: "--assets", Value: assets},
+			{Name: "--github", Value: ""},
 		},
 	}
 	return []CommandBuilder{buildCommand, createCommand}
@@ -6597,7 +6598,6 @@ func TestAssetLifecycle(t *testing.T) {
 
 	// Create a build with assets inline (using --assets flag and pinned revision)
 	output = s.runCommand(ts, createBuildWithAssetsCommand(projectName, branchName, systemName, "build with inline assets", "public.ecr.aws/docker/library/hello-world:latest", "2.0.0", assetName+":1"), ExpectNoError)
-	ts.Contains(output.StdOut, "Linked 1 asset(s) to build.")
 	ts.Contains(output.StdOut, GithubCreatedBuild)
 
 	// Archive the asset

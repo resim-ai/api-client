@@ -236,10 +236,15 @@ type Asset struct {
 	Locations         []string  `json:"locations" yaml:"locations"`
 	MountFolder       string    `json:"mountFolder" yaml:"mountFolder"`
 	Name              string    `json:"name" yaml:"name"`
-	OrgID             OrgID     `json:"orgID" yaml:"orgID"`
-	ProjectID         ProjectID `json:"projectID" yaml:"projectID"`
-	UserID            UserID    `json:"userID" yaml:"userID"`
-	Version           string    `json:"version" yaml:"version"`
+
+	// NumBuilds Number of builds this asset revision is linked to.
+	NumBuilds       int       `json:"numBuilds" yaml:"numBuilds"`
+	OrgID           OrgID     `json:"orgID" yaml:"orgID"`
+	ProjectID       ProjectID `json:"projectID" yaml:"projectID"`
+	UpdateTimestamp Timestamp `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID    UserID    `json:"updateUserID" yaml:"updateUserID"`
+	UserID          UserID    `json:"userID" yaml:"userID"`
+	Version         string    `json:"version" yaml:"version"`
 }
 
 // AssetBuildLinkInput defines model for assetBuildLinkInput.
@@ -454,11 +459,15 @@ type Build struct {
 	ImageUri    BuildImageUri    `json:"imageUri" yaml:"imageUri"`
 
 	// Name The name of the build.
-	Name            BuildName    `json:"name" yaml:"name"`
+	Name BuildName `json:"name" yaml:"name"`
+
+	// NumAssets Number of assets linked to this build.
+	NumAssets       *int         `json:"numAssets,omitempty" yaml:"numAssets,omitempty"`
 	OrgID           OrgID        `json:"orgID" yaml:"orgID"`
 	ProjectID       ProjectID    `json:"projectID" yaml:"projectID"`
 	SystemID        SystemID     `json:"systemID" yaml:"systemID"`
 	UpdateTimestamp Timestamp    `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID    UserID       `json:"updateUserID" yaml:"updateUserID"`
 	UserID          UserID       `json:"userID" yaml:"userID"`
 	Version         BuildVersion `json:"version" yaml:"version"`
 }
@@ -537,6 +546,17 @@ type ConflatedJobStatus string
 
 // ContainerName defines model for containerName.
 type ContainerName = string
+
+// ContainerStatus defines model for containerStatus.
+type ContainerStatus = string
+
+// ContainerStatusLine defines model for containerStatusLine.
+type ContainerStatusLine struct {
+	ContainerName          string          `json:"containerName" yaml:"containerName"`
+	ExitCode               *int            `json:"exitCode,omitempty" yaml:"exitCode,omitempty"`
+	Status                 ContainerStatus `json:"status" yaml:"status"`
+	StatusChangedTimestamp Timestamp       `json:"statusChangedTimestamp" yaml:"statusChangedTimestamp"`
+}
 
 // CreateAssetInput defines model for createAssetInput.
 type CreateAssetInput struct {
@@ -797,6 +817,9 @@ type ExecutionError struct {
 	// ErrorText Error text
 	ErrorText *string `json:"errorText,omitempty" yaml:"errorText,omitempty"`
 
+	// ExitCode Container exit code when applicable
+	ExitCode *int `json:"exitCode" yaml:"exitCode"`
+
 	// Metadata Error metadata
 	Metadata *map[string]interface{} `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
@@ -828,13 +851,15 @@ type Experience struct {
 
 	// Location [DEPRECATED] This field was previously used to report an experience's location. Experiences can now be defined with multiple locations, this field will display the first location; this field will be removed in a future version.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
-	Location  string         `json:"location" yaml:"location"`
-	Locations []string       `json:"locations" yaml:"locations"`
-	Name      ExperienceName `json:"name" yaml:"name"`
-	OrgID     OrgID          `json:"orgID" yaml:"orgID"`
-	Profile   Profile        `json:"profile" yaml:"profile"`
-	ProjectID ProjectID      `json:"projectID" yaml:"projectID"`
-	UserID    UserID         `json:"userID" yaml:"userID"`
+	Location        string         `json:"location" yaml:"location"`
+	Locations       []string       `json:"locations" yaml:"locations"`
+	Name            ExperienceName `json:"name" yaml:"name"`
+	OrgID           OrgID          `json:"orgID" yaml:"orgID"`
+	Profile         Profile        `json:"profile" yaml:"profile"`
+	ProjectID       ProjectID      `json:"projectID" yaml:"projectID"`
+	UpdateTimestamp Timestamp      `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID    UserID         `json:"updateUserID" yaml:"updateUserID"`
+	UserID          UserID         `json:"userID" yaml:"userID"`
 }
 
 // ExperienceFilterInput defines model for experienceFilterInput.
@@ -854,14 +879,16 @@ type ExperienceID = openapi_types.UUID
 
 // ExperienceLocation defines model for experienceLocation.
 type ExperienceLocation struct {
-	Location *string `json:"location,omitempty" yaml:"location,omitempty"`
+	Location  *string             `json:"location,omitempty" yaml:"location,omitempty"`
+	ProjectId *openapi_types.UUID `json:"projectId,omitempty" yaml:"projectId,omitempty"`
 }
 
 // ExperienceLocationContents defines model for experienceLocationContents.
 type ExperienceLocationContents struct {
-	IsCloud     *bool     `json:"isCloud,omitempty" yaml:"isCloud,omitempty"`
-	ObjectCount *int      `json:"objectCount,omitempty" yaml:"objectCount,omitempty"`
-	Objects     *[]string `json:"objects,omitempty" yaml:"objects,omitempty"`
+	IsCloud        *bool     `json:"isCloud,omitempty" yaml:"isCloud,omitempty"`
+	ObjectCount    *int      `json:"objectCount,omitempty" yaml:"objectCount,omitempty"`
+	Objects        *[]string `json:"objects,omitempty" yaml:"objects,omitempty"`
+	TotalSizeBytes *int64    `json:"totalSizeBytes,omitempty" yaml:"totalSizeBytes,omitempty"`
 }
 
 // ExperienceName defines model for experienceName.
@@ -928,6 +955,11 @@ type FirstBuildMetric struct {
 
 // FriendlyName defines model for friendlyName.
 type FriendlyName = string
+
+// GetContainerStatusOutput defines model for getContainerStatusOutput.
+type GetContainerStatusOutput struct {
+	ContainerStatuses []ContainerStatusLine `json:"containerStatuses" yaml:"containerStatuses"`
+}
 
 // GetQuotaOutput defines model for getQuotaOutput.
 type GetQuotaOutput struct {
@@ -1154,11 +1186,7 @@ type ListBranchesOutput struct {
 }
 
 // ListBuildAssetsOutput defines model for listBuildAssetsOutput.
-type ListBuildAssetsOutput struct {
-	Assets        []BuildAssetLink `json:"assets" yaml:"assets"`
-	NextPageToken string           `json:"nextPageToken" yaml:"nextPageToken"`
-	Total         int              `json:"total" yaml:"total"`
-}
+type ListBuildAssetsOutput = []BuildAssetLink
 
 // ListBuildsOutput defines model for listBuildsOutput.
 type ListBuildsOutput struct {
@@ -1751,6 +1779,8 @@ type System struct {
 	OrgID                      OrgID        `json:"orgID" yaml:"orgID"`
 	ProjectID                  ProjectID    `json:"projectID" yaml:"projectID"`
 	SystemID                   SystemID     `json:"systemID" yaml:"systemID"`
+	UpdateTimestamp            Timestamp    `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID               UserID       `json:"updateUserID" yaml:"updateUserID"`
 	UserID                     UserID       `json:"userID" yaml:"userID"`
 }
 
@@ -1776,6 +1806,8 @@ type TestSuite struct {
 	SystemID             SystemID             `json:"systemID" yaml:"systemID"`
 	TestSuiteID          TestSuiteID          `json:"testSuiteID" yaml:"testSuiteID"`
 	TestSuiteRevision    TestSuiteRevision    `json:"testSuiteRevision" yaml:"testSuiteRevision"`
+	UpdateTimestamp      Timestamp            `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID         UserID               `json:"updateUserID" yaml:"updateUserID"`
 	UserID               UserID               `json:"userID" yaml:"userID"`
 }
 
@@ -2044,7 +2076,8 @@ type Workflow struct {
 	Name              string     `json:"name" yaml:"name"`
 	OrgID             OrgID      `json:"orgID" yaml:"orgID"`
 	ProjectID         ProjectID  `json:"projectID" yaml:"projectID"`
-	UpdateTimestamp   *Timestamp `json:"updateTimestamp,omitempty" yaml:"updateTimestamp,omitempty"`
+	UpdateTimestamp   Timestamp  `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID      UserID     `json:"updateUserID" yaml:"updateUserID"`
 	UserID            UserID     `json:"userID" yaml:"userID"`
 	WorkflowID        WorkflowID `json:"workflowID" yaml:"workflowID"`
 }
@@ -2197,6 +2230,15 @@ type ListJobsParams struct {
 	OrderBy          *OrderBy              `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
+// ListEventMetricsForJobParams defines parameters for ListEventMetricsForJob.
+type ListEventMetricsForJobParams struct {
+	// Text Filter metrics by a text string on name and description
+	Text      *string    `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+}
+
 // ListEventTagsForJobParams defines parameters for ListEventTagsForJob.
 type ListEventTagsForJobParams struct {
 	// Name Filter event tags by name
@@ -2338,12 +2380,6 @@ type ListBuildsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
-}
-
-// ListAssetsForBuildParams defines parameters for ListAssetsForBuild.
-type ListAssetsForBuildParams struct {
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 }
 
 // ListExperienceTagsParams defines parameters for ListExperienceTags.
@@ -3260,6 +3296,12 @@ type ClientInterface interface {
 
 	UpdateJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetContainerStatus request
+	GetContainerStatus(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListEventMetricsForJob request
+	ListEventMetricsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventMetricsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListEventTagsForJob request
 	ListEventTagsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3393,7 +3435,7 @@ type ClientInterface interface {
 	RemoveAssetsFromBuild(ctx context.Context, projectID ProjectID, buildID BuildID, body RemoveAssetsFromBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListAssetsForBuild request
-	ListAssetsForBuild(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListAssetsForBuild(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// AddAssetsToBuildWithBody request with any body
 	AddAssetsToBuildWithBody(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4176,6 +4218,30 @@ func (c *Client) UpdateJob(ctx context.Context, projectID ProjectID, batchID Bat
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetContainerStatus(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetContainerStatusRequest(c.Server, projectID, batchID, jobID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListEventMetricsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventMetricsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListEventMetricsForJobRequest(c.Server, projectID, batchID, jobID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListEventTagsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListEventTagsForJobRequest(c.Server, projectID, batchID, jobID, params)
 	if err != nil {
@@ -4728,8 +4794,8 @@ func (c *Client) RemoveAssetsFromBuild(ctx context.Context, projectID ProjectID,
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListAssetsForBuild(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListAssetsForBuildRequest(c.Server, projectID, buildID, params)
+func (c *Client) ListAssetsForBuild(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAssetsForBuildRequest(c.Server, projectID, buildID)
 	if err != nil {
 		return nil, err
 	}
@@ -8079,6 +8145,172 @@ func NewUpdateJobRequestWithBody(server string, projectID ProjectID, batchID Bat
 	return req, nil
 }
 
+// NewGetContainerStatusRequest generates requests for GetContainerStatus
+func NewGetContainerStatusRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/containerStatus", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListEventMetricsForJobRequest generates requests for ListEventMetricsForJob
+func NewListEventMetricsForJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventMetricsForJobParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/eventMetrics", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListEventTagsForJobRequest generates requests for ListEventTagsForJob
 func NewListEventTagsForJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams) (*http.Request, error) {
 	var err error
@@ -10962,7 +11194,7 @@ func NewRemoveAssetsFromBuildRequestWithBody(server string, projectID ProjectID,
 }
 
 // NewListAssetsForBuildRequest generates requests for ListAssetsForBuild
-func NewListAssetsForBuildRequest(server string, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams) (*http.Request, error) {
+func NewListAssetsForBuildRequest(server string, projectID ProjectID, buildID BuildID) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -10992,44 +11224,6 @@ func NewListAssetsForBuildRequest(server string, projectID ProjectID, buildID Bu
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageToken != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -16848,6 +17042,12 @@ type ClientWithResponsesInterface interface {
 
 	UpdateJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateJobResponse, error)
 
+	// GetContainerStatusWithResponse request
+	GetContainerStatusWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetContainerStatusResponse, error)
+
+	// ListEventMetricsForJobWithResponse request
+	ListEventMetricsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventMetricsForJobParams, reqEditors ...RequestEditorFn) (*ListEventMetricsForJobResponse, error)
+
 	// ListEventTagsForJobWithResponse request
 	ListEventTagsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*ListEventTagsForJobResponse, error)
 
@@ -16981,7 +17181,7 @@ type ClientWithResponsesInterface interface {
 	RemoveAssetsFromBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, body RemoveAssetsFromBuildJSONRequestBody, reqEditors ...RequestEditorFn) (*RemoveAssetsFromBuildResponse, error)
 
 	// ListAssetsForBuildWithResponse request
-	ListAssetsForBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*ListAssetsForBuildResponse, error)
+	ListAssetsForBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*ListAssetsForBuildResponse, error)
 
 	// AddAssetsToBuildWithBodyWithResponse request with any body
 	AddAssetsToBuildWithBodyWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AddAssetsToBuildResponse, error)
@@ -17947,6 +18147,50 @@ func (r UpdateJobResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateJobResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetContainerStatusResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *GetContainerStatusOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetContainerStatusResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetContainerStatusResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListEventMetricsForJobResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListJobMetricsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListEventMetricsForJobResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListEventMetricsForJobResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -21179,6 +21423,24 @@ func (c *ClientWithResponses) UpdateJobWithResponse(ctx context.Context, project
 	return ParseUpdateJobResponse(rsp)
 }
 
+// GetContainerStatusWithResponse request returning *GetContainerStatusResponse
+func (c *ClientWithResponses) GetContainerStatusWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetContainerStatusResponse, error) {
+	rsp, err := c.GetContainerStatus(ctx, projectID, batchID, jobID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetContainerStatusResponse(rsp)
+}
+
+// ListEventMetricsForJobWithResponse request returning *ListEventMetricsForJobResponse
+func (c *ClientWithResponses) ListEventMetricsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventMetricsForJobParams, reqEditors ...RequestEditorFn) (*ListEventMetricsForJobResponse, error) {
+	rsp, err := c.ListEventMetricsForJob(ctx, projectID, batchID, jobID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListEventMetricsForJobResponse(rsp)
+}
+
 // ListEventTagsForJobWithResponse request returning *ListEventTagsForJobResponse
 func (c *ClientWithResponses) ListEventTagsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListEventTagsForJobParams, reqEditors ...RequestEditorFn) (*ListEventTagsForJobResponse, error) {
 	rsp, err := c.ListEventTagsForJob(ctx, projectID, batchID, jobID, params, reqEditors...)
@@ -21588,8 +21850,8 @@ func (c *ClientWithResponses) RemoveAssetsFromBuildWithResponse(ctx context.Cont
 }
 
 // ListAssetsForBuildWithResponse request returning *ListAssetsForBuildResponse
-func (c *ClientWithResponses) ListAssetsForBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, params *ListAssetsForBuildParams, reqEditors ...RequestEditorFn) (*ListAssetsForBuildResponse, error) {
-	rsp, err := c.ListAssetsForBuild(ctx, projectID, buildID, params, reqEditors...)
+func (c *ClientWithResponses) ListAssetsForBuildWithResponse(ctx context.Context, projectID ProjectID, buildID BuildID, reqEditors ...RequestEditorFn) (*ListAssetsForBuildResponse, error) {
+	rsp, err := c.ListAssetsForBuild(ctx, projectID, buildID, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -23358,6 +23620,58 @@ func ParseUpdateJobResponse(rsp *http.Response) (*UpdateJobResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Job
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetContainerStatusResponse parses an HTTP response from a GetContainerStatusWithResponse call
+func ParseGetContainerStatusResponse(rsp *http.Response) (*GetContainerStatusResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetContainerStatusResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest GetContainerStatusOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListEventMetricsForJobResponse parses an HTTP response from a ListEventMetricsForJobWithResponse call
+func ParseListEventMetricsForJobResponse(rsp *http.Response) (*ListEventMetricsForJobResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListEventMetricsForJobResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListJobMetricsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

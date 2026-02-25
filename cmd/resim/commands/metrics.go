@@ -154,18 +154,20 @@ func debugMetrics(cmd *cobra.Command, args []string) {
 	dashboardID := resp.CreateDebugDashboard.Id
 	fmt.Printf("Dashboard created: %s\n", dashboardID)
 
+	appURL := inferAppURL(viper.GetString(urlKey))
+	dashboardURL := fmt.Sprintf("%s/projects/%s/debug/%s", appURL, projectID.String(), dashboardID)
+
 	// Poll until ready
 	s := NewSpinner(cmd)
 	err = waitForDashboardReady(context.Background(), BffClient, dashboardID, timeout, pollInterval, s)
 	if err != nil {
 		if _, ok := err.(*TimeoutError); ok {
-			log.Fatalf("Timed out waiting for dashboard to be ready: %v", err)
+			log.Fatalf("Timed out waiting for dashboard to be ready: %v\nDashboard URL: %s", err, dashboardURL)
 		}
-		log.Fatalf("Error waiting for dashboard: %v", err)
+		log.Fatalf("Error waiting for dashboard: %v\nDashboard URL: %s", err, dashboardURL)
 	}
 
-	appURL := inferAppURL(viper.GetString(urlKey))
-	fmt.Printf("%s/projects/%s/debug/%s\n", appURL, projectID.String(), dashboardID)
+	fmt.Println(dashboardURL)
 }
 
 func waitForDashboardReady(ctx context.Context, client graphql.Client, dashboardID string, timeout time.Duration, pollInterval time.Duration, s *Spinner) error {
@@ -177,11 +179,6 @@ func waitForDashboardReady(ctx context.Context, client graphql.Client, dashboard
 		if err != nil {
 			s.Stop(nil)
 			return fmt.Errorf("failed to get dashboard: %w", err)
-		}
-
-		if resp.Dashboard.IsStale {
-			s.Stop(nil)
-			return fmt.Errorf("dashboard %s failed to process", dashboardID)
 		}
 
 		if resp.Dashboard.LastRanAt != "" {

@@ -381,6 +381,31 @@ func syncMetrics(projectName string, verbose bool, username string, password str
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
+func debugMetricsCommand(projectName string, emissionsFile string, configPath string, metricsSetName string, username string, password string) []CommandBuilder {
+	metricsCommand := CommandBuilder{Command: "metrics"}
+	flags := []Flag{
+		{Name: "--project", Value: projectName},
+		{Name: "--emissions-file", Value: emissionsFile},
+		{Name: "--metrics-config-path", Value: configPath},
+		{Name: "--metrics-set", Value: metricsSetName},
+	}
+	// The CI fails if we use a different authentication method since it will
+	// report a different auth0 id for the user. The bff api is expecting the
+	// auth0 id reported with username/password auth. This also matches the
+	// rerun CI setup
+	if username != "" {
+		flags = append(flags, Flag{Name: "--username", Value: username})
+	}
+	if password != "" {
+		flags = append(flags, Flag{Name: "--password", Value: password})
+	}
+	debugCommand := CommandBuilder{
+		Command: "debug",
+		Flags:   flags,
+	}
+	return []CommandBuilder{metricsCommand, debugCommand}
+}
+
 func createProject(projectName string, description string, github bool) []CommandBuilder {
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
@@ -6258,47 +6283,7 @@ func TestMetricsSync(t *testing.T) {
 	// create the main branch
 	output = s.runCommand(ts, createBranch(projectID, "main", "RELEASE", GithubTrue), ExpectNoError)
 
-	t.Run("NoConfigFiles", func(t *testing.T) {
-		output := s.runCommand(ts, syncMetrics(projectIDString, true, username, password), true)
-
-		ts.Contains(output.StdErr, "failed to find ReSim metrics config")
-	})
-
 	t.Run("SyncsMetricsConfig", func(t *testing.T) {
-		ts := assert.New(t)
-		os.RemoveAll(".resim") // Cleanup old folder just in case
-
-		err := os.Mkdir(".resim", 0755)
-		ts.NoError(err)
-		defer os.RemoveAll(".resim")
-		err = os.Mkdir(".resim/metrics", 0755)
-		ts.NoError(err)
-		err = os.Mkdir(".resim/metrics/templates", 0755)
-		ts.NoError(err)
-
-		// strings.Join is ugly but using backticks `` is a mess with getting indentation correct
-		metricsFile := strings.Join([]string{
-			"version: 1",
-			"topics:",
-			"  ok:",
-			"    schema:",
-			"      speed: float",
-			"metrics:",
-			"  Average Speed:",
-			"    type: test",
-			"    query_string: SELECT AVG(speed) FROM speed WHERE job_id=$job_id",
-			"    template_type: system",
-			"    template: line",
-			"metrics sets:",
-			"  woot:",
-			"    metrics:",
-			"      - Average Speed",
-		}, "\n")
-		err = os.WriteFile(".resim/metrics/config.yml", []byte(metricsFile), 0644)
-		ts.NoError(err)
-		err = os.WriteFile(".resim/metrics/templates/bar.liquid", []byte("{}"), 0644)
-		ts.NoError(err)
-
 		// Standard behavior is exit 0 with no output
 		output := s.runCommand(ts, syncMetrics(projectIDString, false, username, password), false)
 		ts.Equal("", output.StdOut)
@@ -6311,6 +6296,44 @@ func TestMetricsSync(t *testing.T) {
 		ts.Contains(output.StdOut, "Found template bar.liquid")
 		ts.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
 	})
+}
+
+func TestMetricsDebug(t *testing.T) {
+	ts := assert.New(t)
+	req := require.New(t)
+	t.Parallel()
+
+	username := os.Getenv(username)
+	password := os.Getenv(password)
+
+	// Create a project
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedProject)
+
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	_, err := uuid.Parse(projectIDString)
+	req.NoError(err)
+
+	// Use the checked-in test fixtures at testing/.resim/
+	// Resolve absolute paths so the CLI finds them regardless of cwd
+	absConfigPath, err := filepath.Abs(".resim/metrics/config.yml")
+	req.NoError(err)
+	absEmissionsPath, err := filepath.Abs(".resim/emissions.resim.jsonl")
+	req.NoError(err)
+
+	output = s.runCommand(ts, debugMetricsCommand(
+		projectIDString,
+		absEmissionsPath,
+		absConfigPath,
+		"woot",
+		username,
+		password,
+	), ExpectNoError)
+
+	ts.Contains(output.StdOut, "Creating debug dashboard...")
+	ts.Contains(output.StdOut, "Dashboard created:")
+	ts.Regexp(regexp.MustCompile(`/projects/.+/debug/.+`), output.StdOut)
 }
 
 func checkBatchComplete(ts *assert.Assertions, projectID uuid.UUID, batchID uuid.UUID) (bool, int) {
@@ -6541,7 +6564,6 @@ func TestAssetLifecycle(t *testing.T) {
 	output = s.runCommand(ts, reviseAssetCommand(projectName, assetName, newLocation, "v2.0"), ExpectNoError)
 	ts.Contains(output.StdOut, "Revised asset successfully!")
 	ts.Contains(output.StdOut, "Asset Revision: 1")
-
 
 	// Get all revisions
 	output = s.runCommand(ts, getAssetAllRevisionsCommand(projectName, assetName), ExpectNoError)

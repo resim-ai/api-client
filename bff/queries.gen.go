@@ -8,6 +8,58 @@ import (
 	"github.com/Khan/genqlient/graphql"
 )
 
+// CreateDebugDashboardCreateDebugDashboard includes the requested fields of the GraphQL type Dashboard.
+type CreateDebugDashboardCreateDebugDashboard struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// GetId returns CreateDebugDashboardCreateDebugDashboard.Id, and is useful for accessing the field via an interface.
+func (v *CreateDebugDashboardCreateDebugDashboard) GetId() string { return v.Id }
+
+// GetName returns CreateDebugDashboardCreateDebugDashboard.Name, and is useful for accessing the field via an interface.
+func (v *CreateDebugDashboardCreateDebugDashboard) GetName() string { return v.Name }
+
+// CreateDebugDashboardResponse is returned by CreateDebugDashboard on success.
+type CreateDebugDashboardResponse struct {
+	// Create a debug dashboard from uploaded emissions and config
+	CreateDebugDashboard CreateDebugDashboardCreateDebugDashboard `json:"createDebugDashboard"`
+}
+
+// GetCreateDebugDashboard returns CreateDebugDashboardResponse.CreateDebugDashboard, and is useful for accessing the field via an interface.
+func (v *CreateDebugDashboardResponse) GetCreateDebugDashboard() CreateDebugDashboardCreateDebugDashboard {
+	return v.CreateDebugDashboard
+}
+
+// GetDashboardDashboard includes the requested fields of the GraphQL type Dashboard.
+type GetDashboardDashboard struct {
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	IsStale   bool   `json:"isStale"`
+	LastRanAt string `json:"lastRanAt"`
+}
+
+// GetId returns GetDashboardDashboard.Id, and is useful for accessing the field via an interface.
+func (v *GetDashboardDashboard) GetId() string { return v.Id }
+
+// GetName returns GetDashboardDashboard.Name, and is useful for accessing the field via an interface.
+func (v *GetDashboardDashboard) GetName() string { return v.Name }
+
+// GetIsStale returns GetDashboardDashboard.IsStale, and is useful for accessing the field via an interface.
+func (v *GetDashboardDashboard) GetIsStale() bool { return v.IsStale }
+
+// GetLastRanAt returns GetDashboardDashboard.LastRanAt, and is useful for accessing the field via an interface.
+func (v *GetDashboardDashboard) GetLastRanAt() string { return v.LastRanAt }
+
+// GetDashboardResponse is returned by GetDashboard on success.
+type GetDashboardResponse struct {
+	// Get a single dashboard by ID
+	Dashboard GetDashboardDashboard `json:"dashboard"`
+}
+
+// GetDashboard returns GetDashboardResponse.Dashboard, and is useful for accessing the field via an interface.
+func (v *GetDashboardResponse) GetDashboard() GetDashboardDashboard { return v.Dashboard }
+
 type MetricsTemplate struct {
 	Contents string `json:"contents"`
 	Name     string `json:"name"`
@@ -28,6 +80,42 @@ type UpdateMetricsConfigResponse struct {
 // GetUpdateMetricsConfig returns UpdateMetricsConfigResponse.UpdateMetricsConfig, and is useful for accessing the field via an interface.
 func (v *UpdateMetricsConfigResponse) GetUpdateMetricsConfig() string { return v.UpdateMetricsConfig }
 
+// __CreateDebugDashboardInput is used internally by genqlient
+type __CreateDebugDashboardInput struct {
+	ProjectId      string            `json:"projectId"`
+	Config         string            `json:"config"`
+	TemplateFiles  []MetricsTemplate `json:"templateFiles"`
+	EmissionsFile  string            `json:"emissionsFile"`
+	BranchId       string            `json:"branchId"`
+	MetricsSetName string            `json:"metricsSetName"`
+}
+
+// GetProjectId returns __CreateDebugDashboardInput.ProjectId, and is useful for accessing the field via an interface.
+func (v *__CreateDebugDashboardInput) GetProjectId() string { return v.ProjectId }
+
+// GetConfig returns __CreateDebugDashboardInput.Config, and is useful for accessing the field via an interface.
+func (v *__CreateDebugDashboardInput) GetConfig() string { return v.Config }
+
+// GetTemplateFiles returns __CreateDebugDashboardInput.TemplateFiles, and is useful for accessing the field via an interface.
+func (v *__CreateDebugDashboardInput) GetTemplateFiles() []MetricsTemplate { return v.TemplateFiles }
+
+// GetEmissionsFile returns __CreateDebugDashboardInput.EmissionsFile, and is useful for accessing the field via an interface.
+func (v *__CreateDebugDashboardInput) GetEmissionsFile() string { return v.EmissionsFile }
+
+// GetBranchId returns __CreateDebugDashboardInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__CreateDebugDashboardInput) GetBranchId() string { return v.BranchId }
+
+// GetMetricsSetName returns __CreateDebugDashboardInput.MetricsSetName, and is useful for accessing the field via an interface.
+func (v *__CreateDebugDashboardInput) GetMetricsSetName() string { return v.MetricsSetName }
+
+// __GetDashboardInput is used internally by genqlient
+type __GetDashboardInput struct {
+	Id string `json:"id"`
+}
+
+// GetId returns __GetDashboardInput.Id, and is useful for accessing the field via an interface.
+func (v *__GetDashboardInput) GetId() string { return v.Id }
+
 // __UpdateMetricsConfigInput is used internally by genqlient
 type __UpdateMetricsConfigInput struct {
 	ProjectId     string            `json:"projectId"`
@@ -47,6 +135,88 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
+// The mutation executed by CreateDebugDashboard.
+const CreateDebugDashboard_Operation = `
+mutation CreateDebugDashboard ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $emissionsFile: String!, $branchId: String, $metricsSetName: String) {
+	createDebugDashboard(projectId: $projectId, config: $config, templateFiles: $templateFiles, emissionsFile: $emissionsFile, branchId: $branchId, metricsSetName: $metricsSetName) {
+		id
+		name
+	}
+}
+`
+
+func CreateDebugDashboard(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	projectId string,
+	config string,
+	templateFiles []MetricsTemplate,
+	emissionsFile string,
+	branchId string,
+	metricsSetName string,
+) (data_ *CreateDebugDashboardResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "CreateDebugDashboard",
+		Query:  CreateDebugDashboard_Operation,
+		Variables: &__CreateDebugDashboardInput{
+			ProjectId:      projectId,
+			Config:         config,
+			TemplateFiles:  templateFiles,
+			EmissionsFile:  emissionsFile,
+			BranchId:       branchId,
+			MetricsSetName: metricsSetName,
+		},
+	}
+
+	data_ = &CreateDebugDashboardResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by GetDashboard.
+const GetDashboard_Operation = `
+query GetDashboard ($id: String!) {
+	dashboard(id: $id) {
+		id
+		name
+		isStale
+		lastRanAt
+	}
+}
+`
+
+func GetDashboard(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	id string,
+) (data_ *GetDashboardResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "GetDashboard",
+		Query:  GetDashboard_Operation,
+		Variables: &__GetDashboardInput{
+			Id: id,
+		},
+	}
+
+	data_ = &GetDashboardResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
 
 // The mutation executed by UpdateMetricsConfig.
 const UpdateMetricsConfig_Operation = `

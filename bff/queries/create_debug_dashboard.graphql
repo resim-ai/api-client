@@ -1,0 +1,6 @@
+mutation CreateDebugDashboard($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $emissionsFile: String!, $branchId: String, $metricsSetName: String) {
+    createDebugDashboard(projectId: $projectId, config: $config, templateFiles: $templateFiles, emissionsFile: $emissionsFile, branchId: $branchId, metricsSetName: $metricsSetName) {
+        id
+        name
+    }
+}

@@ -290,25 +290,21 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 	return poolLabels
 }
 
-func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []string, templatesPath string, verbose bool) error {
-	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
-	if err != nil {
-		log.Fatal("unable to retrieve branch associated with the build being run:", err)
-	}
-	branchName := branch.JSON200.Name
-	if branchName == "" {
-		log.Fatal("branch has no name associated with it")
-	}
-
+// prepareMetricsConfig merges config files and returns a base64-encoded string.
+func prepareMetricsConfig(configPaths []string, verbose bool) (string, error) {
 	configData, err := mergeConfigFiles(configPaths, verbose)
 	if err != nil {
-		return fmt.Errorf("failed to process metrics config files: %w", err)
+		return "", fmt.Errorf("failed to process metrics config files: %w", err)
 	}
-	configB64 := base64.StdEncoding.EncodeToString(configData)
+	return base64.StdEncoding.EncodeToString(configData), nil
+}
 
+// readTemplates reads .liquid template files from the given directory path
+// and returns them as base64-encoded MetricsTemplate values.
+func readTemplates(templatesPath string, verbose bool) ([]bff.MetricsTemplate, error) {
 	workDir, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
+		return nil, fmt.Errorf("failed to get working directory: %w", err)
 	}
 
 	templateDir := path.Join(workDir, templatesPath)
@@ -323,45 +319,68 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []st
 		if verbose {
 			fmt.Printf("Templates directory not found at %s, skipping templates\n", templatesPath)
 		}
+		return templates, nil
 	} else if err != nil {
-		// Some other error occurred
-		return fmt.Errorf("failed to stat templates dir: %w", err)
-	} else {
-		// Directory exists, read templates
-		if verbose {
-			fmt.Println("Looking for templates in", templatesPath)
-		}
-		files, err := os.ReadDir(templateDir)
-		if err != nil {
-			return fmt.Errorf("failed to read templates dir: %w", err)
-		}
+		return nil, fmt.Errorf("failed to stat templates dir: %w", err)
+	}
 
-		for _, f := range files {
-			if f.IsDir() {
-				if verbose {
-					fmt.Printf("Skipping directory %s\n", f.Name())
-				}
-				continue
-			}
-			if !strings.HasSuffix(strings.ToLower(f.Name()), ".liquid") {
-				if verbose {
-					fmt.Printf("Skipping non .liquid file %s\n", f.Name())
-				}
-				continue
-			}
+	// Directory exists, read templates
+	if verbose {
+		fmt.Println("Looking for templates in", templatesPath)
+	}
+	files, err := os.ReadDir(templateDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read templates dir: %w", err)
+	}
+
+	for _, f := range files {
+		if f.IsDir() {
 			if verbose {
-				fmt.Printf("Found template %s\n", f.Name())
+				fmt.Printf("Skipping directory %s\n", f.Name())
 			}
-			fullPath := path.Join(templateDir, f.Name())
-			contents, err := os.ReadFile(fullPath)
-			if err != nil {
-				return fmt.Errorf("failed to read template %s: %w", fullPath, err)
-			}
-			templates = append(templates, bff.MetricsTemplate{
-				Name:     f.Name(),
-				Contents: base64.StdEncoding.EncodeToString(contents),
-			})
+			continue
 		}
+		if !strings.HasSuffix(strings.ToLower(f.Name()), ".liquid") {
+			if verbose {
+				fmt.Printf("Skipping non .liquid file %s\n", f.Name())
+			}
+			continue
+		}
+		if verbose {
+			fmt.Printf("Found template %s\n", f.Name())
+		}
+		fullPath := path.Join(templateDir, f.Name())
+		contents, err := os.ReadFile(fullPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read template %s: %w", fullPath, err)
+		}
+		templates = append(templates, bff.MetricsTemplate{
+			Name:     f.Name(),
+			Contents: base64.StdEncoding.EncodeToString(contents),
+		})
+	}
+
+	return templates, nil
+}
+
+func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []string, templatesPath string, verbose bool) error {
+	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
+	if err != nil {
+		log.Fatal("unable to retrieve branch associated with the build being run:", err)
+	}
+	branchName := branch.JSON200.Name
+	if branchName == "" {
+		log.Fatal("branch has no name associated with it")
+	}
+
+	configB64, err := prepareMetricsConfig(configPaths, verbose)
+	if err != nil {
+		return err
+	}
+
+	templates, err := readTemplates(templatesPath, verbose)
+	if err != nil {
+		return err
 	}
 
 	_, err = bff.UpdateMetricsConfig(

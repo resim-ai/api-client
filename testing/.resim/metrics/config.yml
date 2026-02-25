@@ -6,7 +6,7 @@ topics:
 metrics:
   Average Speed:
     type: test
-    query_string: SELECT AVG(speed) FROM speed WHERE job_id=$job_id
+    query_string: SELECT AVG(speed) FROM ok
     template_type: system
     template: line
 metrics sets:

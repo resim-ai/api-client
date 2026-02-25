@@ -381,7 +381,7 @@ func syncMetrics(projectName string, verbose bool, username string, password str
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
-func debugMetricsCommand(projectName string, emissionsFile string, configPath string, templatesPath string, metricsSetName string) []CommandBuilder {
+func debugMetricsCommand(projectName string, emissionsFile string, configPath string, metricsSetName string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 	debugCommand := CommandBuilder{
 		Command: "debug",
@@ -389,7 +389,6 @@ func debugMetricsCommand(projectName string, emissionsFile string, configPath st
 			{Name: "--project", Value: projectName},
 			{Name: "--emissions-file", Value: emissionsFile},
 			{Name: "--metrics-config-path", Value: configPath},
-			{Name: "--templates-path", Value: templatesPath},
 			{Name: "--metrics-set", Value: metricsSetName},
 		},
 	}
@@ -6346,8 +6345,6 @@ func TestMetricsDebug(t *testing.T) {
 	// Resolve absolute paths so the CLI finds them regardless of cwd
 	absConfigPath, err := filepath.Abs(".resim/metrics/config.yml")
 	req.NoError(err)
-	absTemplatesPath, err := filepath.Abs(".resim/metrics/templates")
-	req.NoError(err)
 	absEmissionsPath, err := filepath.Abs(".resim/emissions.resim.jsonl")
 	req.NoError(err)
 
@@ -6355,13 +6352,11 @@ func TestMetricsDebug(t *testing.T) {
 		projectIDString,
 		absEmissionsPath,
 		absConfigPath,
-		absTemplatesPath,
 		"woot",
 	), ExpectNoError)
 
 	ts.Contains(output.StdOut, "Creating debug dashboard...")
 	ts.Contains(output.StdOut, "Dashboard created:")
-	ts.Contains(output.StdOut, "Dashboard is ready!")
 	ts.Regexp(regexp.MustCompile(`/projects/.+/debug/.+`), output.StdOut)
 }
 

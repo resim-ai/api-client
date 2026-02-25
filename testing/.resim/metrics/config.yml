@@ -8,7 +8,7 @@ metrics:
     type: test
     query_string: SELECT AVG(speed) FROM ok
     template_type: system
-    template: line
+    template: scalar
 metrics sets:
   woot:
     metrics:

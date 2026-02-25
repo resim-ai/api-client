@@ -139,7 +139,7 @@ func init() {
 	getBuildCmd.Flags().String(buildBuildIDKey, "", "The ID of the build to get")
 	getBuildCmd.MarkFlagRequired(buildBuildIDKey)
 	getBuildCmd.Flags().Bool(buildShowBuildSpecKey, false, "Print the build spec only, formatted as YAML.")
-	createBuildCmd.Flags().String(buildAssetsKey, "", "Comma-separated list of asset references to link to the build. Each entry can be: name, name:revision, uuid, or uuid:revision. When revision is omitted, the latest revision is used.")
+	createBuildCmd.Flags().String(buildAssetsKey, "", "Comma-separated list of asset references to link to the build. Each entry can be: name, name:revision, uuid, or uuid:revision. When revision is omitted, the latest revision is used as the static asset revision for this build.")
 
 	// List assets for build
 	listAssetsForBuildCmd.Flags().String(buildProjectKey, "", "The name or ID of the project the build belongs to")

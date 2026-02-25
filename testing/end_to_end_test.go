@@ -1034,6 +1034,179 @@ func listBuilds(projectID uuid.UUID, branchName *string, systemName *string) []C
 	return []CommandBuilder{buildCommand, listCommand}
 }
 
+// Asset helper functions
+
+func createAssetCommand(projectName string, name string, description string, locations string, mountFolder string, version string) []CommandBuilder {
+	assetCommand := CommandBuilder{
+		Command: "assets",
+	}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--name", Value: name},
+			{Name: "--description", Value: description},
+			{Name: "--locations", Value: locations},
+			{Name: "--mount-folder", Value: mountFolder},
+			{Name: "--version", Value: version},
+		},
+	}
+	return []CommandBuilder{assetCommand, createCommand}
+}
+
+func listAssetsCommand(projectName string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	listCommand := CommandBuilder{
+		Command: "list",
+		Flags:   []Flag{{Name: "--project", Value: projectName}},
+	}
+	return []CommandBuilder{assetCommand, listCommand}
+}
+
+func getAssetCommand(projectName string, assetKey string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--asset", Value: assetKey},
+		},
+	}
+	return []CommandBuilder{assetCommand, getCommand}
+}
+
+func getAssetAllRevisionsCommand(projectName string, assetKey string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--asset", Value: assetKey},
+			{Name: "--all-revisions", Value: ""},
+		},
+	}
+	return []CommandBuilder{assetCommand, getCommand}
+}
+
+func getAssetRevisionCommand(projectName string, assetKey string, revision string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	getCommand := CommandBuilder{
+		Command: "get",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--asset", Value: assetKey},
+			{Name: "--revision", Value: revision},
+		},
+	}
+	return []CommandBuilder{assetCommand, getCommand}
+}
+
+func reviseAssetCommand(projectName string, assetKey string, locations string, version string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	reviseCommand := CommandBuilder{
+		Command: "revise",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--asset", Value: assetKey},
+			{Name: "--locations", Value: locations},
+			{Name: "--version", Value: version},
+		},
+	}
+	return []CommandBuilder{assetCommand, reviseCommand}
+}
+
+func archiveAssetCommand(projectName string, assetKey string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	archiveCommand := CommandBuilder{
+		Command: "archive",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--asset", Value: assetKey},
+		},
+	}
+	return []CommandBuilder{assetCommand, archiveCommand}
+}
+
+func restoreAssetCommand(projectName string, assetKey string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	restoreCommand := CommandBuilder{
+		Command: "restore",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--asset", Value: assetKey},
+		},
+	}
+	return []CommandBuilder{assetCommand, restoreCommand}
+}
+
+func addAssetsToBuildCommand(projectName string, buildID string, assets string) []CommandBuilder {
+	buildCommand := CommandBuilder{Command: "builds"}
+	addCommand := CommandBuilder{
+		Command: "add-assets",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--build-id", Value: buildID},
+			{Name: "--assets", Value: assets},
+		},
+	}
+	return []CommandBuilder{buildCommand, addCommand}
+}
+
+func listAssetsForBuildCommand(projectName string, buildID string) []CommandBuilder {
+	buildCommand := CommandBuilder{Command: "builds"}
+	listCommand := CommandBuilder{
+		Command: "list-assets",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--build-id", Value: buildID},
+		},
+	}
+	return []CommandBuilder{buildCommand, listCommand}
+}
+
+func removeAssetsFromBuildCommand(projectName string, buildID string, assets string) []CommandBuilder {
+	buildCommand := CommandBuilder{Command: "builds"}
+	removeCommand := CommandBuilder{
+		Command: "remove-assets",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--build-id", Value: buildID},
+			{Name: "--assets", Value: assets},
+		},
+	}
+	return []CommandBuilder{buildCommand, removeCommand}
+}
+
+func assetBuildsCommand(projectName string, assetKey string) []CommandBuilder {
+	assetCommand := CommandBuilder{Command: "assets"}
+	buildsCmd := CommandBuilder{
+		Command: "builds",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--asset", Value: assetKey},
+		},
+	}
+	return []CommandBuilder{assetCommand, buildsCmd}
+}
+
+func createBuildWithAssetsCommand(projectName string, branchName string, systemName string, description string, image string, version string, assets string) []CommandBuilder {
+	buildCommand := CommandBuilder{Command: "builds"}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{Name: "--project", Value: projectName},
+			{Name: "--branch", Value: branchName},
+			{Name: "--system", Value: systemName},
+			{Name: "--description", Value: description},
+			{Name: "--image", Value: image},
+			{Name: "--version", Value: version},
+			{Name: "--assets", Value: assets},
+			{Name: "--github", Value: ""},
+		},
+	}
+	return []CommandBuilder{buildCommand, createCommand}
+}
+
 func createMetricsBuild(projectID uuid.UUID, name string, image string, version string, systems []string, github bool) []CommandBuilder {
 	// Now create the metrics build:
 	metricsBuildCommand := CommandBuilder{
@@ -6371,6 +6544,141 @@ func TestDebug(t *testing.T) {
 	ts.NotContains(output.StdOut, "error")
 
 	fmt.Println("Output: ", output.StdOut)
+}
+
+func TestAssetLifecycle(t *testing.T) {
+	ts := assert.New(t)
+	t.Parallel()
+
+	projectName := fmt.Sprintf("test-asset-project-%s", uuid.New().String())
+	output := s.runCommand(ts, createProject(projectName, "asset test project", GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID := uuid.MustParse(projectIDString)
+
+	// Create an asset
+	assetName := fmt.Sprintf("test-asset-%s", uuid.New().String())
+	assetLocation := fmt.Sprintf("s3://%s/test-asset/", s.Config.E2EBucket)
+	output = s.runCommand(ts, createAssetCommand(projectName, assetName, "test asset description", assetLocation, "/data/test", "v1.0"), ExpectNoError)
+	ts.Contains(output.StdOut, "Created asset successfully!")
+	ts.Contains(output.StdOut, "Asset ID:")
+	ts.Contains(output.StdOut, "Asset Revision: 0")
+
+	// Get the asset by name
+	output = s.runCommand(ts, getAssetCommand(projectName, assetName), ExpectNoError)
+	var asset api.Asset
+	err := json.Unmarshal([]byte(output.StdOut), &asset)
+	ts.NoError(err)
+	ts.Equal(assetName, asset.Name)
+	ts.Equal(int64(0), asset.AssetRevision)
+	ts.Equal("v1.0", asset.Version)
+	assetID := asset.AssetID
+
+	// List assets
+	output = s.runCommand(ts, listAssetsCommand(projectName), ExpectNoError)
+	var assets []api.Asset
+	err = json.Unmarshal([]byte(output.StdOut), &assets)
+	ts.NoError(err)
+	found := false
+	for _, a := range assets {
+		if a.AssetID == assetID {
+			found = true
+			break
+		}
+	}
+	ts.True(found, "asset should appear in list")
+
+	// Revise the asset
+	newLocation := fmt.Sprintf("s3://%s/test-asset-v2/", s.Config.E2EBucket)
+	output = s.runCommand(ts, reviseAssetCommand(projectName, assetName, newLocation, "v2.0"), ExpectNoError)
+	ts.Contains(output.StdOut, "Revised asset successfully!")
+	ts.Contains(output.StdOut, "Asset Revision: 1")
+
+
+	// Get all revisions
+	output = s.runCommand(ts, getAssetAllRevisionsCommand(projectName, assetName), ExpectNoError)
+	var revisions []api.Asset
+	err = json.Unmarshal([]byte(output.StdOut), &revisions)
+	ts.NoError(err)
+	ts.Equal(len(revisions), 2)
+
+	// Get specific revision 1
+	output = s.runCommand(ts, getAssetRevisionCommand(projectName, assetName, "1"), ExpectNoError)
+	var rev1 api.Asset
+	err = json.Unmarshal([]byte(output.StdOut), &rev1)
+	ts.NoError(err)
+	ts.Equal(int64(1), rev1.AssetRevision)
+	ts.Equal("v2.0", rev1.Version)
+
+	// Set up build infrastructure for linking tests
+	branchName := fmt.Sprintf("test-branch-%s", uuid.New().String())
+	output = s.runCommand(ts, createBranch(projectID, branchName, "RELEASE", GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedBranch)
+
+	systemName := fmt.Sprintf("test-system-%s", uuid.New().String())
+	output = s.runCommand(ts, createSystem(projectIDString, systemName, "description", nil, nil, nil, nil, nil, nil, nil, nil, nil, GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedSystem)
+
+	// Create a build
+	output = s.runCommand(ts, createBuild(projectName, branchName, systemName, "build for asset test", "public.ecr.aws/docker/library/hello-world:latest", []string{}, "1.0.0", GithubTrue, AutoCreateBranchFalse), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedBuild)
+	buildIDString := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(buildIDString)
+
+	// Add assets to build by name (latest revision)
+	output = s.runCommand(ts, addAssetsToBuildCommand(projectName, buildIDString, assetName), ExpectNoError)
+	ts.Contains(output.StdOut, "Linked 1 asset(s) to build successfully!")
+
+	// List assets for the build
+	output = s.runCommand(ts, listAssetsForBuildCommand(projectName, buildIDString), ExpectNoError)
+	var buildAssets []api.BuildAssetLink
+	err = json.Unmarshal([]byte(output.StdOut), &buildAssets)
+	ts.NoError(err)
+	ts.Equal(1, len(buildAssets))
+	ts.Equal(assetID, buildAssets[0].Asset.AssetID)
+
+	// List builds for the asset (reverse lookup)
+	output = s.runCommand(ts, assetBuildsCommand(projectName, assetName), ExpectNoError)
+	ts.NotContains(output.StdOut, "error")
+
+	// Remove assets from build
+	output = s.runCommand(ts, removeAssetsFromBuildCommand(projectName, buildIDString, assetName), ExpectNoError)
+	ts.Contains(output.StdOut, "Unlinked 1 asset(s) from build successfully!")
+
+	// Verify no assets linked after removal
+	output = s.runCommand(ts, listAssetsForBuildCommand(projectName, buildIDString), ExpectNoError)
+	ts.Contains(output.StdOut, "no assets linked to build")
+
+	// Create a build with assets inline (using --assets flag and pinned revision)
+	output = s.runCommand(ts, createBuildWithAssetsCommand(projectName, branchName, systemName, "build with inline assets", "public.ecr.aws/docker/library/hello-world:latest", "2.0.0", assetName+":1"), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedBuild)
+
+	// Archive the asset
+	output = s.runCommand(ts, archiveAssetCommand(projectName, assetName), ExpectNoError)
+	ts.Contains(output.StdOut, "Archived asset")
+
+	// Verify asset no longer appears in default list
+	output = s.runCommand(ts, listAssetsCommand(projectName), ExpectNoError)
+	if output.StdOut != "no assets\n" {
+		var activeAssets []api.Asset
+		err = json.Unmarshal([]byte(output.StdOut), &activeAssets)
+		ts.NoError(err)
+		for _, a := range activeAssets {
+			ts.NotEqual(assetID, a.AssetID, "archived asset should not appear in default list")
+		}
+	}
+
+	// Restore the asset
+	output = s.runCommand(ts, restoreAssetCommand(projectName, assetID.String()), ExpectNoError)
+	ts.Contains(output.StdOut, "Restored archived asset")
+
+	// Verify asset reappears
+	output = s.runCommand(ts, getAssetCommand(projectName, assetName), ExpectNoError)
+	var restoredAsset api.Asset
+	err = json.Unmarshal([]byte(output.StdOut), &restoredAsset)
+	ts.NoError(err)
+	ts.Equal(assetID, restoredAsset.AssetID)
+	ts.False(restoredAsset.Archived)
 }
 
 func TestMain(m *testing.M) {

@@ -2,9 +2,15 @@
 
 ## ReSim CLI
 
-### v0.46.0 - February 21, 2026
+### v0.47.0 - February 25, 2026
 
 - Adds `metrics debug` command for creating debug dashboards. Accepts an emissions file, metrics config, metrics set, and optional templates, then waits for the dashboard to be ready and prints its URL. Supports optional `--branch` flag. Note: debug dashboards are ephemeral and may be cleaned up after 24 hours.
+
+### v0.46.0 - February 23, 2026
+
+- Adds a new `assets` command with full CRUD and lifecycle support: `create`, `list`, `get`, `update`, `revise`, `archive`, `restore`, and `builds` (to list linked builds). Assets are versioned resources that can be linked to builds and follow the same revision model as test suites.
+- The `builds` command now supports managing asset links via new `add-assets`, `remove-assets`, and `list-assets` subcommands.
+- The `builds create` command now accepts an optional `--assets` flag to link asset revisions at build creation time. Asset references support flexible formats: `name` (latest revision), `name:revision` (pinned), `uuid` (latest revision), or `uuid:revision` (pinned).
 
 ### v0.45.0 - February 19, 2026
 

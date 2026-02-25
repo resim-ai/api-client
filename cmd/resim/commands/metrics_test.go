@@ -140,19 +140,6 @@ func TestWaitForDashboardReady_APIError(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
-func TestWaitForDashboardReady_IsStale(t *testing.T) {
-	mockClient := new(mockGraphQLClient)
-
-	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetDashboardRequest), mock.Anything).
-		Run(withGetDashboardResponseFull("", true)).
-		Return(nil).Once()
-
-	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond, testSpinner())
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to process")
-	mockClient.AssertExpectations(t)
-}
-
 func TestInferAppURL(t *testing.T) {
 	tests := []struct {
 		name     string

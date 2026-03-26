@@ -374,7 +374,7 @@ func TestMergeConfigs(t *testing.T) {
 func TestMergeConfigFiles(t *testing.T) {
 	t.Run("Single file backwards compatible", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		file1 := fmt.Sprintf("%s/config.yml", tmpDir)
+		file1 := fmt.Sprintf("%s/config.resim.yml", tmpDir)
 		os.WriteFile(file1, []byte("version: 1\ntopics:\n  t1:\n    type: float\n"), 0644)
 
 		data, err := mergeConfigFiles([]string{file1}, false)
@@ -399,7 +399,7 @@ func TestMergeConfigFiles(t *testing.T) {
 	})
 
 	t.Run("File not found returns error", func(t *testing.T) {
-		_, err := mergeConfigFiles([]string{"/nonexistent/path/config.yml"}, false)
+		_, err := mergeConfigFiles([]string{"/nonexistent/path/config.resim.yml"}, false)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to find ReSim metrics config")
 	})
@@ -458,7 +458,7 @@ func TestMergeConfigFiles(t *testing.T) {
 
 	t.Run("File with global produces metrics with skip-if-no-data", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		file1 := fmt.Sprintf("%s/config.yml", tmpDir)
+		file1 := fmt.Sprintf("%s/config.resim.yml", tmpDir)
 		os.WriteFile(file1, []byte("version: 1\nglobal:\n  skip-if-no-data: true\nmetrics:\n  my_metric:\n    type: test\n"), 0644)
 
 		data, err := mergeConfigFiles([]string{file1}, false)
@@ -515,7 +515,7 @@ func TestMergeConfigFiles(t *testing.T) {
 func TestResolveConfigPath(t *testing.T) {
 	t.Run("Relative .yml found", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		file := fmt.Sprintf("%s/config.yml", tmpDir)
+		file := fmt.Sprintf("%s/config.resim.yml", tmpDir)
 		os.WriteFile(file, []byte("version: 1"), 0644)
 
 		resolved, err := resolveConfigPath(file)
@@ -529,7 +529,7 @@ func TestResolveConfigPath(t *testing.T) {
 		yamlFile := fmt.Sprintf("%s/config.yaml", tmpDir)
 		os.WriteFile(yamlFile, []byte("version: 1"), 0644)
 
-		ymlPath := fmt.Sprintf("%s/config.yml", tmpDir)
+		ymlPath := fmt.Sprintf("%s/config.resim.yml", tmpDir)
 		resolved, err := resolveConfigPath(ymlPath)
 		assert.NoError(t, err)
 		assert.Len(t, resolved, 1)
@@ -538,7 +538,7 @@ func TestResolveConfigPath(t *testing.T) {
 
 	t.Run("Absolute path used as-is", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		file := fmt.Sprintf("%s/config.yml", tmpDir)
+		file := fmt.Sprintf("%s/config.resim.yml", tmpDir)
 		os.WriteFile(file, []byte("version: 1"), 0644)
 
 		resolved, err := resolveConfigPath(file)
@@ -548,7 +548,7 @@ func TestResolveConfigPath(t *testing.T) {
 	})
 
 	t.Run("Missing file returns error", func(t *testing.T) {
-		_, err := resolveConfigPath("/nonexistent/path/config.yml")
+		_, err := resolveConfigPath("/nonexistent/path/config.resim.yml")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to find ReSim metrics config")
 	})
@@ -596,9 +596,9 @@ func TestContainsGlobChars(t *testing.T) {
 		{"Question mark wildcard", "metrics/config?.yml", true},
 		{"Bracket pattern", "metrics/config[12].yml", true},
 		{"Double star glob", "metrics/**/*.yml", true},
-		{"No glob chars", "metrics/config.yml", false},
+		{"No glob chars", "metrics/config.resim.yml", false},
 		{"Empty string", "", false},
-		{"Absolute path no glob", "/home/user/.resim/metrics/config.yml", false},
+		{"Absolute path no glob", "/home/user/.resim/metrics/config.resim.yml", false},
 		{"Absolute path with glob", "/home/user/.resim/metrics/*.yml", true},
 	}
 

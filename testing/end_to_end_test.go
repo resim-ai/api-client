@@ -6292,7 +6292,7 @@ func TestMetricsSync(t *testing.T) {
 		// Verbose logs a lot of info about what it is doing
 		output = s.runCommand(ts, syncMetrics(projectIDString, true, username, password), false)
 		ts.Equal("", output.StdErr)
-		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.yml")
+		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.resim.yml")
 		ts.Contains(output.StdOut, "Found template bar.liquid")
 		ts.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
 	})
@@ -6317,7 +6317,7 @@ func TestMetricsDebug(t *testing.T) {
 
 	// Use the checked-in test fixtures at testing/.resim/
 	// Resolve absolute paths so the CLI finds them regardless of cwd
-	absConfigPath, err := filepath.Abs(".resim/metrics/config.yml")
+	absConfigPath, err := filepath.Abs(".resim/metrics/config.resim.yml")
 	req.NoError(err)
 	absEmissionsPath, err := filepath.Abs(".resim/emissions.resim.jsonl")
 	req.NoError(err)

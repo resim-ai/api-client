@@ -526,7 +526,7 @@ func TestResolveConfigPath(t *testing.T) {
 
 	t.Run(".yaml fallback found", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		yamlFile := fmt.Sprintf("%s/config.yaml", tmpDir)
+		yamlFile := fmt.Sprintf("%s/config.resim.yaml", tmpDir)
 		os.WriteFile(yamlFile, []byte("version: 1"), 0644)
 
 		ymlPath := fmt.Sprintf("%s/config.resim.yml", tmpDir)

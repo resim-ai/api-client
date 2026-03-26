@@ -4184,7 +4184,7 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.Len(logs, 10)
 	for _, log := range logs {
 		ts.Equal(testID2, *log.JobID)
-		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs.zip", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, *log.FileName)
+		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "blah.log", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, *log.FileName)
 	}
 
 	// Download a single test log

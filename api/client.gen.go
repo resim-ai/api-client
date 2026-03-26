@@ -42,6 +42,7 @@ const (
 // Defines values for BatchType.
 const (
 	DEBUGEXPERIENCE BatchType = "DEBUG_EXPERIENCE"
+	LIGHT           BatchType = "LIGHT"
 	NORMAL          BatchType = "NORMAL"
 )
 
@@ -114,6 +115,12 @@ const (
 	JobStatusSUCCEEDED         JobStatus = "SUCCEEDED"
 )
 
+// Defines values for LightJobStatus.
+const (
+	ERROR     LightJobStatus = "ERROR"
+	SUCCEEDED LightJobStatus = "SUCCEEDED"
+)
+
 // Defines values for LogType.
 const (
 	ARCHIVELOG       LogType = "ARCHIVE_LOG"
@@ -128,6 +135,7 @@ const (
 	OTHERLOG         LogType = "OTHER_LOG"
 	RERUNIOLOG       LogType = "RERUN_IO_LOG"
 	SERVICELOG       LogType = "SERVICE_LOG"
+	SYSTEMLOG        LogType = "SYSTEM_LOG"
 )
 
 // Defines values for MetricStatus.
@@ -347,13 +355,19 @@ type BatchLog struct {
 	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
 	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
 	FileName          *FileName      `json:"fileName,omitempty" yaml:"fileName,omitempty"`
-	FileSize          *FileSize      `json:"fileSize,omitempty" yaml:"fileSize,omitempty"`
-	Location          *LogLocation   `json:"location,omitempty" yaml:"location,omitempty"`
-	LogID             *LogID         `json:"logID,omitempty" yaml:"logID,omitempty"`
-	LogOutputLocation *string        `json:"logOutputLocation,omitempty" yaml:"logOutputLocation,omitempty"`
-	LogType           *LogType       `json:"logType,omitempty" yaml:"logType,omitempty"`
-	OrgID             *OrgID         `json:"orgID,omitempty" yaml:"orgID,omitempty"`
-	UserID            *UserID        `json:"userID,omitempty" yaml:"userID,omitempty"`
+
+	// FilePath The directory path relative to the output root (empty for root-level files)
+	FilePath *string   `json:"filePath,omitempty" yaml:"filePath,omitempty"`
+	FileSize *FileSize `json:"fileSize,omitempty" yaml:"fileSize,omitempty"`
+
+	// FullPath The fully qualified path (filePath/fileName) of the log file
+	FullPath          *string      `json:"fullPath,omitempty" yaml:"fullPath,omitempty"`
+	Location          *LogLocation `json:"location,omitempty" yaml:"location,omitempty"`
+	LogID             *LogID       `json:"logID,omitempty" yaml:"logID,omitempty"`
+	LogOutputLocation *string      `json:"logOutputLocation,omitempty" yaml:"logOutputLocation,omitempty"`
+	LogType           *LogType     `json:"logType,omitempty" yaml:"logType,omitempty"`
+	OrgID             *OrgID       `json:"orgID,omitempty" yaml:"orgID,omitempty"`
+	UserID            *UserID      `json:"userID,omitempty" yaml:"userID,omitempty"`
 }
 
 // BatchMetric defines model for batchMetric.
@@ -511,6 +525,13 @@ type BulkArchiveExperiencesInput struct {
 // Checksum defines model for checksum.
 type Checksum = string
 
+// CloseJobInput defines model for closeJobInput.
+type CloseJobInput struct {
+	// ErrorMessage Optional user-provided error message for the job. Only used when status is ERROR.
+	ErrorMessage *string        `json:"errorMessage,omitempty" yaml:"errorMessage,omitempty"`
+	Status       LightJobStatus `json:"status" yaml:"status"`
+}
+
 // CompareBatchTest defines model for compareBatchTest.
 type CompareBatchTest struct {
 	ExperienceID   ExperienceID             `json:"experienceID" yaml:"experienceID"`
@@ -647,6 +668,35 @@ type CreateExperienceInput struct {
 type CreateExperienceTagInput struct {
 	Description string            `json:"description" yaml:"description"`
 	Name        ExperienceTagName `json:"name" yaml:"name"`
+}
+
+// CreateJobForBatchInput defines model for createJobForBatchInput.
+type CreateJobForBatchInput struct {
+	// Description Optional description for the job and experience.
+	Description  *string       `json:"description,omitempty" yaml:"description,omitempty"`
+	ExperienceID *ExperienceID `json:"experienceID,omitempty" yaml:"experienceID,omitempty"`
+
+	// Name Name for the experience. Either name or experienceID must be provided, but not both.
+	Name *string `json:"name,omitempty" yaml:"name,omitempty"`
+}
+
+// CreateJobLogInput defines model for createJobLogInput.
+type CreateJobLogInput struct {
+	Checksum Checksum `json:"checksum" yaml:"checksum"`
+	FileName FileName `json:"fileName" yaml:"fileName"`
+	FileSize FileSize `json:"fileSize" yaml:"fileSize"`
+	LogType  LogType  `json:"logType" yaml:"logType"`
+}
+
+// CreateJobLogOutput defines model for createJobLogOutput.
+type CreateJobLogOutput struct {
+	LogID LogID `json:"logID" yaml:"logID"`
+
+	// RequiredHeaders Headers the client MUST include when uploading. Includes x-amz-tagging when tags were provided.
+	RequiredHeaders *RequiredHeaders `json:"requiredHeaders,omitempty" yaml:"requiredHeaders,omitempty"`
+
+	// UploadURL Presigned S3 URL for uploading the log file via HTTP PUT.
+	UploadURL string `json:"uploadURL" yaml:"uploadURL"`
 }
 
 // CreateMetricsBuildInput defines model for createMetricsBuildInput.
@@ -1014,14 +1064,20 @@ type JobLog struct {
 	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
 	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
 	FileName          *FileName      `json:"fileName,omitempty" yaml:"fileName,omitempty"`
-	FileSize          *FileSize      `json:"fileSize,omitempty" yaml:"fileSize,omitempty"`
-	JobID             *JobID         `json:"jobID,omitempty" yaml:"jobID,omitempty"`
-	Location          *LogLocation   `json:"location,omitempty" yaml:"location,omitempty"`
-	LogID             *LogID         `json:"logID,omitempty" yaml:"logID,omitempty"`
-	LogOutputLocation *string        `json:"logOutputLocation,omitempty" yaml:"logOutputLocation,omitempty"`
-	LogType           *LogType       `json:"logType,omitempty" yaml:"logType,omitempty"`
-	OrgID             *OrgID         `json:"orgID,omitempty" yaml:"orgID,omitempty"`
-	UserID            *UserID        `json:"userID,omitempty" yaml:"userID,omitempty"`
+
+	// FilePath The directory path relative to the output root (empty for root-level files)
+	FilePath *string   `json:"filePath,omitempty" yaml:"filePath,omitempty"`
+	FileSize *FileSize `json:"fileSize,omitempty" yaml:"fileSize,omitempty"`
+
+	// FullPath The fully qualified path (filePath/fileName) of the log file
+	FullPath          *string      `json:"fullPath,omitempty" yaml:"fullPath,omitempty"`
+	JobID             *JobID       `json:"jobID,omitempty" yaml:"jobID,omitempty"`
+	Location          *LogLocation `json:"location,omitempty" yaml:"location,omitempty"`
+	LogID             *LogID       `json:"logID,omitempty" yaml:"logID,omitempty"`
+	LogOutputLocation *string      `json:"logOutputLocation,omitempty" yaml:"logOutputLocation,omitempty"`
+	LogType           *LogType     `json:"logType,omitempty" yaml:"logType,omitempty"`
+	OrgID             *OrgID       `json:"orgID,omitempty" yaml:"orgID,omitempty"`
+	UserID            *UserID      `json:"userID,omitempty" yaml:"userID,omitempty"`
 }
 
 // JobMetric defines model for jobMetric.
@@ -1106,6 +1162,19 @@ type KeyMetricTarget struct {
 	Operator string  `json:"operator" yaml:"operator"`
 	Value    float64 `json:"value" yaml:"value"`
 }
+
+// LightBatchInput defines model for lightBatchInput.
+type LightBatchInput struct {
+	BatchName      *Name           `json:"batchName,omitempty" yaml:"batchName,omitempty"`
+	BranchID       BranchID        `json:"branchID" yaml:"branchID"`
+	MetricsSetName *MetricsSetName `json:"metricsSetName" yaml:"metricsSetName"`
+
+	// Version A version string representing your build. For example, this could be a commit sha or semver number
+	Version *string `json:"version,omitempty" yaml:"version,omitempty"`
+}
+
+// LightJobStatus defines model for lightJobStatus.
+type LightJobStatus string
 
 // LineNumber defines model for lineNumber.
 type LineNumber = int32
@@ -1378,13 +1447,19 @@ type Log struct {
 	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
 	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
 	FileName          *FileName      `json:"fileName,omitempty" yaml:"fileName,omitempty"`
-	FileSize          *FileSize      `json:"fileSize,omitempty" yaml:"fileSize,omitempty"`
-	Location          *LogLocation   `json:"location,omitempty" yaml:"location,omitempty"`
-	LogID             *LogID         `json:"logID,omitempty" yaml:"logID,omitempty"`
-	LogOutputLocation *string        `json:"logOutputLocation,omitempty" yaml:"logOutputLocation,omitempty"`
-	LogType           *LogType       `json:"logType,omitempty" yaml:"logType,omitempty"`
-	OrgID             *OrgID         `json:"orgID,omitempty" yaml:"orgID,omitempty"`
-	UserID            *UserID        `json:"userID,omitempty" yaml:"userID,omitempty"`
+
+	// FilePath The directory path relative to the output root (empty for root-level files)
+	FilePath *string   `json:"filePath,omitempty" yaml:"filePath,omitempty"`
+	FileSize *FileSize `json:"fileSize,omitempty" yaml:"fileSize,omitempty"`
+
+	// FullPath The fully qualified path (filePath/fileName) of the log file
+	FullPath          *string      `json:"fullPath,omitempty" yaml:"fullPath,omitempty"`
+	Location          *LogLocation `json:"location,omitempty" yaml:"location,omitempty"`
+	LogID             *LogID       `json:"logID,omitempty" yaml:"logID,omitempty"`
+	LogOutputLocation *string      `json:"logOutputLocation,omitempty" yaml:"logOutputLocation,omitempty"`
+	LogType           *LogType     `json:"logType,omitempty" yaml:"logType,omitempty"`
+	OrgID             *OrgID       `json:"orgID,omitempty" yaml:"orgID,omitempty"`
+	UserID            *UserID      `json:"userID,omitempty" yaml:"userID,omitempty"`
 }
 
 // LogID defines model for logID.
@@ -1665,10 +1740,16 @@ type ReportInput struct {
 
 // ReportLog defines model for reportLog.
 type ReportLog struct {
-	Checksum          Checksum    `json:"checksum" yaml:"checksum"`
-	CreationTimestamp Timestamp   `json:"creationTimestamp" yaml:"creationTimestamp"`
-	FileName          FileName    `json:"fileName" yaml:"fileName"`
-	FileSize          FileSize    `json:"fileSize" yaml:"fileSize"`
+	Checksum          Checksum  `json:"checksum" yaml:"checksum"`
+	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
+	FileName          FileName  `json:"fileName" yaml:"fileName"`
+
+	// FilePath The directory path relative to the output root (empty for root-level files)
+	FilePath *string  `json:"filePath,omitempty" yaml:"filePath,omitempty"`
+	FileSize FileSize `json:"fileSize" yaml:"fileSize"`
+
+	// FullPath The fully qualified path (filePath/fileName) of the log file
+	FullPath          *string     `json:"fullPath,omitempty" yaml:"fullPath,omitempty"`
 	Location          LogLocation `json:"location" yaml:"location"`
 	LogID             LogID       `json:"logID" yaml:"logID"`
 	LogOutputLocation string      `json:"logOutputLocation" yaml:"logOutputLocation"`
@@ -1700,6 +1781,9 @@ type ReportStatusHistoryType struct {
 	Status    *ReportStatus `json:"status,omitempty" yaml:"status,omitempty"`
 	UpdatedAt *Timestamp    `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
 }
+
+// RequiredHeaders Headers the client MUST include when uploading. Includes x-amz-tagging when tags were provided.
+type RequiredHeaders map[string]string
 
 // RerunBatchInput defines model for rerunBatchInput.
 type RerunBatchInput struct {
@@ -2638,14 +2722,26 @@ type ReviseAssetJSONRequestBody = ReviseAssetInput
 // CreateBatchJSONRequestBody defines body for CreateBatch for application/json ContentType.
 type CreateBatchJSONRequestBody = BatchInput
 
+// CreateLightBatchJSONRequestBody defines body for CreateLightBatch for application/json ContentType.
+type CreateLightBatchJSONRequestBody = LightBatchInput
+
 // UpdateBatchJSONRequestBody defines body for UpdateBatch for application/json ContentType.
 type UpdateBatchJSONRequestBody = UpdateBatchInput
+
+// CreateJobForBatchJSONRequestBody defines body for CreateJobForBatch for application/json ContentType.
+type CreateJobForBatchJSONRequestBody = CreateJobForBatchInput
 
 // UpdateJobJSONRequestBody defines body for UpdateJob for application/json ContentType.
 type UpdateJobJSONRequestBody = UpdateJobInput
 
+// CloseJobJSONRequestBody defines body for CloseJob for application/json ContentType.
+type CloseJobJSONRequestBody = CloseJobInput
+
 // UpdateEventJSONRequestBody defines body for UpdateEvent for application/json ContentType.
 type UpdateEventJSONRequestBody = UpdateEventInput
+
+// CreateJobLogJSONRequestBody defines body for CreateJobLog for application/json ContentType.
+type CreateJobLogJSONRequestBody = CreateJobLogInput
 
 // RerunBatchJSONRequestBody defines body for RerunBatch for application/json ContentType.
 type RerunBatchJSONRequestBody = RerunBatchInput
@@ -3268,6 +3364,14 @@ type ClientInterface interface {
 	// ListBatchAccounts request
 	ListBatchAccounts(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateLightBatchWithBody request with any body
+	CreateLightBatchWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateLightBatch(ctx context.Context, projectID ProjectID, body CreateLightBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// LookupLatestBatchByName request
+	LookupLatestBatchByName(ctx context.Context, projectID ProjectID, friendlyName FriendlyName, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetBatch request
 	GetBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3279,6 +3383,9 @@ type ClientInterface interface {
 	// CancelBatch request
 	CancelBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CloseBatch request
+	CloseBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// CompareBatches request
 	CompareBatches(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3288,6 +3395,11 @@ type ClientInterface interface {
 	// ListJobs request
 	ListJobs(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateJobForBatchWithBody request with any body
+	CreateJobForBatchWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateJobForBatch(ctx context.Context, projectID ProjectID, batchID BatchID, body CreateJobForBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetJob request
 	GetJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3295,6 +3407,11 @@ type ClientInterface interface {
 	UpdateJobWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	UpdateJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CloseJobWithBody request with any body
+	CloseJobWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CloseJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CloseJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetContainerStatus request
 	GetContainerStatus(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3321,6 +3438,11 @@ type ClientInterface interface {
 
 	// ListJobLogsForJob request
 	ListJobLogsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateJobLogWithBody request with any body
+	CreateJobLogWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateJobLog(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteJobLog request
 	DeleteJobLog(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4098,6 +4220,42 @@ func (c *Client) ListBatchAccounts(ctx context.Context, projectID ProjectID, par
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreateLightBatchWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLightBatchRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateLightBatch(ctx context.Context, projectID ProjectID, body CreateLightBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateLightBatchRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) LookupLatestBatchByName(ctx context.Context, projectID ProjectID, friendlyName FriendlyName, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLookupLatestBatchByNameRequest(c.Server, projectID, friendlyName)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetBatchRequest(c.Server, projectID, batchID)
 	if err != nil {
@@ -4146,6 +4304,18 @@ func (c *Client) CancelBatch(ctx context.Context, projectID ProjectID, batchID B
 	return c.Client.Do(req)
 }
 
+func (c *Client) CloseBatch(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCloseBatchRequest(c.Server, projectID, batchID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) CompareBatches(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCompareBatchesRequest(c.Server, projectID, batchID, otherBatchID, params)
 	if err != nil {
@@ -4182,6 +4352,30 @@ func (c *Client) ListJobs(ctx context.Context, projectID ProjectID, batchID Batc
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreateJobForBatchWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJobForBatchRequestWithBody(c.Server, projectID, batchID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateJobForBatch(ctx context.Context, projectID ProjectID, batchID BatchID, body CreateJobForBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJobForBatchRequest(c.Server, projectID, batchID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetJobRequest(c.Server, projectID, batchID, jobID)
 	if err != nil {
@@ -4208,6 +4402,30 @@ func (c *Client) UpdateJobWithBody(ctx context.Context, projectID ProjectID, bat
 
 func (c *Client) UpdateJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateJobRequest(c.Server, projectID, batchID, jobID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CloseJobWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCloseJobRequestWithBody(c.Server, projectID, batchID, jobID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CloseJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CloseJobJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCloseJobRequest(c.Server, projectID, batchID, jobID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -4316,6 +4534,30 @@ func (c *Client) GetLogStream(ctx context.Context, projectID ProjectID, batchID 
 
 func (c *Client) ListJobLogsForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListJobLogsForJobRequest(c.Server, projectID, batchID, jobID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateJobLogWithBody(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJobLogRequestWithBody(c.Server, projectID, batchID, jobID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateJobLog(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateJobLogRequest(c.Server, projectID, batchID, jobID, body)
 	if err != nil {
 		return nil, err
 	}
@@ -7566,6 +7808,94 @@ func NewListBatchAccountsRequest(server string, projectID ProjectID, params *Lis
 	return req, nil
 }
 
+// NewCreateLightBatchRequest calls the generic CreateLightBatch builder with application/json body
+func NewCreateLightBatchRequest(server string, projectID ProjectID, body CreateLightBatchJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateLightBatchRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateLightBatchRequestWithBody generates requests for CreateLightBatch with any type of body
+func NewCreateLightBatchRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/light", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewLookupLatestBatchByNameRequest generates requests for LookupLatestBatchByName
+func NewLookupLatestBatchByNameRequest(server string, projectID ProjectID, friendlyName FriendlyName) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "friendlyName", runtime.ParamLocationPath, friendlyName)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/lookup/name/%s/", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetBatchRequest generates requests for GetBatch
 func NewGetBatchRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
 	var err error
@@ -7685,6 +8015,47 @@ func NewCancelBatchRequest(server string, projectID ProjectID, batchID BatchID) 
 	}
 
 	operationPath := fmt.Sprintf("/projects/%s/batches/%s/:cancel", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCloseBatchRequest generates requests for CloseBatch
+func NewCloseBatchRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/close", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -8036,6 +8407,60 @@ func NewListJobsRequest(server string, projectID ProjectID, batchID BatchID, par
 	return req, nil
 }
 
+// NewCreateJobForBatchRequest calls the generic CreateJobForBatch builder with application/json body
+func NewCreateJobForBatchRequest(server string, projectID ProjectID, batchID BatchID, body CreateJobForBatchJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateJobForBatchRequestWithBody(server, projectID, batchID, "application/json", bodyReader)
+}
+
+// NewCreateJobForBatchRequestWithBody generates requests for CreateJobForBatch with any type of body
+func NewCreateJobForBatchRequestWithBody(server string, projectID ProjectID, batchID BatchID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetJobRequest generates requests for GetJob
 func NewGetJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID) (*http.Request, error) {
 	var err error
@@ -8136,6 +8561,67 @@ func NewUpdateJobRequestWithBody(server string, projectID ProjectID, batchID Bat
 	}
 
 	req, err := http.NewRequest("PATCH", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCloseJobRequest calls the generic CloseJob builder with application/json body
+func NewCloseJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, body CloseJobJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCloseJobRequestWithBody(server, projectID, batchID, jobID, "application/json", bodyReader)
+}
+
+// NewCloseJobRequestWithBody generates requests for CloseJob with any type of body
+func NewCloseJobRequestWithBody(server string, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/close", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -8807,6 +9293,67 @@ func NewListJobLogsForJobRequest(server string, projectID ProjectID, batchID Bat
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewCreateJobLogRequest calls the generic CreateJobLog builder with application/json body
+func NewCreateJobLogRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateJobLogRequestWithBody(server, projectID, batchID, jobID, "application/json", bodyReader)
+}
+
+// NewCreateJobLogRequestWithBody generates requests for CreateJobLog with any type of body
+func NewCreateJobLogRequestWithBody(server string, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/logs", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -17014,6 +17561,14 @@ type ClientWithResponsesInterface interface {
 	// ListBatchAccountsWithResponse request
 	ListBatchAccountsWithResponse(ctx context.Context, projectID ProjectID, params *ListBatchAccountsParams, reqEditors ...RequestEditorFn) (*ListBatchAccountsResponse, error)
 
+	// CreateLightBatchWithBodyWithResponse request with any body
+	CreateLightBatchWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLightBatchResponse, error)
+
+	CreateLightBatchWithResponse(ctx context.Context, projectID ProjectID, body CreateLightBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLightBatchResponse, error)
+
+	// LookupLatestBatchByNameWithResponse request
+	LookupLatestBatchByNameWithResponse(ctx context.Context, projectID ProjectID, friendlyName FriendlyName, reqEditors ...RequestEditorFn) (*LookupLatestBatchByNameResponse, error)
+
 	// GetBatchWithResponse request
 	GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error)
 
@@ -17025,6 +17580,9 @@ type ClientWithResponsesInterface interface {
 	// CancelBatchWithResponse request
 	CancelBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*CancelBatchResponse, error)
 
+	// CloseBatchWithResponse request
+	CloseBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*CloseBatchResponse, error)
+
 	// CompareBatchesWithResponse request
 	CompareBatchesWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*CompareBatchesResponse, error)
 
@@ -17034,6 +17592,11 @@ type ClientWithResponsesInterface interface {
 	// ListJobsWithResponse request
 	ListJobsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListJobsParams, reqEditors ...RequestEditorFn) (*ListJobsResponse, error)
 
+	// CreateJobForBatchWithBodyWithResponse request with any body
+	CreateJobForBatchWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJobForBatchResponse, error)
+
+	CreateJobForBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, body CreateJobForBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJobForBatchResponse, error)
+
 	// GetJobWithResponse request
 	GetJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetJobResponse, error)
 
@@ -17041,6 +17604,11 @@ type ClientWithResponsesInterface interface {
 	UpdateJobWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateJobResponse, error)
 
 	UpdateJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body UpdateJobJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateJobResponse, error)
+
+	// CloseJobWithBodyWithResponse request with any body
+	CloseJobWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CloseJobResponse, error)
+
+	CloseJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CloseJobJSONRequestBody, reqEditors ...RequestEditorFn) (*CloseJobResponse, error)
 
 	// GetContainerStatusWithResponse request
 	GetContainerStatusWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetContainerStatusResponse, error)
@@ -17067,6 +17635,11 @@ type ClientWithResponsesInterface interface {
 
 	// ListJobLogsForJobWithResponse request
 	ListJobLogsForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListJobLogsForJobParams, reqEditors ...RequestEditorFn) (*ListJobLogsForJobResponse, error)
+
+	// CreateJobLogWithBodyWithResponse request with any body
+	CreateJobLogWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error)
+
+	CreateJobLogWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error)
 
 	// DeleteJobLogWithResponse request
 	DeleteJobLogWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logID LogID, reqEditors ...RequestEditorFn) (*DeleteJobLogResponse, error)
@@ -17978,6 +18551,50 @@ func (r ListBatchAccountsResponse) StatusCode() int {
 	return 0
 }
 
+type CreateLightBatchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Batch
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateLightBatchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateLightBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type LookupLatestBatchByNameResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BatchID
+}
+
+// Status returns HTTPResponse.Status
+func (r LookupLatestBatchByNameResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LookupLatestBatchByNameResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetBatchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -18037,6 +18654,27 @@ func (r CancelBatchResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CancelBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CloseBatchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r CloseBatchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CloseBatchResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -18109,6 +18747,28 @@ func (r ListJobsResponse) StatusCode() int {
 	return 0
 }
 
+type CreateJobForBatchResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Job
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateJobForBatchResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateJobForBatchResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetJobResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -18147,6 +18807,27 @@ func (r UpdateJobResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateJobResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CloseJobResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r CloseJobResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CloseJobResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -18322,6 +19003,28 @@ func (r ListJobLogsForJobResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListJobLogsForJobResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateJobLogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *CreateJobLogOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateJobLogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateJobLogResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -21335,6 +22038,32 @@ func (c *ClientWithResponses) ListBatchAccountsWithResponse(ctx context.Context,
 	return ParseListBatchAccountsResponse(rsp)
 }
 
+// CreateLightBatchWithBodyWithResponse request with arbitrary body returning *CreateLightBatchResponse
+func (c *ClientWithResponses) CreateLightBatchWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateLightBatchResponse, error) {
+	rsp, err := c.CreateLightBatchWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLightBatchResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateLightBatchWithResponse(ctx context.Context, projectID ProjectID, body CreateLightBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateLightBatchResponse, error) {
+	rsp, err := c.CreateLightBatch(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateLightBatchResponse(rsp)
+}
+
+// LookupLatestBatchByNameWithResponse request returning *LookupLatestBatchByNameResponse
+func (c *ClientWithResponses) LookupLatestBatchByNameWithResponse(ctx context.Context, projectID ProjectID, friendlyName FriendlyName, reqEditors ...RequestEditorFn) (*LookupLatestBatchByNameResponse, error) {
+	rsp, err := c.LookupLatestBatchByName(ctx, projectID, friendlyName, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLookupLatestBatchByNameResponse(rsp)
+}
+
 // GetBatchWithResponse request returning *GetBatchResponse
 func (c *ClientWithResponses) GetBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchResponse, error) {
 	rsp, err := c.GetBatch(ctx, projectID, batchID, reqEditors...)
@@ -21370,6 +22099,15 @@ func (c *ClientWithResponses) CancelBatchWithResponse(ctx context.Context, proje
 	return ParseCancelBatchResponse(rsp)
 }
 
+// CloseBatchWithResponse request returning *CloseBatchResponse
+func (c *ClientWithResponses) CloseBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*CloseBatchResponse, error) {
+	rsp, err := c.CloseBatch(ctx, projectID, batchID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCloseBatchResponse(rsp)
+}
+
 // CompareBatchesWithResponse request returning *CompareBatchesResponse
 func (c *ClientWithResponses) CompareBatchesWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, otherBatchID BatchID, params *CompareBatchesParams, reqEditors ...RequestEditorFn) (*CompareBatchesResponse, error) {
 	rsp, err := c.CompareBatches(ctx, projectID, batchID, otherBatchID, params, reqEditors...)
@@ -21397,6 +22135,23 @@ func (c *ClientWithResponses) ListJobsWithResponse(ctx context.Context, projectI
 	return ParseListJobsResponse(rsp)
 }
 
+// CreateJobForBatchWithBodyWithResponse request with arbitrary body returning *CreateJobForBatchResponse
+func (c *ClientWithResponses) CreateJobForBatchWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJobForBatchResponse, error) {
+	rsp, err := c.CreateJobForBatchWithBody(ctx, projectID, batchID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateJobForBatchResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateJobForBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, body CreateJobForBatchJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJobForBatchResponse, error) {
+	rsp, err := c.CreateJobForBatch(ctx, projectID, batchID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateJobForBatchResponse(rsp)
+}
+
 // GetJobWithResponse request returning *GetJobResponse
 func (c *ClientWithResponses) GetJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetJobResponse, error) {
 	rsp, err := c.GetJob(ctx, projectID, batchID, jobID, reqEditors...)
@@ -21421,6 +22176,23 @@ func (c *ClientWithResponses) UpdateJobWithResponse(ctx context.Context, project
 		return nil, err
 	}
 	return ParseUpdateJobResponse(rsp)
+}
+
+// CloseJobWithBodyWithResponse request with arbitrary body returning *CloseJobResponse
+func (c *ClientWithResponses) CloseJobWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CloseJobResponse, error) {
+	rsp, err := c.CloseJobWithBody(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCloseJobResponse(rsp)
+}
+
+func (c *ClientWithResponses) CloseJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CloseJobJSONRequestBody, reqEditors ...RequestEditorFn) (*CloseJobResponse, error) {
+	rsp, err := c.CloseJob(ctx, projectID, batchID, jobID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCloseJobResponse(rsp)
 }
 
 // GetContainerStatusWithResponse request returning *GetContainerStatusResponse
@@ -21501,6 +22273,23 @@ func (c *ClientWithResponses) ListJobLogsForJobWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseListJobLogsForJobResponse(rsp)
+}
+
+// CreateJobLogWithBodyWithResponse request with arbitrary body returning *CreateJobLogResponse
+func (c *ClientWithResponses) CreateJobLogWithBodyWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error) {
+	rsp, err := c.CreateJobLogWithBody(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateJobLogResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateJobLogWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, body CreateJobLogJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateJobLogResponse, error) {
+	rsp, err := c.CreateJobLog(ctx, projectID, batchID, jobID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateJobLogResponse(rsp)
 }
 
 // DeleteJobLogWithResponse request returning *DeleteJobLogResponse
@@ -23432,6 +24221,58 @@ func ParseListBatchAccountsResponse(rsp *http.Response) (*ListBatchAccountsRespo
 	return response, nil
 }
 
+// ParseCreateLightBatchResponse parses an HTTP response from a CreateLightBatchWithResponse call
+func ParseCreateLightBatchResponse(rsp *http.Response) (*CreateLightBatchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateLightBatchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Batch
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseLookupLatestBatchByNameResponse parses an HTTP response from a LookupLatestBatchByNameWithResponse call
+func ParseLookupLatestBatchByNameResponse(rsp *http.Response) (*LookupLatestBatchByNameResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LookupLatestBatchByNameResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BatchID
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetBatchResponse parses an HTTP response from a GetBatchWithResponse call
 func ParseGetBatchResponse(rsp *http.Response) (*GetBatchResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -23493,6 +24334,22 @@ func ParseCancelBatchResponse(rsp *http.Response) (*CancelBatchResponse, error) 
 	}
 
 	response := &CancelBatchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseCloseBatchResponse parses an HTTP response from a CloseBatchWithResponse call
+func ParseCloseBatchResponse(rsp *http.Response) (*CloseBatchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CloseBatchResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -23578,6 +24435,32 @@ func ParseListJobsResponse(rsp *http.Response) (*ListJobsResponse, error) {
 	return response, nil
 }
 
+// ParseCreateJobForBatchResponse parses an HTTP response from a CreateJobForBatchWithResponse call
+func ParseCreateJobForBatchResponse(rsp *http.Response) (*CreateJobForBatchResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateJobForBatchResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Job
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetJobResponse parses an HTTP response from a GetJobWithResponse call
 func ParseGetJobResponse(rsp *http.Response) (*GetJobResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -23625,6 +24508,22 @@ func ParseUpdateJobResponse(rsp *http.Response) (*UpdateJobResponse, error) {
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseCloseJobResponse parses an HTTP response from a CloseJobWithResponse call
+func ParseCloseJobResponse(rsp *http.Response) (*CloseJobResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CloseJobResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -23822,6 +24721,32 @@ func ParseListJobLogsForJobResponse(rsp *http.Response) (*ListJobLogsForJobRespo
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateJobLogResponse parses an HTTP response from a CreateJobLogWithResponse call
+func ParseCreateJobLogResponse(rsp *http.Response) (*CreateJobLogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateJobLogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest CreateJobLogOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
 
 	}
 

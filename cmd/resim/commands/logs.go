@@ -278,13 +278,17 @@ type DownloadableLog struct {
 func DownloadableLogsFromJobLogs(jobLogs []api.JobLog) []DownloadableLog {
 	downloadableLogs := []DownloadableLog{}
 	for _, jobLog := range jobLogs {
+		relPath := ""
+		if jobLog.FilePath != nil {
+			relPath = *jobLog.FilePath
+		}
 		filePrefix := ""
-		if *jobLog.LogType == api.SYSTEMLOG {
-			filePrefix = "logs/"
+		if *jobLog.LogType == api.SYSTEMLOG && !strings.HasPrefix(relPath, "logs") {
+			filePrefix = "logs"
 		}
 		downloadableLogs = append(downloadableLogs, DownloadableLog{
 			FileName:          *jobLog.FileName,
-			FilePath:          filePrefix + *jobLog.FilePath,
+			FilePath:          filepath.Join(filePrefix, relPath),
 			LogOutputLocation: *jobLog.LogOutputLocation,
 			FileSize:          *jobLog.FileSize,
 			LogType:           *jobLog.LogType,
@@ -296,9 +300,13 @@ func DownloadableLogsFromJobLogs(jobLogs []api.JobLog) []DownloadableLog {
 func DownloadableLogsFromBatchLogs(batchLogs []api.BatchLog) []DownloadableLog {
 	downloadableLogs := []DownloadableLog{}
 	for _, batchLog := range batchLogs {
+		relPath := ""
+		if batchLog.FilePath != nil {
+			relPath = *batchLog.FilePath
+		}
 		downloadableLogs = append(downloadableLogs, DownloadableLog{
 			FileName:          *batchLog.FileName,
-			FilePath:          *batchLog.FilePath,
+			FilePath:          relPath,
 			LogOutputLocation: *batchLog.LogOutputLocation,
 			FileSize:          *batchLog.FileSize,
 			LogType:           *batchLog.LogType,

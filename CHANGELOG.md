@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.48.0 - March 27, 2026
+- Updates default `--metrics-config-path` to `.resim/metrics/config.resim.yml` to match rest of our tooling.
+- Updates `resim logs download` to support new "System Logs" feature. These will be downloaded to a `logs/` directory.
+
 ### v0.47.0 - February 25, 2026
 
 - Adds `metrics debug` command for creating debug dashboards. Accepts an emissions file, metrics config, metrics set, and optional templates, then waits for the dashboard to be ready and prints its URL. Supports optional `--branch` flag. Note: debug dashboards are ephemeral and may be cleaned up after 24 hours.

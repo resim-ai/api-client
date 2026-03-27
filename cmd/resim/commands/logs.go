@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	"io"
 	"log"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+
+	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -268,6 +269,7 @@ func unzipFile(zippedFile os.File) error {
 
 type DownloadableLog struct {
 	FileName          string
+	FilePath          string
 	LogOutputLocation string
 	FileSize          int64
 	LogType           api.LogType
@@ -276,8 +278,13 @@ type DownloadableLog struct {
 func DownloadableLogsFromJobLogs(jobLogs []api.JobLog) []DownloadableLog {
 	downloadableLogs := []DownloadableLog{}
 	for _, jobLog := range jobLogs {
+		filePrefix := ""
+		if *jobLog.LogType == api.SYSTEMLOG {
+			filePrefix = "logs/"
+		}
 		downloadableLogs = append(downloadableLogs, DownloadableLog{
 			FileName:          *jobLog.FileName,
+			FilePath:          filePrefix + *jobLog.FilePath,
 			LogOutputLocation: *jobLog.LogOutputLocation,
 			FileSize:          *jobLog.FileSize,
 			LogType:           *jobLog.LogType,
@@ -291,6 +298,7 @@ func DownloadableLogsFromBatchLogs(batchLogs []api.BatchLog) []DownloadableLog {
 	for _, batchLog := range batchLogs {
 		downloadableLogs = append(downloadableLogs, DownloadableLog{
 			FileName:          *batchLog.FileName,
+			FilePath:          *batchLog.FilePath,
 			LogOutputLocation: *batchLog.LogOutputLocation,
 			FileSize:          *batchLog.FileSize,
 			LogType:           *batchLog.LogType,
@@ -383,9 +391,10 @@ func downloadLogs(ccmd *cobra.Command, args []string) {
 	}
 
 	for _, downloadableLog := range downloadableLogs {
-		s.Update(fmt.Sprintf("Downloading %s...", downloadableLog.FileName))
+		s.Update(fmt.Sprintf("Downloading %s...", filepath.Join(downloadableLog.FilePath, downloadableLog.FileName)))
 
-		filePath := filepath.Join(outputDir, downloadableLog.FileName)
+		os.MkdirAll(filepath.Join(outputDir, downloadableLog.FilePath), 0755)
+		filePath := filepath.Join(outputDir, downloadableLog.FilePath, downloadableLog.FileName)
 		out, err := os.Create(filePath)
 		if err != nil {
 			s.Fatal("unable to create log file: ", err)

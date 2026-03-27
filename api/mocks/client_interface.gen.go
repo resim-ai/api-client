@@ -1691,6 +1691,236 @@ func (_c *ClientInterface_CancelParameterSweep_Call) RunAndReturn(run func(conte
 	return _c
 }
 
+// CloseBatch provides a mock function with given fields: ctx, projectID, batchID, reqEditors
+func (_m *ClientInterface) CloseBatch(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CloseBatch")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CloseBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CloseBatch'
+type ClientInterface_CloseBatch_Call struct {
+	*mock.Call
+}
+
+// CloseBatch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CloseBatch(ctx interface{}, projectID interface{}, batchID interface{}, reqEditors ...interface{}) *ClientInterface_CloseBatch_Call {
+	return &ClientInterface_CloseBatch_Call{Call: _e.mock.On("CloseBatch",
+		append([]interface{}{ctx, projectID, batchID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CloseBatch_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_CloseBatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CloseBatch_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CloseBatch_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CloseBatch_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CloseBatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CloseJob provides a mock function with given fields: ctx, projectID, batchID, jobID, body, reqEditors
+func (_m *ClientInterface) CloseJob(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, body api.CloseJobInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, jobID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CloseJob")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CloseJobInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CloseJobInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CloseJobInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CloseJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CloseJob'
+type ClientInterface_CloseJob_Call struct {
+	*mock.Call
+}
+
+// CloseJob is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - jobID uuid.UUID
+//   - body api.CloseJobInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CloseJob(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CloseJob_Call {
+	return &ClientInterface_CloseJob_Call{Call: _e.mock.On("CloseJob",
+		append([]interface{}{ctx, projectID, batchID, jobID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CloseJob_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, body api.CloseJobInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CloseJob_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(api.CloseJobInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CloseJob_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CloseJob_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CloseJob_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CloseJobInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CloseJob_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CloseJobWithBody provides a mock function with given fields: ctx, projectID, batchID, jobID, contentType, body, reqEditors
+func (_m *ClientInterface) CloseJobWithBody(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, jobID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CloseJobWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CloseJobWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CloseJobWithBody'
+type ClientInterface_CloseJobWithBody_Call struct {
+	*mock.Call
+}
+
+// CloseJobWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - jobID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CloseJobWithBody(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CloseJobWithBody_Call {
+	return &ClientInterface_CloseJobWithBody_Call{Call: _e.mock.On("CloseJobWithBody",
+		append([]interface{}{ctx, projectID, batchID, jobID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CloseJobWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CloseJobWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-6)
+		for i, a := range args[6:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(string), args[5].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CloseJobWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CloseJobWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CloseJobWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CloseJobWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CompareBatches provides a mock function with given fields: ctx, projectID, batchID, otherBatchID, params, reqEditors
 func (_m *ClientInterface) CompareBatches(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, otherBatchID uuid.UUID, params *api.CompareBatchesParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -3133,6 +3363,465 @@ func (_c *ClientInterface_CreateExperienceWithBody_Call) Return(_a0 *http.Respon
 }
 
 func (_c *ClientInterface_CreateExperienceWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateExperienceWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateJobForBatch provides a mock function with given fields: ctx, projectID, batchID, body, reqEditors
+func (_m *ClientInterface) CreateJobForBatch(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, body api.CreateJobForBatchInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateJobForBatch")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.CreateJobForBatchInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, api.CreateJobForBatchInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, api.CreateJobForBatchInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateJobForBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJobForBatch'
+type ClientInterface_CreateJobForBatch_Call struct {
+	*mock.Call
+}
+
+// CreateJobForBatch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - body api.CreateJobForBatchInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateJobForBatch(ctx interface{}, projectID interface{}, batchID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateJobForBatch_Call {
+	return &ClientInterface_CreateJobForBatch_Call{Call: _e.mock.On("CreateJobForBatch",
+		append([]interface{}{ctx, projectID, batchID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateJobForBatch_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, body api.CreateJobForBatchInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateJobForBatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(api.CreateJobForBatchInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobForBatch_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateJobForBatch_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobForBatch_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, api.CreateJobForBatchInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateJobForBatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateJobForBatchWithBody provides a mock function with given fields: ctx, projectID, batchID, contentType, body, reqEditors
+func (_m *ClientInterface) CreateJobForBatchWithBody(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateJobForBatchWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateJobForBatchWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJobForBatchWithBody'
+type ClientInterface_CreateJobForBatchWithBody_Call struct {
+	*mock.Call
+}
+
+// CreateJobForBatchWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateJobForBatchWithBody(ctx interface{}, projectID interface{}, batchID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateJobForBatchWithBody_Call {
+	return &ClientInterface_CreateJobForBatchWithBody_Call{Call: _e.mock.On("CreateJobForBatchWithBody",
+		append([]interface{}{ctx, projectID, batchID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateJobForBatchWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateJobForBatchWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(string), args[4].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobForBatchWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateJobForBatchWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobForBatchWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateJobForBatchWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateJobLog provides a mock function with given fields: ctx, projectID, batchID, jobID, body, reqEditors
+func (_m *ClientInterface) CreateJobLog(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, body api.CreateJobLogInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, jobID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateJobLog")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CreateJobLogInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CreateJobLogInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CreateJobLogInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateJobLog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJobLog'
+type ClientInterface_CreateJobLog_Call struct {
+	*mock.Call
+}
+
+// CreateJobLog is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - jobID uuid.UUID
+//   - body api.CreateJobLogInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateJobLog(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateJobLog_Call {
+	return &ClientInterface_CreateJobLog_Call{Call: _e.mock.On("CreateJobLog",
+		append([]interface{}{ctx, projectID, batchID, jobID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateJobLog_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, body api.CreateJobLogInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateJobLog_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(api.CreateJobLogInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobLog_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateJobLog_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobLog_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, api.CreateJobLogInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateJobLog_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateJobLogWithBody provides a mock function with given fields: ctx, projectID, batchID, jobID, contentType, body, reqEditors
+func (_m *ClientInterface) CreateJobLogWithBody(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, jobID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateJobLogWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateJobLogWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateJobLogWithBody'
+type ClientInterface_CreateJobLogWithBody_Call struct {
+	*mock.Call
+}
+
+// CreateJobLogWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - jobID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateJobLogWithBody(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateJobLogWithBody_Call {
+	return &ClientInterface_CreateJobLogWithBody_Call{Call: _e.mock.On("CreateJobLogWithBody",
+		append([]interface{}{ctx, projectID, batchID, jobID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateJobLogWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateJobLogWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-6)
+		for i, a := range args[6:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(string), args[5].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobLogWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateJobLogWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateJobLogWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateJobLogWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateLightBatch provides a mock function with given fields: ctx, projectID, body, reqEditors
+func (_m *ClientInterface) CreateLightBatch(ctx context.Context, projectID uuid.UUID, body api.LightBatchInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateLightBatch")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.LightBatchInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.LightBatchInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, api.LightBatchInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateLightBatch_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateLightBatch'
+type ClientInterface_CreateLightBatch_Call struct {
+	*mock.Call
+}
+
+// CreateLightBatch is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - body api.LightBatchInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateLightBatch(ctx interface{}, projectID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateLightBatch_Call {
+	return &ClientInterface_CreateLightBatch_Call{Call: _e.mock.On("CreateLightBatch",
+		append([]interface{}{ctx, projectID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateLightBatch_Call) Run(run func(ctx context.Context, projectID uuid.UUID, body api.LightBatchInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateLightBatch_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(api.LightBatchInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateLightBatch_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateLightBatch_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateLightBatch_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.LightBatchInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateLightBatch_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateLightBatchWithBody provides a mock function with given fields: ctx, projectID, contentType, body, reqEditors
+func (_m *ClientInterface) CreateLightBatchWithBody(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateLightBatchWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateLightBatchWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateLightBatchWithBody'
+type ClientInterface_CreateLightBatchWithBody_Call struct {
+	*mock.Call
+}
+
+// CreateLightBatchWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateLightBatchWithBody(ctx interface{}, projectID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateLightBatchWithBody_Call {
+	return &ClientInterface_CreateLightBatchWithBody_Call{Call: _e.mock.On("CreateLightBatchWithBody",
+		append([]interface{}{ctx, projectID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateLightBatchWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateLightBatchWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), args[3].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateLightBatchWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateLightBatchWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateLightBatchWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateLightBatchWithBody_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -12598,6 +13287,81 @@ func (_c *ClientInterface_ListWorkflows_Call) Return(_a0 *http.Response, _a1 err
 }
 
 func (_c *ClientInterface_ListWorkflows_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListWorkflowsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListWorkflows_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// LookupLatestBatchByName provides a mock function with given fields: ctx, projectID, friendlyName, reqEditors
+func (_m *ClientInterface) LookupLatestBatchByName(ctx context.Context, projectID uuid.UUID, friendlyName string, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, friendlyName)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LookupLatestBatchByName")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, friendlyName, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, friendlyName, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, friendlyName, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_LookupLatestBatchByName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LookupLatestBatchByName'
+type ClientInterface_LookupLatestBatchByName_Call struct {
+	*mock.Call
+}
+
+// LookupLatestBatchByName is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - friendlyName string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) LookupLatestBatchByName(ctx interface{}, projectID interface{}, friendlyName interface{}, reqEditors ...interface{}) *ClientInterface_LookupLatestBatchByName_Call {
+	return &ClientInterface_LookupLatestBatchByName_Call{Call: _e.mock.On("LookupLatestBatchByName",
+		append([]interface{}{ctx, projectID, friendlyName}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_LookupLatestBatchByName_Call) Run(run func(ctx context.Context, projectID uuid.UUID, friendlyName string, reqEditors ...api.RequestEditorFn)) *ClientInterface_LookupLatestBatchByName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_LookupLatestBatchByName_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_LookupLatestBatchByName_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_LookupLatestBatchByName_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_LookupLatestBatchByName_Call {
 	_c.Call.Return(run)
 	return _c
 }

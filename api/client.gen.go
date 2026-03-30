@@ -1165,11 +1165,14 @@ type KeyMetricTarget struct {
 
 // LightBatchInput defines model for lightBatchInput.
 type LightBatchInput struct {
-	BatchName      *Name           `json:"batchName,omitempty" yaml:"batchName,omitempty"`
-	BranchID       BranchID        `json:"branchID" yaml:"branchID"`
-	MetricsSetName *MetricsSetName `json:"metricsSetName" yaml:"metricsSetName"`
+	BatchName         *Name              `json:"batchName,omitempty" yaml:"batchName,omitempty"`
+	BranchID          BranchID           `json:"branchID" yaml:"branchID"`
+	MetricsSetName    *MetricsSetName    `json:"metricsSetName" yaml:"metricsSetName"`
+	SystemID          *SystemID          `json:"systemID,omitempty" yaml:"systemID,omitempty"`
+	TestSuiteID       *TestSuiteID       `json:"testSuiteID,omitempty" yaml:"testSuiteID,omitempty"`
+	TestSuiteRevision *TestSuiteRevision `json:"testSuiteRevision,omitempty" yaml:"testSuiteRevision,omitempty"`
 
-	// Version A version string representing your build. For example, this could be a commit sha or semver number
+	// Version Optional. When provided, the latest existing build matching (branchID, systemID, version) is reused; a new build is created only if none is found. When omitted, a new build is always created with version "n/a".
 	Version *string `json:"version,omitempty" yaml:"version,omitempty"`
 }
 
@@ -1670,6 +1673,7 @@ type Profile = string
 
 // Project defines model for project.
 type Project struct {
+	AgentMarkdown     *string   `json:"agentMarkdown,omitempty" yaml:"agentMarkdown,omitempty"`
 	Archived          Archived  `json:"archived" yaml:"archived"`
 	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
 	Description       string    `json:"description" yaml:"description"`
@@ -2051,8 +2055,9 @@ type UpdateMask = []string
 
 // UpdateProjectFields defines model for updateProjectFields.
 type UpdateProjectFields struct {
-	Description *string `json:"description,omitempty" yaml:"description,omitempty"`
-	Name        *string `json:"name,omitempty" yaml:"name,omitempty"`
+	AgentMarkdown *string `json:"agentMarkdown,omitempty" yaml:"agentMarkdown,omitempty"`
+	Description   *string `json:"description,omitempty" yaml:"description,omitempty"`
+	Name          *string `json:"name,omitempty" yaml:"name,omitempty"`
 }
 
 // UpdateProjectInput defines model for updateProjectInput.
@@ -3637,6 +3642,9 @@ type ClientInterface interface {
 
 	// GetSystemsForExperience request
 	GetSystemsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetLogByID request
+	GetLogByID(ctx context.Context, projectID ProjectID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListMetricsBuilds request
 	ListMetricsBuilds(ctx context.Context, projectID ProjectID, params *ListMetricsBuildsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5386,6 +5394,18 @@ func (c *Client) RestoreExperience(ctx context.Context, projectID ProjectID, exp
 
 func (c *Client) GetSystemsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetSystemsForExperienceRequest(c.Server, projectID, experienceID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetLogByID(ctx context.Context, projectID ProjectID, logID LogID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLogByIDRequest(c.Server, projectID, logID)
 	if err != nil {
 		return nil, err
 	}
@@ -13067,6 +13087,47 @@ func NewGetSystemsForExperienceRequest(server string, projectID ProjectID, exper
 	return req, nil
 }
 
+// NewGetLogByIDRequest generates requests for GetLogByID
+func NewGetLogByIDRequest(server string, projectID ProjectID, logID LogID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "logID", runtime.ParamLocationPath, logID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/logs/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListMetricsBuildsRequest generates requests for ListMetricsBuilds
 func NewListMetricsBuildsRequest(server string, projectID ProjectID, params *ListMetricsBuildsParams) (*http.Request, error) {
 	var err error
@@ -17835,6 +17896,9 @@ type ClientWithResponsesInterface interface {
 	// GetSystemsForExperienceWithResponse request
 	GetSystemsForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetSystemsForExperienceParams, reqEditors ...RequestEditorFn) (*GetSystemsForExperienceResponse, error)
 
+	// GetLogByIDWithResponse request
+	GetLogByIDWithResponse(ctx context.Context, projectID ProjectID, logID LogID, reqEditors ...RequestEditorFn) (*GetLogByIDResponse, error)
+
 	// ListMetricsBuildsWithResponse request
 	ListMetricsBuildsWithResponse(ctx context.Context, projectID ProjectID, params *ListMetricsBuildsParams, reqEditors ...RequestEditorFn) (*ListMetricsBuildsResponse, error)
 
@@ -20245,6 +20309,28 @@ func (r GetSystemsForExperienceResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetSystemsForExperienceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetLogByIDResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *JobLog
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLogByIDResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLogByIDResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -22898,6 +22984,15 @@ func (c *ClientWithResponses) GetSystemsForExperienceWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseGetSystemsForExperienceResponse(rsp)
+}
+
+// GetLogByIDWithResponse request returning *GetLogByIDResponse
+func (c *ClientWithResponses) GetLogByIDWithResponse(ctx context.Context, projectID ProjectID, logID LogID, reqEditors ...RequestEditorFn) (*GetLogByIDResponse, error) {
+	rsp, err := c.GetLogByID(ctx, projectID, logID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLogByIDResponse(rsp)
 }
 
 // ListMetricsBuildsWithResponse request returning *ListMetricsBuildsResponse
@@ -26079,6 +26174,32 @@ func ParseGetSystemsForExperienceResponse(rsp *http.Response) (*GetSystemsForExp
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListSystemsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetLogByIDResponse parses an HTTP response from a GetLogByIDWithResponse call
+func ParseGetLogByIDResponse(rsp *http.Response) (*GetLogByIDResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLogByIDResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobLog
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

@@ -59,13 +59,21 @@ var (
 		Long:  ``,
 		Run:   selectProject,
 	}
+
+	updateProjectCmd = &cobra.Command{
+		Use:   "update",
+		Short: "update - Updates an existing project",
+		Long:  ``,
+		Run:   updateProject,
+	}
 )
 
 const (
-	projectKey            = "project"
-	projectNameKey        = "name"
-	projectDescriptionKey = "description"
-	projectGithubKey      = "github"
+	projectKey                  = "project"
+	projectNameKey              = "name"
+	projectDescriptionKey       = "description"
+	projectGithubKey            = "github"
+	projectAgentMarkdownFileKey = "agent-markdown-file"
 )
 
 func init() {
@@ -89,6 +97,13 @@ func init() {
 	projectCmd.AddCommand(listProjectsCmd)
 
 	projectCmd.AddCommand(selectProjectCmd)
+
+	updateProjectCmd.Flags().String(projectKey, "", "The name or the ID of the project to update")
+	updateProjectCmd.MarkFlagRequired(projectKey)
+	updateProjectCmd.Flags().String(projectNameKey, "", "New name for the project")
+	updateProjectCmd.Flags().String(projectDescriptionKey, "", "New description for the project")
+	updateProjectCmd.Flags().String(projectAgentMarkdownFileKey, "", "Path to a markdown file containing agent rules for this project")
+	projectCmd.AddCommand(updateProjectCmd)
 
 	rootCmd.AddCommand(projectCmd)
 }
@@ -313,6 +328,34 @@ func getProjectID(client api.ClientWithResponsesInterface, identifier string) uu
 		log.Fatal("failed to find project with name or ID: ", identifier)
 	}
 	return projectID
+}
+
+func updateProject(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(projectKey))
+	fields := api.UpdateProjectFields{}
+	if ccmd.Flags().Changed(projectNameKey) {
+		fields.Name = Ptr(viper.GetString(projectNameKey))
+	}
+	if ccmd.Flags().Changed(projectDescriptionKey) {
+		fields.Description = Ptr(viper.GetString(projectDescriptionKey))
+	}
+	if ccmd.Flags().Changed(projectAgentMarkdownFileKey) {
+		filePath := viper.GetString(projectAgentMarkdownFileKey)
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			log.Fatal("failed to read agent markdown file: ", err)
+		}
+		fields.AgentMarkdown = Ptr(string(content))
+	}
+	body := api.UpdateProjectInput{
+		Project: &fields,
+	}
+	response, err := Client.UpdateProjectWithResponse(context.Background(), projectID, body)
+	if err != nil {
+		log.Fatal("failed to update project: ", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to update project", response.HTTPResponse, response.Body)
+	fmt.Println("Updated project successfully!")
 }
 
 func aliasProjectNameFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {

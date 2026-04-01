@@ -100,6 +100,7 @@ const (
 	testSuiteBatchNameKey               = "batch-name"
 	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
 	testSuiteMetricsBuildOverrideKey    = "metrics-build-override"
+	testSuiteMetricsSetOverrideKey      = "metrics-set-name-override"
 	testSuiteSyncMetricsConfigKey       = "sync-metrics-config"
 	testSuitesMetricsConfigPathKey      = "metrics-config-path"
 	testSuitesMetricsTemplatesPathKey   = "metrics-templates-path"
@@ -211,6 +212,7 @@ func init() {
 	runTestSuiteCmd.Flags().Int(testSuiteAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	// Optional: Metrics build override:
 	runTestSuiteCmd.Flags().String(testSuiteMetricsBuildOverrideKey, "", "An optional ID of a metrics build to override the standard metrics build in this test suite run (which will be run as an adhoc batch).")
+	runTestSuiteCmd.Flags().String(testSuiteMetricsSetOverrideKey, "", "An optional metrics set name to override the test suite's metrics set for this run. Supplying this flag runs the test suite as an adhoc batch.")
 	// Optional: Sync metrics config
 	runTestSuiteCmd.Flags().Bool(testSuiteSyncMetricsConfigKey, false, "If set, run metrics sync before running the test suite")
 	runTestSuiteCmd.Flags().StringSlice(testSuitesMetricsConfigPathKey, []string{".resim/metrics/config.resim.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
@@ -605,8 +607,12 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	}
 
 	poolLabels := getAndValidatePoolLabels(testSuitePoolLabelsKey)
+	effectiveMetricsSetName := NormalizeMetricsSetName(testSuite.MetricsSetName)
+	if viper.IsSet(testSuiteMetricsSetOverrideKey) {
+		effectiveMetricsSetName = NormalizeMetricsSetName(Ptr(viper.GetString(testSuiteMetricsSetOverrideKey)))
+	}
 
-	if HasMetricsSetName(testSuite.MetricsSetName) && !viper.GetBool(testSuiteIgnoreMetricsSetKey) {
+	if HasMetricsSetName(effectiveMetricsSetName) && !viper.GetBool(testSuiteIgnoreMetricsSetKey) {
 		AddMetrics2PoolLabels(&poolLabels)
 	}
 
@@ -635,20 +641,24 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	}
 
 	var batch api.Batch
-	// If the user supplies a metrics build override, we run an adhoc batch:
-	if viper.IsSet(testSuiteMetricsBuildOverrideKey) {
-		metricsBuildID, err := uuid.Parse(viper.GetString(testSuiteMetricsBuildOverrideKey))
-		if err != nil {
-			log.Fatal("failed to parse metrics-build ID: ", err)
+	// If the user supplies an override, we run an adhoc batch:
+	if viper.IsSet(testSuiteMetricsBuildOverrideKey) || viper.IsSet(testSuiteMetricsSetOverrideKey) {
+		var metricsBuildID *uuid.UUID
+		if viper.IsSet(testSuiteMetricsBuildOverrideKey) {
+			parsedMetricsBuildID, err := uuid.Parse(viper.GetString(testSuiteMetricsBuildOverrideKey))
+			if err != nil {
+				log.Fatal("failed to parse metrics-build ID: ", err)
+			}
+			metricsBuildID = &parsedMetricsBuildID
 		}
 		// Build the request body
 		body := api.BatchInput{
 			BuildID:           &buildID,
-			MetricsBuildID:    &metricsBuildID,
+			MetricsBuildID:    metricsBuildID,
 			ExperienceIDs:     &testSuite.Experiences,
 			Parameters:        &parameters,
 			AssociatedAccount: &associatedAccount,
-			MetricsSetName:    NormalizeMetricsSetName(testSuite.MetricsSetName),
+			MetricsSetName:    effectiveMetricsSetName,
 		}
 
 		// Add the pool labels if any

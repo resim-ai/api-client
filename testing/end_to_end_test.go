@@ -2550,7 +2550,7 @@ func getTestSuiteBatches(projectID uuid.UUID, testSuiteName string, revision *in
 	return []CommandBuilder{testSuitesCommand, batchesCommand}
 }
 
-func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string, allowableFailurePercent *int, metricsBuildID *string, ignoreMetricsSet bool) []CommandBuilder {
+func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, buildID string, parameters map[string]string, github bool, account string, batchName *string, allowableFailurePercent *int, metricsBuildID *string, metricsSetOverride *string, ignoreMetricsSet bool) []CommandBuilder {
 	// We build a get batch command with the name flag
 	testSuiteCommand := CommandBuilder{
 		Command: "suites",
@@ -2617,6 +2617,13 @@ func runTestSuite(projectID uuid.UUID, testSuiteName string, revision *int32, bu
 		runCommand.Flags = append(runCommand.Flags, Flag{
 			Name:  "--metrics-build-override",
 			Value: *metricsBuildID,
+		})
+	}
+
+	if metricsSetOverride != nil {
+		runCommand.Flags = append(runCommand.Flags, Flag{
+			Name:  "--metrics-set-name-override",
+			Value: *metricsSetOverride,
 		})
 	}
 
@@ -5350,7 +5357,7 @@ func TestTestSuites(t *testing.T) {
 	ts.Len(testSuite.Experiences, 1)
 	ts.ElementsMatch(experienceIDs[0], testSuite.Experiences[0])
 	// Then run.
-	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, nil, nil, false), ExpectNoError)
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, nil, nil, nil, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	// Then list the test suite batches
 	output = s.runCommand(ts, getTestSuiteBatches(projectID, firstTestSuiteName, nil), ExpectNoError)
@@ -5365,7 +5372,7 @@ func TestTestSuites(t *testing.T) {
 
 	// Create a new run using github and with a specific batch name:
 	batchName := fmt.Sprintf("test-batch-%s", uuid.New().String())
-	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName, Ptr(100), nil, false), ExpectNoError)
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, &batchName, Ptr(100), nil, nil, false), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedBatch)
 	// Parse the output to get a batch id:
 	batchIDString := output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
@@ -5390,13 +5397,13 @@ func TestTestSuites(t *testing.T) {
 	ts.True(found)
 
 	// Try running a test suite with a non-percentage allowable failure percent:
-	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(101), nil, false), ExpectError)
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(101), nil, nil, false), ExpectError)
 	ts.Contains(output.StdErr, AllowableFailurePercent)
-	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(-1), nil, false), ExpectError)
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, nil, Ptr(-1), nil, nil, false), ExpectError)
 	ts.Contains(output.StdErr, AllowableFailurePercent)
 
 	// Try running a test suite with a metrics build override:
-	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, nil, nil, Ptr(metricsBuildIDString), false), ExpectNoError)
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubTrue, AssociatedAccount, nil, nil, Ptr(metricsBuildIDString), nil, false), ExpectNoError)
 	ts.Contains(output.StdOut, GithubCreatedBatch)
 	// Parse the output to get a batch id:
 	batchIDString = output.StdOut[len(GithubCreatedBatch) : len(output.StdOut)-1]
@@ -5415,6 +5422,19 @@ func TestTestSuites(t *testing.T) {
 	ts.Len(jobs, 1)
 	// The job should have the correct experience ID:
 	ts.Equal(experienceIDs[0], *jobs[0].ExperienceID)
+
+	// Try running a test suite with a metrics set override, which should force an adhoc batch:
+	metricsSetOverrideName := fmt.Sprintf("metrics-set-override-%s", uuid.New().String())
+	metricsSetOverrideBatchName := fmt.Sprintf("metrics-set-override-batch-%s", uuid.New().String())
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &metricsSetOverrideBatchName, nil, nil, &metricsSetOverrideName, false), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
+	output = s.runCommand(ts, getBatchByName(projectID, metricsSetOverrideBatchName, ExitStatusFalse), ExpectNoError)
+	err = json.Unmarshal([]byte(output.StdOut), &batch)
+	ts.NoError(err)
+	ts.NotNil(batch.MetricsSetName)
+	ts.Equal(metricsSetOverrideName, *batch.MetricsSetName)
+	ts.NotNil(batch.PoolLabels)
+	ts.Contains(*batch.PoolLabels, commands.METRICS_2_POOL_LABEL)
 
 	// Archive the test suite
 	output = s.runCommand(ts, archiveTestSuite(projectID, firstTestSuiteName), false)
@@ -5456,7 +5476,7 @@ func TestTestSuites(t *testing.T) {
 	ts.Equal(emptyMetricsSet, *testSuite.MetricsSetName)
 
 	emptyMetricsPoolBatchName := fmt.Sprintf("empty-metrics-pool-batch-%s", uuid.New().String())
-	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &emptyMetricsPoolBatchName, nil, nil, false), ExpectNoError)
+	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &emptyMetricsPoolBatchName, nil, nil, nil, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	output = s.runCommand(ts, getBatchByName(projectID, emptyMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
@@ -5476,7 +5496,7 @@ func TestTestSuites(t *testing.T) {
 	ts.Equal(newMetricsSetName, *testSuite.MetricsSetName)
 
 	defaultMetricsPoolBatchName := fmt.Sprintf("metrics-pool-batch-%s", uuid.New().String())
-	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &defaultMetricsPoolBatchName, nil, nil, false), ExpectNoError)
+	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &defaultMetricsPoolBatchName, nil, nil, nil, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	output = s.runCommand(ts, getBatchByName(projectID, defaultMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
@@ -5485,7 +5505,7 @@ func TestTestSuites(t *testing.T) {
 	ts.Contains(*batch.PoolLabels, commands.METRICS_2_POOL_LABEL)
 
 	noMetricsPoolBatchName := fmt.Sprintf("no-metrics-pool-batch-%s", uuid.New().String())
-	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &noMetricsPoolBatchName, nil, nil, true), ExpectNoError)
+	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &noMetricsPoolBatchName, nil, nil, nil, true), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	output = s.runCommand(ts, getBatchByName(projectID, noMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &batch)

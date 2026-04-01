@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.48.1 - April 1, 2026
+
+- Fixes a bug where you can't determine to ignore the metrics set. Adds `--ignore-metrics-set`.
+
 ### v0.48.0 - March 27, 2026
 - Updates default `--metrics-config-path` to `.resim/metrics/config.resim.yml` to match rest of our tooling.
 - Updates `resim logs download` to support new "System Logs" feature. These will be downloaded to a `logs/` directory.

@@ -2,11 +2,12 @@ package sync
 
 import (
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	"gopkg.in/yaml.v3"
-	"log"
-	"os"
 )
 
 func SyncExperiences(client api.ClientWithResponsesInterface,

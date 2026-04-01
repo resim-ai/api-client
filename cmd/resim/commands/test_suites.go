@@ -94,6 +94,7 @@ const (
 	testSuiteMetricsBuildKey            = "metrics-build"
 	testSuiteMetricsSetKey              = "metrics-set"
 	testSuitePoolLabelsKey              = "pool-labels"
+	testSuiteIgnoreMetricsSetKey        = "ignore-metrics-set"
 	testSuiteAccountKey                 = "account"
 	testSuiteShowOnSummaryKey           = "show-on-summary"
 	testSuiteBatchNameKey               = "batch-name"
@@ -203,6 +204,7 @@ func init() {
 	runTestSuiteCmd.Flags().StringSlice(testSuiteParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters e.g. 'param1=value1,param2=value2'. If multiple = signs are used, the first one will be used to determine the key, and the rest will be part of the value.")
 	// Pool Labels
 	runTestSuiteCmd.Flags().StringSlice(testSuitePoolLabelsKey, []string{}, "Pool labels to determine where to run this test suite. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
+	runTestSuiteCmd.Flags().Bool(testSuiteIgnoreMetricsSetKey, false, "If set, do not automatically add the default resim:metrics2 pool label when the test suite has a metrics set.")
 	runTestSuiteCmd.Flags().String(testSuiteAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test suite run.")
 	// Optional: Friendly name
 	runTestSuiteCmd.Flags().String(testSuiteBatchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
@@ -604,7 +606,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 
 	poolLabels := getAndValidatePoolLabels(testSuitePoolLabelsKey)
 
-	if testSuite.MetricsSetName != nil {
+	if HasMetricsSetName(testSuite.MetricsSetName) && !viper.GetBool(testSuiteIgnoreMetricsSetKey) {
 		AddMetrics2PoolLabels(&poolLabels)
 	}
 
@@ -646,7 +648,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 			ExperienceIDs:     &testSuite.Experiences,
 			Parameters:        &parameters,
 			AssociatedAccount: &associatedAccount,
-			MetricsSetName:    testSuite.MetricsSetName,
+			MetricsSetName:    NormalizeMetricsSetName(testSuite.MetricsSetName),
 		}
 
 		// Add the pool labels if any

@@ -191,6 +191,21 @@ func mergeConfigFiles(paths []string, verbose bool) ([]byte, error) {
 
 const METRICS_2_POOL_LABEL = "resim:metrics2"
 
+// HasMetricsSetName returns true when the metrics set pointer references a
+// non-empty metrics set name.
+func HasMetricsSetName(metricsSet *string) bool {
+	return metricsSet != nil && *metricsSet != ""
+}
+
+// NormalizeMetricsSetName returns nil when a metrics set name is missing or
+// explicitly empty so runtime callers can treat both cases as "unset".
+func NormalizeMetricsSetName(metricsSet *string) *string {
+	if !HasMetricsSetName(metricsSet) {
+		return nil
+	}
+	return metricsSet
+}
+
 // Add Metrics 2.0 Pool labels to the list of pool labels:
 func AddMetrics2PoolLabels(poolLabels *[]api.PoolLabel) {
 	*poolLabels = append(*poolLabels, METRICS_2_POOL_LABEL)
@@ -205,6 +220,9 @@ func ProcessMetricsSet(metricsSetKey string, poolLabels *[]api.PoolLabel) *strin
 	}
 
 	metricsSet := Ptr(viper.GetString(metricsSetKey))
+	if !HasMetricsSetName(metricsSet) {
+		return nil
+	}
 
 	// Metrics 2.0 steps will only be run if we use the special pool
 	// label, so let's enable it automatically if the user requested a

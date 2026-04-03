@@ -7157,6 +7157,81 @@ func (_c *ClientInterface_GetJobLog_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
+// GetLogByID provides a mock function with given fields: ctx, projectID, logID, reqEditors
+func (_m *ClientInterface) GetLogByID(ctx context.Context, projectID uuid.UUID, logID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, logID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLogByID")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, logID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, logID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, logID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetLogByID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLogByID'
+type ClientInterface_GetLogByID_Call struct {
+	*mock.Call
+}
+
+// GetLogByID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - logID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetLogByID(ctx interface{}, projectID interface{}, logID interface{}, reqEditors ...interface{}) *ClientInterface_GetLogByID_Call {
+	return &ClientInterface_GetLogByID_Call{Call: _e.mock.On("GetLogByID",
+		append([]interface{}{ctx, projectID, logID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetLogByID_Call) Run(run func(ctx context.Context, projectID uuid.UUID, logID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetLogByID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetLogByID_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetLogByID_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetLogByID_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetLogByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetLogStream provides a mock function with given fields: ctx, projectID, batchID, jobID, logName, reqEditors
 func (_m *ClientInterface) GetLogStream(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, logName string, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))

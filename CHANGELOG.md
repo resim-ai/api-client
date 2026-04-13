@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.48.2 - April 11, 2026
+
+- Fixes a bug where `--metrics-set-name-override` on `test-suites run` would clear the test suite's metrics build ID when `--metrics-build-override` was not also supplied.
+
 ### v0.48.1 - April 1, 2026
 
 - Fixes a bug where you can't determine to ignore the metrics set. Adds `--ignore-metrics-set`.

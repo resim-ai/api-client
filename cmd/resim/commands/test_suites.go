@@ -650,6 +650,8 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 				log.Fatal("failed to parse metrics-build ID: ", err)
 			}
 			metricsBuildID = &parsedMetricsBuildID
+		} else if testSuite.MetricsBuildID != nil {
+			metricsBuildID = testSuite.MetricsBuildID
 		}
 		// Build the request body
 		body := api.BatchInput{

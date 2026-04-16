@@ -217,11 +217,6 @@ func ProcessMetricsSet(metricsSetKey string, poolLabels *[]api.PoolLabel) *strin
 		return nil
 	}
 
-	// Metrics 2.0 steps will only be run if we use the special pool
-	// label, so let's enable it automatically if the user requested a
-	// metrics set
-	AddMetrics2PoolLabels(poolLabels)
-
 	return metricsSet
 }
 

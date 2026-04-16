@@ -612,10 +612,6 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		effectiveMetricsSetName = NormalizeMetricsSetName(Ptr(viper.GetString(testSuiteMetricsSetOverrideKey)))
 	}
 
-	if HasMetricsSetName(effectiveMetricsSetName) && !viper.GetBool(testSuiteIgnoreMetricsSetKey) {
-		AddMetrics2PoolLabels(&poolLabels)
-	}
-
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()

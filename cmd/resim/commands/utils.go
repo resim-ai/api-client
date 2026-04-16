@@ -189,8 +189,6 @@ func mergeConfigFiles(paths []string, verbose bool) ([]byte, error) {
 	return out, nil
 }
 
-const METRICS_2_POOL_LABEL = "resim:metrics2"
-
 // HasMetricsSetName returns true when the metrics set pointer references a
 // non-empty metrics set name.
 func HasMetricsSetName(metricsSet *string) bool {
@@ -204,11 +202,6 @@ func NormalizeMetricsSetName(metricsSet *string) *string {
 		return nil
 	}
 	return metricsSet
-}
-
-// Add Metrics 2.0 Pool labels to the list of pool labels:
-func AddMetrics2PoolLabels(poolLabels *[]api.PoolLabel) {
-	*poolLabels = append(*poolLabels, METRICS_2_POOL_LABEL)
 }
 
 // ProcessMetricsSet handles the common logic for processing metrics sets

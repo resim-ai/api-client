@@ -5,8 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/resim-ai/api-client/api"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
 )
@@ -610,19 +608,6 @@ func TestContainsGlobChars(t *testing.T) {
 	}
 }
 
-func TestAddMetrics2PoolLabels(t *testing.T) {
-	poolLabels := []api.PoolLabel{}
-	AddMetrics2PoolLabels(&poolLabels)
-	assert.Contains(t, poolLabels, METRICS_2_POOL_LABEL)
-}
-
-func TestAddMetrics2PoolLabelsWithExistingLabels(t *testing.T) {
-	poolLabels := []api.PoolLabel{"foo", "bar"}
-	AddMetrics2PoolLabels(&poolLabels)
-	assert.Contains(t, poolLabels, METRICS_2_POOL_LABEL)
-	assert.Equal(t, []api.PoolLabel{"foo", "bar", METRICS_2_POOL_LABEL}, poolLabels)
-}
-
 func TestHasMetricsSetName(t *testing.T) {
 	metricsSetName := "metrics-set"
 	emptyMetricsSetName := ""
@@ -639,35 +624,4 @@ func TestNormalizeMetricsSetName(t *testing.T) {
 	assert.Nil(t, NormalizeMetricsSetName(nil))
 	assert.Nil(t, NormalizeMetricsSetName(&emptyMetricsSetName))
 	assert.Equal(t, &metricsSetName, NormalizeMetricsSetName(&metricsSetName))
-}
-
-func TestProcessMetricsSetEmptyStringSkipsPoolLabel(t *testing.T) {
-	const metricsSetKey = "test-empty-metrics-set"
-	t.Cleanup(func() {
-		viper.Set(metricsSetKey, nil)
-	})
-
-	viper.Set(metricsSetKey, "")
-	poolLabels := []api.PoolLabel{"foo"}
-
-	metricsSet := ProcessMetricsSet(metricsSetKey, &poolLabels)
-
-	assert.Nil(t, metricsSet)
-	assert.Equal(t, []api.PoolLabel{"foo"}, poolLabels)
-}
-
-func TestProcessMetricsSetAddsPoolLabelForNonEmptyValue(t *testing.T) {
-	const metricsSetKey = "test-non-empty-metrics-set"
-	t.Cleanup(func() {
-		viper.Set(metricsSetKey, nil)
-	})
-
-	viper.Set(metricsSetKey, "metrics-set")
-	poolLabels := []api.PoolLabel{"foo"}
-
-	metricsSet := ProcessMetricsSet(metricsSetKey, &poolLabels)
-
-	assert.NotNil(t, metricsSet)
-	assert.Equal(t, "metrics-set", *metricsSet)
-	assert.Equal(t, []api.PoolLabel{"foo", METRICS_2_POOL_LABEL}, poolLabels)
 }

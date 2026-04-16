@@ -5434,7 +5434,7 @@ func TestTestSuites(t *testing.T) {
 	ts.NotNil(batch.MetricsSetName)
 	ts.Equal(metricsSetOverrideName, *batch.MetricsSetName)
 	ts.NotNil(batch.PoolLabels)
-	ts.Contains(*batch.PoolLabels, commands.METRICS_2_POOL_LABEL)
+	ts.Contains((*batch.PoolLabels)[0], "metrics2")
 
 	// Archive the test suite
 	output = s.runCommand(ts, archiveTestSuite(projectID, firstTestSuiteName), false)
@@ -5482,7 +5482,7 @@ func TestTestSuites(t *testing.T) {
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
 	if batch.PoolLabels != nil {
-		ts.NotContains(*batch.PoolLabels, commands.METRICS_2_POOL_LABEL)
+		ts.Contains((*batch.PoolLabels)[0], "metrics2")
 	}
 
 	// Then set a new metrics set name
@@ -5502,7 +5502,7 @@ func TestTestSuites(t *testing.T) {
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
 	ts.NotNil(batch.PoolLabels)
-	ts.Contains(*batch.PoolLabels, commands.METRICS_2_POOL_LABEL)
+	ts.Contains((*batch.PoolLabels)[0], "metrics2")
 
 	noMetricsPoolBatchName := fmt.Sprintf("no-metrics-pool-batch-%s", uuid.New().String())
 	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &noMetricsPoolBatchName, nil, nil, nil, true), ExpectNoError)
@@ -5511,7 +5511,7 @@ func TestTestSuites(t *testing.T) {
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
 	if batch.PoolLabels != nil {
-		ts.NotContains(*batch.PoolLabels, commands.METRICS_2_POOL_LABEL)
+		ts.Contains((*batch.PoolLabels)[0], "metrics2")
 	}
 }
 func TestReports(t *testing.T) {

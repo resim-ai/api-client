@@ -189,12 +189,25 @@ const (
 	ReportStatusSUCCEEDED ReportStatus = "SUCCEEDED"
 )
 
+// Defines values for RunnerType.
+const (
+	AGENT RunnerType = "AGENT"
+	CLOUD RunnerType = "CLOUD"
+	SDK   RunnerType = "SDK"
+)
+
 // Defines values for TriggeredVia.
 const (
 	GITHUB TriggeredVia = "GITHUB"
 	GITLAB TriggeredVia = "GITLAB"
 	LOCAL  TriggeredVia = "LOCAL"
 	WEBAPP TriggeredVia = "WEBAPP"
+)
+
+// Defines values for ListPoolLabelsParamsOrderBy.
+const (
+	ListPoolLabelsParamsOrderByRank      ListPoolLabelsParamsOrderBy = "rank"
+	ListPoolLabelsParamsOrderByTimestamp ListPoolLabelsParamsOrderBy = "timestamp"
 )
 
 // Defines values for ListExperienceTagsParamsOrderBy.
@@ -304,8 +317,10 @@ type Batch struct {
 	OverallMetricsStatus    *MetricStatus           `json:"overallMetricsStatus,omitempty" yaml:"overallMetricsStatus,omitempty"`
 	Parameters              *BatchParameters        `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
+	Priority                *int                    `json:"priority,omitempty" yaml:"priority,omitempty"`
 	ProjectID               *ProjectID              `json:"projectID,omitempty" yaml:"projectID,omitempty"`
 	RunCounter              *RunCounter             `json:"runCounter,omitempty" yaml:"runCounter,omitempty"`
+	RunnerType              RunnerType              `json:"runnerType" yaml:"runnerType"`
 	Status                  *BatchStatus            `json:"status,omitempty" yaml:"status,omitempty"`
 	StatusHistory           *BatchStatusHistory     `json:"statusHistory,omitempty" yaml:"statusHistory,omitempty"`
 	SystemID                *SystemID               `json:"systemID,omitempty" yaml:"systemID,omitempty"`
@@ -334,6 +349,7 @@ type BatchInput struct {
 	MetricsSetName          *MetricsSetName         `json:"metricsSetName" yaml:"metricsSetName"`
 	Parameters              *BatchParameters        `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	PoolLabels              *PoolLabels             `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
+	Priority                *int                    `json:"priority" yaml:"priority"`
 	TriggeredVia            *TriggeredVia           `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
 }
 
@@ -1039,6 +1055,7 @@ type Job struct {
 	ExperienceID                   *ExperienceID          `json:"experienceID,omitempty" yaml:"experienceID,omitempty"`
 	ExperienceName                 *ExperienceName        `json:"experienceName,omitempty" yaml:"experienceName,omitempty"`
 	ExperienceProfile              *string                `json:"experienceProfile,omitempty" yaml:"experienceProfile,omitempty"`
+	HasLogAnalysis                 *bool                  `json:"hasLogAnalysis,omitempty" yaml:"hasLogAnalysis,omitempty"`
 	JobID                          *JobID                 `json:"jobID,omitempty" yaml:"jobID,omitempty"`
 	JobMetricsStatus               *MetricStatus          `json:"jobMetricsStatus,omitempty" yaml:"jobMetricsStatus,omitempty"`
 	JobStatus                      *JobStatus             `json:"jobStatus,omitempty" yaml:"jobStatus,omitempty"`
@@ -1168,6 +1185,7 @@ type LightBatchInput struct {
 	BatchName         *Name              `json:"batchName,omitempty" yaml:"batchName,omitempty"`
 	BranchID          BranchID           `json:"branchID" yaml:"branchID"`
 	MetricsSetName    *MetricsSetName    `json:"metricsSetName" yaml:"metricsSetName"`
+	Priority          *int               `json:"priority" yaml:"priority"`
 	SystemID          *SystemID          `json:"systemID,omitempty" yaml:"systemID,omitempty"`
 	TestSuiteID       *TestSuiteID       `json:"testSuiteID,omitempty" yaml:"testSuiteID,omitempty"`
 	TestSuiteRevision *TestSuiteRevision `json:"testSuiteRevision,omitempty" yaml:"testSuiteRevision,omitempty"`
@@ -1212,7 +1230,8 @@ type ListAssetsOutput struct {
 
 // ListBatchErrorsOutput defines model for listBatchErrorsOutput.
 type ListBatchErrorsOutput struct {
-	Errors *[]ExecutionError `json:"errors,omitempty" yaml:"errors,omitempty"`
+	Errors             *[]ExecutionError `json:"errors,omitempty" yaml:"errors,omitempty"`
+	JobExecutionErrors *[]ExecutionError `json:"jobExecutionErrors,omitempty" yaml:"jobExecutionErrors,omitempty"`
 }
 
 // ListBatchLogStreamsOutput defines model for listBatchLogStreamsOutput.
@@ -1340,6 +1359,12 @@ type ListMetricsDataAndMetricIDOutput struct {
 type ListParameterSweepsOutput struct {
 	NextPageToken *string           `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
 	Sweeps        *[]ParameterSweep `json:"sweeps,omitempty" yaml:"sweeps,omitempty"`
+}
+
+// ListPoolLabelsOutput defines model for listPoolLabelsOutput.
+type ListPoolLabelsOutput struct {
+	NextPageToken *string      `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
+	PoolLabels    *[]PoolLabel `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
 }
 
 // ListProjectsOutput defines model for listProjectsOutput.
@@ -1831,6 +1856,9 @@ type ReviseTestSuiteInput struct {
 // RunCounter defines model for runCounter.
 type RunCounter = int
 
+// RunnerType defines model for runnerType.
+type RunnerType string
+
 // SelectExperiencesInput defines model for selectExperiencesInput.
 type SelectExperiencesInput struct {
 	AllExperiences *bool                  `json:"allExperiences,omitempty" yaml:"allExperiences,omitempty"`
@@ -1907,6 +1935,7 @@ type TestSuiteBatchInput struct {
 	BuildID                 BuildID            `json:"buildID" yaml:"buildID"`
 	Parameters              *BatchParameters   `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	PoolLabels              *PoolLabels        `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
+	Priority                *int               `json:"priority" yaml:"priority"`
 	TriggeredVia            *TriggeredVia      `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
 }
 
@@ -2221,6 +2250,18 @@ type PageSizeUnbounded = int
 // PageToken defines model for pageToken.
 type PageToken = string
 
+// ListPoolLabelsParams defines parameters for ListPoolLabels.
+type ListPoolLabelsParams struct {
+	// Name Filter pool labels by name. It is recommended to use orderBy=rank when this is set, so you get the most relevant results first.
+	Name      *string                      `form:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty"`
+	OrderBy   *ListPoolLabelsParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+	PageSize  *PageSize                    `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken                   `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
+
+// ListPoolLabelsParamsOrderBy defines parameters for ListPoolLabels.
+type ListPoolLabelsParamsOrderBy string
+
 // ListProjectsParams defines parameters for ListProjects.
 type ListProjectsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
@@ -2262,14 +2303,17 @@ type ListBuildsForAssetRevisionParams struct {
 
 // ListBatchesParams defines parameters for ListBatches.
 type ListBatchesParams struct {
-	// Search Filter based on branch_id, build_id, system_id, created_at, status, metrics_status, batch_id
+	// Search Filter based on branch_id, build_id, system_id, created_at, status, metrics_status, batch_id, runner_type
 	Search *string `form:"search,omitempty" json:"search,omitempty" yaml:"search,omitempty"`
 
 	// Text Filter batches by a text string on batch name and build version
-	Text      *string    `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
-	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+	Text *string `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
+
+	// HasLogAnalysis Filter batches to those with (true) or without (false) at least one completed log analysis. Omit to return all batches.
+	HasLogAnalysis *bool      `form:"hasLogAnalysis,omitempty" json:"hasLogAnalysis,omitempty" yaml:"hasLogAnalysis,omitempty"`
+	PageSize       *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken      *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	OrderBy        *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
 // ListAllJobsParams defines parameters for ListAllJobs.
@@ -2314,9 +2358,12 @@ type ListJobsParams struct {
 
 	// ExperienceTagIDs Filter jobs by the tag id(s) attached to the experience
 	ExperienceTagIDs *[]openapi_types.UUID `form:"experienceTagIDs,omitempty" json:"experienceTagIDs,omitempty" yaml:"experienceTagIDs,omitempty"`
-	PageSize         *PageSize             `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken        *PageToken            `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
-	OrderBy          *OrderBy              `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+
+	// HasLogAnalysis Filter jobs to those with (true) or without (false) a completed log analysis. Omit to return all jobs.
+	HasLogAnalysis *bool      `form:"hasLogAnalysis,omitempty" json:"hasLogAnalysis,omitempty" yaml:"hasLogAnalysis,omitempty"`
+	PageSize       *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken      *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	OrderBy        *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
 // ListEventMetricsForJobParams defines parameters for ListEventMetricsForJob.
@@ -3297,6 +3344,9 @@ type ClientInterface interface {
 	// Health request
 	Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListPoolLabels request
+	ListPoolLabels(ctx context.Context, params *ListPoolLabelsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListProjects request
 	ListProjects(ctx context.Context, params *ListProjectsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3906,6 +3956,18 @@ type ClientInterface interface {
 
 func (c *Client) Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewHealthRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListPoolLabels(ctx context.Context, params *ListPoolLabelsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPoolLabelsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -6559,6 +6621,103 @@ func NewHealthRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewListPoolLabelsRequest generates requests for ListPoolLabels
+func NewListPoolLabelsRequest(server string, params *ListPoolLabelsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/poolLabels")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.OrderBy != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListProjectsRequest generates requests for ListProjects
 func NewListProjectsRequest(server string, params *ListProjectsParams) (*http.Request, error) {
 	var err error
@@ -7562,6 +7721,22 @@ func NewListBatchesRequest(server string, projectID ProjectID, params *ListBatch
 
 		}
 
+		if params.HasLogAnalysis != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "hasLogAnalysis", runtime.ParamLocationQuery, *params.HasLogAnalysis); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.PageSize != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
@@ -8355,6 +8530,22 @@ func NewListJobsRequest(server string, projectID ProjectID, batchID BatchID, par
 		if params.ExperienceTagIDs != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "experienceTagIDs", runtime.ParamLocationQuery, *params.ExperienceTagIDs); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.HasLogAnalysis != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "hasLogAnalysis", runtime.ParamLocationQuery, *params.HasLogAnalysis); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -17550,6 +17741,9 @@ type ClientWithResponsesInterface interface {
 	// HealthWithResponse request
 	HealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthResponse, error)
 
+	// ListPoolLabelsWithResponse request
+	ListPoolLabelsWithResponse(ctx context.Context, params *ListPoolLabelsParams, reqEditors ...RequestEditorFn) (*ListPoolLabelsResponse, error)
+
 	// ListProjectsWithResponse request
 	ListProjectsWithResponse(ctx context.Context, params *ListProjectsParams, reqEditors ...RequestEditorFn) (*ListProjectsResponse, error)
 
@@ -18172,6 +18366,28 @@ func (r HealthResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r HealthResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListPoolLabelsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListPoolLabelsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPoolLabelsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPoolLabelsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -21896,6 +22112,15 @@ func (c *ClientWithResponses) HealthWithResponse(ctx context.Context, reqEditors
 	return ParseHealthResponse(rsp)
 }
 
+// ListPoolLabelsWithResponse request returning *ListPoolLabelsResponse
+func (c *ClientWithResponses) ListPoolLabelsWithResponse(ctx context.Context, params *ListPoolLabelsParams, reqEditors ...RequestEditorFn) (*ListPoolLabelsResponse, error) {
+	rsp, err := c.ListPoolLabels(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPoolLabelsResponse(rsp)
+}
+
 // ListProjectsWithResponse request returning *ListProjectsResponse
 func (c *ClientWithResponses) ListProjectsWithResponse(ctx context.Context, params *ListProjectsParams, reqEditors ...RequestEditorFn) (*ListProjectsResponse, error) {
 	rsp, err := c.ListProjects(ctx, params, reqEditors...)
@@ -23821,6 +24046,32 @@ func ParseHealthResponse(rsp *http.Response) (*HealthResponse, error) {
 	response := &HealthResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseListPoolLabelsResponse parses an HTTP response from a ListPoolLabelsWithResponse call
+func ParseListPoolLabelsResponse(rsp *http.Response) (*ListPoolLabelsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPoolLabelsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListPoolLabelsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
 	}
 
 	return response, nil

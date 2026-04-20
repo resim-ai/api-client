@@ -99,6 +99,7 @@ const (
 	testSuiteShowOnSummaryKey           = "show-on-summary"
 	testSuiteBatchNameKey               = "batch-name"
 	testSuiteAllowableFailurePercentKey = "allowable-failure-percent"
+	testSuitePriorityKey                = "priority"
 	testSuiteMetricsBuildOverrideKey    = "metrics-build-override"
 	testSuiteMetricsSetOverrideKey      = "metrics-set-name-override"
 	testSuiteSyncMetricsConfigKey       = "sync-metrics-config"
@@ -210,6 +211,7 @@ func init() {
 	// Optional: Friendly name
 	runTestSuiteCmd.Flags().String(testSuiteBatchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
 	runTestSuiteCmd.Flags().Int(testSuiteAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
+	runTestSuiteCmd.Flags().Int(testSuitePriorityKey, requestPriorityDefault, requestPriorityDescription)
 	// Optional: Metrics build override:
 	runTestSuiteCmd.Flags().String(testSuiteMetricsBuildOverrideKey, "", "An optional ID of a metrics build to override the standard metrics build in this test suite run (which will be run as an adhoc batch).")
 	runTestSuiteCmd.Flags().String(testSuiteMetricsSetOverrideKey, "", "An optional metrics set name to override the test suite's metrics set for this run. Supplying this flag runs the test suite as an adhoc batch.")
@@ -677,6 +679,9 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 			}
 			body.AllowableFailurePercent = &allowableFailurePercent
 		}
+		if priority := getRequestPriority(testSuitePriorityKey); priority != nil {
+			body.Priority = priority
+		}
 
 		response, err := Client.CreateBatchWithResponse(context.Background(), projectID, body)
 		if err != nil {
@@ -713,6 +718,9 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 				log.Fatal("allowable failure percent must be between 0 and 100")
 			}
 			body.AllowableFailurePercent = &allowableFailurePercent
+		}
+		if priority := getRequestPriority(testSuitePriorityKey); priority != nil {
+			body.Priority = priority
 		}
 
 		// Make the request

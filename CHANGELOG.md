@@ -2,6 +2,9 @@
 
 ## ReSim CLI
 
+### v0.49.0 - April 20, 2026
+- Introduces Priority to the creation of batches. Priority is most impactful for HiL test suites.
+
 ### v0.48.3 - April 15, 2026
 - Removes the automatic addition of the `resim:metrics2` pool label when a metrics set is specified. This is now handled by the backend.
 

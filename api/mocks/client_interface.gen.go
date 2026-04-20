@@ -11854,6 +11854,80 @@ func (_c *ClientInterface_ListParameterSweeps_Call) RunAndReturn(run func(contex
 	return _c
 }
 
+// ListPoolLabels provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientInterface) ListPoolLabels(ctx context.Context, params *api.ListPoolLabelsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListPoolLabels")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListPoolLabelsParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListPoolLabelsParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ListPoolLabelsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListPoolLabels_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListPoolLabels'
+type ClientInterface_ListPoolLabels_Call struct {
+	*mock.Call
+}
+
+// ListPoolLabels is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.ListPoolLabelsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListPoolLabels(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListPoolLabels_Call {
+	return &ClientInterface_ListPoolLabels_Call{Call: _e.mock.On("ListPoolLabels",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListPoolLabels_Call) Run(run func(ctx context.Context, params *api.ListPoolLabelsParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListPoolLabels_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.ListPoolLabelsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListPoolLabels_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListPoolLabels_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListPoolLabels_Call) RunAndReturn(run func(context.Context, *api.ListPoolLabelsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListPoolLabels_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListProjects provides a mock function with given fields: ctx, params, reqEditors
 func (_m *ClientInterface) ListProjects(ctx context.Context, params *api.ListProjectsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))

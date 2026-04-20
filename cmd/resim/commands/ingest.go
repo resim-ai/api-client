@@ -41,6 +41,7 @@ const (
 	ingestConfigFileKey         = "log-config"
 	ingestBatchNameKey          = "ingestion-name"
 	ingestPoolLabelsKey         = "pool-labels"
+	ingestPriorityKey           = "priority"
 	ingestReingestKey           = "reingest"
 
 	LogIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
@@ -82,6 +83,8 @@ func init() {
 	ingestLogCmd.Flags().String(ingestBatchNameKey, "", "A memorable name for this batch of logs to ingest. If not provided, a default name will be generated.")
 	// Pool Labels
 	ingestLogCmd.Flags().StringSlice(ingestPoolLabelsKey, []string{}, "Comma-separated list of pool labels to apply to the log ingestion. If not provided, a default pool label will be generated.")
+	// Priority
+	ingestLogCmd.Flags().Int(ingestPriorityKey, requestPriorityDefault, requestPriorityDescription)
 	rootCmd.AddCommand(ingestLogCmd)
 	// Re-ingestion
 	ingestLogCmd.Flags().Bool(ingestReingestKey, false, "Whether to re-ingest the logs if its experiences already exist. If not provided, the log will not be ingested again.")
@@ -266,6 +269,9 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	poolLabels := getAndValidatePoolLabels(ingestPoolLabelsKey)
 	if len(poolLabels) > 0 {
 		batchBody.PoolLabels = &poolLabels
+	}
+	if priority := getRequestPriority(ingestPriorityKey); priority != nil {
+		batchBody.Priority = priority
 	}
 
 	batchResponse, err := Client.CreateBatchWithResponse(context.Background(), projectID, batchBody)

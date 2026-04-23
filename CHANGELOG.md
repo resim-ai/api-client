@@ -2,6 +2,9 @@
 
 ## ReSim CLI
 
+### v0.50.0 - April 23, 2026
+- Introduces functionality to ReRun only the metrics creation side of a batch. This will use any updated config and regenerate the metrics based on the existing emissions.
+
 ### v0.49.0 - April 20, 2026
 - Introduces Priority to the creation of batches. Priority is most impactful for HiL test suites.
 

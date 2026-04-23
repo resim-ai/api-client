@@ -106,6 +106,8 @@ const (
 	batchAllowableFailurePercentKey = "allowable-failure-percent"
 	batchPriorityKey                = "priority"
 	batchTestIDsKey                 = "test-ids"
+	batchRerunMetricsOnlyKey        = "rerun-metrics-only"
+	batchRerunAllTestsKey           = "all-tests"
 	batchMaxRerunAttemptsKey        = "max-rerun-attempts"
 	batchRerunMaxFailurePercentKey  = "rerun-max-failure-percent"
 	batchRerunOnStatesKey           = "rerun-on-states"
@@ -187,7 +189,10 @@ func init() {
 	rerunBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to rerun tests for.")
 	rerunBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to rerun tests for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this reruns the most recent batch with that name.")
 	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
-	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided, only the batch-metrics phase will be rerun.")
+	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided (and neither --"+batchRerunMetricsOnlyKey+" nor --"+batchRerunAllTestsKey+" is set), only the batch-metrics phase will be rerun. When combined with --"+batchRerunMetricsOnlyKey+", only the metrics stage of these tests will be rerun.")
+	rerunBatchCmd.Flags().Bool(batchRerunMetricsOnlyKey, false, "If set, only the metrics stage of the selected tests will be rerun (the tests themselves will not be re-executed). Must be used with either --"+batchTestIDsKey+" to select a subset of tests, or --"+batchRerunAllTestsKey+" to rerun metrics for every test in the batch. Rerunning only batch-level metrics (without any test-level metrics) is triggered by invoking rerun with no flags.")
+	rerunBatchCmd.Flags().Bool(batchRerunAllTestsKey, false, "If set, reruns every test in the batch by first fetching the full list of test IDs. Typically combined with --"+batchRerunMetricsOnlyKey+" to rerun metrics for every test in the batch without re-executing them. Mutually exclusive with --"+batchTestIDsKey+".")
+	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchTestIDsKey, batchRerunAllTestsKey)
 	rerunBatchCmd.Flags().Bool(batchSyncWithTestSuiteKey, false, "If set, re-runs the batch with the latest test suite revision, adding any additional experiences from the test suite to the batch.")
 	batchCmd.AddCommand(rerunBatchCmd)
 
@@ -442,7 +447,7 @@ func actualSuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 			}
 		}
 
-		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second, false)
+		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second, false, false)
 		if err != nil {
 			return &SuperviseResult{
 				Error: err,
@@ -1001,7 +1006,7 @@ func cancelBatch(ccmd *cobra.Command, args []string) {
 	fmt.Println("Batch cancelled successfully!")
 }
 
-func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration, syncWithTestSuite bool) (*api.RerunBatchResponse, error) {
+func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration, syncWithTestSuite bool, rerunMetricsOnly bool) (*api.RerunBatchResponse, error) {
 	// Start with an empty list of job IDs
 	rerunInput := api.RerunBatchInput{
 		JobIDs:    &[]uuid.UUID{},
@@ -1009,6 +1014,9 @@ func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID
 	}
 	if len(jobIDs) > 0 {
 		rerunInput.JobIDs = &jobIDs
+	}
+	if rerunMetricsOnly {
+		rerunInput.RerunMetricsOnly = Ptr(true)
 	}
 
 	maxRetries := 3
@@ -1039,18 +1047,45 @@ func rerunBatch(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
 	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
 
-	jobIDs := []uuid.UUID{}
-	for _, jobID := range viper.GetStringSlice(batchTestIDsKey) {
-		jobID, err := uuid.Parse(jobID)
-		if err != nil {
-			log.Fatal("unable to parse job ID: ", err)
-		}
-		jobIDs = append(jobIDs, jobID)
+	rerunMetricsOnly := viper.GetBool(batchRerunMetricsOnlyKey)
+	allTests := viper.GetBool(batchRerunAllTestsKey)
+	testIDs := viper.GetStringSlice(batchTestIDsKey)
+
+	// --rerun-metrics-only requires a non-empty set of tests. Reruns of the batch-metrics phase
+	// only (without any test-level metrics) are triggered by invoking rerun with no flags.
+	if rerunMetricsOnly && !allTests && len(testIDs) == 0 {
+		log.Fatalf("--%s requires either --%s or --%s. To rerun only the batch-metrics phase, invoke rerun with no flags.", batchRerunMetricsOnlyKey, batchTestIDsKey, batchRerunAllTestsKey)
 	}
 
-	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, 30*time.Second, viper.GetBool(batchSyncWithTestSuiteKey))
+	jobIDs := []uuid.UUID{}
+	if allTests {
+		jobs := getAllJobs(projectID, *batch.BatchID)
+		for _, job := range jobs {
+			if job.JobID != nil {
+				jobIDs = append(jobIDs, *job.JobID)
+			}
+		}
+		if len(jobIDs) == 0 {
+			log.Fatalf("--%s was set but the batch contains no tests to rerun", batchRerunAllTestsKey)
+		}
+		log.Printf("Found %d tests in batch to rerun\n", len(jobIDs))
+	} else {
+		for _, jobID := range testIDs {
+			parsed, err := uuid.Parse(jobID)
+			if err != nil {
+				log.Fatal("unable to parse job ID: ", err)
+			}
+			jobIDs = append(jobIDs, parsed)
+		}
+	}
+
+	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, 30*time.Second, viper.GetBool(batchSyncWithTestSuiteKey), rerunMetricsOnly)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Batch rerun successfully!")
+	if rerunMetricsOnly {
+		fmt.Printf("Metrics rerun submitted successfully for %d test(s)!\n", len(jobIDs))
+	} else {
+		fmt.Println("Batch rerun successfully!")
+	}
 }

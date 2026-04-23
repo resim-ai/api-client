@@ -238,6 +238,14 @@ type AddTagsToExperiencesInput struct {
 	Filters          *ExperienceFilterInput `json:"filters,omitempty" yaml:"filters,omitempty"`
 }
 
+// AgentMarkdownHistoryEntry defines model for agentMarkdownHistoryEntry.
+type AgentMarkdownHistoryEntry struct {
+	AgentMarkdown string             `json:"agentMarkdown" yaml:"agentMarkdown"`
+	EditedAt      Timestamp          `json:"editedAt" yaml:"editedAt"`
+	EditedBy      string             `json:"editedBy" yaml:"editedBy"`
+	Id            openapi_types.UUID `json:"id" yaml:"id"`
+}
+
 // Architecture defines model for architecture.
 type Architecture string
 
@@ -724,8 +732,9 @@ type CreateMetricsBuildInput struct {
 
 // CreateProjectInput defines model for createProjectInput.
 type CreateProjectInput struct {
-	Description string `json:"description" yaml:"description"`
-	Name        string `json:"name" yaml:"name"`
+	AgentMarkdown *string `json:"agentMarkdown,omitempty" yaml:"agentMarkdown,omitempty"`
+	Description   string  `json:"description" yaml:"description"`
+	Name          string  `json:"name" yaml:"name"`
 }
 
 // CreateSystemInput defines model for createSystemInput.
@@ -1199,6 +1208,13 @@ type LightJobStatus string
 
 // LineNumber defines model for lineNumber.
 type LineNumber = int32
+
+// ListAgentMarkdownHistoryOutput defines model for listAgentMarkdownHistoryOutput.
+type ListAgentMarkdownHistoryOutput struct {
+	Entries       []AgentMarkdownHistoryEntry `json:"entries" yaml:"entries"`
+	HasMore       bool                        `json:"hasMore" yaml:"hasMore"`
+	NextPageToken string                      `json:"nextPageToken" yaml:"nextPageToken"`
+}
 
 // ListAllJobsOutput defines model for listAllJobsOutput.
 type ListAllJobsOutput struct {
@@ -1816,8 +1832,9 @@ type RequiredHeaders map[string]string
 
 // RerunBatchInput defines model for rerunBatchInput.
 type RerunBatchInput struct {
-	JobIDs    *[]JobID `json:"jobIDs,omitempty" yaml:"jobIDs,omitempty"`
-	SyncBatch bool     `json:"syncBatch" yaml:"syncBatch"`
+	JobIDs           *[]JobID `json:"jobIDs,omitempty" yaml:"jobIDs,omitempty"`
+	RerunMetricsOnly *bool    `json:"rerunMetricsOnly,omitempty" yaml:"rerunMetricsOnly,omitempty"`
+	SyncBatch        bool     `json:"syncBatch" yaml:"syncBatch"`
 }
 
 // RerunBatchOutput defines model for rerunBatchOutput.
@@ -1851,6 +1868,7 @@ type ReviseTestSuiteInput struct {
 	ShowOnSummary         *bool                   `json:"show_on_summary,omitempty" yaml:"show_on_summary,omitempty"`
 	SystemID              *SystemID               `json:"systemID,omitempty" yaml:"systemID,omitempty"`
 	UpdateMetricsBuild    bool                    `json:"updateMetricsBuild" yaml:"updateMetricsBuild"`
+	UpdateMetricsSet      *bool                   `json:"updateMetricsSet,omitempty" yaml:"updateMetricsSet,omitempty"`
 }
 
 // RunCounter defines model for runCounter.
@@ -2267,6 +2285,12 @@ type ListProjectsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+}
+
+// ListAgentMarkdownHistoryParams defines parameters for ListAgentMarkdownHistory.
+type ListAgentMarkdownHistoryParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 }
 
 // ListAssetsParams defines parameters for ListAssets.
@@ -3366,6 +3390,9 @@ type ClientInterface interface {
 
 	UpdateProject(ctx context.Context, projectID ProjectID, body UpdateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListAgentMarkdownHistory request
+	ListAgentMarkdownHistory(ctx context.Context, projectID ProjectID, params *ListAgentMarkdownHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListAssets request
 	ListAssets(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -4052,6 +4079,18 @@ func (c *Client) UpdateProjectWithBody(ctx context.Context, projectID ProjectID,
 
 func (c *Client) UpdateProject(ctx context.Context, projectID ProjectID, body UpdateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateProjectRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAgentMarkdownHistory(ctx context.Context, projectID ProjectID, params *ListAgentMarkdownHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAgentMarkdownHistoryRequest(c.Server, projectID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -6950,6 +6989,78 @@ func NewUpdateProjectRequestWithBody(server string, projectID ProjectID, content
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListAgentMarkdownHistoryRequest generates requests for ListAgentMarkdownHistory
+func NewListAgentMarkdownHistoryRequest(server string, projectID ProjectID, params *ListAgentMarkdownHistoryParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/agent-markdown-history", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -17763,6 +17874,9 @@ type ClientWithResponsesInterface interface {
 
 	UpdateProjectWithResponse(ctx context.Context, projectID ProjectID, body UpdateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateProjectResponse, error)
 
+	// ListAgentMarkdownHistoryWithResponse request
+	ListAgentMarkdownHistoryWithResponse(ctx context.Context, projectID ProjectID, params *ListAgentMarkdownHistoryParams, reqEditors ...RequestEditorFn) (*ListAgentMarkdownHistoryResponse, error)
+
 	// ListAssetsWithResponse request
 	ListAssetsWithResponse(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*ListAssetsResponse, error)
 
@@ -18497,6 +18611,28 @@ func (r UpdateProjectResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateProjectResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAgentMarkdownHistoryResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAgentMarkdownHistoryOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAgentMarkdownHistoryResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAgentMarkdownHistoryResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -22182,6 +22318,15 @@ func (c *ClientWithResponses) UpdateProjectWithResponse(ctx context.Context, pro
 	return ParseUpdateProjectResponse(rsp)
 }
 
+// ListAgentMarkdownHistoryWithResponse request returning *ListAgentMarkdownHistoryResponse
+func (c *ClientWithResponses) ListAgentMarkdownHistoryWithResponse(ctx context.Context, projectID ProjectID, params *ListAgentMarkdownHistoryParams, reqEditors ...RequestEditorFn) (*ListAgentMarkdownHistoryResponse, error) {
+	rsp, err := c.ListAgentMarkdownHistory(ctx, projectID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAgentMarkdownHistoryResponse(rsp)
+}
+
 // ListAssetsWithResponse request returning *ListAssetsResponse
 func (c *ClientWithResponses) ListAssetsWithResponse(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*ListAssetsResponse, error) {
 	rsp, err := c.ListAssets(ctx, projectID, params, reqEditors...)
@@ -24187,6 +24332,32 @@ func ParseUpdateProjectResponse(rsp *http.Response) (*UpdateProjectResponse, err
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Project
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListAgentMarkdownHistoryResponse parses an HTTP response from a ListAgentMarkdownHistoryWithResponse call
+func ParseListAgentMarkdownHistoryResponse(rsp *http.Response) (*ListAgentMarkdownHistoryResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAgentMarkdownHistoryResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAgentMarkdownHistoryOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

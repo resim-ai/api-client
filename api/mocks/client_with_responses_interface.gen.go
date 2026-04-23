@@ -8582,6 +8582,81 @@ func (_c *ClientWithResponsesInterface_HealthWithResponse_Call) RunAndReturn(run
 	return _c
 }
 
+// ListAgentMarkdownHistoryWithResponse provides a mock function with given fields: ctx, projectID, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListAgentMarkdownHistoryWithResponse(ctx context.Context, projectID uuid.UUID, params *api.ListAgentMarkdownHistoryParams, reqEditors ...api.RequestEditorFn) (*api.ListAgentMarkdownHistoryResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgentMarkdownHistoryWithResponse")
+	}
+
+	var r0 *api.ListAgentMarkdownHistoryResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListAgentMarkdownHistoryParams, ...api.RequestEditorFn) (*api.ListAgentMarkdownHistoryResponse, error)); ok {
+		return rf(ctx, projectID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, *api.ListAgentMarkdownHistoryParams, ...api.RequestEditorFn) *api.ListAgentMarkdownHistoryResponse); ok {
+		r0 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListAgentMarkdownHistoryResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, *api.ListAgentMarkdownHistoryParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgentMarkdownHistoryWithResponse'
+type ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListAgentMarkdownHistoryWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - params *api.ListAgentMarkdownHistoryParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListAgentMarkdownHistoryWithResponse(ctx interface{}, projectID interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call {
+	return &ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call{Call: _e.mock.On("ListAgentMarkdownHistoryWithResponse",
+		append([]interface{}{ctx, projectID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, params *api.ListAgentMarkdownHistoryParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(*api.ListAgentMarkdownHistoryParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call) Return(_a0 *api.ListAgentMarkdownHistoryResponse, _a1 error) *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListAgentMarkdownHistoryParams, ...api.RequestEditorFn) (*api.ListAgentMarkdownHistoryResponse, error)) *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListAllJobsWithResponse provides a mock function with given fields: ctx, projectID, params, reqEditors
 func (_m *ClientWithResponsesInterface) ListAllJobsWithResponse(ctx context.Context, projectID uuid.UUID, params *api.ListAllJobsParams, reqEditors ...api.RequestEditorFn) (*api.ListAllJobsResponse, error) {
 	_va := make([]interface{}, len(reqEditors))

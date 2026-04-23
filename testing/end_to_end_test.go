@@ -5472,8 +5472,7 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getTestSuite(projectID, metricsSetTestSuiteName, nil, false), false)
 	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
 	ts.NoError(err)
-	ts.NotNil(testSuite.MetricsSetName)
-	ts.Equal(emptyMetricsSet, *testSuite.MetricsSetName)
+	ts.Nil(testSuite.MetricsSetName)
 
 	emptyMetricsPoolBatchName := fmt.Sprintf("empty-metrics-pool-batch-%s", uuid.New().String())
 	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &emptyMetricsPoolBatchName, nil, nil, nil, false), ExpectNoError)
@@ -5482,7 +5481,7 @@ func TestTestSuites(t *testing.T) {
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
 	if batch.PoolLabels != nil {
-		ts.Contains((*batch.PoolLabels)[0], "metrics2")
+		ts.NotContains((*batch.PoolLabels)[0], "metrics2")
 	}
 
 	// Then set a new metrics set name

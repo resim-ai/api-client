@@ -638,19 +638,25 @@ func superviseBatch(ccmd *cobra.Command, args []string) {
 	// Exit with appropriate code based on final status. Supervise uses ConflatedStatus mode:
 	// the fail filter defaults to --rerun-on-states (i.e. "if a state is worth rerunning, an
 	// unresolved instance of it should fail the command"). --fail-on-states overrides.
-	failFilter := superviseFailFilter()
+	failFilter := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
 	results := []*SuperviseResult{result}
 	exitWithBatchStatus(results, exitCodeOptions{failOnStates: failFilter}, true)
 }
 
-// superviseFailFilter returns the fail filter to use for supervise's exit code computation.
-// If --fail-on-states is set, it takes precedence; otherwise --rerun-on-states is used as
-// the implicit fail filter.
-func superviseFailFilter() []api.ConflatedBatchStatus {
-	if viper.IsSet(batchFailOnStatesKey) {
-		return parseConflatedBatchStates(viper.GetString(batchFailOnStatesKey))
+// supervisorFailFilter returns the fail filter to use for a supervise-style command's exit
+// code computation. If --fail-on-states resolves to a non-empty list it takes precedence;
+// otherwise --rerun-on-states is used as the implicit fail filter (so "if a state is worth
+// rerunning, an unresolved instance of it should fail the command"). Shared between
+// `batch supervise` and `workflow runs supervise` so they can't drift.
+//
+// We parse first and length-check rather than using viper.IsSet because viper.IsSet
+// returns true for an explicit empty value (e.g. --fail-on-states=""), which would
+// silently drop us into legacy mode and bypass the implicit --rerun-on-states filter.
+func supervisorFailFilter(failOnStatesKey, rerunOnStatesKey string) []api.ConflatedBatchStatus {
+	if explicit := parseConflatedBatchStates(viper.GetString(failOnStatesKey)); len(explicit) > 0 {
+		return explicit
 	}
-	return jobStatesToBatchStates(parseRerunStates(viper.GetString(batchRerunOnStatesKey)))
+	return jobStatesToBatchStates(parseRerunStates(viper.GetString(rerunOnStatesKey)))
 }
 
 func createBatch(ccmd *cobra.Command, args []string) {

@@ -1714,21 +1714,42 @@ func (s *CommandsSuite) TestJobStatesToBatchStates_Mapping() {
 	}, got)
 }
 
-// superviseFailFilter integration: confirm that supervise's implicit filter from
-// --rerun-on-states is the same set of conflated batch states.
-func (s *CommandsSuite) TestSuperviseFailFilter_ImplicitFromRerunOnStates() {
+// supervisorFailFilter integration: confirm that the implicit filter derived from
+// --rerun-on-states matches the set of conflated batch states, and that --fail-on-states
+// (when set) overrides it. Same helper backs both `batch supervise` and
+// `workflow runs supervise`.
+func (s *CommandsSuite) TestSupervisorFailFilter_ImplicitFromRerunOnStates() {
 	viper.Reset()
 	viper.Set(batchRerunOnStatesKey, "Error")
-	got := superviseFailFilter()
+	got := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
 	s.ElementsMatch([]api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}, got)
 }
 
-func (s *CommandsSuite) TestSuperviseFailFilter_ExplicitOverridesImplicit() {
+func (s *CommandsSuite) TestSupervisorFailFilter_ExplicitOverridesImplicit() {
 	viper.Reset()
 	viper.Set(batchRerunOnStatesKey, "Error")
 	viper.Set(batchFailOnStatesKey, "Blocker,Warning")
-	got := superviseFailFilter()
+	got := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
 	s.ElementsMatch([]api.ConflatedBatchStatus{
 		api.ConflatedBatchStatusBLOCKER, api.ConflatedBatchStatusWARNING,
 	}, got)
+}
+
+func (s *CommandsSuite) TestSupervisorFailFilter_WorksForWorkflowKeys() {
+	// Same helper is used by `workflow runs supervise` with the workflow viper keys.
+	viper.Reset()
+	viper.Set("rerun-on-states", "Blocker")
+	got := supervisorFailFilter("fail-on-states", "rerun-on-states")
+	s.ElementsMatch([]api.ConflatedBatchStatus{api.ConflatedBatchStatusBLOCKER}, got)
+}
+
+func (s *CommandsSuite) TestSupervisorFailFilter_EmptyExplicitFallsBackToImplicit() {
+	// Regression: an explicit but empty --fail-on-states="" must not silently drop the
+	// command into legacy Batch.Status mode; --rerun-on-states should still drive the
+	// fail filter (otherwise supervise would exit 0 on unresolved jobs).
+	viper.Reset()
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchFailOnStatesKey, "") // explicit empty
+	got := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
+	s.ElementsMatch([]api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}, got)
 }

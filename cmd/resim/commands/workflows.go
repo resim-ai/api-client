@@ -978,12 +978,7 @@ func superviseWorkflowRun(ccmd *cobra.Command, args []string) {
 
 	// Exit with appropriate code based on results. Use --fail-on-states if set,
 	// otherwise default to --rerun-on-states as the implicit fail filter (matches
-	// `batch supervise` behavior).
-	var failFilter []api.ConflatedBatchStatus
-	if viper.IsSet(workflowFailOnStatesKey) {
-		failFilter = parseConflatedBatchStates(viper.GetString(workflowFailOnStatesKey))
-	} else {
-		failFilter = jobStatesToBatchStates(conflatedStates)
-	}
+	// `batch supervise` behavior). Shared helper keeps this in lockstep with batch supervise.
+	failFilter := supervisorFailFilter(workflowFailOnStatesKey, workflowRerunOnStatesKey)
 	exitWithBatchStatus(result.Results, exitCodeOptions{failOnStates: failFilter}, true)
 }

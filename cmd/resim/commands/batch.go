@@ -1223,11 +1223,6 @@ func waitBatch(ccmd *cobra.Command, args []string) {
 		viper.Set(batchIDKey, batch.BatchID.String())
 	}
 
-	// Log the conflated status summary for the user (default on, suppressed by --quiet).
-	if err == nil && batch != nil {
-		logConflatedSummary(batch)
-	}
-
 	// Exit code: by default driven by Batch.Status (preserves historical contract).
 	// When --fail-on-states is set, switch to ConflatedStatus mode with that filter.
 	opts := exitCodeOptions{

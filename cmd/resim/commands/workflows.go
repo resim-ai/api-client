@@ -85,8 +85,21 @@ var (
 	superviseWorkflowRunCmd = &cobra.Command{
 		Use:   "supervise",
 		Short: "supervise - waits on workflow run completion and reruns failed tests",
-		Long:  `Awaits workflow run completion with rerun capability and returns an exit code corresponding to the final workflow run status. 1 = internal error, 0 = SUCCEEDED, 2=ERROR, 5=CANCELLED, 6=timed out)`,
-		Run:   superviseWorkflowRun,
+		Long: `Awaits workflow run completion (across all batches) with rerun capability and returns an exit code corresponding to the worst final batch state.
+
+Like ` + "`batch supervise`" + `, the exit code is derived from Batch.ConflatedStatus filtered to the states passed via --rerun-on-states (or --fail-on-states if set).
+
+Exit codes:
+  0 = all batches COMPLETE (or no jobs remain in the fail filter)
+  1 = internal CLI error
+  2 = ERROR (orchestration error, or unresolved ERROR jobs in the fail filter)
+  5 = CANCELLED
+  6 = timed out
+  7 = BLOCKER (unresolved BLOCKER jobs in the fail filter)
+  8 = WARNING (unresolved WARNING jobs in the fail filter)
+
+Multi-batch priority: 1 > 6 > 7 > 2 > 8 > 5 > 3 > 4 > 0.`,
+		Run: superviseWorkflowRun,
 	}
 )
 
@@ -107,6 +120,8 @@ const (
 	workflowMaxRerunAttemptsKey        = "max-rerun-attempts"
 	workflowRerunMaxFailurePercentKey  = "rerun-max-failure-percent"
 	workflowRerunOnStatesKey           = "rerun-on-states"
+	workflowFailOnStatesKey            = "fail-on-states"
+	workflowQuietKey                   = "quiet"
 	workflowWaitTimeoutKey             = "wait-timeout"
 	workflowWaitPollKey                = "poll-every"
 	workflowGithubKey                  = "github"
@@ -202,6 +217,8 @@ func init() {
 	superviseWorkflowRunCmd.MarkFlagRequired(workflowRerunMaxFailurePercentKey)
 	superviseWorkflowRunCmd.Flags().String(workflowRerunOnStatesKey, "", "States to trigger rerun on (e.g. Warning, Error, Blocker)")
 	superviseWorkflowRunCmd.MarkFlagRequired(workflowRerunOnStatesKey)
+	superviseWorkflowRunCmd.Flags().String(workflowFailOnStatesKey, "", "(Optional) Comma-separated list of conflated states that should fail the command (WARNING, ERROR, BLOCKER). When unset, --rerun-on-states is used as the implicit fail filter.")
+	superviseWorkflowRunCmd.Flags().Bool(workflowQuietKey, false, "Suppress informational log lines (conflated status summaries and per-attempt rerun breakdowns).")
 	superviseWorkflowRunCmd.Flags().String(workflowWaitTimeoutKey, "1h", "Amount of time to wait for a workflow run to finish, expressed in Golang duration string.")
 	superviseWorkflowRunCmd.Flags().String(workflowWaitPollKey, "30s", "Interval between checking workflow run status, expressed in Golang duration string.")
 
@@ -810,7 +827,8 @@ func superviseWorkflowRunBatch(projectID uuid.UUID, batchID uuid.UUID, params *S
 			}
 		}
 
-		log.Printf("Batch %s completed with status: %s\n", batchID.String(), *batch.Status)
+		infoLog("Batch %s completed with status: %s\n", batchID.String(), *batch.Status)
+		logConflatedSummary(batch)
 
 		// Check if rerun is required (includes max attempts check)
 		matchingJobIDs := getMatchingJobIDs(batch, batchParams, attempt)
@@ -827,7 +845,7 @@ func superviseWorkflowRunBatch(projectID uuid.UUID, batchID uuid.UUID, params *S
 			}
 		}
 		newBatchID := response.JSON200.BatchID
-		log.Printf("Submitted rerun batch: %s\n", newBatchID.String())
+		infoLog("Submitted rerun batch: %s\n", newBatchID.String())
 
 		// Update batch ID for next iteration
 		batchParams.BatchID = newBatchID.String()
@@ -875,7 +893,7 @@ func actualSuperviseWorkflowRun(projectID uuid.UUID, workflowID uuid.UUID, runID
 		batchIDs = append(batchIDs, suite.BatchID)
 	}
 
-	log.Printf("Supervising %d batches in parallel...\n", len(batchIDs))
+	infoLog("Supervising %d batches in parallel...\n", len(batchIDs))
 
 	// Supervise all batches in parallel
 	var wg sync.WaitGroup
@@ -886,7 +904,7 @@ func actualSuperviseWorkflowRun(projectID uuid.UUID, workflowID uuid.UUID, runID
 		wg.Add(1)
 		go func(idx int, bid uuid.UUID) {
 			defer wg.Done()
-			log.Printf("Supervising batch %d/%d: %s\n", idx+1, len(batchIDs), bid.String())
+			infoLog("Supervising batch %d/%d: %s\n", idx+1, len(batchIDs), bid.String())
 			result := superviseWorkflowRunBatch(projectID, bid, params)
 			resultsMutex.Lock()
 			results[idx] = result
@@ -894,7 +912,7 @@ func actualSuperviseWorkflowRun(projectID uuid.UUID, workflowID uuid.UUID, runID
 			if result.Error != nil {
 				log.Printf("Batch %s supervision error: %v\n", bid.String(), result.Error)
 			} else if result.Batch != nil {
-				log.Printf("Batch %s supervision completed with status: %s\n", bid.String(), *result.Batch.Status)
+				infoLog("Batch %s supervision completed with status: %s\n", bid.String(), *result.Batch.Status)
 			}
 		}(i, batchID)
 	}
@@ -958,6 +976,14 @@ func superviseWorkflowRun(ccmd *cobra.Command, args []string) {
 		log.Fatal(result.Error)
 	}
 
-	// Exit with appropriate code based on results
-	exitWithBatchStatus(result.Results, false, true)
+	// Exit with appropriate code based on results. Use --fail-on-states if set,
+	// otherwise default to --rerun-on-states as the implicit fail filter (matches
+	// `batch supervise` behavior).
+	var failFilter []api.ConflatedBatchStatus
+	if viper.IsSet(workflowFailOnStatesKey) {
+		failFilter = parseConflatedBatchStates(viper.GetString(workflowFailOnStatesKey))
+	} else {
+		failFilter = jobStatesToBatchStates(conflatedStates)
+	}
+	exitWithBatchStatus(result.Results, exitCodeOptions{failOnStates: failFilter}, true)
 }

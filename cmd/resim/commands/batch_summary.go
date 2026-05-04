@@ -92,6 +92,33 @@ type BatchStatusCounts struct {
 	Cancelled int
 }
 
+// formatConflatedSummary returns a single-line summary of the batch's conflated status
+// and per-state breakdown, suitable for use in informational logs. Returns "" if the
+// batch is nil.
+//
+// Example: "Batch <id> conflated status: BLOCKER (5 passed, 2 blocking, 1 warning, 3 erroring, 0 running, 0 cancelled)"
+func formatConflatedSummary(batch *api.Batch) string {
+	if batch == nil {
+		return ""
+	}
+	counts := getBatchStatusCounts(batch)
+	conflated := "UNKNOWN"
+	if batch.ConflatedStatus != nil {
+		conflated = string(*batch.ConflatedStatus)
+	} else if batch.Status != nil {
+		conflated = string(*batch.Status)
+	}
+	id := "<unknown>"
+	if batch.BatchID != nil {
+		id = batch.BatchID.String()
+	}
+	return fmt.Sprintf(
+		"Batch %s conflated status: %s (%d passed, %d blocking, %d warning, %d erroring, %d running, %d cancelled)",
+		id, conflated,
+		counts.Passed, counts.FailBlock, counts.FailWarn, counts.Error, counts.Running, counts.Cancelled,
+	)
+}
+
 func getBatchStatusCounts(batch *api.Batch) *BatchStatusCounts {
 	var totalJobs int
 	if batch.TotalJobs != nil {

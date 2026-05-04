@@ -2,6 +2,13 @@
 
 ## ReSim CLI
 
+### v0.51.0 - May 4, 2026
+
+- Adds `--fail-on-states=BLOCKER,ERROR,WARNING` flag on `batch wait`, `batch get`, `batch supervise`, and `workflow runs supervise`. When set, the exit code is derived from `Batch.ConflatedStatus` filtered to the supplied states, with two new exit codes: `7` for BLOCKER and `8` for WARNING. When unset, `batch wait` and `batch get --exit-status` keep their historical `Batch.Status`-based exit codes bit-for-bit.
+- Adds `--quiet` flag on `batch wait`, `batch supervise`, and `workflow runs supervise` to suppress the new informational log lines (per-attempt rerun breakdowns and the conflated-status summary printed on completion).
+- `batch supervise` and `workflow runs supervise` now print a per-state breakdown of jobs in the undesired conflated states each time they evaluate whether to rerun (BLOCKER / ERROR / WARNING counts), plus an explicit message when supervise gives up because of `--max-rerun-attempts`, the failure-percent threshold, or batch cancellation. They also print the final batch's conflated status and per-state counts on exit. All of these can be silenced with `--quiet`.
+- Behavior shift in `batch supervise` and `workflow runs supervise`: `--rerun-on-states` is now used as the implicit fail filter for the exit code. Previously these commands could exit `0` even when unresolved jobs remained in the user-specified rerun states (provided `Batch.Status==SUCCEEDED`); they now exit with the corresponding conflated code (`2` for ERROR, `7` for BLOCKER, `8` for WARNING). To prevent a state from failing the command, omit it from `--rerun-on-states`, or use the new `--fail-on-states` to specify a different filter explicitly.
+
 ### v0.50.0 - April 23, 2026
 - Introduces functionality to ReRun only the metrics creation side of a batch. This will use any updated config and regenerate the metrics based on the existing emissions.
 

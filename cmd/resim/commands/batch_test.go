@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -1474,4 +1475,281 @@ func (s *CommandsSuite) TestBatchRerun_ConflictMaxRetriesReached() {
 	s.Error(err)
 	s.Nil(response)
 	s.Contains(err.Error(), "max retries reached")
+}
+
+// computeExitCode tests
+//
+// Legacy mode: empty fail filter falls back to Batch.Status (preserving the historical
+// `wait` and `get --exit-status` exit-code contract).
+
+func (s *CommandsSuite) TestComputeExitCode_Legacy_Succeeded() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{Status: Ptr(api.BatchStatusSUCCEEDED)}},
+	}
+	s.Equal(exitCodeSucceeded, computeExitCode(results, exitCodeOptions{}))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Legacy_Error() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{Status: Ptr(api.BatchStatusERROR)}},
+	}
+	s.Equal(exitCodeError, computeExitCode(results, exitCodeOptions{}))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Legacy_Cancelled() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{Status: Ptr(api.BatchStatusCANCELLED)}},
+	}
+	s.Equal(exitCodeCancelled, computeExitCode(results, exitCodeOptions{}))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Legacy_Timeout() {
+	results := []*SuperviseResult{
+		{Error: &TimeoutError{message: "timed out"}},
+	}
+	s.Equal(exitCodeTimeout, computeExitCode(results, exitCodeOptions{}))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Legacy_Extended_Submitted() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{Status: Ptr(api.BatchStatusSUBMITTED)}},
+	}
+	s.Equal(exitCodeSubmitted, computeExitCode(results, exitCodeOptions{includeExtended: true}))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Legacy_Extended_Running() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{Status: Ptr(api.BatchStatusEXPERIENCESRUNNING)}},
+	}
+	s.Equal(exitCodeRunning, computeExitCode(results, exitCodeOptions{includeExtended: true}))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Legacy_IgnoresConflatedStatus() {
+	// In legacy mode (empty fail filter), ConflatedStatus is ignored and Batch.Status drives.
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusBLOCKER),
+		}},
+	}
+	s.Equal(exitCodeSucceeded, computeExitCode(results, exitCodeOptions{}))
+}
+
+// Conflated mode: fail filter non-empty, ConflatedStatus drives the exit code.
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_CompleteIsZero() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusCOMPLETE),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}}
+	s.Equal(exitCodeSucceeded, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_ErrorInFilter() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusERROR),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}}
+	s.Equal(exitCodeError, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_ErrorNotInFilter() {
+	// User specified --rerun-on-states=Blocker; an unresolved ERROR conflated state must
+	// NOT fail the command.
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusERROR),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusBLOCKER}}
+	s.Equal(exitCodeSucceeded, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_BlockerInFilter() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusBLOCKER),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusBLOCKER}}
+	s.Equal(exitCodeBlocker, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_WarningInFilter() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusWARNING),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusWARNING}}
+	s.Equal(exitCodeWarning, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_OrchestrationErrorOverridesConflated() {
+	// Batch.Status=ERROR (orchestration error) always wins, regardless of the conflated
+	// status or the fail filter.
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusERROR),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusCOMPLETE),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusBLOCKER}}
+	s.Equal(exitCodeError, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_CancelledStillCancelled() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusCANCELLED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusCANCELLED),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}}
+	s.Equal(exitCodeCancelled, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_Conflated_NilConflatedFallsBackToStatus() {
+	// When ConflatedStatus is nil, computeExitCode falls back to the Batch.Status logic
+	// even in conflated mode.
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status: Ptr(api.BatchStatusSUCCEEDED),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}}
+	s.Equal(exitCodeSucceeded, computeExitCode(results, opts))
+}
+
+// Multi-batch priority: ensure the most severe batch state wins.
+
+func (s *CommandsSuite) TestComputeExitCode_MultiBatch_PriorityBlockerOverError() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusERROR),
+		}},
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusBLOCKER),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{
+		api.ConflatedBatchStatusBLOCKER, api.ConflatedBatchStatusERROR,
+	}}
+	s.Equal(exitCodeBlocker, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_MultiBatch_PriorityErrorOverWarning() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusWARNING),
+		}},
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusERROR),
+		}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{
+		api.ConflatedBatchStatusERROR, api.ConflatedBatchStatusWARNING,
+	}}
+	s.Equal(exitCodeError, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_MultiBatch_TimeoutBeatsAll() {
+	results := []*SuperviseResult{
+		{Batch: &api.Batch{
+			Status:          Ptr(api.BatchStatusSUCCEEDED),
+			ConflatedStatus: Ptr(api.ConflatedBatchStatusBLOCKER),
+		}},
+		{Error: &TimeoutError{message: "timed out"}},
+	}
+	opts := exitCodeOptions{failOnStates: []api.ConflatedBatchStatus{api.ConflatedBatchStatusBLOCKER}}
+	s.Equal(exitCodeTimeout, computeExitCode(results, opts))
+}
+
+func (s *CommandsSuite) TestComputeExitCode_InternalError_ReturnsSentinel() {
+	results := []*SuperviseResult{
+		{Error: fmt.Errorf("boom")},
+	}
+	s.Equal(internalError, computeExitCode(results, exitCodeOptions{}))
+}
+
+// Parsers.
+
+func (s *CommandsSuite) TestParseConflatedBatchStates_Empty() {
+	s.Nil(parseConflatedBatchStates(""))
+}
+
+func (s *CommandsSuite) TestParseConflatedBatchStates_All() {
+	got := parseConflatedBatchStates("Warning,Error,Blocker")
+	s.ElementsMatch([]api.ConflatedBatchStatus{
+		api.ConflatedBatchStatusWARNING,
+		api.ConflatedBatchStatusERROR,
+		api.ConflatedBatchStatusBLOCKER,
+	}, got)
+}
+
+func (s *CommandsSuite) TestJobStatesToBatchStates_Mapping() {
+	got := jobStatesToBatchStates([]api.ConflatedJobStatus{
+		api.ConflatedJobStatusBLOCKER,
+		api.ConflatedJobStatusERROR,
+		api.ConflatedJobStatusWARNING,
+		api.ConflatedJobStatusPASSED, // ignored
+	})
+	s.ElementsMatch([]api.ConflatedBatchStatus{
+		api.ConflatedBatchStatusBLOCKER,
+		api.ConflatedBatchStatusERROR,
+		api.ConflatedBatchStatusWARNING,
+	}, got)
+}
+
+// supervisorFailFilter integration: confirm that the implicit filter derived from
+// --rerun-on-states matches the set of conflated batch states, and that --fail-on-states
+// (when set) overrides it. Same helper backs both `batch supervise` and
+// `workflow runs supervise`.
+func (s *CommandsSuite) TestSupervisorFailFilter_ImplicitFromRerunOnStates() {
+	viper.Reset()
+	viper.Set(batchRerunOnStatesKey, "Error")
+	got := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
+	s.ElementsMatch([]api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}, got)
+}
+
+func (s *CommandsSuite) TestSupervisorFailFilter_ExplicitOverridesImplicit() {
+	viper.Reset()
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchFailOnStatesKey, "Blocker,Warning")
+	got := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
+	s.ElementsMatch([]api.ConflatedBatchStatus{
+		api.ConflatedBatchStatusBLOCKER, api.ConflatedBatchStatusWARNING,
+	}, got)
+}
+
+func (s *CommandsSuite) TestSupervisorFailFilter_WorksForWorkflowKeys() {
+	// Same helper is used by `workflow runs supervise` with the workflow viper keys.
+	viper.Reset()
+	viper.Set("rerun-on-states", "Blocker")
+	got := supervisorFailFilter("fail-on-states", "rerun-on-states")
+	s.ElementsMatch([]api.ConflatedBatchStatus{api.ConflatedBatchStatusBLOCKER}, got)
+}
+
+func (s *CommandsSuite) TestSupervisorFailFilter_EmptyExplicitFallsBackToImplicit() {
+	// Regression: an explicit but empty --fail-on-states="" must not silently drop the
+	// command into legacy Batch.Status mode; --rerun-on-states should still drive the
+	// fail filter (otherwise supervise would exit 0 on unresolved jobs).
+	viper.Reset()
+	viper.Set(batchRerunOnStatesKey, "Error")
+	viper.Set(batchFailOnStatesKey, "") // explicit empty
+	got := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
+	s.ElementsMatch([]api.ConflatedBatchStatus{api.ConflatedBatchStatusERROR}, got)
 }

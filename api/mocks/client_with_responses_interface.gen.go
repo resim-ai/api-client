@@ -1089,6 +1089,155 @@ func (_c *ClientWithResponsesInterface_ArchiveAssetWithResponse_Call) RunAndRetu
 	return _c
 }
 
+// ArchiveBlueprintVersionWithResponse provides a mock function with given fields: ctx, blueprintName, blueprintVersion, reqEditors
+func (_m *ClientWithResponsesInterface) ArchiveBlueprintVersionWithResponse(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn) (*api.ArchiveBlueprintVersionResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName, blueprintVersion)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ArchiveBlueprintVersionWithResponse")
+	}
+
+	var r0 *api.ArchiveBlueprintVersionResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) (*api.ArchiveBlueprintVersionResponse, error)); ok {
+		return rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) *api.ArchiveBlueprintVersionResponse); ok {
+		r0 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ArchiveBlueprintVersionResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ArchiveBlueprintVersionWithResponse'
+type ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call struct {
+	*mock.Call
+}
+
+// ArchiveBlueprintVersionWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - blueprintVersion int
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ArchiveBlueprintVersionWithResponse(ctx interface{}, blueprintName interface{}, blueprintVersion interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call {
+	return &ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call{Call: _e.mock.On("ArchiveBlueprintVersionWithResponse",
+		append([]interface{}{ctx, blueprintName, blueprintVersion}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call) Run(run func(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(int), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call) Return(_a0 *api.ArchiveBlueprintVersionResponse, _a1 error) *ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call) RunAndReturn(run func(context.Context, string, int, ...api.RequestEditorFn) (*api.ArchiveBlueprintVersionResponse, error)) *ClientWithResponsesInterface_ArchiveBlueprintVersionWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ArchiveBlueprintWithResponse provides a mock function with given fields: ctx, blueprintName, reqEditors
+func (_m *ClientWithResponsesInterface) ArchiveBlueprintWithResponse(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn) (*api.ArchiveBlueprintResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ArchiveBlueprintWithResponse")
+	}
+
+	var r0 *api.ArchiveBlueprintResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*api.ArchiveBlueprintResponse, error)); ok {
+		return rf(ctx, blueprintName, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *api.ArchiveBlueprintResponse); ok {
+		r0 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ArchiveBlueprintResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ArchiveBlueprintWithResponse'
+type ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call struct {
+	*mock.Call
+}
+
+// ArchiveBlueprintWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ArchiveBlueprintWithResponse(ctx interface{}, blueprintName interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call {
+	return &ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call{Call: _e.mock.On("ArchiveBlueprintWithResponse",
+		append([]interface{}{ctx, blueprintName}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call) Run(run func(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call) Return(_a0 *api.ArchiveBlueprintResponse, _a1 error) *ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*api.ArchiveBlueprintResponse, error)) *ClientWithResponsesInterface_ArchiveBlueprintWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ArchiveExperienceWithResponse provides a mock function with given fields: ctx, projectID, experienceID, reqEditors
 func (_m *ClientWithResponsesInterface) ArchiveExperienceWithResponse(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.ArchiveExperienceResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -2602,6 +2751,155 @@ func (_c *ClientWithResponsesInterface_CreateBatchWithResponse_Call) Return(_a0 
 }
 
 func (_c *ClientWithResponsesInterface_CreateBatchWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.BatchInput, ...api.RequestEditorFn) (*api.CreateBatchResponse, error)) *ClientWithResponsesInterface_CreateBatchWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateBlueprintWithBodyWithResponse provides a mock function with given fields: ctx, contentType, body, reqEditors
+func (_m *ClientWithResponsesInterface) CreateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.CreateBlueprintResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateBlueprintWithBodyWithResponse")
+	}
+
+	var r0 *api.CreateBlueprintResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...api.RequestEditorFn) (*api.CreateBlueprintResponse, error)); ok {
+		return rf(ctx, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...api.RequestEditorFn) *api.CreateBlueprintResponse); ok {
+		r0 = rf(ctx, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.CreateBlueprintResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateBlueprintWithBodyWithResponse'
+type ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call struct {
+	*mock.Call
+}
+
+// CreateBlueprintWithBodyWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) CreateBlueprintWithBodyWithResponse(ctx interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call {
+	return &ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call{Call: _e.mock.On("CreateBlueprintWithBodyWithResponse",
+		append([]interface{}{ctx, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call) Run(run func(ctx context.Context, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call) Return(_a0 *api.CreateBlueprintResponse, _a1 error) *ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call) RunAndReturn(run func(context.Context, string, io.Reader, ...api.RequestEditorFn) (*api.CreateBlueprintResponse, error)) *ClientWithResponsesInterface_CreateBlueprintWithBodyWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateBlueprintWithResponse provides a mock function with given fields: ctx, body, reqEditors
+func (_m *ClientWithResponsesInterface) CreateBlueprintWithResponse(ctx context.Context, body api.CreateBlueprintInput, reqEditors ...api.RequestEditorFn) (*api.CreateBlueprintResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateBlueprintWithResponse")
+	}
+
+	var r0 *api.CreateBlueprintResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) (*api.CreateBlueprintResponse, error)); ok {
+		return rf(ctx, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) *api.CreateBlueprintResponse); ok {
+		r0 = rf(ctx, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.CreateBlueprintResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_CreateBlueprintWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateBlueprintWithResponse'
+type ClientWithResponsesInterface_CreateBlueprintWithResponse_Call struct {
+	*mock.Call
+}
+
+// CreateBlueprintWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - body api.CreateBlueprintInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) CreateBlueprintWithResponse(ctx interface{}, body interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_CreateBlueprintWithResponse_Call {
+	return &ClientWithResponsesInterface_CreateBlueprintWithResponse_Call{Call: _e.mock.On("CreateBlueprintWithResponse",
+		append([]interface{}{ctx, body}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_CreateBlueprintWithResponse_Call) Run(run func(ctx context.Context, body api.CreateBlueprintInput, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_CreateBlueprintWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(api.CreateBlueprintInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateBlueprintWithResponse_Call) Return(_a0 *api.CreateBlueprintResponse, _a1 error) *ClientWithResponsesInterface_CreateBlueprintWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_CreateBlueprintWithResponse_Call) RunAndReturn(run func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) (*api.CreateBlueprintResponse, error)) *ClientWithResponsesInterface_CreateBlueprintWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -6020,6 +6318,80 @@ func (_c *ClientWithResponsesInterface_DeleteWorkflowSuitesWithResponse_Call) Ru
 	return _c
 }
 
+// GetAgentWithResponse provides a mock function with given fields: ctx, agentID, reqEditors
+func (_m *ClientWithResponsesInterface) GetAgentWithResponse(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn) (*api.GetAgentResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, agentID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAgentWithResponse")
+	}
+
+	var r0 *api.GetAgentResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*api.GetAgentResponse, error)); ok {
+		return rf(ctx, agentID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *api.GetAgentResponse); ok {
+		r0 = rf(ctx, agentID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.GetAgentResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, agentID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_GetAgentWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAgentWithResponse'
+type ClientWithResponsesInterface_GetAgentWithResponse_Call struct {
+	*mock.Call
+}
+
+// GetAgentWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - agentID string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) GetAgentWithResponse(ctx interface{}, agentID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_GetAgentWithResponse_Call {
+	return &ClientWithResponsesInterface_GetAgentWithResponse_Call{Call: _e.mock.On("GetAgentWithResponse",
+		append([]interface{}{ctx, agentID}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_GetAgentWithResponse_Call) Run(run func(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_GetAgentWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetAgentWithResponse_Call) Return(_a0 *api.GetAgentResponse, _a1 error) *ClientWithResponsesInterface_GetAgentWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetAgentWithResponse_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*api.GetAgentResponse, error)) *ClientWithResponsesInterface_GetAgentWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAssetRevisionWithResponse provides a mock function with given fields: ctx, projectID, assetID, assetRevision, reqEditors
 func (_m *ClientWithResponsesInterface) GetAssetRevisionWithResponse(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, assetRevision int64, reqEditors ...api.RequestEditorFn) (*api.GetAssetRevisionResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -6393,6 +6765,81 @@ func (_c *ClientWithResponsesInterface_GetBatchWithResponse_Call) Return(_a0 *ap
 }
 
 func (_c *ClientWithResponsesInterface_GetBatchWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetBatchResponse, error)) *ClientWithResponsesInterface_GetBatchWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetBlueprintVersionWithResponse provides a mock function with given fields: ctx, blueprintName, blueprintVersion, reqEditors
+func (_m *ClientWithResponsesInterface) GetBlueprintVersionWithResponse(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn) (*api.GetBlueprintVersionResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName, blueprintVersion)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBlueprintVersionWithResponse")
+	}
+
+	var r0 *api.GetBlueprintVersionResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) (*api.GetBlueprintVersionResponse, error)); ok {
+		return rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) *api.GetBlueprintVersionResponse); ok {
+		r0 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.GetBlueprintVersionResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetBlueprintVersionWithResponse'
+type ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call struct {
+	*mock.Call
+}
+
+// GetBlueprintVersionWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - blueprintVersion int
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) GetBlueprintVersionWithResponse(ctx interface{}, blueprintName interface{}, blueprintVersion interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call {
+	return &ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call{Call: _e.mock.On("GetBlueprintVersionWithResponse",
+		append([]interface{}{ctx, blueprintName, blueprintVersion}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call) Run(run func(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(int), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call) Return(_a0 *api.GetBlueprintVersionResponse, _a1 error) *ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call) RunAndReturn(run func(context.Context, string, int, ...api.RequestEditorFn) (*api.GetBlueprintVersionResponse, error)) *ClientWithResponsesInterface_GetBlueprintVersionWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -7151,6 +7598,80 @@ func (_c *ClientWithResponsesInterface_GetJobWithResponse_Call) Return(_a0 *api.
 }
 
 func (_c *ClientWithResponsesInterface_GetJobWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetJobResponse, error)) *ClientWithResponsesInterface_GetJobWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetLatestBlueprintWithResponse provides a mock function with given fields: ctx, blueprintName, reqEditors
+func (_m *ClientWithResponsesInterface) GetLatestBlueprintWithResponse(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn) (*api.GetLatestBlueprintResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLatestBlueprintWithResponse")
+	}
+
+	var r0 *api.GetLatestBlueprintResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*api.GetLatestBlueprintResponse, error)); ok {
+		return rf(ctx, blueprintName, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *api.GetLatestBlueprintResponse); ok {
+		r0 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.GetLatestBlueprintResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLatestBlueprintWithResponse'
+type ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call struct {
+	*mock.Call
+}
+
+// GetLatestBlueprintWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) GetLatestBlueprintWithResponse(ctx interface{}, blueprintName interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call {
+	return &ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call{Call: _e.mock.On("GetLatestBlueprintWithResponse",
+		append([]interface{}{ctx, blueprintName}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call) Run(run func(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call) Return(_a0 *api.GetLatestBlueprintResponse, _a1 error) *ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*api.GetLatestBlueprintResponse, error)) *ClientWithResponsesInterface_GetLatestBlueprintWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -8657,6 +9178,154 @@ func (_c *ClientWithResponsesInterface_ListAgentMarkdownHistoryWithResponse_Call
 	return _c
 }
 
+// ListAgentPoolLabelQueueWithResponse provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListAgentPoolLabelQueueWithResponse(ctx context.Context, params *api.ListAgentPoolLabelQueueParams, reqEditors ...api.RequestEditorFn) (*api.ListAgentPoolLabelQueueResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgentPoolLabelQueueWithResponse")
+	}
+
+	var r0 *api.ListAgentPoolLabelQueueResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) (*api.ListAgentPoolLabelQueueResponse, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) *api.ListAgentPoolLabelQueueResponse); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListAgentPoolLabelQueueResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgentPoolLabelQueueWithResponse'
+type ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListAgentPoolLabelQueueWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.ListAgentPoolLabelQueueParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListAgentPoolLabelQueueWithResponse(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call {
+	return &ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call{Call: _e.mock.On("ListAgentPoolLabelQueueWithResponse",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call) Run(run func(ctx context.Context, params *api.ListAgentPoolLabelQueueParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.ListAgentPoolLabelQueueParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call) Return(_a0 *api.ListAgentPoolLabelQueueResponse, _a1 error) *ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call) RunAndReturn(run func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) (*api.ListAgentPoolLabelQueueResponse, error)) *ClientWithResponsesInterface_ListAgentPoolLabelQueueWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAgentsWithResponse provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListAgentsWithResponse(ctx context.Context, params *api.ListAgentsParams, reqEditors ...api.RequestEditorFn) (*api.ListAgentsResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgentsWithResponse")
+	}
+
+	var r0 *api.ListAgentsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentsParams, ...api.RequestEditorFn) (*api.ListAgentsResponse, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentsParams, ...api.RequestEditorFn) *api.ListAgentsResponse); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListAgentsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ListAgentsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListAgentsWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgentsWithResponse'
+type ClientWithResponsesInterface_ListAgentsWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListAgentsWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.ListAgentsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListAgentsWithResponse(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListAgentsWithResponse_Call {
+	return &ClientWithResponsesInterface_ListAgentsWithResponse_Call{Call: _e.mock.On("ListAgentsWithResponse",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentsWithResponse_Call) Run(run func(ctx context.Context, params *api.ListAgentsParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListAgentsWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.ListAgentsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentsWithResponse_Call) Return(_a0 *api.ListAgentsResponse, _a1 error) *ClientWithResponsesInterface_ListAgentsWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListAgentsWithResponse_Call) RunAndReturn(run func(context.Context, *api.ListAgentsParams, ...api.RequestEditorFn) (*api.ListAgentsResponse, error)) *ClientWithResponsesInterface_ListAgentsWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListAllJobsWithResponse provides a mock function with given fields: ctx, projectID, params, reqEditors
 func (_m *ClientWithResponsesInterface) ListAllJobsWithResponse(ctx context.Context, projectID uuid.UUID, params *api.ListAllJobsParams, reqEditors ...api.RequestEditorFn) (*api.ListAllJobsResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -9943,6 +10612,80 @@ func (_c *ClientWithResponsesInterface_ListBatchesWithResponse_Call) Return(_a0 
 }
 
 func (_c *ClientWithResponsesInterface_ListBatchesWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListBatchesParams, ...api.RequestEditorFn) (*api.ListBatchesResponse, error)) *ClientWithResponsesInterface_ListBatchesWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListBlueprintsWithResponse provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListBlueprintsWithResponse(ctx context.Context, params *api.ListBlueprintsParams, reqEditors ...api.RequestEditorFn) (*api.ListBlueprintsResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListBlueprintsWithResponse")
+	}
+
+	var r0 *api.ListBlueprintsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) (*api.ListBlueprintsResponse, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) *api.ListBlueprintsResponse); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListBlueprintsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListBlueprintsWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListBlueprintsWithResponse'
+type ClientWithResponsesInterface_ListBlueprintsWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListBlueprintsWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.ListBlueprintsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListBlueprintsWithResponse(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListBlueprintsWithResponse_Call {
+	return &ClientWithResponsesInterface_ListBlueprintsWithResponse_Call{Call: _e.mock.On("ListBlueprintsWithResponse",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListBlueprintsWithResponse_Call) Run(run func(ctx context.Context, params *api.ListBlueprintsParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListBlueprintsWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.ListBlueprintsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListBlueprintsWithResponse_Call) Return(_a0 *api.ListBlueprintsResponse, _a1 error) *ClientWithResponsesInterface_ListBlueprintsWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListBlueprintsWithResponse_Call) RunAndReturn(run func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) (*api.ListBlueprintsResponse, error)) *ClientWithResponsesInterface_ListBlueprintsWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -13584,6 +14327,80 @@ func (_c *ClientWithResponsesInterface_LookupLatestBatchByNameWithResponse_Call)
 }
 
 func (_c *ClientWithResponsesInterface_LookupLatestBatchByNameWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, ...api.RequestEditorFn) (*api.LookupLatestBatchByNameResponse, error)) *ClientWithResponsesInterface_LookupLatestBatchByNameWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveAgentWithResponse provides a mock function with given fields: ctx, agentID, reqEditors
+func (_m *ClientWithResponsesInterface) RemoveAgentWithResponse(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn) (*api.RemoveAgentResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, agentID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveAgentWithResponse")
+	}
+
+	var r0 *api.RemoveAgentResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*api.RemoveAgentResponse, error)); ok {
+		return rf(ctx, agentID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *api.RemoveAgentResponse); ok {
+		r0 = rf(ctx, agentID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.RemoveAgentResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, agentID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_RemoveAgentWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveAgentWithResponse'
+type ClientWithResponsesInterface_RemoveAgentWithResponse_Call struct {
+	*mock.Call
+}
+
+// RemoveAgentWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - agentID string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) RemoveAgentWithResponse(ctx interface{}, agentID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_RemoveAgentWithResponse_Call {
+	return &ClientWithResponsesInterface_RemoveAgentWithResponse_Call{Call: _e.mock.On("RemoveAgentWithResponse",
+		append([]interface{}{ctx, agentID}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_RemoveAgentWithResponse_Call) Run(run func(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_RemoveAgentWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_RemoveAgentWithResponse_Call) Return(_a0 *api.RemoveAgentResponse, _a1 error) *ClientWithResponsesInterface_RemoveAgentWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_RemoveAgentWithResponse_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*api.RemoveAgentResponse, error)) *ClientWithResponsesInterface_RemoveAgentWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }

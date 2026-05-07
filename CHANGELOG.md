@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.52.0 - May 12, 2026
+
+- Adds a new `dashboards` command with a `create` subcommand for creating dashboards.
+
 ### v0.51.0 - May 4, 2026
 
 - Adds `--fail-on-states=BLOCKER,ERROR,WARNING` flag on `batch wait`, `batch get`, `batch supervise`, and `workflow runs supervise`. When set, the exit code is derived from `Batch.ConflatedStatus` filtered to the supplied states, with two new exit codes: `7` for BLOCKER and `8` for WARNING. When unset, `batch wait` and `batch get --exit-status` keep their historical `Batch.Status`-based exit codes bit-for-bit.

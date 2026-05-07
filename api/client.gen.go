@@ -96,14 +96,6 @@ const (
 	RELATIVE EventTimestampType = "RELATIVE"
 )
 
-// Defines values for ExecutionStep.
-const (
-	BATCHMETRICS ExecutionStep = "BATCH_METRICS"
-	EXPERIENCE   ExecutionStep = "EXPERIENCE"
-	METRICS      ExecutionStep = "METRICS"
-	REPORT       ExecutionStep = "REPORT"
-)
-
 // Defines values for JobStatus.
 const (
 	JobStatusCANCELLED         JobStatus = "CANCELLED"
@@ -317,6 +309,7 @@ type Batch struct {
 	JobMetricsStatusCounts  *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty" yaml:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts         *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty" yaml:"jobStatusCounts,omitempty"`
 	JobsMetricsStatus       *MetricStatus           `json:"jobsMetricsStatus,omitempty" yaml:"jobsMetricsStatus,omitempty"`
+	LabelledBuilds          *LabelledBuilds         `json:"labelledBuilds" yaml:"labelledBuilds"`
 	LastRunTimestamp        *Timestamp              `json:"lastRunTimestamp,omitempty" yaml:"lastRunTimestamp,omitempty"`
 	LastUpdatedTimestamp    *Timestamp              `json:"lastUpdatedTimestamp,omitempty" yaml:"lastUpdatedTimestamp,omitempty"`
 	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty" yaml:"metricsBuildID,omitempty"`
@@ -346,6 +339,8 @@ type BatchInput struct {
 	AllowableFailurePercent *int                    `json:"allowableFailurePercent" yaml:"allowableFailurePercent"`
 	AssociatedAccount       *AssociatedAccount      `json:"associatedAccount,omitempty" yaml:"associatedAccount,omitempty"`
 	BatchName               *Name                   `json:"batchName,omitempty" yaml:"batchName,omitempty"`
+	BlueprintName           *string                 `json:"blueprintName" yaml:"blueprintName"`
+	BlueprintVersion        *int                    `json:"blueprintVersion" yaml:"blueprintVersion"`
 	BuildID                 *BuildID                `json:"buildID,omitempty" yaml:"buildID,omitempty"`
 	ExcludedExperienceIDs   *[]ExcludedExperienceID `json:"excludedExperienceIDs" yaml:"excludedExperienceIDs"`
 	ExperienceIDs           *[]ExperienceID         `json:"experienceIDs" yaml:"experienceIDs"`
@@ -353,6 +348,7 @@ type BatchInput struct {
 	ExperienceTagIDs        *[]ExperienceTagID      `json:"experienceTagIDs" yaml:"experienceTagIDs"`
 	ExperienceTagNames      *[]ExperienceTagName    `json:"experienceTagNames" yaml:"experienceTagNames"`
 	Filters                 *ExperienceFilterInput  `json:"filters,omitempty" yaml:"filters,omitempty"`
+	LabelledBuilds          *LabelledBuilds         `json:"labelledBuilds" yaml:"labelledBuilds"`
 	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty" yaml:"metricsBuildID,omitempty"`
 	MetricsSetName          *MetricsSetName         `json:"metricsSetName" yaml:"metricsSetName"`
 	Parameters              *BatchParameters        `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -374,11 +370,17 @@ type BatchJobStatusCounts struct {
 
 // BatchLog defines model for batchLog.
 type BatchLog struct {
-	BatchID           *BatchID       `json:"batchID,omitempty" yaml:"batchID,omitempty"`
-	Checksum          *Checksum      `json:"checksum,omitempty" yaml:"checksum,omitempty"`
-	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
-	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
-	FileName          *FileName      `json:"fileName,omitempty" yaml:"fileName,omitempty"`
+	BatchID           *BatchID   `json:"batchID,omitempty" yaml:"batchID,omitempty"`
+	Checksum          *Checksum  `json:"checksum,omitempty" yaml:"checksum,omitempty"`
+	CreationTimestamp *Timestamp `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
+
+	// DownloadUrl Presigned URL with Content-Disposition attachment header for browser-native file downloads. Not set for external (BYO-bucket) logs.
+	DownloadUrl   *string        `json:"downloadUrl,omitempty" yaml:"downloadUrl,omitempty"`
+	ExecutionStep *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
+
+	// External True if the log is stored in a customer-owned (BYO) bucket. For external logs, logOutputLocation will echo the raw location (no presigned URL).
+	External *bool     `json:"external,omitempty" yaml:"external,omitempty"`
+	FileName *FileName `json:"fileName,omitempty" yaml:"fileName,omitempty"`
 
 	// FilePath The directory path relative to the output root (empty for root-level files)
 	FilePath *string   `json:"filePath,omitempty" yaml:"filePath,omitempty"`
@@ -463,6 +465,17 @@ type BatchTotalJobs = int
 
 // BatchType defines model for batchType.
 type BatchType string
+
+// Blueprint defines model for blueprint.
+type Blueprint struct {
+	BlueprintID openapi_types.UUID `json:"blueprintID" yaml:"blueprintID"`
+	CreatedAt   Timestamp          `json:"createdAt" yaml:"createdAt"`
+	CueContent  string             `json:"cueContent" yaml:"cueContent"`
+	Name        string             `json:"name" yaml:"name"`
+	OrgID       OrgID              `json:"orgID" yaml:"orgID"`
+	UserID      UserID             `json:"userID" yaml:"userID"`
+	Version     int                `json:"version" yaml:"version"`
+}
 
 // Branch defines model for branch.
 type Branch struct {
@@ -614,6 +627,12 @@ type CreateAssetInput struct {
 	Version     string   `json:"version" yaml:"version"`
 }
 
+// CreateBlueprintInput defines model for createBlueprintInput.
+type CreateBlueprintInput struct {
+	CueContent string `json:"cueContent" yaml:"cueContent"`
+	Name       string `json:"name" yaml:"name"`
+}
+
 // CreateBranchInput defines model for createBranchInput.
 type CreateBranchInput struct {
 	BranchType BranchType `json:"branchType" yaml:"branchType"`
@@ -631,10 +650,11 @@ type CreateBuildForBranchInput struct {
 	ImageUri    *BuildImageUri    `json:"imageUri,omitempty" yaml:"imageUri,omitempty"`
 
 	// Name The name of the build.
-	Name     *BuildName   `json:"name,omitempty" yaml:"name,omitempty"`
-	SystemID SystemID     `json:"systemID" yaml:"systemID"`
-	Version  BuildVersion `json:"version" yaml:"version"`
-	union    json.RawMessage
+	Name              *BuildName   `json:"name,omitempty" yaml:"name,omitempty"`
+	NoBuildDefinition *bool        `json:"noBuildDefinition,omitempty" yaml:"noBuildDefinition,omitempty"`
+	SystemID          SystemID     `json:"systemID" yaml:"systemID"`
+	Version           BuildVersion `json:"version" yaml:"version"`
+	union             json.RawMessage
 }
 
 // CreateBuildForBranchInput0 defines model for .
@@ -642,6 +662,9 @@ type CreateBuildForBranchInput0 = interface{}
 
 // CreateBuildForBranchInput1 defines model for .
 type CreateBuildForBranchInput1 = interface{}
+
+// CreateBuildForBranchInput2 defines model for .
+type CreateBuildForBranchInput2 = interface{}
 
 // CreateBuildForSystemInput defines model for createBuildForSystemInput.
 type CreateBuildForSystemInput struct {
@@ -655,10 +678,11 @@ type CreateBuildForSystemInput struct {
 	ImageUri    *BuildImageUri    `json:"imageUri,omitempty" yaml:"imageUri,omitempty"`
 
 	// Name The name of the build.
-	Name         *BuildName    `json:"name,omitempty" yaml:"name,omitempty"`
-	TriggeredVia *TriggeredVia `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
-	Version      BuildVersion  `json:"version" yaml:"version"`
-	union        json.RawMessage
+	Name              *BuildName    `json:"name,omitempty" yaml:"name,omitempty"`
+	NoBuildDefinition *bool         `json:"noBuildDefinition,omitempty" yaml:"noBuildDefinition,omitempty"`
+	TriggeredVia      *TriggeredVia `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
+	Version           BuildVersion  `json:"version" yaml:"version"`
+	union             json.RawMessage
 }
 
 // CreateBuildForSystemInput0 defines model for .
@@ -666,6 +690,9 @@ type CreateBuildForSystemInput0 = interface{}
 
 // CreateBuildForSystemInput1 defines model for .
 type CreateBuildForSystemInput1 = interface{}
+
+// CreateBuildForSystemInput2 defines model for .
+type CreateBuildForSystemInput2 = interface{}
 
 // CreateExperienceInput defines model for createExperienceInput.
 type CreateExperienceInput struct {
@@ -909,7 +936,7 @@ type ExecutionError struct {
 }
 
 // ExecutionStep defines model for executionStep.
-type ExecutionStep string
+type ExecutionStep = string
 
 // Experience defines model for experience.
 type Experience struct {
@@ -1086,10 +1113,16 @@ type JobID = openapi_types.UUID
 
 // JobLog defines model for jobLog.
 type JobLog struct {
-	Checksum          *Checksum      `json:"checksum,omitempty" yaml:"checksum,omitempty"`
-	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
-	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
-	FileName          *FileName      `json:"fileName,omitempty" yaml:"fileName,omitempty"`
+	Checksum          *Checksum  `json:"checksum,omitempty" yaml:"checksum,omitempty"`
+	CreationTimestamp *Timestamp `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
+
+	// DownloadUrl Presigned URL with Content-Disposition attachment header for browser-native file downloads. Not set for external (BYO-bucket) logs.
+	DownloadUrl   *string        `json:"downloadUrl,omitempty" yaml:"downloadUrl,omitempty"`
+	ExecutionStep *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
+
+	// External True if the log is stored in a customer-owned (BYO) bucket. For external logs, logOutputLocation will echo the raw location (no presigned URL).
+	External *bool     `json:"external,omitempty" yaml:"external,omitempty"`
+	FileName *FileName `json:"fileName,omitempty" yaml:"fileName,omitempty"`
 
 	// FilePath The directory path relative to the output root (empty for root-level files)
 	FilePath *string   `json:"filePath,omitempty" yaml:"filePath,omitempty"`
@@ -1189,6 +1222,15 @@ type KeyMetricTarget struct {
 	Value    float64 `json:"value" yaml:"value"`
 }
 
+// LabelledBuild defines model for labelledBuild.
+type LabelledBuild struct {
+	BuildID   BuildID `json:"buildID" yaml:"buildID"`
+	BuildType string  `json:"buildType" yaml:"buildType"`
+}
+
+// LabelledBuilds defines model for labelledBuilds.
+type LabelledBuilds = []LabelledBuild
+
 // LightBatchInput defines model for lightBatchInput.
 type LightBatchInput struct {
 	BatchName         *Name              `json:"batchName,omitempty" yaml:"batchName,omitempty"`
@@ -1284,6 +1326,12 @@ type ListBatchesOutput struct {
 	Batches       *[]Batch `json:"batches,omitempty" yaml:"batches,omitempty"`
 	NextPageToken *string  `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
 	Total         *int     `json:"total,omitempty" yaml:"total,omitempty"`
+}
+
+// ListBlueprintsOutput defines model for listBlueprintsOutput.
+type ListBlueprintsOutput struct {
+	Blueprints    *[]Blueprint `json:"blueprints,omitempty" yaml:"blueprints,omitempty"`
+	NextPageToken *string      `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
 }
 
 // ListBranchesOutput defines model for listBranchesOutput.
@@ -1487,10 +1535,16 @@ type ListWorkflowsOutput struct {
 
 // Log defines model for log.
 type Log struct {
-	Checksum          *Checksum      `json:"checksum,omitempty" yaml:"checksum,omitempty"`
-	CreationTimestamp *Timestamp     `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
-	ExecutionStep     *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
-	FileName          *FileName      `json:"fileName,omitempty" yaml:"fileName,omitempty"`
+	Checksum          *Checksum  `json:"checksum,omitempty" yaml:"checksum,omitempty"`
+	CreationTimestamp *Timestamp `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
+
+	// DownloadUrl Presigned URL with Content-Disposition attachment header for browser-native file downloads. Not set for external (BYO-bucket) logs.
+	DownloadUrl   *string        `json:"downloadUrl,omitempty" yaml:"downloadUrl,omitempty"`
+	ExecutionStep *ExecutionStep `json:"executionStep,omitempty" yaml:"executionStep,omitempty"`
+
+	// External True if the log is stored in a customer-owned (BYO) bucket. For external logs, logOutputLocation will echo the raw location (no presigned URL).
+	External *bool     `json:"external,omitempty" yaml:"external,omitempty"`
+	FileName *FileName `json:"fileName,omitempty" yaml:"fileName,omitempty"`
 
 	// FilePath The directory path relative to the output root (empty for root-level files)
 	FilePath *string   `json:"filePath,omitempty" yaml:"filePath,omitempty"`
@@ -1679,6 +1733,8 @@ type ParameterSweepID = openapi_types.UUID
 type ParameterSweepInput struct {
 	AllowableFailurePercent *int                 `json:"allowableFailurePercent" yaml:"allowableFailurePercent"`
 	AssociatedAccount       *AssociatedAccount   `json:"associatedAccount,omitempty" yaml:"associatedAccount,omitempty"`
+	BlueprintName           *string              `json:"blueprintName" yaml:"blueprintName"`
+	BlueprintVersion        *int                 `json:"blueprintVersion" yaml:"blueprintVersion"`
 	BuildID                 *BuildID             `json:"buildID,omitempty" yaml:"buildID,omitempty"`
 	ExperienceIDs           *[]ExperienceID      `json:"experienceIDs" yaml:"experienceIDs"`
 	ExperienceNames         *[]ExperienceName    `json:"experienceNames" yaml:"experienceNames"`
@@ -1714,7 +1770,7 @@ type Profile = string
 
 // Project defines model for project.
 type Project struct {
-	AgentMarkdown     *string   `json:"agentMarkdown,omitempty" yaml:"agentMarkdown,omitempty"`
+	AgentMarkdown     string    `json:"agentMarkdown" yaml:"agentMarkdown"`
 	Archived          Archived  `json:"archived" yaml:"archived"`
 	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
 	Description       string    `json:"description" yaml:"description"`
@@ -1787,7 +1843,13 @@ type ReportInput struct {
 type ReportLog struct {
 	Checksum          Checksum  `json:"checksum" yaml:"checksum"`
 	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
-	FileName          FileName  `json:"fileName" yaml:"fileName"`
+
+	// DownloadUrl Presigned URL with Content-Disposition attachment header for browser-native file downloads. Not set for external (BYO-bucket) logs.
+	DownloadUrl *string `json:"downloadUrl,omitempty" yaml:"downloadUrl,omitempty"`
+
+	// External True if the log is stored in a customer-owned (BYO) bucket.
+	External *bool    `json:"external,omitempty" yaml:"external,omitempty"`
+	FileName FileName `json:"fileName" yaml:"fileName"`
 
 	// FilePath The directory path relative to the output root (empty for root-level files)
 	FilePath *string  `json:"filePath,omitempty" yaml:"filePath,omitempty"`
@@ -1950,7 +2012,10 @@ type TestSuiteBatchInput struct {
 	AllowableFailurePercent *int               `json:"allowableFailurePercent" yaml:"allowableFailurePercent"`
 	AssociatedAccount       *AssociatedAccount `json:"associatedAccount,omitempty" yaml:"associatedAccount,omitempty"`
 	BatchName               *Name              `json:"batchName,omitempty" yaml:"batchName,omitempty"`
+	BlueprintName           *string            `json:"blueprintName" yaml:"blueprintName"`
+	BlueprintVersion        *int               `json:"blueprintVersion" yaml:"blueprintVersion"`
 	BuildID                 BuildID            `json:"buildID" yaml:"buildID"`
+	LabelledBuilds          *LabelledBuilds    `json:"labelledBuilds" yaml:"labelledBuilds"`
 	Parameters              *BatchParameters   `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	PoolLabels              *PoolLabels        `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
 	Priority                *int               `json:"priority" yaml:"priority"`
@@ -2267,6 +2332,12 @@ type PageSizeUnbounded = int
 
 // PageToken defines model for pageToken.
 type PageToken = string
+
+// ListBlueprintsParams defines parameters for ListBlueprints.
+type ListBlueprintsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
 
 // ListPoolLabelsParams defines parameters for ListPoolLabels.
 type ListPoolLabelsParams struct {
@@ -2780,6 +2851,9 @@ type ListViewSessionsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
+// CreateBlueprintJSONRequestBody defines body for CreateBlueprint for application/json ContentType.
+type CreateBlueprintJSONRequestBody = CreateBlueprintInput
+
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
 type CreateProjectJSONRequestBody = CreateProjectInput
 
@@ -2976,6 +3050,32 @@ func (t *CreateBuildForBranchInput) MergeCreateBuildForBranchInput1(v CreateBuil
 	return err
 }
 
+// AsCreateBuildForBranchInput2 returns the union data inside the CreateBuildForBranchInput as a CreateBuildForBranchInput2
+func (t CreateBuildForBranchInput) AsCreateBuildForBranchInput2() (CreateBuildForBranchInput2, error) {
+	var body CreateBuildForBranchInput2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateBuildForBranchInput2 overwrites any union data inside the CreateBuildForBranchInput as the provided CreateBuildForBranchInput2
+func (t *CreateBuildForBranchInput) FromCreateBuildForBranchInput2(v CreateBuildForBranchInput2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateBuildForBranchInput2 performs a merge with any union data inside the CreateBuildForBranchInput, using the provided CreateBuildForBranchInput2
+func (t *CreateBuildForBranchInput) MergeCreateBuildForBranchInput2(v CreateBuildForBranchInput2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t CreateBuildForBranchInput) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	if err != nil {
@@ -3021,6 +3121,13 @@ func (t CreateBuildForBranchInput) MarshalJSON() ([]byte, error) {
 		object["name"], err = json.Marshal(t.Name)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if t.NoBuildDefinition != nil {
+		object["noBuildDefinition"], err = json.Marshal(t.NoBuildDefinition)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'noBuildDefinition': %w", err)
 		}
 	}
 
@@ -3081,6 +3188,13 @@ func (t *CreateBuildForBranchInput) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.Name)
 		if err != nil {
 			return fmt.Errorf("error reading 'name': %w", err)
+		}
+	}
+
+	if raw, found := object["noBuildDefinition"]; found {
+		err = json.Unmarshal(raw, &t.NoBuildDefinition)
+		if err != nil {
+			return fmt.Errorf("error reading 'noBuildDefinition': %w", err)
 		}
 	}
 
@@ -3153,6 +3267,32 @@ func (t *CreateBuildForSystemInput) MergeCreateBuildForSystemInput1(v CreateBuil
 	return err
 }
 
+// AsCreateBuildForSystemInput2 returns the union data inside the CreateBuildForSystemInput as a CreateBuildForSystemInput2
+func (t CreateBuildForSystemInput) AsCreateBuildForSystemInput2() (CreateBuildForSystemInput2, error) {
+	var body CreateBuildForSystemInput2
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCreateBuildForSystemInput2 overwrites any union data inside the CreateBuildForSystemInput as the provided CreateBuildForSystemInput2
+func (t *CreateBuildForSystemInput) FromCreateBuildForSystemInput2(v CreateBuildForSystemInput2) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCreateBuildForSystemInput2 performs a merge with any union data inside the CreateBuildForSystemInput, using the provided CreateBuildForSystemInput2
+func (t *CreateBuildForSystemInput) MergeCreateBuildForSystemInput2(v CreateBuildForSystemInput2) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
 func (t CreateBuildForSystemInput) MarshalJSON() ([]byte, error) {
 	b, err := t.union.MarshalJSON()
 	if err != nil {
@@ -3203,6 +3343,13 @@ func (t CreateBuildForSystemInput) MarshalJSON() ([]byte, error) {
 		object["name"], err = json.Marshal(t.Name)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'name': %w", err)
+		}
+	}
+
+	if t.NoBuildDefinition != nil {
+		object["noBuildDefinition"], err = json.Marshal(t.NoBuildDefinition)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'noBuildDefinition': %w", err)
 		}
 	}
 
@@ -3272,6 +3419,13 @@ func (t *CreateBuildForSystemInput) UnmarshalJSON(b []byte) error {
 		err = json.Unmarshal(raw, &t.Name)
 		if err != nil {
 			return fmt.Errorf("error reading 'name': %w", err)
+		}
+	}
+
+	if raw, found := object["noBuildDefinition"]; found {
+		err = json.Unmarshal(raw, &t.NoBuildDefinition)
+		if err != nil {
+			return fmt.Errorf("error reading 'noBuildDefinition': %w", err)
 		}
 	}
 
@@ -3365,6 +3519,26 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// ListBlueprints request
+	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBlueprintWithBody request with any body
+	CreateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBlueprint(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ArchiveBlueprint request
+	ArchiveBlueprint(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetLatestBlueprint request
+	GetLatestBlueprint(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ArchiveBlueprintVersion request
+	ArchiveBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBlueprintVersion request
+	GetBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// Health request
 	Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3979,6 +4153,90 @@ type ClientInterface interface {
 
 	// CreateViewUpdateWithBody request with any body
 	CreateViewUpdateWithBody(ctx context.Context, viewSessionID ViewSessionID, viewUpdateID ViewUpdateID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBlueprintsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBlueprintRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBlueprint(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBlueprintRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ArchiveBlueprint(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveBlueprintRequest(c.Server, blueprintName)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetLatestBlueprint(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetLatestBlueprintRequest(c.Server, blueprintName)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ArchiveBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveBlueprintVersionRequest(c.Server, blueprintName, blueprintVersion)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBlueprintVersionRequest(c.Server, blueprintName, blueprintVersion)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -6631,6 +6889,261 @@ func (c *Client) CreateViewUpdateWithBody(ctx context.Context, viewSessionID Vie
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewListBlueprintsRequest generates requests for ListBlueprints
+func NewListBlueprintsRequest(server string, params *ListBlueprintsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateBlueprintRequest calls the generic CreateBlueprint builder with application/json body
+func NewCreateBlueprintRequest(server string, body CreateBlueprintJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateBlueprintRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewCreateBlueprintRequestWithBody generates requests for CreateBlueprint with any type of body
+func NewCreateBlueprintRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewArchiveBlueprintRequest generates requests for ArchiveBlueprint
+func NewArchiveBlueprintRequest(server string, blueprintName string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "blueprintName", runtime.ParamLocationPath, blueprintName)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetLatestBlueprintRequest generates requests for GetLatestBlueprint
+func NewGetLatestBlueprintRequest(server string, blueprintName string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "blueprintName", runtime.ParamLocationPath, blueprintName)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewArchiveBlueprintVersionRequest generates requests for ArchiveBlueprintVersion
+func NewArchiveBlueprintVersionRequest(server string, blueprintName string, blueprintVersion int) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "blueprintName", runtime.ParamLocationPath, blueprintName)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "blueprintVersion", runtime.ParamLocationPath, blueprintVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s/versions/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBlueprintVersionRequest generates requests for GetBlueprintVersion
+func NewGetBlueprintVersionRequest(server string, blueprintName string, blueprintVersion int) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "blueprintName", runtime.ParamLocationPath, blueprintName)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "blueprintVersion", runtime.ParamLocationPath, blueprintVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/%s/versions/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewHealthRequest generates requests for Health
@@ -17849,6 +18362,26 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// ListBlueprintsWithResponse request
+	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
+
+	// CreateBlueprintWithBodyWithResponse request with any body
+	CreateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error)
+
+	CreateBlueprintWithResponse(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error)
+
+	// ArchiveBlueprintWithResponse request
+	ArchiveBlueprintWithResponse(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*ArchiveBlueprintResponse, error)
+
+	// GetLatestBlueprintWithResponse request
+	GetLatestBlueprintWithResponse(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*GetLatestBlueprintResponse, error)
+
+	// ArchiveBlueprintVersionWithResponse request
+	ArchiveBlueprintVersionWithResponse(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*ArchiveBlueprintVersionResponse, error)
+
+	// GetBlueprintVersionWithResponse request
+	GetBlueprintVersionWithResponse(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*GetBlueprintVersionResponse, error)
+
 	// HealthWithResponse request
 	HealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthResponse, error)
 
@@ -18463,6 +18996,136 @@ type ClientWithResponsesInterface interface {
 
 	// CreateViewUpdateWithBodyWithResponse request with any body
 	CreateViewUpdateWithBodyWithResponse(ctx context.Context, viewSessionID ViewSessionID, viewUpdateID ViewUpdateID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateViewUpdateResponse, error)
+}
+
+type ListBlueprintsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBlueprintsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBlueprintsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBlueprintsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBlueprintResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Blueprint
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBlueprintResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBlueprintResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ArchiveBlueprintResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ArchiveBlueprintResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ArchiveBlueprintResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetLatestBlueprintResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Blueprint
+}
+
+// Status returns HTTPResponse.Status
+func (r GetLatestBlueprintResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetLatestBlueprintResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ArchiveBlueprintVersionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r ArchiveBlueprintVersionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ArchiveBlueprintVersionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBlueprintVersionResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Blueprint
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBlueprintVersionResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBlueprintVersionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type HealthResponse struct {
@@ -22239,6 +22902,68 @@ func (r CreateViewUpdateResponse) StatusCode() int {
 	return 0
 }
 
+// ListBlueprintsWithResponse request returning *ListBlueprintsResponse
+func (c *ClientWithResponses) ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error) {
+	rsp, err := c.ListBlueprints(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBlueprintsResponse(rsp)
+}
+
+// CreateBlueprintWithBodyWithResponse request with arbitrary body returning *CreateBlueprintResponse
+func (c *ClientWithResponses) CreateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error) {
+	rsp, err := c.CreateBlueprintWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBlueprintResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBlueprintWithResponse(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error) {
+	rsp, err := c.CreateBlueprint(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBlueprintResponse(rsp)
+}
+
+// ArchiveBlueprintWithResponse request returning *ArchiveBlueprintResponse
+func (c *ClientWithResponses) ArchiveBlueprintWithResponse(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*ArchiveBlueprintResponse, error) {
+	rsp, err := c.ArchiveBlueprint(ctx, blueprintName, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseArchiveBlueprintResponse(rsp)
+}
+
+// GetLatestBlueprintWithResponse request returning *GetLatestBlueprintResponse
+func (c *ClientWithResponses) GetLatestBlueprintWithResponse(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*GetLatestBlueprintResponse, error) {
+	rsp, err := c.GetLatestBlueprint(ctx, blueprintName, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetLatestBlueprintResponse(rsp)
+}
+
+// ArchiveBlueprintVersionWithResponse request returning *ArchiveBlueprintVersionResponse
+func (c *ClientWithResponses) ArchiveBlueprintVersionWithResponse(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*ArchiveBlueprintVersionResponse, error) {
+	rsp, err := c.ArchiveBlueprintVersion(ctx, blueprintName, blueprintVersion, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseArchiveBlueprintVersionResponse(rsp)
+}
+
+// GetBlueprintVersionWithResponse request returning *GetBlueprintVersionResponse
+func (c *ClientWithResponses) GetBlueprintVersionWithResponse(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*GetBlueprintVersionResponse, error) {
+	rsp, err := c.GetBlueprintVersion(ctx, blueprintName, blueprintVersion, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBlueprintVersionResponse(rsp)
+}
+
 // HealthWithResponse request returning *HealthResponse
 func (c *ClientWithResponses) HealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthResponse, error) {
 	rsp, err := c.Health(ctx, reqEditors...)
@@ -24178,6 +24903,142 @@ func (c *ClientWithResponses) CreateViewUpdateWithBodyWithResponse(ctx context.C
 		return nil, err
 	}
 	return ParseCreateViewUpdateResponse(rsp)
+}
+
+// ParseListBlueprintsResponse parses an HTTP response from a ListBlueprintsWithResponse call
+func ParseListBlueprintsResponse(rsp *http.Response) (*ListBlueprintsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBlueprintsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBlueprintsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateBlueprintResponse parses an HTTP response from a CreateBlueprintWithResponse call
+func ParseCreateBlueprintResponse(rsp *http.Response) (*CreateBlueprintResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBlueprintResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Blueprint
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseArchiveBlueprintResponse parses an HTTP response from a ArchiveBlueprintWithResponse call
+func ParseArchiveBlueprintResponse(rsp *http.Response) (*ArchiveBlueprintResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ArchiveBlueprintResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetLatestBlueprintResponse parses an HTTP response from a GetLatestBlueprintWithResponse call
+func ParseGetLatestBlueprintResponse(rsp *http.Response) (*GetLatestBlueprintResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetLatestBlueprintResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Blueprint
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseArchiveBlueprintVersionResponse parses an HTTP response from a ArchiveBlueprintVersionWithResponse call
+func ParseArchiveBlueprintVersionResponse(rsp *http.Response) (*ArchiveBlueprintVersionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ArchiveBlueprintVersionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetBlueprintVersionResponse parses an HTTP response from a GetBlueprintVersionWithResponse call
+func ParseGetBlueprintVersionResponse(rsp *http.Response) (*GetBlueprintVersionResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBlueprintVersionResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Blueprint
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseHealthResponse parses an HTTP response from a HealthWithResponse call

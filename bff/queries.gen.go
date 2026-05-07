@@ -8,6 +8,29 @@ import (
 	"github.com/Khan/genqlient/graphql"
 )
 
+// CreateDashboardCreateDashboard includes the requested fields of the GraphQL type Dashboard.
+type CreateDashboardCreateDashboard struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// GetId returns CreateDashboardCreateDashboard.Id, and is useful for accessing the field via an interface.
+func (v *CreateDashboardCreateDashboard) GetId() string { return v.Id }
+
+// GetName returns CreateDashboardCreateDashboard.Name, and is useful for accessing the field via an interface.
+func (v *CreateDashboardCreateDashboard) GetName() string { return v.Name }
+
+// CreateDashboardResponse is returned by CreateDashboard on success.
+type CreateDashboardResponse struct {
+	// Create a new dashboard
+	CreateDashboard CreateDashboardCreateDashboard `json:"createDashboard"`
+}
+
+// GetCreateDashboard returns CreateDashboardResponse.CreateDashboard, and is useful for accessing the field via an interface.
+func (v *CreateDashboardResponse) GetCreateDashboard() CreateDashboardCreateDashboard {
+	return v.CreateDashboard
+}
+
 // CreateDebugDashboardCreateDebugDashboard includes the requested fields of the GraphQL type Dashboard.
 type CreateDebugDashboardCreateDebugDashboard struct {
 	Id   string `json:"id"`
@@ -80,6 +103,30 @@ type UpdateMetricsConfigResponse struct {
 // GetUpdateMetricsConfig returns UpdateMetricsConfigResponse.UpdateMetricsConfig, and is useful for accessing the field via an interface.
 func (v *UpdateMetricsConfigResponse) GetUpdateMetricsConfig() string { return v.UpdateMetricsConfig }
 
+// __CreateDashboardInput is used internally by genqlient
+type __CreateDashboardInput struct {
+	ProjectId  string `json:"projectId"`
+	BranchId   string `json:"branchId"`
+	Name       string `json:"name"`
+	DayRange   int    `json:"dayRange"`
+	MetricsSet string `json:"metricsSet"`
+}
+
+// GetProjectId returns __CreateDashboardInput.ProjectId, and is useful for accessing the field via an interface.
+func (v *__CreateDashboardInput) GetProjectId() string { return v.ProjectId }
+
+// GetBranchId returns __CreateDashboardInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__CreateDashboardInput) GetBranchId() string { return v.BranchId }
+
+// GetName returns __CreateDashboardInput.Name, and is useful for accessing the field via an interface.
+func (v *__CreateDashboardInput) GetName() string { return v.Name }
+
+// GetDayRange returns __CreateDashboardInput.DayRange, and is useful for accessing the field via an interface.
+func (v *__CreateDashboardInput) GetDayRange() int { return v.DayRange }
+
+// GetMetricsSet returns __CreateDashboardInput.MetricsSet, and is useful for accessing the field via an interface.
+func (v *__CreateDashboardInput) GetMetricsSet() string { return v.MetricsSet }
+
 // __CreateDebugDashboardInput is used internally by genqlient
 type __CreateDebugDashboardInput struct {
 	ProjectId      string            `json:"projectId"`
@@ -135,6 +182,49 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
+// The mutation executed by CreateDashboard.
+const CreateDashboard_Operation = `
+mutation CreateDashboard ($projectId: String!, $branchId: String!, $name: String!, $dayRange: Int, $metricsSet: String) {
+	createDashboard(input: {branchId:$branchId,dayRange:$dayRange,name:$name,projectId:$projectId,metricsSet:$metricsSet}) {
+		id
+		name
+	}
+}
+`
+
+func CreateDashboard(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	projectId string,
+	branchId string,
+	name string,
+	dayRange int,
+	metricsSet string,
+) (data_ *CreateDashboardResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "CreateDashboard",
+		Query:  CreateDashboard_Operation,
+		Variables: &__CreateDashboardInput{
+			ProjectId:  projectId,
+			BranchId:   branchId,
+			Name:       name,
+			DayRange:   dayRange,
+			MetricsSet: metricsSet,
+		},
+	}
+
+	data_ = &CreateDashboardResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
 
 // The mutation executed by CreateDebugDashboard.
 const CreateDebugDashboard_Operation = `

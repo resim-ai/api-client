@@ -53,12 +53,12 @@ var (
 )
 
 const (
-	agentIDKey                  = "agent-id"
-	agentYesKey                 = "yes"
-	agentJSONKey                = "json"
-	agentAllKey                 = "all"
-	poolLabelsProjectIDKey      = "project-id"
-	poolLabelsCompletedDaysKey  = "completed-since-days"
+	agentIDKey                 = "agent-id"
+	agentYesKey                = "yes"
+	agentJSONKey               = "json"
+	agentAllKey                = "all"
+	poolLabelsProjectIDKey     = "project-id"
+	poolLabelsCompletedDaysKey = "completed-since-days"
 )
 
 func init() {

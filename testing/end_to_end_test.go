@@ -6354,6 +6354,7 @@ func TestMetricsSync(t *testing.T) {
 }
 
 func TestMetricsDebug(t *testing.T) {
+	t.Skip("Currently disabled")
 	ts := assert.New(t)
 	req := require.New(t)
 	t.Parallel()

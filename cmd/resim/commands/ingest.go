@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/auth"
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
@@ -375,11 +376,11 @@ func readLogsFromConfig(configPath string) ([]LogConfig, error) {
 
 func maybeGenerateResimURL(projectID uuid.UUID, batchID uuid.UUID) string {
 	// Generate resim url for the test:
-	apiURL := viper.GetString(urlKey)
+	apiURL := viper.GetString(auth.KeyURL)
 	baseURL := ""
-	if apiURL == stagingAPIURL {
+	if apiURL == auth.StagingAPIURL {
 		baseURL = "https://app.resim.io"
-	} else if apiURL == prodAPIURL {
+	} else if apiURL == auth.ProdAPIURL {
 		baseURL = "https://app.resim.ai"
 	}
 	if baseURL != "" {

@@ -12,6 +12,7 @@ import (
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/auth"
 	"github.com/slack-go/slack"
 	"github.com/spf13/viper"
 )
@@ -42,7 +43,7 @@ type BatchMetadata struct {
 }
 
 func getBatchMetadata(batch *api.Batch) *BatchMetadata {
-	baseUrl, err := url.Parse(strings.Replace(viper.GetString(urlKey), "api", "app", 1))
+	baseUrl, err := url.Parse(strings.Replace(viper.GetString(auth.KeyURL), "api", "app", 1))
 	if err != nil {
 		log.Fatal("unable to parse url:", err)
 	}

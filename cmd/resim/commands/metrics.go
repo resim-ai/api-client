@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/resim-ai/api-client/auth"
 	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -154,7 +155,7 @@ func debugMetrics(cmd *cobra.Command, args []string) {
 	dashboardID := resp.CreateDebugDashboard.Id
 	fmt.Printf("Dashboard created: %s\n", dashboardID)
 
-	appURL := inferAppURL(viper.GetString(urlKey))
+	appURL := inferAppURL(viper.GetString(auth.KeyURL))
 	dashboardURL := fmt.Sprintf("%s/projects/%s/debug/%s", appURL, projectID.String(), dashboardID)
 
 	// Poll until ready

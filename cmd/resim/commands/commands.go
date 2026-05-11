@@ -10,6 +10,7 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/auth"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
@@ -37,31 +38,6 @@ func rootCommand(cmd *cobra.Command, args []string) {
 		cmd.Help()
 		os.Exit(0)
 	}
-
-	viper.SetConfigName("resim")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath(os.ExpandEnv(ConfigPath))
-	if err := viper.ReadInConfig(); err != nil {
-		switch err.(type) {
-		case viper.ConfigFileNotFoundError, *fs.PathError:
-		default:
-			log.Fatal(fmt.Errorf("error reading config file: %v %T", err, err))
-		}
-	}
-
-	ctx := context.Background()
-	credentialCache, err := Authenticate(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	Client, err = GetClient(ctx, *credentialCache)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	BffClient = GetBffClient(ctx, *credentialCache)
-
-	defer credentialCache.SaveCredentialCache()
 }
 
 func Execute() error {
@@ -105,18 +81,28 @@ func RegisterViperFlags(cmd *cobra.Command, args []string) {
 
 func SetClient(cmd *cobra.Command, args []string) {
 	ctx := context.Background()
-	credentialCache, err := Authenticate(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-	Client, err = GetClient(ctx, *credentialCache)
+
+	cfg := auth.ConfigFromViper(viper.GetViper(), os.ExpandEnv(ConfigPath))
+	result, err := auth.Authenticate(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	BffClient = GetBffClient(ctx, *credentialCache)
+	Client, err = auth.NewAPIClient(ctx, *result.Cache, result.APIURL)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	defer credentialCache.SaveCredentialCache()
+	BffClient, err = auth.NewBFFClient(ctx, *result.Cache, result.APIURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer func() {
+		if err := result.Cache.Save(cfg.CacheDir); err != nil {
+			log.Println("error saving credential cache:", err)
+		}
+	}()
 }
 
 func GetConfigDir() (string, error) {

@@ -1091,6 +1091,155 @@ func (_c *ClientInterface_ArchiveAsset_Call) RunAndReturn(run func(context.Conte
 	return _c
 }
 
+// ArchiveBlueprint provides a mock function with given fields: ctx, blueprintName, reqEditors
+func (_m *ClientInterface) ArchiveBlueprint(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ArchiveBlueprint")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, blueprintName, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ArchiveBlueprint_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ArchiveBlueprint'
+type ClientInterface_ArchiveBlueprint_Call struct {
+	*mock.Call
+}
+
+// ArchiveBlueprint is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ArchiveBlueprint(ctx interface{}, blueprintName interface{}, reqEditors ...interface{}) *ClientInterface_ArchiveBlueprint_Call {
+	return &ClientInterface_ArchiveBlueprint_Call{Call: _e.mock.On("ArchiveBlueprint",
+		append([]interface{}{ctx, blueprintName}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ArchiveBlueprint_Call) Run(run func(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn)) *ClientInterface_ArchiveBlueprint_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveBlueprint_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ArchiveBlueprint_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveBlueprint_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ArchiveBlueprint_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ArchiveBlueprintVersion provides a mock function with given fields: ctx, blueprintName, blueprintVersion, reqEditors
+func (_m *ClientInterface) ArchiveBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName, blueprintVersion)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ArchiveBlueprintVersion")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ArchiveBlueprintVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ArchiveBlueprintVersion'
+type ClientInterface_ArchiveBlueprintVersion_Call struct {
+	*mock.Call
+}
+
+// ArchiveBlueprintVersion is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - blueprintVersion int
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ArchiveBlueprintVersion(ctx interface{}, blueprintName interface{}, blueprintVersion interface{}, reqEditors ...interface{}) *ClientInterface_ArchiveBlueprintVersion_Call {
+	return &ClientInterface_ArchiveBlueprintVersion_Call{Call: _e.mock.On("ArchiveBlueprintVersion",
+		append([]interface{}{ctx, blueprintName, blueprintVersion}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ArchiveBlueprintVersion_Call) Run(run func(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn)) *ClientInterface_ArchiveBlueprintVersion_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(int), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveBlueprintVersion_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ArchiveBlueprintVersion_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveBlueprintVersion_Call) RunAndReturn(run func(context.Context, string, int, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ArchiveBlueprintVersion_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ArchiveExperience provides a mock function with given fields: ctx, projectID, experienceID, reqEditors
 func (_m *ClientInterface) ArchiveExperience(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -2604,6 +2753,155 @@ func (_c *ClientInterface_CreateBatchWithBody_Call) Return(_a0 *http.Response, _
 }
 
 func (_c *ClientInterface_CreateBatchWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateBatchWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateBlueprint provides a mock function with given fields: ctx, body, reqEditors
+func (_m *ClientInterface) CreateBlueprint(ctx context.Context, body api.CreateBlueprintInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateBlueprint")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateBlueprint_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateBlueprint'
+type ClientInterface_CreateBlueprint_Call struct {
+	*mock.Call
+}
+
+// CreateBlueprint is a helper method to define mock.On call
+//   - ctx context.Context
+//   - body api.CreateBlueprintInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateBlueprint(ctx interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateBlueprint_Call {
+	return &ClientInterface_CreateBlueprint_Call{Call: _e.mock.On("CreateBlueprint",
+		append([]interface{}{ctx, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateBlueprint_Call) Run(run func(ctx context.Context, body api.CreateBlueprintInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateBlueprint_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(api.CreateBlueprintInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateBlueprint_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateBlueprint_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateBlueprint_Call) RunAndReturn(run func(context.Context, api.CreateBlueprintInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateBlueprint_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateBlueprintWithBody provides a mock function with given fields: ctx, contentType, body, reqEditors
+func (_m *ClientInterface) CreateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateBlueprintWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateBlueprintWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateBlueprintWithBody'
+type ClientInterface_CreateBlueprintWithBody_Call struct {
+	*mock.Call
+}
+
+// CreateBlueprintWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateBlueprintWithBody(ctx interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateBlueprintWithBody_Call {
+	return &ClientInterface_CreateBlueprintWithBody_Call{Call: _e.mock.On("CreateBlueprintWithBody",
+		append([]interface{}{ctx, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateBlueprintWithBody_Call) Run(run func(ctx context.Context, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateBlueprintWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateBlueprintWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateBlueprintWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateBlueprintWithBody_Call) RunAndReturn(run func(context.Context, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateBlueprintWithBody_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -6399,6 +6697,81 @@ func (_c *ClientInterface_GetBatchSuggestions_Call) RunAndReturn(run func(contex
 	return _c
 }
 
+// GetBlueprintVersion provides a mock function with given fields: ctx, blueprintName, blueprintVersion, reqEditors
+func (_m *ClientInterface) GetBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName, blueprintVersion)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetBlueprintVersion")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, int, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, int, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, blueprintVersion, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetBlueprintVersion_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetBlueprintVersion'
+type ClientInterface_GetBlueprintVersion_Call struct {
+	*mock.Call
+}
+
+// GetBlueprintVersion is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - blueprintVersion int
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetBlueprintVersion(ctx interface{}, blueprintName interface{}, blueprintVersion interface{}, reqEditors ...interface{}) *ClientInterface_GetBlueprintVersion_Call {
+	return &ClientInterface_GetBlueprintVersion_Call{Call: _e.mock.On("GetBlueprintVersion",
+		append([]interface{}{ctx, blueprintName, blueprintVersion}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetBlueprintVersion_Call) Run(run func(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetBlueprintVersion_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(int), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetBlueprintVersion_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetBlueprintVersion_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetBlueprintVersion_Call) RunAndReturn(run func(context.Context, string, int, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetBlueprintVersion_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetBranchForProject provides a mock function with given fields: ctx, projectID, branchID, reqEditors
 func (_m *ClientInterface) GetBranchForProject(ctx context.Context, projectID uuid.UUID, branchID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -7153,6 +7526,80 @@ func (_c *ClientInterface_GetJobLog_Call) Return(_a0 *http.Response, _a1 error) 
 }
 
 func (_c *ClientInterface_GetJobLog_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetJobLog_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetLatestBlueprint provides a mock function with given fields: ctx, blueprintName, reqEditors
+func (_m *ClientInterface) GetLatestBlueprint(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, blueprintName)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetLatestBlueprint")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, blueprintName, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, blueprintName, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetLatestBlueprint_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetLatestBlueprint'
+type ClientInterface_GetLatestBlueprint_Call struct {
+	*mock.Call
+}
+
+// GetLatestBlueprint is a helper method to define mock.On call
+//   - ctx context.Context
+//   - blueprintName string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetLatestBlueprint(ctx interface{}, blueprintName interface{}, reqEditors ...interface{}) *ClientInterface_GetLatestBlueprint_Call {
+	return &ClientInterface_GetLatestBlueprint_Call{Call: _e.mock.On("GetLatestBlueprint",
+		append([]interface{}{ctx, blueprintName}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetLatestBlueprint_Call) Run(run func(ctx context.Context, blueprintName string, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetLatestBlueprint_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetLatestBlueprint_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetLatestBlueprint_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetLatestBlueprint_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetLatestBlueprint_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -9945,6 +10392,80 @@ func (_c *ClientInterface_ListBatchesForTestSuiteRevision_Call) Return(_a0 *http
 }
 
 func (_c *ClientInterface_ListBatchesForTestSuiteRevision_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, int32, *api.ListBatchesForTestSuiteRevisionParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListBatchesForTestSuiteRevision_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListBlueprints provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientInterface) ListBlueprints(ctx context.Context, params *api.ListBlueprintsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListBlueprints")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListBlueprints_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListBlueprints'
+type ClientInterface_ListBlueprints_Call struct {
+	*mock.Call
+}
+
+// ListBlueprints is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.ListBlueprintsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListBlueprints(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListBlueprints_Call {
+	return &ClientInterface_ListBlueprints_Call{Call: _e.mock.On("ListBlueprints",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListBlueprints_Call) Run(run func(ctx context.Context, params *api.ListBlueprintsParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListBlueprints_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.ListBlueprintsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListBlueprints_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListBlueprints_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListBlueprints_Call) RunAndReturn(run func(context.Context, *api.ListBlueprintsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListBlueprints_Call {
 	_c.Call.Return(run)
 	return _c
 }

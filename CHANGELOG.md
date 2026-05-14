@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.52.1 - May 14, 2026
+
+- `resim ingest` now creates ingested-log experiences with `cacheExempt: true`, so re-running an ingestion always re-processes the log instead of being served a cached result.
+
 ### v0.52.0 - May 12, 2026
 
 - Adds a new `dashboards` command with a `create` subcommand for creating dashboards.

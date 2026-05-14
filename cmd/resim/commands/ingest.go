@@ -211,11 +211,13 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 			continue
 		}
 
-		// Create the experience
+		// Create the experience. Ingested logs are one-shot inputs that should
+		// never be served from a cached run, so mark them cache-exempt.
 		experienceBody := api.CreateExperienceInput{
 			Name:        logConfig.Name,
 			Locations:   &[]string{logConfig.Location},
 			Description: "Ingested into ReSim via the CLI",
+			CacheExempt: Ptr(true),
 		}
 		experienceResponse, err := Client.CreateExperienceWithResponse(context.Background(), projectID, experienceBody)
 		if err != nil {

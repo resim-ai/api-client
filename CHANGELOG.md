@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.53.0 - May 15, 2026
+
+- `resim ingest` now supports metrics 2.0, mirroring `batches create`. Adds `--metrics-set` to specify a metrics set name, plus `--sync-metrics-config`, `--metrics-config-path`, and `--metrics-templates-path` to optionally sync the metrics config (and templates) for the build's branch before creating the ingestion batch.
+
 ### v0.52.1 - May 14, 2026
 
 - `resim ingest` now creates ingested-log experiences with `cacheExempt: true`, so re-running an ingestion always re-processes the log instead of being served a cached result.

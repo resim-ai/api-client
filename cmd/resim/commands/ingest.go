@@ -297,9 +297,6 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 			log.Fatal("unable to retrieve build:", err)
 		}
 		branchID := build.JSON200.BranchID
-		if branchID == uuid.Nil {
-			log.Fatal("build has no branch associated with it")
-		}
 
 		metricsConfigPaths := viper.GetStringSlice(ingestMetricsConfigPathKey)
 		metricsTemplatesPath := viper.GetString(ingestMetricsTemplatesPathKey)

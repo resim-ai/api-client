@@ -11,6 +11,7 @@ import (
 
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 
+	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	"github.com/resim-ai/api-client/auth"
 	"github.com/slack-go/slack"
@@ -42,15 +43,20 @@ type BatchMetadata struct {
 	SystemUrl string
 }
 
-func getBatchMetadata(batch *api.Batch) *BatchMetadata {
+func buildProjectBaseURL(projectID uuid.UUID) *url.URL {
 	baseUrl, err := url.Parse(strings.Replace(viper.GetString(auth.KeyURL), "api", "app", 1))
 	if err != nil {
 		log.Fatal("unable to parse url:", err)
 	}
-	baseUrl.Path, err = url.JoinPath("projects", batch.ProjectID.String())
+	baseUrl.Path, err = url.JoinPath("projects", projectID.String())
 	if err != nil {
 		log.Fatal("unable to build base url:", err)
 	}
+	return baseUrl
+}
+
+func getBatchMetadata(batch *api.Batch) *BatchMetadata {
+	baseUrl := buildProjectBaseURL(*batch.ProjectID)
 
 	// Get the suite object
 	suiteResponse, err := Client.GetTestSuiteWithResponse(context.Background(), *batch.ProjectID, *batch.TestSuiteID)

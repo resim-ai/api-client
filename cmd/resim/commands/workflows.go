@@ -225,6 +225,12 @@ func init() {
 	rootCmd.AddCommand(workflowCmd)
 }
 
+type workflowRunTestSuiteOutput struct {
+	BatchID     api.BatchID     `json:"batchID"`
+	TestSuiteID api.TestSuiteID `json:"testSuiteID"`
+	BatchURL    string          `json:"batchURL"`
+}
+
 type workflowSuiteSummary struct {
 	TestSuiteID uuid.UUID `json:"testSuiteID"`
 	Name        string    `json:"name"`
@@ -739,18 +745,13 @@ func getWorkflowRun(ccmd *cobra.Command, args []string) {
 
 		OutputJson(payload)
 	} else {
-		type suiteOutput struct {
-			BatchID     api.BatchID     `json:"batchID"`
-			TestSuiteID api.TestSuiteID `json:"testSuiteID"`
-			BatchURL    string          `json:"batchURL"`
-		}
 		projectBaseURL := buildProjectBaseURL(projectID)
-		suites := make([]suiteOutput, 0, len(resp.JSON200.WorkflowRunTestSuites))
-		for _, s := range resp.JSON200.WorkflowRunTestSuites {
-			suites = append(suites, suiteOutput{
-				BatchID:     s.BatchID,
-				TestSuiteID: s.TestSuiteID,
-				BatchURL:    projectBaseURL.JoinPath("batches", s.BatchID.String()).String(),
+		suites := make([]workflowRunTestSuiteOutput, 0, len(resp.JSON200.WorkflowRunTestSuites))
+		for _, suite := range resp.JSON200.WorkflowRunTestSuites {
+			suites = append(suites, workflowRunTestSuiteOutput{
+				BatchID:     suite.BatchID,
+				TestSuiteID: suite.TestSuiteID,
+				BatchURL:    projectBaseURL.JoinPath("batches", suite.BatchID.String()).String(),
 			})
 		}
 		OutputJson(suites)

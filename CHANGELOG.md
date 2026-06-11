@@ -2,6 +2,22 @@
 
 ## ReSim CLI
 
+### v0.54.0 - May 27, 2026
+
+- `resim workflows runs get` now includes a `batchURL` field per suite entry in the default output, linking directly to each batch in the ReSim app.
+
+### v0.53.0 - May 15, 2026
+
+- `resim ingest` now supports metrics 2.0, mirroring `batches create`. Adds `--metrics-set` to specify a metrics set name, plus `--sync-metrics-config`, `--metrics-config-path`, and `--metrics-templates-path` to optionally sync the metrics config (and templates) for the build's branch before creating the ingestion batch.
+
+### v0.52.1 - May 14, 2026
+
+- `resim ingest` now creates ingested-log experiences with `cacheExempt: true`, so re-running an ingestion always re-processes the log instead of being served a cached result.
+
+### v0.52.0 - May 12, 2026
+
+- Adds a new `dashboards` command with a `create` subcommand for creating dashboards.
+
 ### v0.51.0 - May 4, 2026
 
 - Adds `--fail-on-states=BLOCKER,ERROR,WARNING` flag on `batch wait`, `batch get`, `batch supervise`, and `workflow runs supervise`. When set, the exit code is derived from `Batch.ConflatedStatus` filtered to the supplied states, with two new exit codes: `7` for BLOCKER and `8` for WARNING. When unset, `batch wait` and `batch get --exit-status` keep their historical `Batch.Status`-based exit codes bit-for-bit.

@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/auth"
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
@@ -44,6 +45,11 @@ const (
 	ingestPriorityKey           = "priority"
 	ingestReingestKey           = "reingest"
 
+	ingestMetricsSetKey           = "metrics-set"
+	ingestSyncMetricsConfigKey    = "sync-metrics-config"
+	ingestMetricsConfigPathKey    = "metrics-config-path"
+	ingestMetricsTemplatesPathKey = "metrics-templates-path"
+
 	LogIngestURI = "public.ecr.aws/resim/open-builds/log-ingest:latest"
 )
 
@@ -65,6 +71,11 @@ func init() {
 	ingestLogCmd.MarkFlagsMutuallyExclusive(ingestBuildKey, ingestBranchKey)
 	// Metrics Build
 	ingestLogCmd.Flags().String(ingestMetricsBuildKey, "", "The ID of the metrics build to use in processing this log.")
+	// Metrics Set (metrics 2.0)
+	ingestLogCmd.Flags().String(ingestMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
+	ingestLogCmd.Flags().Bool(ingestSyncMetricsConfigKey, false, "If set, run metrics sync before creating the ingestion batch")
+	ingestLogCmd.Flags().StringSlice(ingestMetricsConfigPathKey, []string{".resim/metrics/config.resim.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
+	ingestLogCmd.Flags().String(ingestMetricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates. Only used if sync-metrics-config is set to true")
 	// Log Name
 	ingestLogCmd.Flags().String(ingestLogNameKey, "", "A project-unique name to use in processing this log, often a run id.")
 	// Log Location
@@ -210,11 +221,13 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 			continue
 		}
 
-		// Create the experience
+		// Create the experience. Ingested logs are one-shot inputs that should
+		// never be served from a cached run, so mark them cache-exempt.
 		experienceBody := api.CreateExperienceInput{
 			Name:        logConfig.Name,
 			Locations:   &[]string{logConfig.Location},
 			Description: "Ingested into ReSim via the CLI",
+			CacheExempt: Ptr(true),
 		}
 		experienceResponse, err := Client.CreateExperienceWithResponse(context.Background(), projectID, experienceBody)
 		if err != nil {
@@ -245,12 +258,16 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		associatedAccount = viper.GetString(batchAccountKey)
 	}
 
+	poolLabels := getAndValidatePoolLabels(ingestPoolLabelsKey)
+	metricsSet := ProcessMetricsSet(ingestMetricsSetKey, &poolLabels)
+
 	// Finally, create a batch to process the log(s)
 	batchBody := api.BatchInput{
 		ExperienceIDs:     Ptr(experienceIDs),
 		BuildID:           Ptr(buildID),
 		AssociatedAccount: &associatedAccount,
 		TriggeredVia:      DetermineTriggerMethod(),
+		MetricsSetName:    metricsSet,
 	}
 
 	if viper.IsSet(ingestMetricsBuildKey) {
@@ -266,12 +283,26 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		batchBody.BatchName = Ptr(viper.GetString(ingestBatchNameKey))
 	}
 
-	poolLabels := getAndValidatePoolLabels(ingestPoolLabelsKey)
 	if len(poolLabels) > 0 {
 		batchBody.PoolLabels = &poolLabels
 	}
 	if priority := getRequestPriority(ingestPriorityKey); priority != nil {
 		batchBody.Priority = priority
+	}
+
+	// Sync metrics2.0 config
+	if viper.GetBool(ingestSyncMetricsConfigKey) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		branchID := build.JSON200.BranchID
+
+		metricsConfigPaths := viper.GetStringSlice(ingestMetricsConfigPathKey)
+		metricsTemplatesPath := viper.GetString(ingestMetricsTemplatesPathKey)
+		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false); err != nil {
+			log.Fatalf("failed to sync metrics before ingest: %v", err)
+		}
 	}
 
 	batchResponse, err := Client.CreateBatchWithResponse(context.Background(), projectID, batchBody)
@@ -375,11 +406,11 @@ func readLogsFromConfig(configPath string) ([]LogConfig, error) {
 
 func maybeGenerateResimURL(projectID uuid.UUID, batchID uuid.UUID) string {
 	// Generate resim url for the test:
-	apiURL := viper.GetString(urlKey)
+	apiURL := viper.GetString(auth.KeyURL)
 	baseURL := ""
-	if apiURL == stagingAPIURL {
+	if apiURL == auth.StagingAPIURL {
 		baseURL = "https://app.resim.io"
-	} else if apiURL == prodAPIURL {
+	} else if apiURL == auth.ProdAPIURL {
 		baseURL = "https://app.resim.ai"
 	}
 	if baseURL != "" {

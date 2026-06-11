@@ -1,0 +1,6 @@
+mutation CreateDashboard($projectId: String!, $branchId: String!, $name: String!, $dayRange: Int, $metricsSet: String) {
+    createDashboard( input: {branchId: $branchId, dayRange: $dayRange, name: $name, projectId: $projectId, metricsSet: $metricsSet}) {
+        id
+        name
+    }
+}

@@ -19,7 +19,7 @@ import (
 var (
 	agentsCmd = &cobra.Command{
 		Use:     "agents",
-		Short:   "agents manages and inspects ReSim Agents (HiL Agent Status surface)",
+		Short:   "agents contains commands for managing and inspecting ReSim HiL Agents",
 		Long:    ``,
 		Aliases: []string{"agent"},
 	}
@@ -42,7 +42,7 @@ var (
 
 	poolLabelsCmd = &cobra.Command{
 		Use:     "pool-labels",
-		Short:   "pool-labels inspects HiL pool labels and their batch queues",
+		Short:   "pool-labels contains commands for inspecting HiL pool labels and their batch queues",
 		Long:    ``,
 		Aliases: []string{"pool-label"},
 	}
@@ -61,10 +61,6 @@ const (
 
 	completedSinceDaysMin = 1
 	completedSinceDaysMax = 30
-
-	// The scheduler sorts batches by raw priority ascending, with 1000 as the
-	// default. Below-default values are elevated, above-default deprioritised.
-	defaultSchedulerPriority = 1000
 )
 
 func init() {
@@ -315,13 +311,14 @@ func formatPoolLabelQueueGroup(item api.PoolLabelQueueItem, completedSinceDays i
 	return b.String()
 }
 
-// priorityLabel maps the raw scheduler priority (ascending sort, 1000 default)
-// to the same High/Low pills the UI renders. Default priority gets no label.
+// priorityLabel maps the raw scheduler priority (ascending sort, default
+// requestPriorityDefault) to the same High/Low pills the UI renders. Default
+// priority gets no label.
 func priorityLabel(priority int) string {
 	switch {
-	case priority < defaultSchedulerPriority:
+	case priority < requestPriorityDefault:
 		return " (High)"
-	case priority > defaultSchedulerPriority:
+	case priority > requestPriorityDefault:
 		return " (Low)"
 	default:
 		return ""

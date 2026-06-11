@@ -80,10 +80,10 @@ func listBranches(ccmd *cobra.Command, args []string) {
 		}
 		ValidateResponse(http.StatusOK, "failed to list branches", response.HTTPResponse, response.Body)
 
-		pageToken = response.JSON200.NextPageToken
 		if response.JSON200 == nil || response.JSON200.Branches == nil {
 			log.Fatal("no branches")
 		}
+		pageToken = response.JSON200.NextPageToken
 		allBranches = append(allBranches, *response.JSON200.Branches...)
 		if pageToken == nil || *pageToken == "" {
 			break

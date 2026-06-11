@@ -97,6 +97,23 @@ func (s *CommandsSuite) TestListAgentsJSONRoundTrips() {
 	s.Equal("1.2.3", parsed.LatestKnownVersion)
 }
 
+func (s *CommandsSuite) TestListAgentsTableOutput() {
+	viper.Reset()
+	s.mockClient.On("ListAgentsWithResponse", matchContext).Return(
+		&api.ListAgentsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentsOutput{
+				Agents:             []api.Agent{sampleAgent("agent-1", false), sampleAgent("agent-2", true)},
+				LatestKnownVersion: "1.2.3",
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { listAgents(nil, nil) })
+	s.Contains(out, "agent-1")
+	s.Contains(out, "agent-2")
+	s.Contains(out, "(out of date; latest 1.2.3)")
+}
+
 func (s *CommandsSuite) TestFormatAgentRowOutOfDateSuffix() {
 	row := formatAgentRow(sampleAgent("agent-1", true), "1.2.3")
 	s.Contains(row, "(out of date; latest 1.2.3)")
@@ -160,6 +177,47 @@ func (s *CommandsSuite) TestActualGetAgentAndDetailView() {
 func (s *CommandsSuite) TestFormatAgentDetailNoRecentActivity() {
 	detail := formatAgentDetail(sampleAgent("agent-1", false))
 	s.Contains(detail, "Recent activity: (none)")
+}
+
+func (s *CommandsSuite) TestFormatAgentDetailOutOfDateIndicator() {
+	detail := formatAgentDetail(sampleAgent("agent-1", true))
+	s.Contains(detail, "out of date")
+	s.Contains(detail, "docs.resim.ai")
+}
+
+func (s *CommandsSuite) TestGetAgentDetailOutput() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	agent := sampleAgent("agent-1", false)
+	s.mockClient.On("GetAgentWithResponse", matchContext, "agent-1").Return(
+		&api.GetAgentResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &agent,
+		}, nil)
+
+	out := captureStdout(s, func() { getAgent(nil, nil) })
+	s.Contains(out, "Agent ID:        agent-1")
+	s.Contains(out, "Pool labels:     RackHiLConfig")
+}
+
+func (s *CommandsSuite) TestGetAgentJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	agent := sampleAgent("agent-1", true)
+	s.mockClient.On("GetAgentWithResponse", matchContext, "agent-1").Return(
+		&api.GetAgentResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &agent,
+		}, nil)
+
+	out := captureStdout(s, func() { getAgent(nil, nil) })
+	var parsed api.Agent
+	s.Require().NoError(json.Unmarshal([]byte(out), &parsed))
+	s.Equal("agent-1", parsed.AgentID)
+	s.True(parsed.IsOutOfDate)
 }
 
 func (s *CommandsSuite) TestConfirmArchiveAgent() {
@@ -290,6 +348,41 @@ func (s *CommandsSuite) TestPriorityLabel() {
 	s.Equal(" (High)", priorityLabel(500))
 	s.Equal("", priorityLabel(1000))
 	s.Equal(" (Low)", priorityLabel(2000))
+}
+
+func (s *CommandsSuite) TestQueuePoolLabelsRendersGroups() {
+	viper.Reset()
+	viper.Set(poolLabelsCompletedDaysKey, 7)
+	defer viper.Reset()
+	s.mockClient.On("ListAgentPoolLabelQueueWithResponse", matchContext,
+		&api.ListAgentPoolLabelQueueParams{CompletedSinceDays: Ptr(7)}).Return(
+		&api.ListAgentPoolLabelQueueResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelQueueOutput{Items: []api.PoolLabelQueueItem{samplePoolLabelQueueItem()}},
+		}, nil)
+
+	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
+	s.Contains(out, "=== RackHiLConfig (2 agents) ===")
+	s.Contains(out, "+ 3 completed in last 7 days")
+}
+
+func (s *CommandsSuite) TestQueuePoolLabelsJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(poolLabelsCompletedDaysKey, 7)
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	s.mockClient.On("ListAgentPoolLabelQueueWithResponse", matchContext,
+		&api.ListAgentPoolLabelQueueParams{CompletedSinceDays: Ptr(7)}).Return(
+		&api.ListAgentPoolLabelQueueResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelQueueOutput{Items: []api.PoolLabelQueueItem{samplePoolLabelQueueItem()}},
+		}, nil)
+
+	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
+	var parsed api.ListPoolLabelQueueOutput
+	s.Require().NoError(json.Unmarshal([]byte(out), &parsed))
+	s.Require().Len(parsed.Items, 1)
+	s.Equal("RackHiLConfig", parsed.Items[0].PoolLabel)
 }
 
 func (s *CommandsSuite) TestQueuePoolLabelsEmptyState() {

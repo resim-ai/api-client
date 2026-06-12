@@ -23,7 +23,7 @@ require (
 	github.com/slack-go/slack v0.15.0
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.20.0
-	github.com/suessflorian/gqlfetch v0.6.0
+	github.com/suessflorian/gqlfetch v0.7.0
 	github.com/vektra/mockery/v2 v2.53.4
 	golang.org/x/oauth2 v0.25.0
 	k8s.io/api v0.32.2
@@ -79,7 +79,6 @@ require (
 	github.com/speakeasy-api/jsonpath v0.6.0 // indirect
 	github.com/speakeasy-api/openapi-overlay v0.10.2 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/vektah/gqlparser v1.3.1 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.19 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect

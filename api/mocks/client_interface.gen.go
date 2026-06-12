@@ -1016,6 +1016,80 @@ func (_c *ClientInterface_AddTestSuitesToExperiencesWithBody_Call) RunAndReturn(
 	return _c
 }
 
+// ArchiveAgent provides a mock function with given fields: ctx, agentID, reqEditors
+func (_m *ClientInterface) ArchiveAgent(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, agentID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ArchiveAgent")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, agentID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, agentID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, agentID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ArchiveAgent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ArchiveAgent'
+type ClientInterface_ArchiveAgent_Call struct {
+	*mock.Call
+}
+
+// ArchiveAgent is a helper method to define mock.On call
+//   - ctx context.Context
+//   - agentID string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ArchiveAgent(ctx interface{}, agentID interface{}, reqEditors ...interface{}) *ClientInterface_ArchiveAgent_Call {
+	return &ClientInterface_ArchiveAgent_Call{Call: _e.mock.On("ArchiveAgent",
+		append([]interface{}{ctx, agentID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ArchiveAgent_Call) Run(run func(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn)) *ClientInterface_ArchiveAgent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveAgent_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ArchiveAgent_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ArchiveAgent_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ArchiveAgent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ArchiveAsset provides a mock function with given fields: ctx, projectID, assetID, reqEditors
 func (_m *ClientInterface) ArchiveAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -5028,156 +5102,6 @@ func (_c *ClientInterface_CreateTestSuiteWithBody_Call) RunAndReturn(run func(co
 	return _c
 }
 
-// CreateViewSession provides a mock function with given fields: ctx, reqEditors
-func (_m *ClientInterface) CreateViewSession(ctx context.Context, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
-	_va := make([]interface{}, len(reqEditors))
-	for _i := range reqEditors {
-		_va[_i] = reqEditors[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateViewSession")
-	}
-
-	var r0 *http.Response
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, ...api.RequestEditorFn) (*http.Response, error)); ok {
-		return rf(ctx, reqEditors...)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, ...api.RequestEditorFn) *http.Response); ok {
-		r0 = rf(ctx, reqEditors...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*http.Response)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, reqEditors...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ClientInterface_CreateViewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateViewSession'
-type ClientInterface_CreateViewSession_Call struct {
-	*mock.Call
-}
-
-// CreateViewSession is a helper method to define mock.On call
-//   - ctx context.Context
-//   - reqEditors ...api.RequestEditorFn
-func (_e *ClientInterface_Expecter) CreateViewSession(ctx interface{}, reqEditors ...interface{}) *ClientInterface_CreateViewSession_Call {
-	return &ClientInterface_CreateViewSession_Call{Call: _e.mock.On("CreateViewSession",
-		append([]interface{}{ctx}, reqEditors...)...)}
-}
-
-func (_c *ClientInterface_CreateViewSession_Call) Run(run func(ctx context.Context, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateViewSession_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-1)
-		for i, a := range args[1:] {
-			if a != nil {
-				variadicArgs[i] = a.(api.RequestEditorFn)
-			}
-		}
-		run(args[0].(context.Context), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *ClientInterface_CreateViewSession_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateViewSession_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *ClientInterface_CreateViewSession_Call) RunAndReturn(run func(context.Context, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateViewSession_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CreateViewUpdateWithBody provides a mock function with given fields: ctx, viewSessionID, viewUpdateID, contentType, body, reqEditors
-func (_m *ClientInterface) CreateViewUpdateWithBody(ctx context.Context, viewSessionID uuid.UUID, viewUpdateID int, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
-	_va := make([]interface{}, len(reqEditors))
-	for _i := range reqEditors {
-		_va[_i] = reqEditors[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, viewSessionID, viewUpdateID, contentType, body)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateViewUpdateWithBody")
-	}
-
-	var r0 *http.Response
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, int, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
-		return rf(ctx, viewSessionID, viewUpdateID, contentType, body, reqEditors...)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, int, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
-		r0 = rf(ctx, viewSessionID, viewUpdateID, contentType, body, reqEditors...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*http.Response)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, int, string, io.Reader, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, viewSessionID, viewUpdateID, contentType, body, reqEditors...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ClientInterface_CreateViewUpdateWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateViewUpdateWithBody'
-type ClientInterface_CreateViewUpdateWithBody_Call struct {
-	*mock.Call
-}
-
-// CreateViewUpdateWithBody is a helper method to define mock.On call
-//   - ctx context.Context
-//   - viewSessionID uuid.UUID
-//   - viewUpdateID int
-//   - contentType string
-//   - body io.Reader
-//   - reqEditors ...api.RequestEditorFn
-func (_e *ClientInterface_Expecter) CreateViewUpdateWithBody(ctx interface{}, viewSessionID interface{}, viewUpdateID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateViewUpdateWithBody_Call {
-	return &ClientInterface_CreateViewUpdateWithBody_Call{Call: _e.mock.On("CreateViewUpdateWithBody",
-		append([]interface{}{ctx, viewSessionID, viewUpdateID, contentType, body}, reqEditors...)...)}
-}
-
-func (_c *ClientInterface_CreateViewUpdateWithBody_Call) Run(run func(ctx context.Context, viewSessionID uuid.UUID, viewUpdateID int, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateViewUpdateWithBody_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
-		for i, a := range args[5:] {
-			if a != nil {
-				variadicArgs[i] = a.(api.RequestEditorFn)
-			}
-		}
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(int), args[3].(string), args[4].(io.Reader), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *ClientInterface_CreateViewUpdateWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateViewUpdateWithBody_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *ClientInterface_CreateViewUpdateWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, int, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateViewUpdateWithBody_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // CreateWorkflow provides a mock function with given fields: ctx, projectID, body, reqEditors
 func (_m *ClientInterface) CreateWorkflow(ctx context.Context, projectID uuid.UUID, body api.CreateWorkflowInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -6316,6 +6240,80 @@ func (_c *ClientInterface_DeleteWorkflowSuitesWithBody_Call) Return(_a0 *http.Re
 }
 
 func (_c *ClientInterface_DeleteWorkflowSuitesWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_DeleteWorkflowSuitesWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAgent provides a mock function with given fields: ctx, agentID, reqEditors
+func (_m *ClientInterface) GetAgent(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, agentID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAgent")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, agentID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, agentID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, agentID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetAgent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAgent'
+type ClientInterface_GetAgent_Call struct {
+	*mock.Call
+}
+
+// GetAgent is a helper method to define mock.On call
+//   - ctx context.Context
+//   - agentID string
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetAgent(ctx interface{}, agentID interface{}, reqEditors ...interface{}) *ClientInterface_GetAgent_Call {
+	return &ClientInterface_GetAgent_Call{Call: _e.mock.On("GetAgent",
+		append([]interface{}{ctx, agentID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetAgent_Call) Run(run func(ctx context.Context, agentID string, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetAgent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetAgent_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetAgent_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetAgent_Call) RunAndReturn(run func(context.Context, string, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetAgent_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -8657,80 +8655,6 @@ func (_c *ClientInterface_GetTestSuiteSummary_Call) RunAndReturn(run func(contex
 	return _c
 }
 
-// GetViewSession provides a mock function with given fields: ctx, viewSessionID, reqEditors
-func (_m *ClientInterface) GetViewSession(ctx context.Context, viewSessionID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
-	_va := make([]interface{}, len(reqEditors))
-	for _i := range reqEditors {
-		_va[_i] = reqEditors[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, viewSessionID)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetViewSession")
-	}
-
-	var r0 *http.Response
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
-		return rf(ctx, viewSessionID, reqEditors...)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
-		r0 = rf(ctx, viewSessionID, reqEditors...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*http.Response)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, viewSessionID, reqEditors...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ClientInterface_GetViewSession_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetViewSession'
-type ClientInterface_GetViewSession_Call struct {
-	*mock.Call
-}
-
-// GetViewSession is a helper method to define mock.On call
-//   - ctx context.Context
-//   - viewSessionID uuid.UUID
-//   - reqEditors ...api.RequestEditorFn
-func (_e *ClientInterface_Expecter) GetViewSession(ctx interface{}, viewSessionID interface{}, reqEditors ...interface{}) *ClientInterface_GetViewSession_Call {
-	return &ClientInterface_GetViewSession_Call{Call: _e.mock.On("GetViewSession",
-		append([]interface{}{ctx, viewSessionID}, reqEditors...)...)}
-}
-
-func (_c *ClientInterface_GetViewSession_Call) Run(run func(ctx context.Context, viewSessionID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetViewSession_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(api.RequestEditorFn)
-			}
-		}
-		run(args[0].(context.Context), args[1].(uuid.UUID), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *ClientInterface_GetViewSession_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetViewSession_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *ClientInterface_GetViewSession_Call) RunAndReturn(run func(context.Context, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetViewSession_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // GetWorkflow provides a mock function with given fields: ctx, projectID, workflowID, reqEditors
 func (_m *ClientInterface) GetWorkflow(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -9102,6 +9026,303 @@ func (_c *ClientInterface_ListAgentMarkdownHistory_Call) Return(_a0 *http.Respon
 }
 
 func (_c *ClientInterface_ListAgentMarkdownHistory_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListAgentMarkdownHistoryParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAgentMarkdownHistory_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAgentPoolLabelQueue provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientInterface) ListAgentPoolLabelQueue(ctx context.Context, params *api.ListAgentPoolLabelQueueParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgentPoolLabelQueue")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAgentPoolLabelQueue_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgentPoolLabelQueue'
+type ClientInterface_ListAgentPoolLabelQueue_Call struct {
+	*mock.Call
+}
+
+// ListAgentPoolLabelQueue is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.ListAgentPoolLabelQueueParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAgentPoolLabelQueue(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListAgentPoolLabelQueue_Call {
+	return &ClientInterface_ListAgentPoolLabelQueue_Call{Call: _e.mock.On("ListAgentPoolLabelQueue",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAgentPoolLabelQueue_Call) Run(run func(ctx context.Context, params *api.ListAgentPoolLabelQueueParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAgentPoolLabelQueue_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.ListAgentPoolLabelQueueParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentPoolLabelQueue_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAgentPoolLabelQueue_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentPoolLabelQueue_Call) RunAndReturn(run func(context.Context, *api.ListAgentPoolLabelQueueParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAgentPoolLabelQueue_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAgentResultBranches provides a mock function with given fields: ctx, agentID, params, reqEditors
+func (_m *ClientInterface) ListAgentResultBranches(ctx context.Context, agentID string, params *api.ListAgentResultBranchesParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, agentID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgentResultBranches")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *api.ListAgentResultBranchesParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, agentID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, *api.ListAgentResultBranchesParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, agentID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, *api.ListAgentResultBranchesParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, agentID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAgentResultBranches_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgentResultBranches'
+type ClientInterface_ListAgentResultBranches_Call struct {
+	*mock.Call
+}
+
+// ListAgentResultBranches is a helper method to define mock.On call
+//   - ctx context.Context
+//   - agentID string
+//   - params *api.ListAgentResultBranchesParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAgentResultBranches(ctx interface{}, agentID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListAgentResultBranches_Call {
+	return &ClientInterface_ListAgentResultBranches_Call{Call: _e.mock.On("ListAgentResultBranches",
+		append([]interface{}{ctx, agentID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAgentResultBranches_Call) Run(run func(ctx context.Context, agentID string, params *api.ListAgentResultBranchesParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAgentResultBranches_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(*api.ListAgentResultBranchesParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentResultBranches_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAgentResultBranches_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentResultBranches_Call) RunAndReturn(run func(context.Context, string, *api.ListAgentResultBranchesParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAgentResultBranches_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAgentResults provides a mock function with given fields: ctx, agentID, params, reqEditors
+func (_m *ClientInterface) ListAgentResults(ctx context.Context, agentID string, params *api.ListAgentResultsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, agentID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgentResults")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *api.ListAgentResultsParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, agentID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, *api.ListAgentResultsParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, agentID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, *api.ListAgentResultsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, agentID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAgentResults_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgentResults'
+type ClientInterface_ListAgentResults_Call struct {
+	*mock.Call
+}
+
+// ListAgentResults is a helper method to define mock.On call
+//   - ctx context.Context
+//   - agentID string
+//   - params *api.ListAgentResultsParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAgentResults(ctx interface{}, agentID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListAgentResults_Call {
+	return &ClientInterface_ListAgentResults_Call{Call: _e.mock.On("ListAgentResults",
+		append([]interface{}{ctx, agentID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAgentResults_Call) Run(run func(ctx context.Context, agentID string, params *api.ListAgentResultsParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAgentResults_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(*api.ListAgentResultsParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentResults_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAgentResults_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentResults_Call) RunAndReturn(run func(context.Context, string, *api.ListAgentResultsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAgentResults_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAgents provides a mock function with given fields: ctx, reqEditors
+func (_m *ClientInterface) ListAgents(ctx context.Context, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgents")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAgents_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgents'
+type ClientInterface_ListAgents_Call struct {
+	*mock.Call
+}
+
+// ListAgents is a helper method to define mock.On call
+//   - ctx context.Context
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAgents(ctx interface{}, reqEditors ...interface{}) *ClientInterface_ListAgents_Call {
+	return &ClientInterface_ListAgents_Call{Call: _e.mock.On("ListAgents",
+		append([]interface{}{ctx}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAgents_Call) Run(run func(ctx context.Context, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAgents_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-1)
+		for i, a := range args[1:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAgents_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAgents_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAgents_Call) RunAndReturn(run func(context.Context, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAgents_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -13736,80 +13957,6 @@ func (_c *ClientInterface_ListTestSuites_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
-// ListViewSessions provides a mock function with given fields: ctx, params, reqEditors
-func (_m *ClientInterface) ListViewSessions(ctx context.Context, params *api.ListViewSessionsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
-	_va := make([]interface{}, len(reqEditors))
-	for _i := range reqEditors {
-		_va[_i] = reqEditors[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, params)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ListViewSessions")
-	}
-
-	var r0 *http.Response
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, *api.ListViewSessionsParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
-		return rf(ctx, params, reqEditors...)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, *api.ListViewSessionsParams, ...api.RequestEditorFn) *http.Response); ok {
-		r0 = rf(ctx, params, reqEditors...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*http.Response)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, *api.ListViewSessionsParams, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, params, reqEditors...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ClientInterface_ListViewSessions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListViewSessions'
-type ClientInterface_ListViewSessions_Call struct {
-	*mock.Call
-}
-
-// ListViewSessions is a helper method to define mock.On call
-//   - ctx context.Context
-//   - params *api.ListViewSessionsParams
-//   - reqEditors ...api.RequestEditorFn
-func (_e *ClientInterface_Expecter) ListViewSessions(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListViewSessions_Call {
-	return &ClientInterface_ListViewSessions_Call{Call: _e.mock.On("ListViewSessions",
-		append([]interface{}{ctx, params}, reqEditors...)...)}
-}
-
-func (_c *ClientInterface_ListViewSessions_Call) Run(run func(ctx context.Context, params *api.ListViewSessionsParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListViewSessions_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
-		for i, a := range args[2:] {
-			if a != nil {
-				variadicArgs[i] = a.(api.RequestEditorFn)
-			}
-		}
-		run(args[0].(context.Context), args[1].(*api.ListViewSessionsParams), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *ClientInterface_ListViewSessions_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListViewSessions_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *ClientInterface_ListViewSessions_Call) RunAndReturn(run func(context.Context, *api.ListViewSessionsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListViewSessions_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // ListWorkflowRuns provides a mock function with given fields: ctx, projectID, workflowID, params, reqEditors
 func (_m *ClientInterface) ListWorkflowRuns(ctx context.Context, projectID uuid.UUID, workflowID uuid.UUID, params *api.ListWorkflowRunsParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -15476,6 +15623,80 @@ func (_c *ClientInterface_ReviseTestSuiteWithBody_Call) Return(_a0 *http.Respons
 }
 
 func (_c *ClientInterface_ReviseTestSuiteWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ReviseTestSuiteWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SearchBranches provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientInterface) SearchBranches(ctx context.Context, params *api.SearchBranchesParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SearchBranches")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.SearchBranchesParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.SearchBranchesParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.SearchBranchesParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_SearchBranches_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SearchBranches'
+type ClientInterface_SearchBranches_Call struct {
+	*mock.Call
+}
+
+// SearchBranches is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.SearchBranchesParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) SearchBranches(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_SearchBranches_Call {
+	return &ClientInterface_SearchBranches_Call{Call: _e.mock.On("SearchBranches",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_SearchBranches_Call) Run(run func(ctx context.Context, params *api.SearchBranchesParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_SearchBranches_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.SearchBranchesParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_SearchBranches_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_SearchBranches_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_SearchBranches_Call) RunAndReturn(run func(context.Context, *api.SearchBranchesParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_SearchBranches_Call {
 	_c.Call.Return(run)
 	return _c
 }

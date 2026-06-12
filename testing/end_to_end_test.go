@@ -2328,7 +2328,34 @@ func getWorkflowCmd(projectID uuid.UUID, workflowKey string) []CommandBuilder {
 	return []CommandBuilder{workflowsCommand, getCommand}
 }
 
-func runWorkflowCmd(projectID uuid.UUID, workflowKey string, buildID uuid.UUID, parameters map[string]string, poolLabels []string, associatedAccount string, allowableFailurePercent *int) []CommandBuilder {
+func runWorkflowCmd(projectID uuid.UUID, workflowKey string, buildIDs []uuid.UUID, parameters map[string]string, poolLabels []string, associatedAccount string, allowableFailurePercent *int) []CommandBuilder {
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	runsCommand := CommandBuilder{Command: "runs"}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{Name: "--project", Value: projectID.String()},
+			{Name: "--workflow", Value: workflowKey},
+			{Name: "--account", Value: associatedAccount},
+		},
+	}
+	for _, buildID := range buildIDs {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--build", Value: buildID.String()})
+	}
+	for key, val := range parameters {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--parameter", Value: fmt.Sprintf("%s=%s", key, val)})
+	}
+	if len(poolLabels) > 0 {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--pool-labels", Value: strings.Join(poolLabels, ",")})
+	}
+	if allowableFailurePercent != nil {
+		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--allowable-failure-percent", Value: fmt.Sprintf("%d", *allowableFailurePercent)})
+	}
+	return []CommandBuilder{workflowsCommand, runsCommand, createCommand}
+}
+
+// runWorkflowCmdLegacyBuildID exercises the deprecated --build-id flag.
+func runWorkflowCmdLegacyBuildID(projectID uuid.UUID, workflowKey string, buildID uuid.UUID, associatedAccount string) []CommandBuilder {
 	workflowsCommand := CommandBuilder{Command: "workflows"}
 	runsCommand := CommandBuilder{Command: "runs"}
 	createCommand := CommandBuilder{
@@ -2340,14 +2367,21 @@ func runWorkflowCmd(projectID uuid.UUID, workflowKey string, buildID uuid.UUID, 
 			{Name: "--account", Value: associatedAccount},
 		},
 	}
-	for key, val := range parameters {
-		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--parameter", Value: fmt.Sprintf("%s=%s", key, val)})
-	}
-	if len(poolLabels) > 0 {
-		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--pool-labels", Value: strings.Join(poolLabels, ",")})
-	}
-	if allowableFailurePercent != nil {
-		createCommand.Flags = append(createCommand.Flags, Flag{Name: "--allowable-failure-percent", Value: fmt.Sprintf("%d", *allowableFailurePercent)})
+	return []CommandBuilder{workflowsCommand, runsCommand, createCommand}
+}
+
+// runWorkflowCmdWithBuildsJSON exercises the --builds flag with per-build configuration.
+func runWorkflowCmdWithBuildsJSON(projectID uuid.UUID, workflowKey string, buildsJSON string, associatedAccount string) []CommandBuilder {
+	workflowsCommand := CommandBuilder{Command: "workflows"}
+	runsCommand := CommandBuilder{Command: "runs"}
+	createCommand := CommandBuilder{
+		Command: "create",
+		Flags: []Flag{
+			{Name: "--project", Value: projectID.String()},
+			{Name: "--workflow", Value: workflowKey},
+			{Name: "--builds", Value: buildsJSON},
+			{Name: "--account", Value: associatedAccount},
+		},
 	}
 	return []CommandBuilder{workflowsCommand, runsCommand, createCommand}
 }
@@ -5776,8 +5810,8 @@ func TestWorkflows(t *testing.T) {
 	ts.Contains(output.StdOut, workflowName)
 	ts.Contains(output.StdOut, testSuiteName)
 
-	// Run workflow
-	output = s.runCommand(ts, runWorkflowCmd(projectID, workflowName, buildID, map[string]string{"p1": "v1"}, []string{}, AssociatedAccount, Ptr(0)), ExpectNoError)
+	// Run workflow with the repeatable --build flag
+	output = s.runCommand(ts, runWorkflowCmd(projectID, workflowName, []uuid.UUID{buildID}, map[string]string{"p1": "v1"}, []string{}, AssociatedAccount, Ptr(0)), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedWorkflowRun)
 	// Parse workflow run ID from github path is not printed; we will list runs
 	output = s.runCommand(ts, listWorkflowRunsCmd(projectID, workflowName), ExpectNoError)
@@ -5805,6 +5839,29 @@ func TestWorkflows(t *testing.T) {
 		}
 	}
 	ts.True(found, "test suite ID %s not found in workflow run test suites", expectedSuiteID)
+
+	// Run workflow with --builds JSON and per-build configuration
+	buildsJSON := fmt.Sprintf("[{\"buildID\":\"%s\",\"parameters\":{\"p2\":\"v2\"},\"allowableFailurePercent\":10}]", buildID.String())
+	output = s.runCommand(ts, runWorkflowCmdWithBuildsJSON(projectID, workflowName, buildsJSON, AssociatedAccount), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedWorkflowRun)
+
+	// Run workflow with the deprecated --build-id flag; it should still work
+	// (converted to the multi-build path) and print a deprecation warning.
+	output = s.runCommand(ts, runWorkflowCmdLegacyBuildID(projectID, workflowName, buildID, AssociatedAccount), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedWorkflowRun)
+	ts.Contains(output.StdErr, "has been deprecated")
+
+	// Mutually exclusive build mechanisms are rejected
+	conflictingFlags := runWorkflowCmd(projectID, workflowName, []uuid.UUID{buildID}, map[string]string{}, []string{}, AssociatedAccount, nil)
+	conflictingFlags[2].Flags = append(conflictingFlags[2].Flags, Flag{Name: "--builds", Value: buildsJSON})
+	output = s.runCommand(ts, conflictingFlags, ExpectError)
+	ts.Contains(output.StdErr, "none of the others can be")
+
+	// Run-level overrides cannot be combined with --builds
+	conflictingOverrides := runWorkflowCmdWithBuildsJSON(projectID, workflowName, buildsJSON, AssociatedAccount)
+	conflictingOverrides[2].Flags = append(conflictingOverrides[2].Flags, Flag{Name: "--parameter", Value: "p3=v3"})
+	output = s.runCommand(ts, conflictingOverrides, ExpectError)
+	ts.Contains(output.StdErr, "none of the others can be")
 
 	// Update workflow: change description and ensure success
 	newDesc := "new description"

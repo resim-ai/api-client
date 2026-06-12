@@ -2,6 +2,14 @@
 
 ## ReSim CLI
 
+### v0.55.0 - June 12, 2026
+
+- `resim workflows runs create` now supports workflows spanning multiple systems. Pass one build per system with the repeatable `--build <uuid>` flag, or use `--builds <json>` / `--builds-file <path>` (a JSON array of objects `{buildID, parameters, poolLabels, allowableFailurePercent}`) for per-build configuration. The run-level `--parameter`, `--pool-labels`, and `--allowable-failure-percent` flags apply to every build when used with `--build`, and cannot be combined with `--builds`/`--builds-file`.
+- The `--build-id` flag on `workflows runs create` is deprecated in favor of `--build`/`--builds`. It continues to work (now via the multi-build API path) and prints a deprecation warning.
+- `resim workflows runs create` warns when the response reports builds that were not used by any enabled suite.
+- `resim workflows runs get` now includes `systemID` and `buildID` per suite entry, and omits `batchID`/`batchURL` for suites that did not produce a batch (e.g. disabled suites).
+- `resim workflows runs supervise` now skips suites without a batch instead of failing.
+
 ### v0.54.0 - May 27, 2026
 
 - `resim workflows runs get` now includes a `batchURL` field per suite entry in the default output, linking directly to each batch in the ReSim app.

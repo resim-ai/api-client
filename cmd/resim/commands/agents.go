@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
@@ -39,6 +40,30 @@ var (
 		Aliases: []string{"remove", "hide"},
 		Run:     archiveAgent,
 	}
+	agentUtilizationCmd = &cobra.Command{
+		Use:   "utilization",
+		Short: "utilization - Returns a bucketed utilization time-series for one or all HiL Agents",
+		Long: `utilization - Returns a dense, time-ordered series of utilization buckets.
+
+With --agent-id, returns the series for that single HiL Agent. Without it,
+returns a series for every non-removed agent in the org in one request;
+agents with no activity in the window appear with all-zero buckets.
+
+Each bucket reports:
+  utilization      fraction of wall-clock time the agent was running at least
+                   one experience (union of running intervals, 0.0-1.0)
+  avgConcurrency   running job-seconds divided by bucket wall-clock seconds
+                   (>= 0.0; exceeds 1.0 when experiences run concurrently)
+
+Only experience-running time counts; metrics phases run on metrics workers,
+not the agent. The denominator is always full wall-clock, so buckets in which
+the agent was offline read 0.0. Note: a job that never recorded a terminal
+transition (e.g. the agent died mid-run) counts as running until query time,
+so a sustained 100% utilization can indicate a stuck run rather than a busy
+rack.`,
+		Run: agentUtilization,
+	}
+
 	poolLabelsCmd = &cobra.Command{
 		Use:     "pool-labels",
 		Short:   "pool-labels contains commands for inspecting HiL pool labels and their batch queues",
@@ -56,6 +81,9 @@ const (
 	agentIDKey                 = "agent-id"
 	agentYesKey                = "yes"
 	agentJSONKey               = "json"
+	agentStartTimeKey          = "start-time"
+	agentEndTimeKey            = "end-time"
+	agentIntervalKey           = "interval"
 	poolLabelsCompletedDaysKey = "completed-since-days"
 
 	completedSinceDaysMin = 1
@@ -73,12 +101,19 @@ func init() {
 	archiveAgentCmd.MarkFlagRequired(agentIDKey)
 	archiveAgentCmd.Flags().Bool(agentYesKey, false, "Skip the confirmation prompt")
 
+	agentUtilizationCmd.Flags().String(agentIDKey, "", "Agent ID (as supplied at check-in). Omit to fetch utilization for all agents in the org")
+	agentUtilizationCmd.Flags().String(agentStartTimeKey, "", "Inclusive window start (RFC3339, e.g. 2026-06-04T00:00:00Z). Defaults to end time minus 7 days")
+	agentUtilizationCmd.Flags().String(agentEndTimeKey, "", "Exclusive window end (RFC3339). Defaults to now")
+	agentUtilizationCmd.Flags().String(agentIntervalKey, "", "Bucket width: hour or day. Buckets are UTC-aligned. Defaults to day")
+	agentUtilizationCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
+
 	queuePoolLabelsCmd.Flags().Int(poolLabelsCompletedDaysKey, 7, "Window for completed batches, in days (1-30)")
 	queuePoolLabelsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of grouped output")
 
 	agentsCmd.AddCommand(listAgentsCmd)
 	agentsCmd.AddCommand(getAgentCmd)
 	agentsCmd.AddCommand(archiveAgentCmd)
+	agentsCmd.AddCommand(agentUtilizationCmd)
 	rootCmd.AddCommand(agentsCmd)
 
 	poolLabelsCmd.AddCommand(queuePoolLabelsCmd)
@@ -167,6 +202,110 @@ func archiveAgent(cmd *cobra.Command, args []string) {
 	}
 	output := response.JSON200
 	fmt.Printf("Archived agent %q at %s.\n", output.AgentID, output.ArchivedAt.Format("2006-01-02 15:04:05 MST"))
+}
+
+// parseAgentUtilizationParams validates the raw flag values client-side so a
+// malformed request never leaves the machine. Empty values stay unset so the
+// server applies its documented defaults (end = now, start = end minus 7 days,
+// interval = day).
+func parseAgentUtilizationParams(startRaw, endRaw, intervalRaw string) (api.GetAgentUtilizationParams, error) {
+	params := api.GetAgentUtilizationParams{}
+	if startRaw != "" {
+		t, err := time.Parse(time.RFC3339, startRaw)
+		if err != nil {
+			return params, fmt.Errorf("invalid --%s value %q: expected RFC3339, e.g. 2026-06-04T00:00:00Z", agentStartTimeKey, startRaw)
+		}
+		params.StartTime = &t
+	}
+	if endRaw != "" {
+		t, err := time.Parse(time.RFC3339, endRaw)
+		if err != nil {
+			return params, fmt.Errorf("invalid --%s value %q: expected RFC3339, e.g. 2026-06-11T00:00:00Z", agentEndTimeKey, endRaw)
+		}
+		params.EndTime = &t
+	}
+	if intervalRaw != "" {
+		interval := api.GetAgentUtilizationParamsInterval(intervalRaw)
+		if interval != api.GetAgentUtilizationParamsIntervalHour && interval != api.GetAgentUtilizationParamsIntervalDay {
+			return params, fmt.Errorf("invalid --%s value %q: must be hour or day", agentIntervalKey, intervalRaw)
+		}
+		params.Interval = &interval
+	}
+	if params.StartTime != nil && params.EndTime != nil && !params.StartTime.Before(*params.EndTime) {
+		return params, fmt.Errorf("--%s must be strictly before --%s", agentStartTimeKey, agentEndTimeKey)
+	}
+	return params, nil
+}
+
+func actualAgentUtilization(agentID string, params api.GetAgentUtilizationParams) *api.AgentUtilizationOutput {
+	response, err := Client.GetAgentUtilizationWithResponse(context.Background(), agentID, &params)
+	if err != nil {
+		log.Fatal("failed to get agent utilization:", err)
+	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatalf("agent %q not found", agentID)
+	}
+	ValidateResponse(http.StatusOK, "failed to get agent utilization", response.HTTPResponse, response.Body)
+	if response.JSON200 == nil {
+		log.Fatal("empty response from getAgentUtilization")
+	}
+	return response.JSON200
+}
+
+// listAgentUtilizationParams converts the single-agent params to the
+// all-agents operation's identical-but-distinct generated type.
+func listAgentUtilizationParams(params api.GetAgentUtilizationParams) api.ListAgentUtilizationParams {
+	listParams := api.ListAgentUtilizationParams{
+		StartTime: params.StartTime,
+		EndTime:   params.EndTime,
+	}
+	if params.Interval != nil {
+		interval := api.ListAgentUtilizationParamsInterval(*params.Interval)
+		listParams.Interval = &interval
+	}
+	return listParams
+}
+
+func actualListAgentUtilization(params api.ListAgentUtilizationParams) *api.ListAgentUtilizationOutput {
+	response, err := Client.ListAgentUtilizationWithResponse(context.Background(), &params)
+	if err != nil {
+		log.Fatal("failed to list agent utilization:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to list agent utilization", response.HTTPResponse, response.Body)
+	if response.JSON200 == nil {
+		log.Fatal("empty response from listAgentUtilization")
+	}
+	return response.JSON200
+}
+
+func agentUtilization(cmd *cobra.Command, args []string) {
+	params, err := parseAgentUtilizationParams(
+		viper.GetString(agentStartTimeKey),
+		viper.GetString(agentEndTimeKey),
+		viper.GetString(agentIntervalKey),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// No --agent-id means the org-wide series: one request for all agents.
+	if viper.GetString(agentIDKey) == "" {
+		output := actualListAgentUtilization(listAgentUtilizationParams(params))
+		if viper.GetBool(agentJSONKey) {
+			OutputJson(*output)
+			return
+		}
+		fmt.Print(formatListAgentUtilization(*output))
+		return
+	}
+
+	output := actualAgentUtilization(viper.GetString(agentIDKey), params)
+
+	if viper.GetBool(agentJSONKey) {
+		OutputJson(*output)
+		return
+	}
+	fmt.Print(formatAgentUtilization(*output))
 }
 
 // validateCompletedSinceDays enforces the server's accepted range client-side
@@ -261,6 +400,62 @@ func formatAgentDetail(a api.Agent) string {
 			branch,
 			r.Timestamp.Format("2006-01-02 15:04:05"),
 		)
+	}
+	return b.String()
+}
+
+// writeUtilizationBuckets renders the shared bucket table: one row per
+// bucket, utilization as a percentage, average concurrency as a plain ratio.
+func writeUtilizationBuckets(b *strings.Builder, buckets []api.AgentUtilizationBucket) {
+	fmt.Fprintf(b, "\n%-22s%-14s%s\n", "BUCKET START", "UTILIZATION", "AVG CONCURRENCY")
+	for _, bucket := range buckets {
+		fmt.Fprintf(b, "%-22s%-14s%.2f\n",
+			bucket.BucketStart.Format("2006-01-02 15:04"),
+			fmt.Sprintf("%.1f%%", bucket.Utilization*100),
+			bucket.AvgConcurrency,
+		)
+	}
+}
+
+// formatAgentUtilization renders the resolved window header followed by the
+// bucket table.
+func formatAgentUtilization(out api.AgentUtilizationOutput) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Agent:    %s\n", out.AgentID)
+	fmt.Fprintf(&b, "Interval: %s\n", out.Interval)
+	fmt.Fprintf(&b, "Window:   %s — %s\n",
+		out.WindowStart.Format("2006-01-02 15:04:05 MST"),
+		out.WindowEnd.Format("2006-01-02 15:04:05 MST"),
+	)
+	if len(out.Buckets) == 0 {
+		fmt.Fprintln(&b, "No buckets in the window.")
+		return b.String()
+	}
+	writeUtilizationBuckets(&b, out.Buckets)
+	return b.String()
+}
+
+// formatListAgentUtilization renders the shared window header once, then one
+// bucket table per agent. The window and interval are uniform across agents,
+// so they are not repeated per section.
+func formatListAgentUtilization(out api.ListAgentUtilizationOutput) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Interval: %s\n", out.Interval)
+	fmt.Fprintf(&b, "Window:   %s — %s\n",
+		out.WindowStart.Format("2006-01-02 15:04:05 MST"),
+		out.WindowEnd.Format("2006-01-02 15:04:05 MST"),
+	)
+	if len(out.Agents) == 0 {
+		fmt.Fprintln(&b, "No agents found in this org.")
+		return b.String()
+	}
+	for _, series := range out.Agents {
+		fmt.Fprintf(&b, "\n=== %s ===\n", series.AgentID)
+		if len(series.Buckets) == 0 {
+			fmt.Fprintln(&b, "No buckets in the window.")
+			continue
+		}
+		writeUtilizationBuckets(&b, series.Buckets)
 	}
 	return b.String()
 }

@@ -28,6 +28,12 @@ const (
 	INACTIVE AgentActivity = "INACTIVE"
 )
 
+// Defines values for AgentUtilizationOutputInterval.
+const (
+	AgentUtilizationOutputIntervalDay  AgentUtilizationOutputInterval = "day"
+	AgentUtilizationOutputIntervalHour AgentUtilizationOutputInterval = "hour"
+)
+
 // Defines values for Architecture.
 const (
 	AMD64 Architecture = "AMD64"
@@ -119,6 +125,12 @@ const (
 	SUCCEEDED LightJobStatus = "SUCCEEDED"
 )
 
+// Defines values for ListAgentUtilizationOutputInterval.
+const (
+	ListAgentUtilizationOutputIntervalDay  ListAgentUtilizationOutputInterval = "day"
+	ListAgentUtilizationOutputIntervalHour ListAgentUtilizationOutputInterval = "hour"
+)
+
 // Defines values for LogType.
 const (
 	ARCHIVELOG       LogType = "ARCHIVE_LOG"
@@ -189,6 +201,18 @@ const (
 	GITLAB TriggeredVia = "GITLAB"
 	LOCAL  TriggeredVia = "LOCAL"
 	WEBAPP TriggeredVia = "WEBAPP"
+)
+
+// Defines values for ListAgentUtilizationParamsInterval.
+const (
+	ListAgentUtilizationParamsIntervalDay  ListAgentUtilizationParamsInterval = "day"
+	ListAgentUtilizationParamsIntervalHour ListAgentUtilizationParamsInterval = "hour"
+)
+
+// Defines values for GetAgentUtilizationParamsInterval.
+const (
+	GetAgentUtilizationParamsIntervalDay  GetAgentUtilizationParamsInterval = "day"
+	GetAgentUtilizationParamsIntervalHour GetAgentUtilizationParamsInterval = "hour"
 )
 
 // Defines values for ListPoolLabelsParamsOrderBy.
@@ -325,6 +349,44 @@ type AgentRecentActivity struct {
 type AgentResultBranch struct {
 	BranchID openapi_types.UUID `json:"branchID" yaml:"branchID"`
 	Name     string             `json:"name" yaml:"name"`
+}
+
+// AgentUtilizationBucket One time bucket of agent utilization. utilization is the union of
+// the agent's EXPERIENCE_RUNNING intervals clipped to the bucket,
+// divided by the bucket's wall-clock duration — a fraction in
+// [0.0, 1.0]. avgConcurrency is total running job-seconds divided by
+// bucket wall-clock seconds (>= 0.0; exceeds 1.0 when experiences
+// run concurrently).
+type AgentUtilizationBucket struct {
+	AvgConcurrency float64   `json:"avgConcurrency" yaml:"avgConcurrency"`
+	BucketEnd      time.Time `json:"bucketEnd" yaml:"bucketEnd"`
+	BucketStart    time.Time `json:"bucketStart" yaml:"bucketStart"`
+	Utilization    float64   `json:"utilization" yaml:"utilization"`
+}
+
+// AgentUtilizationOutput Dense, time-ordered utilization series for one HiL Agent. Every
+// bucket in [windowStart, windowEnd) is present — buckets with no
+// running experiences carry explicit zeros, so the series charts
+// directly without gap-filling. windowStart/windowEnd echo the
+// resolved window (after server-side defaulting), since clipped edge
+// buckets do not recover it.
+type AgentUtilizationOutput struct {
+	AgentID     string                         `json:"agentID" yaml:"agentID"`
+	Buckets     []AgentUtilizationBucket       `json:"buckets" yaml:"buckets"`
+	Interval    AgentUtilizationOutputInterval `json:"interval" yaml:"interval"`
+	WindowEnd   time.Time                      `json:"windowEnd" yaml:"windowEnd"`
+	WindowStart time.Time                      `json:"windowStart" yaml:"windowStart"`
+}
+
+// AgentUtilizationOutputInterval defines model for AgentUtilizationOutput.Interval.
+type AgentUtilizationOutputInterval string
+
+// AgentUtilizationSeries One agent's dense bucket series within a listAgentUtilization
+// response. The window and interval are shared across all series and
+// live on the enclosing output, not repeated per agent.
+type AgentUtilizationSeries struct {
+	AgentID string                   `json:"agentID" yaml:"agentID"`
+	Buckets []AgentUtilizationBucket `json:"buckets" yaml:"buckets"`
 }
 
 // Architecture defines model for architecture.
@@ -1428,6 +1490,21 @@ type ListAgentResultsOutput struct {
 	// Total Total number of results for the agent across all pages, useful for the Results tab count in the UI.
 	Total int `json:"total" yaml:"total"`
 }
+
+// ListAgentUtilizationOutput Utilization series for every non-removed agent in the org, ordered
+// by agentID ASC (the listAgents order). Not paginated — an org has
+// a bounded number of HiL agents. windowStart/windowEnd echo the
+// resolved window after server-side defaulting. Agents with no
+// activity in the window appear with explicit all-zero buckets.
+type ListAgentUtilizationOutput struct {
+	Agents      []AgentUtilizationSeries           `json:"agents" yaml:"agents"`
+	Interval    ListAgentUtilizationOutputInterval `json:"interval" yaml:"interval"`
+	WindowEnd   time.Time                          `json:"windowEnd" yaml:"windowEnd"`
+	WindowStart time.Time                          `json:"windowStart" yaml:"windowStart"`
+}
+
+// ListAgentUtilizationOutputInterval defines model for ListAgentUtilizationOutput.Interval.
+type ListAgentUtilizationOutputInterval string
 
 // ListAgentsOutput defines model for listAgentsOutput.
 type ListAgentsOutput struct {
@@ -2581,6 +2658,25 @@ type ListAgentPoolLabelQueueParams struct {
 	CompletedSinceDays *int `form:"completedSinceDays,omitempty" json:"completedSinceDays,omitempty" yaml:"completedSinceDays,omitempty"`
 }
 
+// ListAgentUtilizationParams defines parameters for ListAgentUtilization.
+type ListAgentUtilizationParams struct {
+	// StartTime Inclusive window start. Defaults to endTime minus 7 days.
+	// Must be strictly before endTime; requests where
+	// startTime >= endTime return 400.
+	StartTime *time.Time `form:"startTime,omitempty" json:"startTime,omitempty" yaml:"startTime,omitempty"`
+
+	// EndTime Exclusive window end. Defaults to now.
+	EndTime *time.Time `form:"endTime,omitempty" json:"endTime,omitempty" yaml:"endTime,omitempty"`
+
+	// Interval Bucket width. Buckets are UTC-aligned (hour to the top of the
+	// hour, day to UTC midnight). The window may span at most 1000
+	// buckets; wider requests return 400.
+	Interval *ListAgentUtilizationParamsInterval `form:"interval,omitempty" json:"interval,omitempty" yaml:"interval,omitempty"`
+}
+
+// ListAgentUtilizationParamsInterval defines parameters for ListAgentUtilization.
+type ListAgentUtilizationParamsInterval string
+
 // ListAgentResultBranchesParams defines parameters for ListAgentResultBranches.
 type ListAgentResultBranchesParams struct {
 	// Name Optional case-insensitive substring filter on the branch name. Omit or leave blank to return all of the agent's branches.
@@ -2601,6 +2697,25 @@ type ListAgentResultsParams struct {
 	// Text Optional case-insensitive substring filter on the test (experience) name.
 	Text *string `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
 }
+
+// GetAgentUtilizationParams defines parameters for GetAgentUtilization.
+type GetAgentUtilizationParams struct {
+	// StartTime Inclusive window start. Defaults to endTime minus 7 days.
+	// Must be strictly before endTime; requests where
+	// startTime >= endTime return 400.
+	StartTime *time.Time `form:"startTime,omitempty" json:"startTime,omitempty" yaml:"startTime,omitempty"`
+
+	// EndTime Exclusive window end. Defaults to now.
+	EndTime *time.Time `form:"endTime,omitempty" json:"endTime,omitempty" yaml:"endTime,omitempty"`
+
+	// Interval Bucket width. Buckets are UTC-aligned (hour to the top of the
+	// hour, day to UTC midnight). The window may span at most 1000
+	// buckets; wider requests return 400.
+	Interval *GetAgentUtilizationParamsInterval `form:"interval,omitempty" json:"interval,omitempty" yaml:"interval,omitempty"`
+}
+
+// GetAgentUtilizationParamsInterval defines parameters for GetAgentUtilization.
+type GetAgentUtilizationParamsInterval string
 
 // ListBlueprintsParams defines parameters for ListBlueprints.
 type ListBlueprintsParams struct {
@@ -3798,6 +3913,9 @@ type ClientInterface interface {
 	// ListAgentPoolLabelQueue request
 	ListAgentPoolLabelQueue(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListAgentUtilization request
+	ListAgentUtilization(ctx context.Context, params *ListAgentUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAgent request
 	GetAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3809,6 +3927,9 @@ type ClientInterface interface {
 
 	// ListAgentResults request
 	ListAgentResults(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetAgentUtilization request
+	GetAgentUtilization(ctx context.Context, agentID string, params *GetAgentUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBlueprints request
 	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4461,6 +4582,18 @@ func (c *Client) ListAgentPoolLabelQueue(ctx context.Context, params *ListAgentP
 	return c.Client.Do(req)
 }
 
+func (c *Client) ListAgentUtilization(ctx context.Context, params *ListAgentUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAgentUtilizationRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAgentRequest(c.Server, agentID)
 	if err != nil {
@@ -4499,6 +4632,18 @@ func (c *Client) ListAgentResultBranches(ctx context.Context, agentID string, pa
 
 func (c *Client) ListAgentResults(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAgentResultsRequest(c.Server, agentID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetAgentUtilization(ctx context.Context, agentID string, params *GetAgentUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAgentUtilizationRequest(c.Server, agentID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -7285,6 +7430,87 @@ func NewListAgentPoolLabelQueueRequest(server string, params *ListAgentPoolLabel
 	return req, nil
 }
 
+// NewListAgentUtilizationRequest generates requests for ListAgentUtilization
+func NewListAgentUtilizationRequest(server string, params *ListAgentUtilizationParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/utilization")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.StartTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "startTime", runtime.ParamLocationQuery, *params.StartTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.EndTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endTime", runtime.ParamLocationQuery, *params.EndTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Interval != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "interval", runtime.ParamLocationQuery, *params.Interval); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetAgentRequest generates requests for GetAgent
 func NewGetAgentRequest(server string, agentID string) (*http.Request, error) {
 	var err error
@@ -7505,6 +7731,94 @@ func NewListAgentResultsRequest(server string, agentID string, params *ListAgent
 		if params.Text != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetAgentUtilizationRequest generates requests for GetAgentUtilization
+func NewGetAgentUtilizationRequest(server string, agentID string, params *GetAgentUtilizationParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agentID", runtime.ParamLocationPath, agentID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/%s/utilization", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.StartTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "startTime", runtime.ParamLocationQuery, *params.StartTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.EndTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endTime", runtime.ParamLocationQuery, *params.EndTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Interval != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "interval", runtime.ParamLocationQuery, *params.Interval); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -18902,6 +19216,9 @@ type ClientWithResponsesInterface interface {
 	// ListAgentPoolLabelQueueWithResponse request
 	ListAgentPoolLabelQueueWithResponse(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*ListAgentPoolLabelQueueResponse, error)
 
+	// ListAgentUtilizationWithResponse request
+	ListAgentUtilizationWithResponse(ctx context.Context, params *ListAgentUtilizationParams, reqEditors ...RequestEditorFn) (*ListAgentUtilizationResponse, error)
+
 	// GetAgentWithResponse request
 	GetAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*GetAgentResponse, error)
 
@@ -18913,6 +19230,9 @@ type ClientWithResponsesInterface interface {
 
 	// ListAgentResultsWithResponse request
 	ListAgentResultsWithResponse(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*ListAgentResultsResponse, error)
+
+	// GetAgentUtilizationWithResponse request
+	GetAgentUtilizationWithResponse(ctx context.Context, agentID string, params *GetAgentUtilizationParams, reqEditors ...RequestEditorFn) (*GetAgentUtilizationResponse, error)
 
 	// ListBlueprintsWithResponse request
 	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
@@ -19585,6 +19905,28 @@ func (r ListAgentPoolLabelQueueResponse) StatusCode() int {
 	return 0
 }
 
+type ListAgentUtilizationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAgentUtilizationOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAgentUtilizationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAgentUtilizationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type GetAgentResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -19667,6 +20009,28 @@ func (r ListAgentResultsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListAgentResultsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetAgentUtilizationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *AgentUtilizationOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAgentUtilizationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAgentUtilizationResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -23529,6 +23893,15 @@ func (c *ClientWithResponses) ListAgentPoolLabelQueueWithResponse(ctx context.Co
 	return ParseListAgentPoolLabelQueueResponse(rsp)
 }
 
+// ListAgentUtilizationWithResponse request returning *ListAgentUtilizationResponse
+func (c *ClientWithResponses) ListAgentUtilizationWithResponse(ctx context.Context, params *ListAgentUtilizationParams, reqEditors ...RequestEditorFn) (*ListAgentUtilizationResponse, error) {
+	rsp, err := c.ListAgentUtilization(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListAgentUtilizationResponse(rsp)
+}
+
 // GetAgentWithResponse request returning *GetAgentResponse
 func (c *ClientWithResponses) GetAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*GetAgentResponse, error) {
 	rsp, err := c.GetAgent(ctx, agentID, reqEditors...)
@@ -23563,6 +23936,15 @@ func (c *ClientWithResponses) ListAgentResultsWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseListAgentResultsResponse(rsp)
+}
+
+// GetAgentUtilizationWithResponse request returning *GetAgentUtilizationResponse
+func (c *ClientWithResponses) GetAgentUtilizationWithResponse(ctx context.Context, agentID string, params *GetAgentUtilizationParams, reqEditors ...RequestEditorFn) (*GetAgentUtilizationResponse, error) {
+	rsp, err := c.GetAgentUtilization(ctx, agentID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetAgentUtilizationResponse(rsp)
 }
 
 // ListBlueprintsWithResponse request returning *ListBlueprintsResponse
@@ -25593,6 +25975,32 @@ func ParseListAgentPoolLabelQueueResponse(rsp *http.Response) (*ListAgentPoolLab
 	return response, nil
 }
 
+// ParseListAgentUtilizationResponse parses an HTTP response from a ListAgentUtilizationWithResponse call
+func ParseListAgentUtilizationResponse(rsp *http.Response) (*ListAgentUtilizationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAgentUtilizationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAgentUtilizationOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetAgentResponse parses an HTTP response from a GetAgentWithResponse call
 func ParseGetAgentResponse(rsp *http.Response) (*GetAgentResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -25687,6 +26095,32 @@ func ParseListAgentResultsResponse(rsp *http.Response) (*ListAgentResultsRespons
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListAgentResultsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetAgentUtilizationResponse parses an HTTP response from a GetAgentUtilizationWithResponse call
+func ParseGetAgentUtilizationResponse(rsp *http.Response) (*GetAgentUtilizationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetAgentUtilizationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest AgentUtilizationOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

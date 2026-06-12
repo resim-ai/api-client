@@ -11,6 +11,7 @@ import (
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/mock"
 )
 
 func sampleAgent(agentID string, outOfDate bool) api.Agent {
@@ -409,4 +410,232 @@ func (s *CommandsSuite) TestQueuePoolLabelsEmptyState() {
 
 	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
 	s.Contains(out, "No pool labels in the queue right now.")
+}
+
+func (s *CommandsSuite) TestParseAgentUtilizationParams() {
+	// All flags empty: everything stays unset so the server defaults apply.
+	params, err := parseAgentUtilizationParams("", "", "")
+	s.NoError(err)
+	s.Nil(params.StartTime)
+	s.Nil(params.EndTime)
+	s.Nil(params.Interval)
+
+	// Valid values parse through.
+	params, err = parseAgentUtilizationParams("2026-06-04T00:00:00Z", "2026-06-11T00:00:00Z", "hour")
+	s.NoError(err)
+	s.Equal(time.Date(2026, 6, 4, 0, 0, 0, 0, time.UTC), params.StartTime.UTC())
+	s.Equal(time.Date(2026, 6, 11, 0, 0, 0, 0, time.UTC), params.EndTime.UTC())
+	s.Equal(api.GetAgentUtilizationParamsIntervalHour, *params.Interval)
+
+	// Malformed times and unknown intervals fail before any request is made.
+	_, err = parseAgentUtilizationParams("yesterday", "", "")
+	s.ErrorContains(err, agentStartTimeKey)
+	_, err = parseAgentUtilizationParams("", "2026-06-11", "")
+	s.ErrorContains(err, agentEndTimeKey)
+	_, err = parseAgentUtilizationParams("", "", "week")
+	s.ErrorContains(err, "must be hour or day")
+
+	// startTime >= endTime is rejected client-side, mirroring the server's 400.
+	_, err = parseAgentUtilizationParams("2026-06-11T00:00:00Z", "2026-06-04T00:00:00Z", "")
+	s.ErrorContains(err, "strictly before")
+}
+
+func sampleUtilizationOutput() api.AgentUtilizationOutput {
+	start := time.Date(2026, 6, 4, 0, 0, 0, 0, time.UTC)
+	return api.AgentUtilizationOutput{
+		AgentID:     "agent-1",
+		Interval:    api.AgentUtilizationOutputIntervalDay,
+		WindowStart: start,
+		WindowEnd:   start.AddDate(0, 0, 2),
+		Buckets: []api.AgentUtilizationBucket{
+			{
+				BucketStart:    start,
+				BucketEnd:      start.AddDate(0, 0, 1),
+				Utilization:    0.425,
+				AvgConcurrency: 1.27,
+			},
+			{
+				BucketStart:    start.AddDate(0, 0, 1),
+				BucketEnd:      start.AddDate(0, 0, 2),
+				Utilization:    0,
+				AvgConcurrency: 0,
+			},
+		},
+	}
+}
+
+func (s *CommandsSuite) mockAgentUtilization(out *api.AgentUtilizationOutput) {
+	s.mockClient.On("GetAgentUtilizationWithResponse", matchContext, "agent-1",
+		mock.AnythingOfType("*api.GetAgentUtilizationParams")).Return(
+		&api.GetAgentUtilizationResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      out,
+		}, nil)
+}
+
+func (s *CommandsSuite) TestActualAgentUtilization() {
+	out := sampleUtilizationOutput()
+	s.mockAgentUtilization(&out)
+
+	got := actualAgentUtilization("agent-1", api.GetAgentUtilizationParams{})
+	s.Equal("agent-1", got.AgentID)
+	s.Len(got.Buckets, 2)
+}
+
+func (s *CommandsSuite) TestFormatAgentUtilization() {
+	out := formatAgentUtilization(sampleUtilizationOutput())
+	s.Contains(out, "Agent:    agent-1")
+	s.Contains(out, "Interval: day")
+	s.Contains(out, "BUCKET START")
+	// Utilization renders as a percentage, concurrency as a plain ratio;
+	// the empty bucket carries explicit zeros.
+	s.Contains(out, "42.5%")
+	s.Contains(out, "1.27")
+	s.Contains(out, "0.0%")
+}
+
+func (s *CommandsSuite) TestFormatAgentUtilizationEmptyBuckets() {
+	out := sampleUtilizationOutput()
+	out.Buckets = nil
+	formatted := formatAgentUtilization(out)
+	s.Contains(formatted, "No buckets in the window.")
+	s.NotContains(formatted, "BUCKET START")
+}
+
+func (s *CommandsSuite) TestAgentUtilizationJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	out := sampleUtilizationOutput()
+	s.mockAgentUtilization(&out)
+
+	stdout := captureStdout(s, func() { agentUtilization(nil, nil) })
+	var parsed api.AgentUtilizationOutput
+	s.Require().NoError(json.Unmarshal([]byte(stdout), &parsed))
+	s.Equal("agent-1", parsed.AgentID)
+	s.Equal(out.Interval, parsed.Interval)
+	s.Require().Len(parsed.Buckets, 2)
+	s.Equal(out.Buckets[0].Utilization, parsed.Buckets[0].Utilization)
+}
+
+func (s *CommandsSuite) TestAgentUtilizationTableOutput() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	out := sampleUtilizationOutput()
+	s.mockAgentUtilization(&out)
+
+	stdout := captureStdout(s, func() { agentUtilization(nil, nil) })
+	s.Contains(stdout, "Agent:    agent-1")
+	s.Contains(stdout, "42.5%")
+}
+
+func sampleListUtilizationOutput() api.ListAgentUtilizationOutput {
+	single := sampleUtilizationOutput()
+	return api.ListAgentUtilizationOutput{
+		Interval:    api.ListAgentUtilizationOutputIntervalDay,
+		WindowStart: single.WindowStart,
+		WindowEnd:   single.WindowEnd,
+		Agents: []api.AgentUtilizationSeries{
+			{AgentID: "agent-1", Buckets: single.Buckets},
+			{AgentID: "agent-idle", Buckets: []api.AgentUtilizationBucket{
+				{
+					BucketStart:    single.WindowStart,
+					BucketEnd:      single.WindowEnd,
+					Utilization:    0,
+					AvgConcurrency: 0,
+				},
+			}},
+		},
+	}
+}
+
+func (s *CommandsSuite) mockListAgentUtilization(out *api.ListAgentUtilizationOutput) {
+	s.mockClient.On("ListAgentUtilizationWithResponse", matchContext,
+		mock.AnythingOfType("*api.ListAgentUtilizationParams")).Return(
+		&api.ListAgentUtilizationResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      out,
+		}, nil)
+}
+
+func (s *CommandsSuite) TestListAgentUtilizationParamsConversion() {
+	// Unset fields stay unset so the server defaults still apply.
+	converted := listAgentUtilizationParams(api.GetAgentUtilizationParams{})
+	s.Nil(converted.StartTime)
+	s.Nil(converted.EndTime)
+	s.Nil(converted.Interval)
+
+	start := time.Date(2026, 6, 4, 0, 0, 0, 0, time.UTC)
+	end := start.AddDate(0, 0, 7)
+	interval := api.GetAgentUtilizationParamsIntervalHour
+	converted = listAgentUtilizationParams(api.GetAgentUtilizationParams{
+		StartTime: &start,
+		EndTime:   &end,
+		Interval:  &interval,
+	})
+	s.Equal(&start, converted.StartTime)
+	s.Equal(&end, converted.EndTime)
+	s.Equal(api.ListAgentUtilizationParamsIntervalHour, *converted.Interval)
+}
+
+func (s *CommandsSuite) TestActualListAgentUtilization() {
+	out := sampleListUtilizationOutput()
+	s.mockListAgentUtilization(&out)
+
+	got := actualListAgentUtilization(api.ListAgentUtilizationParams{})
+	s.Require().Len(got.Agents, 2)
+	s.Equal("agent-1", got.Agents[0].AgentID)
+	s.Equal("agent-idle", got.Agents[1].AgentID)
+}
+
+func (s *CommandsSuite) TestFormatListAgentUtilization() {
+	out := formatListAgentUtilization(sampleListUtilizationOutput())
+	// The shared window header renders once; each agent gets its own section.
+	s.Contains(out, "Interval: day")
+	s.Equal(1, strings.Count(out, "Window:"))
+	s.Contains(out, "=== agent-1 ===")
+	s.Contains(out, "=== agent-idle ===")
+	s.Contains(out, "42.5%")
+	// The idle agent's explicit zero bucket renders rather than being elided.
+	s.Equal(2, strings.Count(out, "BUCKET START"))
+}
+
+func (s *CommandsSuite) TestFormatListAgentUtilizationNoAgents() {
+	out := sampleListUtilizationOutput()
+	out.Agents = []api.AgentUtilizationSeries{}
+	formatted := formatListAgentUtilization(out)
+	s.Contains(formatted, "No agents found in this org.")
+	s.NotContains(formatted, "BUCKET START")
+}
+
+// TestAgentUtilizationWithoutAgentID verifies the dispatch: no --agent-id
+// means the single org-wide request, never the per-agent endpoint.
+func (s *CommandsSuite) TestAgentUtilizationWithoutAgentID() {
+	viper.Reset()
+	defer viper.Reset()
+	out := sampleListUtilizationOutput()
+	s.mockListAgentUtilization(&out)
+
+	stdout := captureStdout(s, func() { agentUtilization(nil, nil) })
+	s.Contains(stdout, "=== agent-1 ===")
+	s.Contains(stdout, "=== agent-idle ===")
+	s.mockClient.AssertNotCalled(s.T(), "GetAgentUtilizationWithResponse",
+		mock.Anything, mock.Anything, mock.Anything)
+}
+
+func (s *CommandsSuite) TestAgentUtilizationWithoutAgentIDJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	out := sampleListUtilizationOutput()
+	s.mockListAgentUtilization(&out)
+
+	stdout := captureStdout(s, func() { agentUtilization(nil, nil) })
+	var parsed api.ListAgentUtilizationOutput
+	s.Require().NoError(json.Unmarshal([]byte(stdout), &parsed))
+	s.Require().Len(parsed.Agents, 2)
+	s.Equal(out.Interval, parsed.Interval)
+	s.Equal(out.Agents[0].Buckets[0].Utilization, parsed.Agents[0].Buckets[0].Utilization)
 }

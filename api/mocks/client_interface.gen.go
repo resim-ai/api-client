@@ -6314,6 +6314,81 @@ func (_c *ClientInterface_GetAgent_Call) RunAndReturn(run func(context.Context, 
 	return _c
 }
 
+// GetAgentUtilization provides a mock function with given fields: ctx, agentID, params, reqEditors
+func (_m *ClientInterface) GetAgentUtilization(ctx context.Context, agentID string, params *api.GetAgentUtilizationParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, agentID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAgentUtilization")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *api.GetAgentUtilizationParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, agentID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, *api.GetAgentUtilizationParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, agentID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, *api.GetAgentUtilizationParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, agentID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetAgentUtilization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAgentUtilization'
+type ClientInterface_GetAgentUtilization_Call struct {
+	*mock.Call
+}
+
+// GetAgentUtilization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - agentID string
+//   - params *api.GetAgentUtilizationParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetAgentUtilization(ctx interface{}, agentID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_GetAgentUtilization_Call {
+	return &ClientInterface_GetAgentUtilization_Call{Call: _e.mock.On("GetAgentUtilization",
+		append([]interface{}{ctx, agentID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetAgentUtilization_Call) Run(run func(ctx context.Context, agentID string, params *api.GetAgentUtilizationParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetAgentUtilization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(string), args[2].(*api.GetAgentUtilizationParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetAgentUtilization_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetAgentUtilization_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetAgentUtilization_Call) RunAndReturn(run func(context.Context, string, *api.GetAgentUtilizationParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetAgentUtilization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetAsset provides a mock function with given fields: ctx, projectID, assetID, reqEditors
 func (_m *ClientInterface) GetAsset(ctx context.Context, projectID uuid.UUID, assetID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -9246,6 +9321,80 @@ func (_c *ClientInterface_ListAgentResults_Call) Return(_a0 *http.Response, _a1 
 }
 
 func (_c *ClientInterface_ListAgentResults_Call) RunAndReturn(run func(context.Context, string, *api.ListAgentResultsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAgentResults_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListAgentUtilization provides a mock function with given fields: ctx, params, reqEditors
+func (_m *ClientInterface) ListAgentUtilization(ctx context.Context, params *api.ListAgentUtilizationParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListAgentUtilization")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentUtilizationParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, *api.ListAgentUtilizationParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, *api.ListAgentUtilizationParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListAgentUtilization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListAgentUtilization'
+type ClientInterface_ListAgentUtilization_Call struct {
+	*mock.Call
+}
+
+// ListAgentUtilization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - params *api.ListAgentUtilizationParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListAgentUtilization(ctx interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListAgentUtilization_Call {
+	return &ClientInterface_ListAgentUtilization_Call{Call: _e.mock.On("ListAgentUtilization",
+		append([]interface{}{ctx, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListAgentUtilization_Call) Run(run func(ctx context.Context, params *api.ListAgentUtilizationParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListAgentUtilization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(*api.ListAgentUtilizationParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentUtilization_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListAgentUtilization_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListAgentUtilization_Call) RunAndReturn(run func(context.Context, *api.ListAgentUtilizationParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListAgentUtilization_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -287,6 +287,10 @@ func getAndValidatePoolLabels(poolLabelsKey string) []api.PoolLabel {
 	if viper.IsSet(poolLabelsKey) {
 		poolLabels = viper.GetStringSlice(poolLabelsKey)
 	}
+	return validatePoolLabels(poolLabels)
+}
+
+func validatePoolLabels(poolLabels []api.PoolLabel) []api.PoolLabel {
 	for i := range poolLabels {
 		poolLabels[i] = strings.TrimSpace(poolLabels[i])
 		if poolLabels[i] == "resim" {

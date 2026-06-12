@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -112,6 +113,9 @@ const (
 	workflowSuitesKey                  = "suites"
 	workflowSuitesFileKey              = "suites-file"
 	workflowBuildIDKey                 = "build-id"
+	workflowBuildKey                   = "build"
+	workflowBuildsKey                  = "builds"
+	workflowBuildsFileKey              = "builds-file"
 	workflowParameterKey               = "parameter"
 	workflowPoolLabelsKey              = "pool-labels"
 	workflowAccountKey                 = "account"
@@ -191,12 +195,20 @@ func init() {
 	createWorkflowRunCmd.Flags().String(workflowKey, "", "The name or ID of the workflow to run.")
 	createWorkflowRunCmd.MarkFlagRequired(workflowKey)
 	createWorkflowRunCmd.Flags().String(workflowBuildIDKey, "", "The ID of the build to use in this workflow run.")
-	createWorkflowRunCmd.MarkFlagRequired(workflowBuildIDKey)
-	createWorkflowRunCmd.Flags().StringSlice(workflowParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters.")
-	createWorkflowRunCmd.Flags().StringSlice(workflowPoolLabelsKey, []string{}, "Pool labels to determine where to run this workflow. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
+	createWorkflowRunCmd.Flags().MarkDeprecated(workflowBuildIDKey, "use --build or --builds instead")
+	createWorkflowRunCmd.Flags().StringSlice(workflowBuildKey, []string{}, "The ID of a build to use in this workflow run. Provide one build per system covered by the workflow's enabled suites. Accepts repeated flags or comma-separated IDs.")
+	createWorkflowRunCmd.Flags().String(workflowBuildsKey, "", "JSON array of objects {buildID, parameters, poolLabels, allowableFailurePercent} specifying the builds for this workflow run, one entry per system. parameters, poolLabels, and allowableFailurePercent are optional and apply to that build's batch only.")
+	createWorkflowRunCmd.Flags().String(workflowBuildsFileKey, "", "Path to a JSON file containing an array of objects {buildID, parameters, poolLabels, allowableFailurePercent} specifying the builds for this workflow run, one entry per system.")
+	createWorkflowRunCmd.MarkFlagsMutuallyExclusive(workflowBuildIDKey, workflowBuildKey, workflowBuildsKey, workflowBuildsFileKey)
+	createWorkflowRunCmd.Flags().StringSlice(workflowParameterKey, []string{}, "(Optional) Parameter overrides to pass to every build in the run. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters. Not compatible with --builds/--builds-file; set parameters per entry instead.")
+	createWorkflowRunCmd.Flags().StringSlice(workflowPoolLabelsKey, []string{}, "Pool labels to determine where to run this workflow, applied to every build in the run. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels. Not compatible with --builds/--builds-file; set poolLabels per entry instead.")
 	createWorkflowRunCmd.Flags().String(workflowAccountKey, "", "Specify a username for a CI/CD platform account to associate with this workflow run.")
-	createWorkflowRunCmd.Flags().Int(workflowAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the run successfully completed. Defaults to 0.")
+	createWorkflowRunCmd.Flags().Int(workflowAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the run successfully completed. Applied to every build in the run; defaults to 0. Not compatible with --builds/--builds-file; set allowableFailurePercent per entry instead.")
 	createWorkflowRunCmd.Flags().Bool(workflowGithubKey, false, "Whether to output format in github action friendly format")
+	for _, runLevelFlag := range []string{workflowParameterKey, workflowPoolLabelsKey, workflowAllowableFailurePercentKey} {
+		createWorkflowRunCmd.MarkFlagsMutuallyExclusive(runLevelFlag, workflowBuildsKey)
+		createWorkflowRunCmd.MarkFlagsMutuallyExclusive(runLevelFlag, workflowBuildsFileKey)
+	}
 
 	// Workflow Runs - List
 	listWorkflowRunsCmd.Flags().String(workflowProjectKey, "", "The name or ID of the project.")
@@ -226,9 +238,11 @@ func init() {
 }
 
 type workflowRunTestSuiteOutput struct {
-	BatchID     api.BatchID     `json:"batchID"`
 	TestSuiteID api.TestSuiteID `json:"testSuiteID"`
-	BatchURL    string          `json:"batchURL"`
+	SystemID    api.SystemID    `json:"systemID"`
+	BuildID     *api.BuildID    `json:"buildID,omitempty"`
+	BatchID     *api.BatchID    `json:"batchID,omitempty"`
+	BatchURL    *string         `json:"batchURL,omitempty"`
 }
 
 type workflowSuiteSummary struct {
@@ -566,21 +580,122 @@ func updateWorkflow(ccmd *cobra.Command, args []string) {
 	fmt.Println("workflow ID:", existing.WorkflowID.String())
 }
 
-func createWorkflowRun(ccmd *cobra.Command, args []string) {
-	projectID := getProjectID(Client, viper.GetString(workflowProjectKey))
-	workflowGithub := viper.GetBool(workflowGithubKey)
-	wf := actualGetWorkflow(projectID, viper.GetString(workflowKey), false)
+// workflowRunBuildSpec is the JSON schema for entries supplied via
+// --builds / --builds-file.
+type workflowRunBuildSpec struct {
+	BuildID                 string            `json:"buildID"`
+	Parameters              map[string]string `json:"parameters,omitempty"`
+	PoolLabels              []string          `json:"poolLabels,omitempty"`
+	AllowableFailurePercent *int              `json:"allowableFailurePercent,omitempty"`
+}
 
-	buildID, err := uuid.Parse(viper.GetString(workflowBuildIDKey))
-	if err != nil {
-		log.Fatal("failed to parse build ID: ", err)
+func validateWorkflowAllowableFailurePercent(allowableFailurePercent int) {
+	if allowableFailurePercent < 0 || allowableFailurePercent > 100 {
+		log.Fatal("allowable failure percent must be between 0 and 100")
+	}
+}
+
+// collectWorkflowRunBuilds resolves the build input mechanisms (--build-id,
+// --build, --builds, --builds-file) into the multi-build API payload.
+// Exactly one mechanism must be used. For --build-id and --build, the
+// run-level --parameter, --pool-labels, and --allowable-failure-percent
+// values are fanned out onto every entry.
+func collectWorkflowRunBuilds(ccmd *cobra.Command) []api.WorkflowRunBuildInput {
+	buildIDSet := viper.IsSet(workflowBuildIDKey) && viper.GetString(workflowBuildIDKey) != ""
+	buildSet := viper.IsSet(workflowBuildKey) && len(viper.GetStringSlice(workflowBuildKey)) > 0
+	buildsSet := viper.IsSet(workflowBuildsKey) && viper.GetString(workflowBuildsKey) != ""
+	buildsFileSet := viper.IsSet(workflowBuildsFileKey) && viper.GetString(workflowBuildsFileKey) != ""
+
+	// Runtime check in addition to cobra's mutual exclusion, since values may
+	// arrive via environment variables or the config file rather than flags.
+	mechanismCount := 0
+	for _, set := range []bool{buildIDSet, buildSet, buildsSet, buildsFileSet} {
+		if set {
+			mechanismCount++
+		}
+	}
+	if mechanismCount == 0 {
+		log.Fatal("must specify builds via --", workflowBuildKey, ", --", workflowBuildsKey, ", or --", workflowBuildsFileKey)
+	}
+	if mechanismCount > 1 {
+		log.Fatal("only one of --", workflowBuildIDKey, ", --", workflowBuildKey, ", --", workflowBuildsKey, ", or --", workflowBuildsFileKey, " may be specified")
 	}
 
-	// Parse --parameter (if any provided)
+	seen := map[uuid.UUID]bool{}
+	parseBuildID := func(raw string) api.BuildID {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			log.Fatal("failed to parse build ID: ", err)
+		}
+		if seen[id] {
+			log.Fatal("duplicate build ID: ", id.String())
+		}
+		seen[id] = true
+		return api.BuildID(id)
+	}
+
+	if buildsSet || buildsFileSet {
+		if viper.IsSet(workflowParameterKey) || viper.IsSet(workflowPoolLabelsKey) || viper.IsSet(workflowAllowableFailurePercentKey) {
+			log.Fatal("--", workflowParameterKey, ", --", workflowPoolLabelsKey, ", and --", workflowAllowableFailurePercentKey,
+				" cannot be combined with --", workflowBuildsKey, "/--", workflowBuildsFileKey, "; set them per entry in the JSON instead")
+		}
+		var raw []byte
+		if buildsFileSet {
+			data, err := os.ReadFile(viper.GetString(workflowBuildsFileKey))
+			if err != nil {
+				log.Fatal("failed to read builds file: ", err)
+			}
+			raw = data
+		} else {
+			raw = []byte(viper.GetString(workflowBuildsKey))
+		}
+		var specs []workflowRunBuildSpec
+		if err := json.Unmarshal(raw, &specs); err != nil {
+			log.Fatal("failed to parse builds JSON: ", err)
+		}
+		if len(specs) == 0 {
+			log.Fatal("no builds specified")
+		}
+		builds := make([]api.WorkflowRunBuildInput, 0, len(specs))
+		for _, spec := range specs {
+			if spec.BuildID == "" {
+				log.Fatal("builds entry missing buildID")
+			}
+			entry := api.WorkflowRunBuildInput{BuildID: parseBuildID(spec.BuildID)}
+			if len(spec.Parameters) > 0 {
+				parameters := api.BatchParameters(spec.Parameters)
+				entry.Parameters = &parameters
+			}
+			if len(spec.PoolLabels) > 0 {
+				poolLabels := validatePoolLabels(spec.PoolLabels)
+				entry.PoolLabels = &poolLabels
+			}
+			if spec.AllowableFailurePercent != nil {
+				validateWorkflowAllowableFailurePercent(*spec.AllowableFailurePercent)
+				entry.AllowableFailurePercent = spec.AllowableFailurePercent
+			}
+			builds = append(builds, entry)
+		}
+		return builds
+	}
+
+	// --build-id (deprecated) or --build: shared run-level configuration is
+	// applied to every entry.
+	var buildIDStrings []string
+	if buildIDSet {
+		if !ccmd.Flags().Changed(workflowBuildIDKey) {
+			// Cobra only prints the deprecation notice when the flag is used on
+			// the command line; mirror it for env/config-supplied values.
+			fmt.Fprintf(os.Stderr, "Flag --%s has been deprecated, use --%s or --%s instead\n", workflowBuildIDKey, workflowBuildKey, workflowBuildsKey)
+		}
+		buildIDStrings = []string{viper.GetString(workflowBuildIDKey)}
+	} else {
+		buildIDStrings = viper.GetStringSlice(workflowBuildKey)
+	}
+
 	parameters := api.BatchParameters{}
 	if viper.IsSet(workflowParameterKey) {
-		parameterStrings := viper.GetStringSlice(workflowParameterKey)
-		for _, parameterString := range parameterStrings {
+		for _, parameterString := range viper.GetStringSlice(workflowParameterKey) {
 			key, value, err := ParseParameterString(parameterString)
 			if err != nil {
 				log.Fatal(err)
@@ -588,8 +703,37 @@ func createWorkflowRun(ccmd *cobra.Command, args []string) {
 			parameters[key] = value
 		}
 	}
-
 	poolLabels := getAndValidatePoolLabels(workflowPoolLabelsKey)
+	var allowableFailurePercent *int
+	if viper.IsSet(workflowAllowableFailurePercentKey) {
+		afp := viper.GetInt(workflowAllowableFailurePercentKey)
+		validateWorkflowAllowableFailurePercent(afp)
+		allowableFailurePercent = &afp
+	}
+
+	builds := make([]api.WorkflowRunBuildInput, 0, len(buildIDStrings))
+	for _, buildIDString := range buildIDStrings {
+		entry := api.WorkflowRunBuildInput{
+			BuildID:                 parseBuildID(buildIDString),
+			AllowableFailurePercent: allowableFailurePercent,
+		}
+		if len(parameters) > 0 {
+			entry.Parameters = &parameters
+		}
+		if len(poolLabels) > 0 {
+			entry.PoolLabels = &poolLabels
+		}
+		builds = append(builds, entry)
+	}
+	return builds
+}
+
+func createWorkflowRun(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(workflowProjectKey))
+	workflowGithub := viper.GetBool(workflowGithubKey)
+	wf := actualGetWorkflow(projectID, viper.GetString(workflowKey), false)
+
+	builds := collectWorkflowRunBuilds(ccmd)
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	associatedAccount := GetCIEnvironmentVariableAccount()
@@ -598,22 +742,8 @@ func createWorkflowRun(ccmd *cobra.Command, args []string) {
 	}
 
 	body := api.CreateWorkflowRunInput{
-		BuildID:           api.BuildID(buildID),
+		Builds:            &builds,
 		AssociatedAccount: &associatedAccount,
-	}
-
-	if len(parameters) > 0 {
-		body.Parameters = &parameters
-	}
-	if len(poolLabels) > 0 {
-		body.PoolLabels = &poolLabels
-	}
-	if viper.IsSet(workflowAllowableFailurePercentKey) {
-		allowableFailurePercent := viper.GetInt(workflowAllowableFailurePercentKey)
-		if allowableFailurePercent < 0 || allowableFailurePercent > 100 {
-			log.Fatal("allowable failure percent must be between 0 and 100")
-		}
-		body.AllowableFailurePercent = &allowableFailurePercent
 	}
 
 	resp, err := Client.CreateWorkflowRunWithResponse(context.Background(), projectID, wf.WorkflowID, body)
@@ -625,6 +755,13 @@ func createWorkflowRun(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty response")
 	}
 	run := *resp.JSON201
+	if run.UnusedBuilds != nil && len(*run.UnusedBuilds) > 0 {
+		unusedIDs := make([]string, 0, len(*run.UnusedBuilds))
+		for _, unusedBuildID := range *run.UnusedBuilds {
+			unusedIDs = append(unusedIDs, unusedBuildID.String())
+		}
+		fmt.Fprintf(os.Stderr, "WARNING: the following builds were not used by any enabled suite: %s\n", strings.Join(unusedIDs, ", "))
+	}
 	if !workflowGithub {
 		fmt.Println("Created workflow run successfully!")
 		fmt.Println("workflow run ID:", run.WorkflowRunID.String())
@@ -688,8 +825,8 @@ func workflowRunToSlackWebhookPayload(projectID uuid.UUID, workflowRun *api.Work
 	validBatchCount := 0
 
 	for _, suite := range workflowRun.WorkflowRunTestSuites {
-		// Skip if batch ID is nil UUID (disabled/skipped test suite)
-		if suite.BatchID == uuid.Nil {
+		// Skip if there is no batch (disabled/skipped test suite)
+		if suite.BatchID == nil || *suite.BatchID == uuid.Nil {
 			continue
 		}
 
@@ -748,11 +885,16 @@ func getWorkflowRun(ccmd *cobra.Command, args []string) {
 		projectBaseURL := buildProjectBaseURL(projectID)
 		suites := make([]workflowRunTestSuiteOutput, 0, len(resp.JSON200.WorkflowRunTestSuites))
 		for _, suite := range resp.JSON200.WorkflowRunTestSuites {
-			suites = append(suites, workflowRunTestSuiteOutput{
-				BatchID:     suite.BatchID,
+			out := workflowRunTestSuiteOutput{
 				TestSuiteID: suite.TestSuiteID,
-				BatchURL:    projectBaseURL.JoinPath("batches", suite.BatchID.String()).String(),
-			})
+				SystemID:    suite.SystemID,
+				BuildID:     suite.BuildID,
+				BatchID:     suite.BatchID,
+			}
+			if suite.BatchID != nil {
+				out.BatchURL = Ptr(projectBaseURL.JoinPath("batches", suite.BatchID.String()).String())
+			}
+			suites = append(suites, out)
 		}
 		OutputJson(suites)
 	}
@@ -896,16 +1038,20 @@ func actualSuperviseWorkflowRun(projectID uuid.UUID, workflowID uuid.UUID, runID
 	}
 
 	workflowRun := resp.JSON200
-	if len(workflowRun.WorkflowRunTestSuites) == 0 {
+
+	// Extract batch IDs, skipping suites without a batch (disabled suites or
+	// suites with no active experiences)
+	batchIDs := make([]uuid.UUID, 0, len(workflowRun.WorkflowRunTestSuites))
+	for _, suite := range workflowRun.WorkflowRunTestSuites {
+		if suite.BatchID == nil || *suite.BatchID == uuid.Nil {
+			continue
+		}
+		batchIDs = append(batchIDs, *suite.BatchID)
+	}
+	if len(batchIDs) == 0 {
 		return &WorkflowSuperviseResult{
 			Error: fmt.Errorf("workflow run has no batches"),
 		}
-	}
-
-	// Extract batch IDs
-	batchIDs := make([]uuid.UUID, 0, len(workflowRun.WorkflowRunTestSuites))
-	for _, suite := range workflowRun.WorkflowRunTestSuites {
-		batchIDs = append(batchIDs, suite.BatchID)
 	}
 
 	infoLog("Supervising %d batches in parallel...\n", len(batchIDs))

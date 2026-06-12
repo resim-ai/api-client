@@ -402,52 +402,80 @@ func (s *CommandsSuite) TestQueuePoolLabelsEmptyState() {
 }
 
 func (s *CommandsSuite) TestParseAgentUtilizationParams() {
-	// All flags empty: everything stays unset so the server defaults apply.
-	params, err := parseAgentUtilizationParams("", "", "")
+	// All flags empty: the time/interval params stay unset so the server
+	// defaults apply; topExperiences is always sent explicitly.
+	params, err := parseAgentUtilizationParams("", "", "", topExperiencesDefault)
 	s.NoError(err)
 	s.Nil(params.StartTime)
 	s.Nil(params.EndTime)
 	s.Nil(params.Interval)
+	s.Equal(topExperiencesDefault, *params.TopExperiences)
 
 	// Valid values parse through.
-	params, err = parseAgentUtilizationParams("2026-06-04T00:00:00Z", "2026-06-11T00:00:00Z", "hour")
+	params, err = parseAgentUtilizationParams("2026-06-04T00:00:00Z", "2026-06-11T00:00:00Z", "hour", 0)
 	s.NoError(err)
 	s.Equal(time.Date(2026, 6, 4, 0, 0, 0, 0, time.UTC), params.StartTime.UTC())
 	s.Equal(time.Date(2026, 6, 11, 0, 0, 0, 0, time.UTC), params.EndTime.UTC())
 	s.Equal(api.GetAgentUtilizationParamsIntervalHour, *params.Interval)
+	s.Equal(0, *params.TopExperiences)
 
 	// Malformed times and unknown intervals fail before any request is made.
-	_, err = parseAgentUtilizationParams("yesterday", "", "")
+	_, err = parseAgentUtilizationParams("yesterday", "", "", topExperiencesDefault)
 	s.ErrorContains(err, agentStartTimeKey)
-	_, err = parseAgentUtilizationParams("", "2026-06-11", "")
+	_, err = parseAgentUtilizationParams("", "2026-06-11", "", topExperiencesDefault)
 	s.ErrorContains(err, agentEndTimeKey)
-	_, err = parseAgentUtilizationParams("", "", "week")
+	_, err = parseAgentUtilizationParams("", "", "week", topExperiencesDefault)
 	s.ErrorContains(err, "must be hour or day")
 
 	// startTime >= endTime is rejected client-side, mirroring the server's 400.
-	_, err = parseAgentUtilizationParams("2026-06-11T00:00:00Z", "2026-06-04T00:00:00Z", "")
+	_, err = parseAgentUtilizationParams("2026-06-11T00:00:00Z", "2026-06-04T00:00:00Z", "", topExperiencesDefault)
 	s.ErrorContains(err, "strictly before")
+
+	// topExperiences outside the server's accepted range is rejected
+	// client-side, mirroring the server's 400.
+	_, err = parseAgentUtilizationParams("", "", "", -1)
+	s.ErrorContains(err, agentTopExperiencesKey)
+	_, err = parseAgentUtilizationParams("", "", "", topExperiencesMax+1)
+	s.ErrorContains(err, agentTopExperiencesKey)
 }
 
 func sampleUtilizationOutput() api.AgentUtilizationOutput {
 	start := time.Date(2026, 6, 4, 0, 0, 0, 0, time.UTC)
 	return api.AgentUtilizationOutput{
-		AgentID:     "agent-1",
-		Interval:    api.AgentUtilizationOutputIntervalDay,
-		WindowStart: start,
-		WindowEnd:   start.AddDate(0, 0, 2),
+		AgentID:            "agent-1",
+		Interval:           api.AgentUtilizationOutputIntervalDay,
+		WindowStart:        start,
+		WindowEnd:          start.AddDate(0, 0, 2),
+		TotalTestsRun:      12,
+		AvgQueueSeconds:    Ptr(95.0),
+		MedianQueueSeconds: Ptr(34.0),
 		Buckets: []api.AgentUtilizationBucket{
 			{
 				BucketStart:    start,
 				BucketEnd:      start.AddDate(0, 0, 1),
 				Utilization:    0.425,
+				Idle:           0.45,
+				Offline:        0.125,
+				TestsRun:       12,
 				AvgConcurrency: 1.27,
 			},
 			{
 				BucketStart:    start.AddDate(0, 0, 1),
 				BucketEnd:      start.AddDate(0, 0, 2),
 				Utilization:    0,
+				Idle:           0,
+				Offline:        1,
+				TestsRun:       0,
 				AvgConcurrency: 0,
+			},
+		},
+		TopExperiences: []api.AgentUtilizationTopExperience{
+			{
+				ExperienceID:    uuid.MustParse("d30e0003-0000-0000-0000-000000000001"),
+				ExperienceName:  "Highway merge",
+				RunCount:        8,
+				TotalRunSeconds: 11520,
+				Share:           0.62,
 			},
 		},
 	}
@@ -481,6 +509,38 @@ func (s *CommandsSuite) TestFormatAgentUtilization() {
 	s.Contains(out, "42.5%")
 	s.Contains(out, "1.27")
 	s.Contains(out, "0.0%")
+	// The idle/offline split and per-bucket test counts render alongside.
+	s.Contains(out, "IDLE")
+	s.Contains(out, "OFFLINE")
+	s.Contains(out, "45.0%")
+	s.Contains(out, "12.5%")
+	// Window-level summary: total tests, queue wait, top experiences.
+	s.Contains(out, "Tests run: 12")
+	s.Contains(out, "Queue wait: avg 1m35s, median 34s")
+	s.Contains(out, "TOP EXPERIENCES")
+	s.Contains(out, "Highway merge")
+	s.Contains(out, "3h12m")
+	s.Contains(out, "62.0%")
+}
+
+func (s *CommandsSuite) TestFormatAgentUtilizationOmitsQueueWaitAndExperiences() {
+	out := sampleUtilizationOutput()
+	out.AvgQueueSeconds = nil
+	out.MedianQueueSeconds = nil
+	out.TopExperiences = nil
+	formatted := formatAgentUtilization(out)
+	s.NotContains(formatted, "Queue wait")
+	s.NotContains(formatted, "TOP EXPERIENCES")
+}
+
+func (s *CommandsSuite) TestFormatSeconds() {
+	s.Equal("0s", formatSeconds(0))
+	s.Equal("40s", formatSeconds(40))
+	s.Equal("1m35s", formatSeconds(95))
+	s.Equal("5m", formatSeconds(300))
+	s.Equal("2h", formatSeconds(7200))
+	s.Equal("3h12m", formatSeconds(11520))
+	s.Equal("1h0m5s", formatSeconds(3605))
 }
 
 func (s *CommandsSuite) TestFormatAgentUtilizationEmptyBuckets() {
@@ -523,9 +583,13 @@ func (s *CommandsSuite) TestAgentUtilizationTableOutput() {
 func sampleListUtilizationOutput() api.ListAgentUtilizationOutput {
 	single := sampleUtilizationOutput()
 	return api.ListAgentUtilizationOutput{
-		Interval:    api.ListAgentUtilizationOutputIntervalDay,
-		WindowStart: single.WindowStart,
-		WindowEnd:   single.WindowEnd,
+		Interval:           api.ListAgentUtilizationOutputIntervalDay,
+		WindowStart:        single.WindowStart,
+		WindowEnd:          single.WindowEnd,
+		TotalTestsRun:      single.TotalTestsRun,
+		AvgQueueSeconds:    single.AvgQueueSeconds,
+		MedianQueueSeconds: single.MedianQueueSeconds,
+		TopExperiences:     single.TopExperiences,
 		Agents: []api.AgentUtilizationSeries{
 			{AgentID: "agent-1", Buckets: single.Buckets},
 			{AgentID: "agent-idle", Buckets: []api.AgentUtilizationBucket{
@@ -555,18 +619,21 @@ func (s *CommandsSuite) TestListAgentUtilizationParamsConversion() {
 	s.Nil(converted.StartTime)
 	s.Nil(converted.EndTime)
 	s.Nil(converted.Interval)
+	s.Nil(converted.TopExperiences)
 
 	start := time.Date(2026, 6, 4, 0, 0, 0, 0, time.UTC)
 	end := start.AddDate(0, 0, 7)
 	interval := api.GetAgentUtilizationParamsIntervalHour
 	converted = listAgentUtilizationParams(api.GetAgentUtilizationParams{
-		StartTime: &start,
-		EndTime:   &end,
-		Interval:  &interval,
+		StartTime:      &start,
+		EndTime:        &end,
+		Interval:       &interval,
+		TopExperiences: Ptr(25),
 	})
 	s.Equal(&start, converted.StartTime)
 	s.Equal(&end, converted.EndTime)
 	s.Equal(api.ListAgentUtilizationParamsIntervalHour, *converted.Interval)
+	s.Equal(25, *converted.TopExperiences)
 }
 
 func (s *CommandsSuite) TestActualListAgentUtilization() {
@@ -589,6 +656,12 @@ func (s *CommandsSuite) TestFormatListAgentUtilization() {
 	s.Contains(out, "42.5%")
 	// The idle agent's explicit zero bucket renders rather than being elided.
 	s.Equal(2, strings.Count(out, "BUCKET START"))
+	// The fleet-wide summary and top-experiences table render once, before
+	// the per-agent sections.
+	s.Contains(out, "Tests run: 12")
+	s.Contains(out, "Queue wait: avg 1m35s, median 34s")
+	s.Equal(1, strings.Count(out, "TOP EXPERIENCES"))
+	s.Contains(out, "Highway merge")
 }
 
 func (s *CommandsSuite) TestFormatListAgentUtilizationNoAgents() {

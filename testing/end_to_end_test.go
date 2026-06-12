@@ -2872,6 +2872,33 @@ func TestHelp(t *testing.T) {
 	ts.Contains(output.StdOut, "USAGE")
 }
 
+func TestAgents(t *testing.T) {
+	ts := assert.New(t)
+	t.Parallel()
+	fmt.Println("Testing agents list command")
+	// The org may legitimately have no agents: exit 0 with either rows or
+	// the empty-state message is a pass.
+	agentsCommand := CommandBuilder{Command: "agents"}
+	listCommand := CommandBuilder{Command: "list"}
+	output := s.runCommand(ts, []CommandBuilder{agentsCommand, listCommand}, ExpectNoError)
+	ts.Empty(output.StdErr)
+
+	// The JSON envelope always parses, agents or not.
+	listJSONCommand := CommandBuilder{
+		Command: "list",
+		Flags:   []Flag{{Name: "--json", Value: ""}},
+	}
+	output = s.runCommand(ts, []CommandBuilder{agentsCommand, listJSONCommand}, ExpectNoError)
+	var agentsOutput api.ListAgentsOutput
+	ts.NoError(json.Unmarshal([]byte(strings.TrimSpace(output.StdOut)), &agentsOutput))
+
+	fmt.Println("Testing pool-labels queue command")
+	poolLabelsCommand := CommandBuilder{Command: "pool-labels"}
+	queueCommand := CommandBuilder{Command: "queue"}
+	output = s.runCommand(ts, []CommandBuilder{poolLabelsCommand, queueCommand}, ExpectNoError)
+	ts.Empty(output.StdErr)
+}
+
 func TestProjectCommands(t *testing.T) {
 	ts := assert.New(t)
 	t.Parallel()

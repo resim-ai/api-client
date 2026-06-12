@@ -52,15 +52,26 @@ agents with no activity in the window appear with all-zero buckets.
 Each bucket reports:
   utilization      fraction of wall-clock time the agent was running at least
                    one experience (union of running intervals, 0.0-1.0)
+  idle / offline   split of the non-running remainder: offline is the fraction
+                   of wall-clock during which the agent's heartbeat had been
+                   silent for over five minutes, idle the residual
+                   1 - utilization - offline (floored at 0)
+  tests            number of job runs that started in the bucket; bucket
+                   counts sum to the window's total
   avgConcurrency   running job-seconds divided by bucket wall-clock seconds
                    (>= 0.0; exceeds 1.0 when experiences run concurrently)
+
+The window summary also reports the total tests run, the average and median
+queue wait (submission to execution start) of runs started in the window, and
+the top experiences by running time (--top-experiences controls how many).
 
 Only experience-running time counts; metrics phases run on metrics workers,
 not the agent. The denominator is always full wall-clock, so buckets in which
 the agent was offline read 0.0. Note: a job that never recorded a terminal
 transition (e.g. the agent died mid-run) counts as running until query time,
 so a sustained 100% utilization can indicate a stuck run rather than a busy
-rack.`,
+rack. Offline intervals are recorded from this feature's deployment onward;
+in earlier windows offline reads 0 and all non-running time appears as idle.`,
 		Run: agentUtilization,
 	}
 
@@ -84,10 +95,15 @@ const (
 	agentStartTimeKey          = "start-time"
 	agentEndTimeKey            = "end-time"
 	agentIntervalKey           = "interval"
+	agentTopExperiencesKey     = "top-experiences"
 	poolLabelsCompletedDaysKey = "completed-since-days"
 
 	completedSinceDaysMin = 1
 	completedSinceDaysMax = 30
+
+	topExperiencesDefault = 10
+	topExperiencesMin     = 0
+	topExperiencesMax     = 50
 )
 
 func init() {
@@ -105,6 +121,7 @@ func init() {
 	agentUtilizationCmd.Flags().String(agentStartTimeKey, "", "Inclusive window start (RFC3339, e.g. 2026-06-04T00:00:00Z). Defaults to end time minus 7 days")
 	agentUtilizationCmd.Flags().String(agentEndTimeKey, "", "Exclusive window end (RFC3339). Defaults to now")
 	agentUtilizationCmd.Flags().String(agentIntervalKey, "", "Bucket width: hour or day. Buckets are UTC-aligned. Defaults to day")
+	agentUtilizationCmd.Flags().Int(agentTopExperiencesKey, topExperiencesDefault, "How many top experiences (ranked by running time in the window) to include (0-50). 0 omits the list")
 	agentUtilizationCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
 
 	queuePoolLabelsCmd.Flags().Int(poolLabelsCompletedDaysKey, 7, "Window for completed batches, in days (1-30)")
@@ -208,8 +225,13 @@ func archiveAgent(cmd *cobra.Command, args []string) {
 // malformed request never leaves the machine. Empty values stay unset so the
 // server applies its documented defaults (end = now, start = end minus 7 days,
 // interval = day).
-func parseAgentUtilizationParams(startRaw, endRaw, intervalRaw string) (api.GetAgentUtilizationParams, error) {
+func parseAgentUtilizationParams(startRaw, endRaw, intervalRaw string, topExperiences int) (api.GetAgentUtilizationParams, error) {
 	params := api.GetAgentUtilizationParams{}
+	if topExperiences < topExperiencesMin || topExperiences > topExperiencesMax {
+		return params, fmt.Errorf("--%s must be between %d and %d, got %d",
+			agentTopExperiencesKey, topExperiencesMin, topExperiencesMax, topExperiences)
+	}
+	params.TopExperiences = Ptr(topExperiences)
 	if startRaw != "" {
 		t, err := time.Parse(time.RFC3339, startRaw)
 		if err != nil {
@@ -256,8 +278,9 @@ func actualAgentUtilization(agentID string, params api.GetAgentUtilizationParams
 // all-agents operation's identical-but-distinct generated type.
 func listAgentUtilizationParams(params api.GetAgentUtilizationParams) api.ListAgentUtilizationParams {
 	listParams := api.ListAgentUtilizationParams{
-		StartTime: params.StartTime,
-		EndTime:   params.EndTime,
+		StartTime:      params.StartTime,
+		EndTime:        params.EndTime,
+		TopExperiences: params.TopExperiences,
 	}
 	if params.Interval != nil {
 		interval := api.ListAgentUtilizationParamsInterval(*params.Interval)
@@ -283,6 +306,7 @@ func agentUtilization(cmd *cobra.Command, args []string) {
 		viper.GetString(agentStartTimeKey),
 		viper.GetString(agentEndTimeKey),
 		viper.GetString(agentIntervalKey),
+		viper.GetInt(agentTopExperiencesKey),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -405,15 +429,57 @@ func formatAgentDetail(a api.Agent) string {
 }
 
 // writeUtilizationBuckets renders the shared bucket table: one row per
-// bucket, utilization as a percentage, average concurrency as a plain ratio.
+// bucket, the utilization/idle/offline split as percentages, tests started in
+// the bucket as a count, and average concurrency as a plain ratio.
 func writeUtilizationBuckets(b *strings.Builder, buckets []api.AgentUtilizationBucket) {
-	fmt.Fprintf(b, "\n%-22s%-14s%s\n", "BUCKET START", "UTILIZATION", "AVG CONCURRENCY")
+	fmt.Fprintf(b, "\n%-22s%-14s%-9s%-10s%-7s%s\n", "BUCKET START", "UTILIZATION", "IDLE", "OFFLINE", "TESTS", "AVG CONCURRENCY")
 	for _, bucket := range buckets {
-		fmt.Fprintf(b, "%-22s%-14s%.2f\n",
+		fmt.Fprintf(b, "%-22s%-14s%-9s%-10s%-7d%.2f\n",
 			bucket.BucketStart.Format("2006-01-02 15:04"),
 			fmt.Sprintf("%.1f%%", bucket.Utilization*100),
+			fmt.Sprintf("%.1f%%", bucket.Idle*100),
+			fmt.Sprintf("%.1f%%", bucket.Offline*100),
+			bucket.TestsRun,
 			bucket.AvgConcurrency,
 		)
+	}
+}
+
+// formatSeconds renders a seconds count as a compact duration, dropping the
+// zero trailers Duration.String() produces (2h0m0s -> 2h, 5m0s -> 5m).
+func formatSeconds(seconds float64) string {
+	d := time.Duration(seconds * float64(time.Second)).Round(time.Second)
+	out := d.String()
+	if strings.HasSuffix(out, "m0s") {
+		out = strings.TrimSuffix(out, "0s")
+	}
+	if strings.HasSuffix(out, "h0m") {
+		out = strings.TrimSuffix(out, "0m")
+	}
+	return out
+}
+
+// writeUtilizationSummary renders the window-level counters shared by the
+// single-agent and org-wide outputs. The queue-wait line is omitted when the
+// server reported no started run with a measurable wait.
+func writeUtilizationSummary(b *strings.Builder, totalTestsRun int, avgQueueSeconds, medianQueueSeconds *float64) {
+	fmt.Fprintf(b, "Tests run: %d\n", totalTestsRun)
+	if avgQueueSeconds != nil && medianQueueSeconds != nil {
+		fmt.Fprintf(b, "Queue wait: avg %s, median %s\n",
+			formatSeconds(*avgQueueSeconds), formatSeconds(*medianQueueSeconds))
+	}
+}
+
+// writeTopExperiences renders the experiences ranked by running time in the
+// window. share is a fraction of busy time, not of wall-clock.
+func writeTopExperiences(b *strings.Builder, tops []api.AgentUtilizationTopExperience) {
+	if len(tops) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "\n%-40s%-7s%-11s%s\n", "TOP EXPERIENCES", "RUNS", "RUN TIME", "SHARE OF BUSY TIME")
+	for _, e := range tops {
+		fmt.Fprintf(b, "%-40s%-7d%-11s%.1f%%\n",
+			e.ExperienceName, e.RunCount, formatSeconds(e.TotalRunSeconds), e.Share*100)
 	}
 }
 
@@ -427,11 +493,13 @@ func formatAgentUtilization(out api.AgentUtilizationOutput) string {
 		out.WindowStart.Format("2006-01-02 15:04:05 MST"),
 		out.WindowEnd.Format("2006-01-02 15:04:05 MST"),
 	)
+	writeUtilizationSummary(&b, out.TotalTestsRun, out.AvgQueueSeconds, out.MedianQueueSeconds)
 	if len(out.Buckets) == 0 {
 		fmt.Fprintln(&b, "No buckets in the window.")
 		return b.String()
 	}
 	writeUtilizationBuckets(&b, out.Buckets)
+	writeTopExperiences(&b, out.TopExperiences)
 	return b.String()
 }
 
@@ -445,10 +513,12 @@ func formatListAgentUtilization(out api.ListAgentUtilizationOutput) string {
 		out.WindowStart.Format("2006-01-02 15:04:05 MST"),
 		out.WindowEnd.Format("2006-01-02 15:04:05 MST"),
 	)
+	writeUtilizationSummary(&b, out.TotalTestsRun, out.AvgQueueSeconds, out.MedianQueueSeconds)
 	if len(out.Agents) == 0 {
 		fmt.Fprintln(&b, "No agents found in this org.")
 		return b.String()
 	}
+	writeTopExperiences(&b, out.TopExperiences)
 	for _, series := range out.Agents {
 		fmt.Fprintf(&b, "\n=== %s ===\n", series.AgentID)
 		if len(series.Buckets) == 0 {

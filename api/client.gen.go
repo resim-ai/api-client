@@ -357,10 +357,22 @@ type AgentResultBranch struct {
 // [0.0, 1.0]. avgConcurrency is total running job-seconds divided by
 // bucket wall-clock seconds (>= 0.0; exceeds 1.0 when experiences
 // run concurrently).
+//
+// offline is the fraction of bucket wall-clock during which the
+// agent's heartbeat had been silent for over five minutes (0 before
+// offline recording was deployed). idle is the residual
+// 1 − utilization − offline, floored at 0 — a stuck run overlapping
+// recorded offline time can push utilization + offline past 1.0
+// transiently. testsRun counts job runs that started in the bucket;
+// each run counts exactly once across the series, so bucket sums
+// match the window's totalTestsRun.
 type AgentUtilizationBucket struct {
 	AvgConcurrency float64   `json:"avgConcurrency" yaml:"avgConcurrency"`
 	BucketEnd      time.Time `json:"bucketEnd" yaml:"bucketEnd"`
 	BucketStart    time.Time `json:"bucketStart" yaml:"bucketStart"`
+	Idle           float64   `json:"idle" yaml:"idle"`
+	Offline        float64   `json:"offline" yaml:"offline"`
+	TestsRun       int       `json:"testsRun" yaml:"testsRun"`
 	Utilization    float64   `json:"utilization" yaml:"utilization"`
 }
 
@@ -369,13 +381,25 @@ type AgentUtilizationBucket struct {
 // running experiences carry explicit zeros, so the series charts
 // directly without gap-filling. windowStart/windowEnd echo the
 // resolved window (after server-side defaulting), since clipped edge
-// buckets do not recover it.
+// buckets do not recover it. totalTestsRun counts job runs started
+// in the window (the per-bucket testsRun figures sum to it; a run
+// that began before the window is not counted). topExperiences
+// ranks the agent's experiences by total running seconds in the
+// window. avgQueueSeconds/medianQueueSeconds aggregate the queue
+// wait (submission to execution start) of runs started in the
+// window; both are omitted when no started run has a measurable
+// wait. Queue waits are long-tailed, so the median resists the
+// stuck-batch outliers that drag the average.
 type AgentUtilizationOutput struct {
-	AgentID     string                         `json:"agentID" yaml:"agentID"`
-	Buckets     []AgentUtilizationBucket       `json:"buckets" yaml:"buckets"`
-	Interval    AgentUtilizationOutputInterval `json:"interval" yaml:"interval"`
-	WindowEnd   time.Time                      `json:"windowEnd" yaml:"windowEnd"`
-	WindowStart time.Time                      `json:"windowStart" yaml:"windowStart"`
+	AgentID            string                          `json:"agentID" yaml:"agentID"`
+	AvgQueueSeconds    *float64                        `json:"avgQueueSeconds,omitempty" yaml:"avgQueueSeconds,omitempty"`
+	Buckets            []AgentUtilizationBucket        `json:"buckets" yaml:"buckets"`
+	Interval           AgentUtilizationOutputInterval  `json:"interval" yaml:"interval"`
+	MedianQueueSeconds *float64                        `json:"medianQueueSeconds,omitempty" yaml:"medianQueueSeconds,omitempty"`
+	TopExperiences     []AgentUtilizationTopExperience `json:"topExperiences" yaml:"topExperiences"`
+	TotalTestsRun      int                             `json:"totalTestsRun" yaml:"totalTestsRun"`
+	WindowEnd          time.Time                       `json:"windowEnd" yaml:"windowEnd"`
+	WindowStart        time.Time                       `json:"windowStart" yaml:"windowStart"`
 }
 
 // AgentUtilizationOutputInterval defines model for AgentUtilizationOutput.Interval.
@@ -387,6 +411,21 @@ type AgentUtilizationOutputInterval string
 type AgentUtilizationSeries struct {
 	AgentID string                   `json:"agentID" yaml:"agentID"`
 	Buckets []AgentUtilizationBucket `json:"buckets" yaml:"buckets"`
+}
+
+// AgentUtilizationTopExperience One experience's share of running time within a utilization
+// window. runCount is the number of distinct job runs of this
+// experience in the window; totalRunSeconds sums their clipped
+// running durations (concurrent runs accumulate independently);
+// share is totalRunSeconds over all experiences' running seconds in
+// the window — a fraction in [0.0, 1.0] of busy time, not of
+// wall-clock.
+type AgentUtilizationTopExperience struct {
+	ExperienceID    openapi_types.UUID `json:"experienceID" yaml:"experienceID"`
+	ExperienceName  string             `json:"experienceName" yaml:"experienceName"`
+	RunCount        int                `json:"runCount" yaml:"runCount"`
+	Share           float64            `json:"share" yaml:"share"`
+	TotalRunSeconds float64            `json:"totalRunSeconds" yaml:"totalRunSeconds"`
 }
 
 // Architecture defines model for architecture.
@@ -1496,11 +1535,21 @@ type ListAgentResultsOutput struct {
 // a bounded number of HiL agents. windowStart/windowEnd echo the
 // resolved window after server-side defaulting. Agents with no
 // activity in the window appear with explicit all-zero buckets.
+// totalTestsRun counts job runs started in the window across the
+// whole fleet; topExperiences ranks experiences by total running
+// seconds on any agent. avgQueueSeconds/medianQueueSeconds
+// aggregate the queue wait (submission to execution start) of runs
+// started in the window, fleet-wide; both are omitted when no
+// started run has a measurable wait.
 type ListAgentUtilizationOutput struct {
-	Agents      []AgentUtilizationSeries           `json:"agents" yaml:"agents"`
-	Interval    ListAgentUtilizationOutputInterval `json:"interval" yaml:"interval"`
-	WindowEnd   time.Time                          `json:"windowEnd" yaml:"windowEnd"`
-	WindowStart time.Time                          `json:"windowStart" yaml:"windowStart"`
+	Agents             []AgentUtilizationSeries           `json:"agents" yaml:"agents"`
+	AvgQueueSeconds    *float64                           `json:"avgQueueSeconds,omitempty" yaml:"avgQueueSeconds,omitempty"`
+	Interval           ListAgentUtilizationOutputInterval `json:"interval" yaml:"interval"`
+	MedianQueueSeconds *float64                           `json:"medianQueueSeconds,omitempty" yaml:"medianQueueSeconds,omitempty"`
+	TopExperiences     []AgentUtilizationTopExperience    `json:"topExperiences" yaml:"topExperiences"`
+	TotalTestsRun      int                                `json:"totalTestsRun" yaml:"totalTestsRun"`
+	WindowEnd          time.Time                          `json:"windowEnd" yaml:"windowEnd"`
+	WindowStart        time.Time                          `json:"windowStart" yaml:"windowStart"`
 }
 
 // ListAgentUtilizationOutputInterval defines model for ListAgentUtilizationOutput.Interval.
@@ -2672,6 +2721,11 @@ type ListAgentUtilizationParams struct {
 	// hour, day to UTC midnight). The window may span at most 1000
 	// buckets; wider requests return 400.
 	Interval *ListAgentUtilizationParamsInterval `form:"interval,omitempty" json:"interval,omitempty" yaml:"interval,omitempty"`
+
+	// TopExperiences How many top experiences (ranked by total running seconds in
+	// the window, fleet-wide) to include in `topExperiences`. 0
+	// returns an empty list. Values above 50 return 400.
+	TopExperiences *int `form:"topExperiences,omitempty" json:"topExperiences,omitempty" yaml:"topExperiences,omitempty"`
 }
 
 // ListAgentUtilizationParamsInterval defines parameters for ListAgentUtilization.
@@ -2712,6 +2766,11 @@ type GetAgentUtilizationParams struct {
 	// hour, day to UTC midnight). The window may span at most 1000
 	// buckets; wider requests return 400.
 	Interval *GetAgentUtilizationParamsInterval `form:"interval,omitempty" json:"interval,omitempty" yaml:"interval,omitempty"`
+
+	// TopExperiences How many top experiences (ranked by total running seconds on
+	// this agent in the window) to include in `topExperiences`. 0
+	// returns an empty list. Values above 50 return 400.
+	TopExperiences *int `form:"topExperiences,omitempty" json:"topExperiences,omitempty" yaml:"topExperiences,omitempty"`
 }
 
 // GetAgentUtilizationParamsInterval defines parameters for GetAgentUtilization.
@@ -7500,6 +7559,22 @@ func NewListAgentUtilizationRequest(server string, params *ListAgentUtilizationP
 
 		}
 
+		if params.TopExperiences != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "topExperiences", runtime.ParamLocationQuery, *params.TopExperiences); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		queryURL.RawQuery = queryValues.Encode()
 	}
 
@@ -7819,6 +7894,22 @@ func NewGetAgentUtilizationRequest(server string, agentID string, params *GetAge
 		if params.Interval != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "interval", runtime.ParamLocationQuery, *params.Interval); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TopExperiences != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "topExperiences", runtime.ParamLocationQuery, *params.TopExperiences); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err

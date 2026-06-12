@@ -22,6 +22,12 @@ const (
 	OAuthScopes = "OAuth.Scopes"
 )
 
+// Defines values for AgentActivity.
+const (
+	ACTIVE   AgentActivity = "ACTIVE"
+	INACTIVE AgentActivity = "INACTIVE"
+)
+
 // Defines values for Architecture.
 const (
 	AMD64 Architecture = "AMD64"
@@ -153,17 +159,6 @@ const (
 	VIDEO        MetricsDataType = "VIDEO"
 )
 
-// Defines values for ObjectType.
-const (
-	TYPEDCURVESE3    ObjectType = "TYPE_DCURVE_SE3"
-	TYPEFRAME        ObjectType = "TYPE_FRAME"
-	TYPEFRAMEDVECTOR ObjectType = "TYPE_FRAMED_VECTOR"
-	TYPESE3          ObjectType = "TYPE_SE3"
-	TYPESO3          ObjectType = "TYPE_SO3"
-	TYPETCURVESE3    ObjectType = "TYPE_TCURVE_SE3"
-	TYPETRAJECTORY   ObjectType = "TYPE_TRAJECTORY"
-)
-
 // Defines values for ParameterSweepStatus.
 const (
 	ParameterSweepStatusCANCELLED ParameterSweepStatus = "CANCELLED"
@@ -202,6 +197,14 @@ const (
 	ListPoolLabelsParamsOrderByTimestamp ListPoolLabelsParamsOrderBy = "timestamp"
 )
 
+// Defines values for ListBranchesForProjectParamsOrderBy.
+const (
+	ListBranchesForProjectParamsOrderByActivity  ListBranchesForProjectParamsOrderBy = "activity"
+	ListBranchesForProjectParamsOrderById        ListBranchesForProjectParamsOrderBy = "id"
+	ListBranchesForProjectParamsOrderByRank      ListBranchesForProjectParamsOrderBy = "rank"
+	ListBranchesForProjectParamsOrderByTimestamp ListBranchesForProjectParamsOrderBy = "timestamp"
+)
+
 // Defines values for ListExperienceTagsParamsOrderBy.
 const (
 	ListExperienceTagsParamsOrderById        ListExperienceTagsParamsOrderBy = "id"
@@ -230,6 +233,36 @@ type AddTagsToExperiencesInput struct {
 	Filters          *ExperienceFilterInput `json:"filters,omitempty" yaml:"filters,omitempty"`
 }
 
+// Agent A HiL Agent registration, hydrated with derived activity and recent-activity fields for the customer-facing list/detail surfaces.
+type Agent struct {
+	// Activity Whether the agent is actively running a job. ACTIVE means the agent
+	// has at least one job in conflatedStatus=RUNNING joined via
+	// jobs_status_history.agent_id, AND its last_checkin is within the
+	// active-window threshold (default 5 minutes). INACTIVE otherwise.
+	Activity     AgentActivity `json:"activity" yaml:"activity"`
+	AgentID      string        `json:"agentID" yaml:"agentID"`
+	FirstCheckin time.Time     `json:"firstCheckin" yaml:"firstCheckin"`
+
+	// IsOutOfDate True iff the agent's reported version is older (semver-canonical,
+	// prerelease stripped) than latestKnownVersion. False when
+	// latestKnownVersion is unset (the UI suppresses the indicator
+	// entirely in that case).
+	IsOutOfDate bool       `json:"isOutOfDate" yaml:"isOutOfDate"`
+	LastCheckin time.Time  `json:"lastCheckin" yaml:"lastCheckin"`
+	OrgID       OrgID      `json:"orgID" yaml:"orgID"`
+	PoolLabels  PoolLabels `json:"poolLabels" yaml:"poolLabels"`
+
+	// RecentActivity Up to a server-defined cap of most-recent unified batch+job activity cards.
+	RecentActivity []AgentRecentActivity `json:"recentActivity" yaml:"recentActivity"`
+	Version        string                `json:"version" yaml:"version"`
+}
+
+// AgentActivity Whether the agent is actively running a job. ACTIVE means the agent
+// has at least one job in conflatedStatus=RUNNING joined via
+// jobs_status_history.agent_id, AND its last_checkin is within the
+// active-window threshold (default 5 minutes). INACTIVE otherwise.
+type AgentActivity string
+
 // AgentMarkdownHistoryEntry defines model for agentMarkdownHistoryEntry.
 type AgentMarkdownHistoryEntry struct {
 	AgentMarkdown string             `json:"agentMarkdown" yaml:"agentMarkdown"`
@@ -238,8 +271,72 @@ type AgentMarkdownHistoryEntry struct {
 	Id            openapi_types.UUID `json:"id" yaml:"id"`
 }
 
+// AgentRecentActivity One card in an agent's recent-activity feed, combining the batch
+// with the specific test/job that ran. The UI renders a single
+// unified card per activity item rather than separate batch and
+// test columns.
+type AgentRecentActivity struct {
+	BatchConflatedStatus ConflatedBatchStatus `json:"batchConflatedStatus" yaml:"batchConflatedStatus"`
+	BatchID              openapi_types.UUID   `json:"batchID" yaml:"batchID"`
+	BatchName            string               `json:"batchName" yaml:"batchName"`
+
+	// BranchName Optional — null when the batch's build is not associated with a branch.
+	BranchName *string `json:"branchName,omitempty" yaml:"branchName,omitempty"`
+
+	// BuildID ID of the build the batch ran, for linking to the build page. Optional — null when no build can be resolved.
+	BuildID *openapi_types.UUID `json:"buildID,omitempty" yaml:"buildID,omitempty"`
+
+	// BuildVersion The build version associated with the batch. Optional — null when no build can be resolved.
+	BuildVersion *string `json:"buildVersion,omitempty" yaml:"buildVersion,omitempty"`
+
+	// ErrorSummary Latest error_text recorded against the job. Optional — null when the job has no errors.
+	ErrorSummary       *string            `json:"errorSummary,omitempty" yaml:"errorSummary,omitempty"`
+	JobConflatedStatus ConflatedJobStatus `json:"jobConflatedStatus" yaml:"jobConflatedStatus"`
+	JobID              openapi_types.UUID `json:"jobID" yaml:"jobID"`
+
+	// JobName Surfaced as "test name" in the agent-status UI; sourced from the experience name on the job.
+	JobName   string              `json:"jobName" yaml:"jobName"`
+	ProjectID *openapi_types.UUID `json:"projectID,omitempty" yaml:"projectID,omitempty"`
+
+	// ProjectName Name of the project the batch belongs to. Always present — every batch has a project.
+	ProjectName string `json:"projectName" yaml:"projectName"`
+
+	// SystemID ID of the system the batch's build belongs to, for linking to the system page. Optional — null when no build/system can be resolved.
+	SystemID *openapi_types.UUID `json:"systemID,omitempty" yaml:"systemID,omitempty"`
+
+	// SystemName Name of the system the batch's build belongs to. Optional — null when no build/system can be resolved.
+	SystemName *string `json:"systemName,omitempty" yaml:"systemName,omitempty"`
+
+	// TestSuiteID ID of the test suite the batch belongs to, for linking to the test-suite page. Optional — null when the batch is adhoc.
+	TestSuiteID *openapi_types.UUID `json:"testSuiteID,omitempty" yaml:"testSuiteID,omitempty"`
+
+	// TestSuiteName Name of the test suite the batch belongs to. Optional — null when the batch is adhoc or the test_suites row cannot be resolved.
+	TestSuiteName *string `json:"testSuiteName,omitempty" yaml:"testSuiteName,omitempty"`
+
+	// TestSuiteRevision Revision of the test suite the batch ran. Optional — present only alongside testSuiteID, since the test-suite page is revision-specific.
+	TestSuiteRevision *int32    `json:"testSuiteRevision,omitempty" yaml:"testSuiteRevision,omitempty"`
+	Timestamp         time.Time `json:"timestamp" yaml:"timestamp"`
+
+	// WorkerID Identifier of the worker that ran the job, sourced from jobs_status_history. Optional — older rows may not have a worker recorded.
+	WorkerID *string `json:"workerID,omitempty" yaml:"workerID,omitempty"`
+}
+
+// AgentResultBranch One branch that appears in a HiL Agent's results.
+type AgentResultBranch struct {
+	BranchID openapi_types.UUID `json:"branchID" yaml:"branchID"`
+	Name     string             `json:"name" yaml:"name"`
+}
+
 // Architecture defines model for architecture.
 type Architecture string
+
+// ArchiveAgentOutput Response shape for archiveAgent. archivedAt is the original
+// archive timestamp — re-archiving an already-archived agent
+// preserves the first value rather than refreshing it.
+type ArchiveAgentOutput struct {
+	AgentID    string    `json:"agentID" yaml:"agentID"`
+	ArchivedAt time.Time `json:"archivedAt" yaml:"archivedAt"`
+}
 
 // Archived defines model for archived.
 type Archived = bool
@@ -802,14 +899,71 @@ type CreateWorkflowInput struct {
 	WorkflowSuites []WorkflowSuiteInput `json:"workflowSuites" yaml:"workflowSuites"`
 }
 
-// CreateWorkflowRunInput defines model for createWorkflowRunInput.
+// CreateWorkflowRunInput Input to create a workflow run. A run is configured via exactly one of
+// two mutually-exclusive mechanisms:
+//
+//  1. **Multi-system (preferred)**: set `builds` with one entry per
+//     system covered by the workflow's enabled suites. Each entry pins a
+//     build by `buildID`; the system is derived server-side from
+//     `builds.system_id`. Optional per-entry `poolLabels`, `parameters`,
+//     and `allowableFailurePercent` apply to that build's batch only.
+//  2. **Legacy single-system (deprecated)**: set the top-level `buildID`.
+//     The run-level `poolLabels`, `parameters`, and
+//     `allowableFailurePercent` (if any) apply to every enabled suite in
+//     the workflow. New integrations should use `builds` even when the
+//     workflow only covers one system.
+//
+// Mixing the two mechanisms is rejected with HTTP 400. Specifically:
+//   - `buildID` and `builds` cannot both be set.
+//   - When `builds` is set, the run-level `poolLabels`, `parameters`,
+//     and `allowableFailurePercent` must be omitted; supply those
+//     values per-entry on the `builds` items instead.
+//
+// Within `builds`, two entries resolving to the same system are
+// rejected, and a build whose system is not covered by any enabled
+// suite is rejected. A workflow with an enabled suite whose system has
+// no matching entry in `builds` is also rejected (HTTP 422).
+//
+// `associatedAccount` and `triggeredVia` are run-level metadata that
+// apply to every batch produced by the run and are valid in both
+// mechanisms.
 type CreateWorkflowRunInput struct {
+	// AllowableFailurePercent **Deprecated**: run-level allowable failure percent for the legacy
+	// `buildID` mechanism; applied to every enabled suite. Must be
+	// omitted when using `builds`. With `builds`, set
+	// `allowableFailurePercent` per-entry on the builds items instead.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	AllowableFailurePercent *int               `json:"allowableFailurePercent" yaml:"allowableFailurePercent"`
 	AssociatedAccount       *AssociatedAccount `json:"associatedAccount,omitempty" yaml:"associatedAccount,omitempty"`
-	BuildID                 BuildID            `json:"buildID" yaml:"buildID"`
-	Parameters              *BatchParameters   `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	PoolLabels              *PoolLabels        `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
-	TriggeredVia            *TriggeredVia      `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
+
+	// BuildID **Deprecated**: legacy single-system mechanism. Identifies the
+	// build for the one system covered by the workflow. Mutually
+	// exclusive with `builds`. New integrations should use `builds`
+	// instead, even for single-system workflows.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	BuildID *BuildID `json:"buildID" yaml:"buildID"`
+
+	// Builds Multi-system mechanism (preferred). One entry per system covered
+	// by the workflow's enabled suites; the system for each entry is
+	// derived from the entry's `buildID`. Mutually exclusive with the
+	// run-level `buildID`, `poolLabels`, `parameters`, and
+	// `allowableFailurePercent`.
+	Builds *[]WorkflowRunBuildInput `json:"builds" yaml:"builds"`
+
+	// Parameters **Deprecated**: run-level parameters for the legacy `buildID`
+	// mechanism; applied to every enabled suite. Must be omitted when
+	// using `builds`. With `builds`, set `parameters` per-entry on the
+	// builds items instead.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	Parameters *BatchParameters `json:"parameters" yaml:"parameters"`
+
+	// PoolLabels **Deprecated**: run-level pool labels for the legacy `buildID`
+	// mechanism; applied to every enabled suite. Must be omitted when
+	// using `builds`. With `builds`, set `poolLabels` per-entry on the
+	// builds items instead.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	PoolLabels   *PoolLabels   `json:"poolLabels" yaml:"poolLabels"`
+	TriggeredVia *TriggeredVia `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
 }
 
 // CreateWorkflowSuiteInput defines model for createWorkflowSuiteInput.
@@ -1248,14 +1402,42 @@ type LightBatchInput struct {
 // LightJobStatus defines model for lightJobStatus.
 type LightJobStatus string
 
-// LineNumber defines model for lineNumber.
-type LineNumber = int32
-
 // ListAgentMarkdownHistoryOutput defines model for listAgentMarkdownHistoryOutput.
 type ListAgentMarkdownHistoryOutput struct {
 	Entries       []AgentMarkdownHistoryEntry `json:"entries" yaml:"entries"`
 	HasMore       bool                        `json:"hasMore" yaml:"hasMore"`
 	NextPageToken string                      `json:"nextPageToken" yaml:"nextPageToken"`
+}
+
+// ListAgentResultBranchesOutput The distinct branches an agent has run, ordered by name. Not
+// paginated — an agent runs a bounded number of branches, so the
+// full set is returned for client-side search.
+type ListAgentResultBranchesOutput struct {
+	Branches []AgentResultBranch `json:"branches" yaml:"branches"`
+}
+
+// ListAgentResultsOutput Paginated list of recent batch+test activity for a single HiL Agent,
+// sorted by `updated_at DESC, jobID DESC` so the cursor is stable
+// across heartbeat updates. Surfaces every test the agent has run
+// for the caller's org via the structural jobs_status_history.agent_id
+// join.
+type ListAgentResultsOutput struct {
+	Items         []AgentRecentActivity `json:"items" yaml:"items"`
+	NextPageToken *string               `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
+
+	// Total Total number of results for the agent across all pages, useful for the Results tab count in the UI.
+	Total int `json:"total" yaml:"total"`
+}
+
+// ListAgentsOutput defines model for listAgentsOutput.
+type ListAgentsOutput struct {
+	Agents []Agent `json:"agents" yaml:"agents"`
+
+	// LatestKnownVersion The latest released agent version the server is aware of. Empty
+	// string when the server cannot currently determine it; clients
+	// should treat empty as "no canonical latest" and suppress the
+	// per-agent out-of-date indicator entirely.
+	LatestKnownVersion string `json:"latestKnownVersion" yaml:"latestKnownVersion"`
 }
 
 // ListAllJobsOutput defines model for listAllJobsOutput.
@@ -1425,6 +1607,11 @@ type ListParameterSweepsOutput struct {
 	Sweeps        *[]ParameterSweep `json:"sweeps,omitempty" yaml:"sweeps,omitempty"`
 }
 
+// ListPoolLabelQueueOutput defines model for listPoolLabelQueueOutput.
+type ListPoolLabelQueueOutput struct {
+	Items []PoolLabelQueueItem `json:"items" yaml:"items"`
+}
+
 // ListPoolLabelsOutput defines model for listPoolLabelsOutput.
 type ListPoolLabelsOutput struct {
 	NextPageToken *string      `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
@@ -1508,12 +1695,6 @@ type ListTestSuiteRevisionsOutput struct {
 // ListUsersOutput defines model for listUsersOutput.
 type ListUsersOutput = []string
 
-// ListViewObjectsOutput defines model for listViewObjectsOutput.
-type ListViewObjectsOutput struct {
-	NextPageToken *string       `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
-	ViewSessions  *[]ViewObject `json:"viewSessions,omitempty" yaml:"viewSessions,omitempty"`
-}
-
 // ListWorkflowRunsOutput defines model for listWorkflowRunsOutput.
 type ListWorkflowRunsOutput struct {
 	NextPageToken string        `json:"nextPageToken" yaml:"nextPageToken"`
@@ -1575,9 +1756,6 @@ type LogStream struct {
 
 // LogType defines model for logType.
 type LogType string
-
-// McapURL defines model for mcapURL.
-type McapURL = string
 
 // Metric defines model for metric.
 type Metric struct {
@@ -1698,15 +1876,6 @@ type MutateSystemsToExperienceInput struct {
 // Name defines model for name.
 type Name = string
 
-// ObjectCount defines model for objectCount.
-type ObjectCount = int32
-
-// ObjectName defines model for objectName.
-type ObjectName = string
-
-// ObjectType defines model for objectType.
-type ObjectType string
-
 // OrgID defines model for orgID.
 type OrgID = string
 
@@ -1761,6 +1930,56 @@ type ParameterSweepStatusHistoryType struct {
 
 // PoolLabel defines model for poolLabel.
 type PoolLabel = string
+
+// PoolLabelQueueBatch One batch slot inside a pool-label-queue group. Used for active, queued, and completed batch lists.
+type PoolLabelQueueBatch struct {
+	BatchID         openapi_types.UUID   `json:"batchID" yaml:"batchID"`
+	BatchName       string               `json:"batchName" yaml:"batchName"`
+	BranchName      *string              `json:"branchName,omitempty" yaml:"branchName,omitempty"`
+	ConflatedStatus ConflatedBatchStatus `json:"conflatedStatus" yaml:"conflatedStatus"`
+
+	// Priority Raw scheduler priority. batches.priority defaults to 1000 and
+	// the scheduler sorts ASC, so a value below 1000 is elevated
+	// above default (rendered "High") and above 1000 is deprioritised
+	// (rendered "Low"). Equal to 1000 is the default (no pill).
+	// Display-only — setting priority via the UI is not yet supported.
+	Priority  int                 `json:"priority" yaml:"priority"`
+	ProjectID *openapi_types.UUID `json:"projectID,omitempty" yaml:"projectID,omitempty"`
+
+	// QueuePosition 1-based position within the queued list (e.g. 1 for "Queued 1").
+	// Null on active and completed entries — only queued batches carry
+	// a position.
+	QueuePosition *int `json:"queuePosition,omitempty" yaml:"queuePosition,omitempty"`
+
+	// TestSuiteID ID of the test suite the batch belongs to, for linking to the test-suite page. Optional — null when the batch is adhoc or the test_suites row no longer exists.
+	TestSuiteID *openapi_types.UUID `json:"testSuiteID,omitempty" yaml:"testSuiteID,omitempty"`
+
+	// TestSuiteName Name of the test suite the batch belongs to, or omitted when
+	// adhoc / the test_suites row no longer exists.
+	TestSuiteName *string `json:"testSuiteName,omitempty" yaml:"testSuiteName,omitempty"`
+
+	// TestSuiteRevision Revision of the test suite the batch ran. Optional — present only alongside testSuiteID, since the test-suite page is revision-specific.
+	TestSuiteRevision *int32    `json:"testSuiteRevision,omitempty" yaml:"testSuiteRevision,omitempty"`
+	Timestamp         time.Time `json:"timestamp" yaml:"timestamp"`
+}
+
+// PoolLabelQueueItem One pool-label group in the queue view. Groups carry an optional active batch, queued batches, recently-completed batches (under a collapse), and the list of agents that have served this label.
+type PoolLabelQueueItem struct {
+	// ActiveBatches Batches in a non-terminal, non-SUBMITTED status currently running under this pool label. Multiple concurrent runners are normal — agents in a pool can serve more than one batch at a time.
+	ActiveBatches []PoolLabelQueueBatch `json:"activeBatches" yaml:"activeBatches"`
+
+	// AssociatedAgentIDs IDs of agents that either advertise this pool label OR have at
+	// least one historical job on a batch carrying it. Soft-deleted
+	// agents are excluded.
+	AssociatedAgentIDs []string `json:"associatedAgentIDs" yaml:"associatedAgentIDs"`
+
+	// CompletedBatches Batches in terminal status (SUCCEEDED / CANCELLED / ERROR) within the completedSinceDays window.
+	CompletedBatches []PoolLabelQueueBatch `json:"completedBatches" yaml:"completedBatches"`
+
+	// PoolLabel The colon-prefixed root form (e.g. "RackHiLConfig"); see scheduler tasks.sql split_part(label, ':', 1) convention.
+	PoolLabel     string                `json:"poolLabel" yaml:"poolLabel"`
+	QueuedBatches []PoolLabelQueueBatch `json:"queuedBatches" yaml:"queuedBatches"`
+}
 
 // PoolLabels defines model for poolLabels.
 type PoolLabels = []PoolLabel
@@ -2226,47 +2445,6 @@ type UpdateWorkflowSuitesOutput struct {
 // UserID defines model for userID.
 type UserID = string
 
-// ViewMetadata defines model for viewMetadata.
-type ViewMetadata struct {
-	FileName   *FileName   `json:"fileName,omitempty" yaml:"fileName,omitempty"`
-	LineNumber *LineNumber `json:"lineNumber,omitempty" yaml:"lineNumber,omitempty"`
-	ObjectName *ObjectName `json:"objectName,omitempty" yaml:"objectName,omitempty"`
-	ObjectType *ObjectType `json:"objectType,omitempty" yaml:"objectType,omitempty"`
-}
-
-// ViewObject defines model for viewObject.
-type ViewObject struct {
-	FriendlyName  *FriendlyName  `json:"friendlyName,omitempty" yaml:"friendlyName,omitempty"`
-	McapURL       *McapURL       `json:"mcapURL,omitempty" yaml:"mcapURL,omitempty"`
-	ObjectCount   *ObjectCount   `json:"objectCount,omitempty" yaml:"objectCount,omitempty"`
-	OrgID         *OrgID         `json:"orgID,omitempty" yaml:"orgID,omitempty"`
-	UserID        *UserID        `json:"userID,omitempty" yaml:"userID,omitempty"`
-	ViewSessionID *ViewSessionID `json:"viewSessionID,omitempty" yaml:"viewSessionID,omitempty"`
-	ViewTimestamp *Timestamp     `json:"viewTimestamp,omitempty" yaml:"viewTimestamp,omitempty"`
-	ViewURL       *string        `json:"viewURL,omitempty" yaml:"viewURL,omitempty"`
-}
-
-// ViewObjectAndMetadata defines model for viewObjectAndMetadata.
-type ViewObjectAndMetadata struct {
-	ViewMetadata *[]ViewMetadata `json:"viewMetadata,omitempty" yaml:"viewMetadata,omitempty"`
-	ViewObject   *ViewObject     `json:"viewObject,omitempty" yaml:"viewObject,omitempty"`
-}
-
-// ViewSessionID defines model for viewSessionID.
-type ViewSessionID = openapi_types.UUID
-
-// ViewSessionUpdate defines model for viewSessionUpdate.
-type ViewSessionUpdate struct {
-	Id   *ViewSessionID `json:"id,omitempty" yaml:"id,omitempty"`
-	Mcap *McapURL       `json:"mcap,omitempty" yaml:"mcap,omitempty"`
-
-	// View A link to view the session.
-	View *string `json:"view,omitempty" yaml:"view,omitempty"`
-}
-
-// ViewUpdateID defines model for viewUpdateID.
-type ViewUpdateID = int
-
 // Workflow defines model for workflow.
 type Workflow struct {
 	Archived          Archived   `json:"archived" yaml:"archived"`
@@ -2277,10 +2455,17 @@ type Workflow struct {
 	Name              string     `json:"name" yaml:"name"`
 	OrgID             OrgID      `json:"orgID" yaml:"orgID"`
 	ProjectID         ProjectID  `json:"projectID" yaml:"projectID"`
-	UpdateTimestamp   Timestamp  `json:"updateTimestamp" yaml:"updateTimestamp"`
-	UpdateUserID      UserID     `json:"updateUserID" yaml:"updateUserID"`
-	UserID            UserID     `json:"userID" yaml:"userID"`
-	WorkflowID        WorkflowID `json:"workflowID" yaml:"workflowID"`
+
+	// RequiredSystems Distinct systems covered by this workflow's currently-enabled,
+	// non-archived test suites. To create a workflow run, the caller
+	// must provide one build for each of these systems via
+	// `createWorkflowRunInput.builds`. An enabled suite whose system has
+	// no matching build in the request is rejected with HTTP 422.
+	RequiredSystems []SystemID `json:"requiredSystems" yaml:"requiredSystems"`
+	UpdateTimestamp Timestamp  `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID    UserID     `json:"updateUserID" yaml:"updateUserID"`
+	UserID          UserID     `json:"userID" yaml:"userID"`
+	WorkflowID      WorkflowID `json:"workflowID" yaml:"workflowID"`
 }
 
 // WorkflowID defines model for workflowID.
@@ -2288,23 +2473,80 @@ type WorkflowID = openapi_types.UUID
 
 // WorkflowRun defines model for workflowRun.
 type WorkflowRun struct {
-	AssociatedAccount     *AssociatedAccount     `json:"associatedAccount,omitempty" yaml:"associatedAccount,omitempty"`
-	BuildID               BuildID                `json:"buildID" yaml:"buildID"`
-	CreationTimestamp     Timestamp              `json:"creationTimestamp" yaml:"creationTimestamp"`
-	OrgID                 OrgID                  `json:"orgID" yaml:"orgID"`
-	TriggeredVia          *TriggeredVia          `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
-	UserID                UserID                 `json:"userID" yaml:"userID"`
-	WorkflowID            WorkflowID             `json:"workflowID" yaml:"workflowID"`
-	WorkflowRunID         WorkflowRunID          `json:"workflowRunID" yaml:"workflowRunID"`
+	AssociatedAccount *AssociatedAccount `json:"associatedAccount,omitempty" yaml:"associatedAccount,omitempty"`
+
+	// BuildID **Deprecated**: convenience echo of the build for single-system
+	// runs (populated when every enabled suite of the run used the same
+	// build; omitted otherwise). Use `workflowRunTestSuites[].buildID`
+	// instead — each suite carries the build it was actually exercised
+	// with.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	BuildID           *BuildID      `json:"buildID" yaml:"buildID"`
+	CreationTimestamp Timestamp     `json:"creationTimestamp" yaml:"creationTimestamp"`
+	OrgID             OrgID         `json:"orgID" yaml:"orgID"`
+	TriggeredVia      *TriggeredVia `json:"triggeredVia,omitempty" yaml:"triggeredVia,omitempty"`
+
+	// UnusedBuilds Builds that were supplied via `createWorkflowRunInput.builds` but
+	// whose system is not covered by any enabled, non-archived suite of
+	// the workflow. The run is created and the missing-system rejection
+	// (HTTP 422) is unaffected; these builds are simply not exercised.
+	// Surfaced here so callers (e.g. CI integrations) can warn when
+	// they're sending more than the workflow needs. Empty/omitted in
+	// the typical case.
+	UnusedBuilds  *[]BuildID    `json:"unusedBuilds" yaml:"unusedBuilds"`
+	UserID        UserID        `json:"userID" yaml:"userID"`
+	WorkflowID    WorkflowID    `json:"workflowID" yaml:"workflowID"`
+	WorkflowRunID WorkflowRunID `json:"workflowRunID" yaml:"workflowRunID"`
+
+	// WorkflowRunTestSuites One row per test suite that was associated with the workflow at
+	// run time. For each enabled suite, `buildID`, `systemID`, and
+	// `batchID` are populated (the suite was exercised against that
+	// build, on that system, producing that batch). For suites that
+	// were disabled at run time the row is still recorded but `buildID`
+	// and `batchID` are null.
 	WorkflowRunTestSuites []WorkflowRunTestSuite `json:"workflowRunTestSuites" yaml:"workflowRunTestSuites"`
+}
+
+// WorkflowRunBuildInput Multi-build input entry for `createWorkflowRunInput.builds`. The
+// caller pins a build by `buildID`; Optional per-entry `poolLabels`,
+// `parameters`, and `allowableFailurePercent` replace — and must not be
+// combined with — the run-level fields of the same name.
+type WorkflowRunBuildInput struct {
+	AllowableFailurePercent *int `json:"allowableFailurePercent" yaml:"allowableFailurePercent"`
+
+	// BuildID The build to run for this entry. The system this entry covers is
+	// derived from this build's `system_id`. Two entries resolving to
+	// the same system are rejected with HTTP 400, and a build whose
+	// system is not covered by any enabled suite in the workflow is
+	// also rejected.
+	BuildID    BuildID          `json:"buildID" yaml:"buildID"`
+	Parameters *BatchParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	PoolLabels *PoolLabels      `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
 }
 
 // WorkflowRunID defines model for workflowRunID.
 type WorkflowRunID = openapi_types.UUID
 
-// WorkflowRunTestSuite defines model for workflowRunTestSuite.
+// WorkflowRunTestSuite One row per test suite associated with a workflow run. Enabled suites
+// carry the build allocated to them (`buildID`), the system that build
+// was for (`systemID`, copied from the test suite's system), and the
+// resulting batch (`batchID`). Disabled suites have `buildID` and
+// `batchID` null.
 type WorkflowRunTestSuite struct {
-	BatchID     BatchID     `json:"batchID" yaml:"batchID"`
+	// BatchID The batch produced for this suite. `null` for suites that were
+	// disabled at run time, and also `null` if the suite has no active
+	// experiences (the run is recorded for traceability but no batch is
+	// launched).
+	BatchID *BatchID `json:"batchID" yaml:"batchID"`
+
+	// BuildID The build allocated to this suite for this run, taken from the
+	// input `builds` entry whose system matches this suite. `null` for
+	// suites that were disabled at run time.
+	BuildID *BuildID `json:"buildID" yaml:"buildID"`
+
+	// SystemID The system this test suite covers (copied from the test suite at
+	// run creation time). Always populated.
+	SystemID    SystemID    `json:"systemID" yaml:"systemID"`
 	TestSuiteID TestSuiteID `json:"testSuiteID" yaml:"testSuiteID"`
 }
 
@@ -2333,8 +2575,43 @@ type PageSizeUnbounded = int
 // PageToken defines model for pageToken.
 type PageToken = string
 
+// ListAgentPoolLabelQueueParams defines parameters for ListAgentPoolLabelQueue.
+type ListAgentPoolLabelQueueParams struct {
+	// CompletedSinceDays Window for completed batches surfaced under the per-pool-label collapse. Defaults to 7.
+	CompletedSinceDays *int `form:"completedSinceDays,omitempty" json:"completedSinceDays,omitempty" yaml:"completedSinceDays,omitempty"`
+}
+
+// ListAgentResultBranchesParams defines parameters for ListAgentResultBranches.
+type ListAgentResultBranchesParams struct {
+	// Name Optional case-insensitive substring filter on the branch name. Omit or leave blank to return all of the agent's branches.
+	Name *string `form:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty"`
+}
+
+// ListAgentResultsParams defines parameters for ListAgentResults.
+type ListAgentResultsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+
+	// BranchIds Optional branch IDs. When set, only results whose build is on one of these branches are returned (and counted).
+	BranchIds *[]openapi_types.UUID `form:"branchIds,omitempty" json:"branchIds,omitempty" yaml:"branchIds,omitempty"`
+
+	// CreatedAfter Optional lower bound (RFC 3339) on a result's timestamp. When set, only results updated at or after this instant are returned (and counted).
+	CreatedAfter *time.Time `form:"createdAfter,omitempty" json:"createdAfter,omitempty" yaml:"createdAfter,omitempty"`
+
+	// Text Optional case-insensitive substring filter on the test (experience) name.
+	Text *string `form:"text,omitempty" json:"text,omitempty" yaml:"text,omitempty"`
+}
+
 // ListBlueprintsParams defines parameters for ListBlueprints.
 type ListBlueprintsParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
+
+// SearchBranchesParams defines parameters for SearchBranches.
+type SearchBranchesParams struct {
+	// Name Filter branches by name; results are rank-ordered so the closest matches surface first.
+	Name      *string    `form:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty"`
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 }
@@ -2577,15 +2854,18 @@ type ListBatchMetricsDataForBatchMetricsDataIDsParams struct {
 
 // ListBranchesForProjectParams defines parameters for ListBranchesForProject.
 type ListBranchesForProjectParams struct {
-	// Name Filter branches by name
+	// Name Filter branches by name. It is recommended to use orderBy=rank with this so the closest matches surface first. When orderBy=rank is set without a name, the 'main' branch is bubbled to the top.
 	Name *string `form:"name,omitempty" json:"name,omitempty" yaml:"name,omitempty"`
 
 	// BranchType Filter branches by branchType
-	BranchType *BranchType `form:"branchType,omitempty" json:"branchType,omitempty" yaml:"branchType,omitempty"`
-	PageSize   *PageSize   `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken  *PageToken  `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
-	OrderBy    *OrderBy    `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+	BranchType *BranchType                          `form:"branchType,omitempty" json:"branchType,omitempty" yaml:"branchType,omitempty"`
+	PageSize   *PageSize                            `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken  *PageToken                           `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+	OrderBy    *ListBranchesForProjectParamsOrderBy `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
+
+// ListBranchesForProjectParamsOrderBy defines parameters for ListBranchesForProject.
+type ListBranchesForProjectParamsOrderBy string
 
 // ListBuildsForBranchesParams defines parameters for ListBuildsForBranches.
 type ListBuildsForBranchesParams struct {
@@ -2839,13 +3119,6 @@ type ListWorkflowsParams struct {
 
 // ListWorkflowRunsParams defines parameters for ListWorkflowRuns.
 type ListWorkflowRunsParams struct {
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
-	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
-}
-
-// ListViewSessionsParams defines parameters for ListViewSessions.
-type ListViewSessionsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
@@ -3519,6 +3792,24 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// ListAgents request
+	ListAgents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAgentPoolLabelQueue request
+	ListAgentPoolLabelQueue(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetAgent request
+	GetAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ArchiveAgent request
+	ArchiveAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAgentResultBranches request
+	ListAgentResultBranches(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListAgentResults request
+	ListAgentResults(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListBlueprints request
 	ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -3538,6 +3829,9 @@ type ClientInterface interface {
 
 	// GetBlueprintVersion request
 	GetBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// SearchBranches request
+	SearchBranches(ctx context.Context, params *SearchBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// Health request
 	Health(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4141,18 +4435,78 @@ type ClientInterface interface {
 	ValidateExperienceLocationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	ValidateExperienceLocation(ctx context.Context, body ValidateExperienceLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
 
-	// ListViewSessions request
-	ListViewSessions(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+func (c *Client) ListAgents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAgentsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
 
-	// CreateViewSession request
-	CreateViewSession(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+func (c *Client) ListAgentPoolLabelQueue(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAgentPoolLabelQueueRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
 
-	// GetViewSession request
-	GetViewSession(ctx context.Context, viewSessionID ViewSessionID, reqEditors ...RequestEditorFn) (*http.Response, error)
+func (c *Client) GetAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetAgentRequest(c.Server, agentID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
 
-	// CreateViewUpdateWithBody request with any body
-	CreateViewUpdateWithBody(ctx context.Context, viewSessionID ViewSessionID, viewUpdateID ViewUpdateID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+func (c *Client) ArchiveAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewArchiveAgentRequest(c.Server, agentID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAgentResultBranches(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAgentResultBranchesRequest(c.Server, agentID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListAgentResults(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAgentResultsRequest(c.Server, agentID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) ListBlueprints(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -4229,6 +4583,18 @@ func (c *Client) ArchiveBlueprintVersion(ctx context.Context, blueprintName stri
 
 func (c *Client) GetBlueprintVersion(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetBlueprintVersionRequest(c.Server, blueprintName, blueprintVersion)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) SearchBranches(ctx context.Context, params *SearchBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewSearchBranchesRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -6843,52 +7209,324 @@ func (c *Client) ValidateExperienceLocation(ctx context.Context, body ValidateEx
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListViewSessions(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListViewSessionsRequest(c.Server, params)
+// NewListAgentsRequest generates requests for ListAgents
+func NewListAgentsRequest(server string) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+
+	operationPath := fmt.Sprintf("/agents")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
 		return nil, err
 	}
-	return c.Client.Do(req)
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
-func (c *Client) CreateViewSession(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateViewSessionRequest(c.Server)
+// NewListAgentPoolLabelQueueRequest generates requests for ListAgentPoolLabelQueue
+func NewListAgentPoolLabelQueueRequest(server string, params *ListAgentPoolLabelQueueParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+
+	operationPath := fmt.Sprintf("/agents/poolLabels/queue")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
 		return nil, err
 	}
-	return c.Client.Do(req)
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.CompletedSinceDays != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "completedSinceDays", runtime.ParamLocationQuery, *params.CompletedSinceDays); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
-func (c *Client) GetViewSession(ctx context.Context, viewSessionID ViewSessionID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewGetViewSessionRequest(c.Server, viewSessionID)
+// NewGetAgentRequest generates requests for GetAgent
+func NewGetAgentRequest(server string, agentID string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agentID", runtime.ParamLocationPath, agentID)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
 		return nil, err
 	}
-	return c.Client.Do(req)
+
+	operationPath := fmt.Sprintf("/agents/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
-func (c *Client) CreateViewUpdateWithBody(ctx context.Context, viewSessionID ViewSessionID, viewUpdateID ViewUpdateID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateViewUpdateRequestWithBody(c.Server, viewSessionID, viewUpdateID, contentType, body)
+// NewArchiveAgentRequest generates requests for ArchiveAgent
+func NewArchiveAgentRequest(server string, agentID string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agentID", runtime.ParamLocationPath, agentID)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
 		return nil, err
 	}
-	return c.Client.Do(req)
+
+	operationPath := fmt.Sprintf("/agents/%s/archive", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListAgentResultBranchesRequest generates requests for ListAgentResultBranches
+func NewListAgentResultBranchesRequest(server string, agentID string, params *ListAgentResultBranchesParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agentID", runtime.ParamLocationPath, agentID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/%s/result-branches", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListAgentResultsRequest generates requests for ListAgentResults
+func NewListAgentResultsRequest(server string, agentID string, params *ListAgentResultsParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agentID", runtime.ParamLocationPath, agentID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/%s/results", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.BranchIds != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", false, "branchIds", runtime.ParamLocationQuery, *params.BranchIds); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.CreatedAfter != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "createdAfter", runtime.ParamLocationQuery, *params.CreatedAfter); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Text != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "text", runtime.ParamLocationQuery, *params.Text); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
 }
 
 // NewListBlueprintsRequest generates requests for ListBlueprints
@@ -7136,6 +7774,87 @@ func NewGetBlueprintVersionRequest(server string, blueprintName string, blueprin
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewSearchBranchesRequest generates requests for SearchBranches
+func NewSearchBranchesRequest(server string, params *SearchBranchesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/branches")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.Name != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "name", runtime.ParamLocationQuery, *params.Name); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -18134,191 +18853,6 @@ func NewValidateExperienceLocationRequestWithBody(server string, contentType str
 	return req, nil
 }
 
-// NewListViewSessionsRequest generates requests for ListViewSessions
-func NewListViewSessionsRequest(server string, params *ListViewSessionsParams) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/view/sessions")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageToken != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.OrderBy != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "orderBy", runtime.ParamLocationQuery, *params.OrderBy); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateViewSessionRequest generates requests for CreateViewSession
-func NewCreateViewSessionRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/view/sessions")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewGetViewSessionRequest generates requests for GetViewSession
-func NewGetViewSessionRequest(server string, viewSessionID ViewSessionID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "viewSessionID", runtime.ParamLocationPath, viewSessionID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/view/sessions/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateViewUpdateRequestWithBody generates requests for CreateViewUpdate with any type of body
-func NewCreateViewUpdateRequestWithBody(server string, viewSessionID ViewSessionID, viewUpdateID ViewUpdateID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "viewSessionID", runtime.ParamLocationPath, viewSessionID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "viewUpdateID", runtime.ParamLocationPath, viewUpdateID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/view/sessions/%s/updates/%s", pathParam0, pathParam1)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -18362,6 +18896,24 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// ListAgentsWithResponse request
+	ListAgentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAgentsResponse, error)
+
+	// ListAgentPoolLabelQueueWithResponse request
+	ListAgentPoolLabelQueueWithResponse(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*ListAgentPoolLabelQueueResponse, error)
+
+	// GetAgentWithResponse request
+	GetAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*GetAgentResponse, error)
+
+	// ArchiveAgentWithResponse request
+	ArchiveAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*ArchiveAgentResponse, error)
+
+	// ListAgentResultBranchesWithResponse request
+	ListAgentResultBranchesWithResponse(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*ListAgentResultBranchesResponse, error)
+
+	// ListAgentResultsWithResponse request
+	ListAgentResultsWithResponse(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*ListAgentResultsResponse, error)
+
 	// ListBlueprintsWithResponse request
 	ListBlueprintsWithResponse(ctx context.Context, params *ListBlueprintsParams, reqEditors ...RequestEditorFn) (*ListBlueprintsResponse, error)
 
@@ -18381,6 +18933,9 @@ type ClientWithResponsesInterface interface {
 
 	// GetBlueprintVersionWithResponse request
 	GetBlueprintVersionWithResponse(ctx context.Context, blueprintName string, blueprintVersion int, reqEditors ...RequestEditorFn) (*GetBlueprintVersionResponse, error)
+
+	// SearchBranchesWithResponse request
+	SearchBranchesWithResponse(ctx context.Context, params *SearchBranchesParams, reqEditors ...RequestEditorFn) (*SearchBranchesResponse, error)
 
 	// HealthWithResponse request
 	HealthWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*HealthResponse, error)
@@ -18984,18 +19539,138 @@ type ClientWithResponsesInterface interface {
 	ValidateExperienceLocationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateExperienceLocationResponse, error)
 
 	ValidateExperienceLocationWithResponse(ctx context.Context, body ValidateExperienceLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*ValidateExperienceLocationResponse, error)
+}
 
-	// ListViewSessionsWithResponse request
-	ListViewSessionsWithResponse(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*ListViewSessionsResponse, error)
+type ListAgentsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAgentsOutput
+}
 
-	// CreateViewSessionWithResponse request
-	CreateViewSessionWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CreateViewSessionResponse, error)
+// Status returns HTTPResponse.Status
+func (r ListAgentsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
 
-	// GetViewSessionWithResponse request
-	GetViewSessionWithResponse(ctx context.Context, viewSessionID ViewSessionID, reqEditors ...RequestEditorFn) (*GetViewSessionResponse, error)
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAgentsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
 
-	// CreateViewUpdateWithBodyWithResponse request with any body
-	CreateViewUpdateWithBodyWithResponse(ctx context.Context, viewSessionID ViewSessionID, viewUpdateID ViewUpdateID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateViewUpdateResponse, error)
+type ListAgentPoolLabelQueueResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListPoolLabelQueueOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAgentPoolLabelQueueResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAgentPoolLabelQueueResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Agent
+}
+
+// Status returns HTTPResponse.Status
+func (r GetAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ArchiveAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ArchiveAgentOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ArchiveAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ArchiveAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAgentResultBranchesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAgentResultBranchesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAgentResultBranchesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAgentResultBranchesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListAgentResultsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListAgentResultsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListAgentResultsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListAgentResultsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
 }
 
 type ListBlueprintsResponse struct {
@@ -19122,6 +19797,28 @@ func (r GetBlueprintVersionResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetBlueprintVersionResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type SearchBranchesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListBranchesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r SearchBranchesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r SearchBranchesResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -22814,92 +23511,58 @@ func (r ValidateExperienceLocationResponse) StatusCode() int {
 	return 0
 }
 
-type ListViewSessionsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *ListViewObjectsOutput
-}
-
-// Status returns HTTPResponse.Status
-func (r ListViewSessionsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
+// ListAgentsWithResponse request returning *ListAgentsResponse
+func (c *ClientWithResponses) ListAgentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAgentsResponse, error) {
+	rsp, err := c.ListAgents(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
 	}
-	return http.StatusText(0)
+	return ParseListAgentsResponse(rsp)
 }
 
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListViewSessionsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
+// ListAgentPoolLabelQueueWithResponse request returning *ListAgentPoolLabelQueueResponse
+func (c *ClientWithResponses) ListAgentPoolLabelQueueWithResponse(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*ListAgentPoolLabelQueueResponse, error) {
+	rsp, err := c.ListAgentPoolLabelQueue(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
 	}
-	return 0
+	return ParseListAgentPoolLabelQueueResponse(rsp)
 }
 
-type CreateViewSessionResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *ViewSessionID
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateViewSessionResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
+// GetAgentWithResponse request returning *GetAgentResponse
+func (c *ClientWithResponses) GetAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*GetAgentResponse, error) {
+	rsp, err := c.GetAgent(ctx, agentID, reqEditors...)
+	if err != nil {
+		return nil, err
 	}
-	return http.StatusText(0)
+	return ParseGetAgentResponse(rsp)
 }
 
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateViewSessionResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
+// ArchiveAgentWithResponse request returning *ArchiveAgentResponse
+func (c *ClientWithResponses) ArchiveAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*ArchiveAgentResponse, error) {
+	rsp, err := c.ArchiveAgent(ctx, agentID, reqEditors...)
+	if err != nil {
+		return nil, err
 	}
-	return 0
+	return ParseArchiveAgentResponse(rsp)
 }
 
-type GetViewSessionResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *ViewObjectAndMetadata
-}
-
-// Status returns HTTPResponse.Status
-func (r GetViewSessionResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
+// ListAgentResultBranchesWithResponse request returning *ListAgentResultBranchesResponse
+func (c *ClientWithResponses) ListAgentResultBranchesWithResponse(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*ListAgentResultBranchesResponse, error) {
+	rsp, err := c.ListAgentResultBranches(ctx, agentID, params, reqEditors...)
+	if err != nil {
+		return nil, err
 	}
-	return http.StatusText(0)
+	return ParseListAgentResultBranchesResponse(rsp)
 }
 
-// StatusCode returns HTTPResponse.StatusCode
-func (r GetViewSessionResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
+// ListAgentResultsWithResponse request returning *ListAgentResultsResponse
+func (c *ClientWithResponses) ListAgentResultsWithResponse(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*ListAgentResultsResponse, error) {
+	rsp, err := c.ListAgentResults(ctx, agentID, params, reqEditors...)
+	if err != nil {
+		return nil, err
 	}
-	return 0
-}
-
-type CreateViewUpdateResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON201      *ViewSessionUpdate
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateViewUpdateResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateViewUpdateResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
+	return ParseListAgentResultsResponse(rsp)
 }
 
 // ListBlueprintsWithResponse request returning *ListBlueprintsResponse
@@ -22962,6 +23625,15 @@ func (c *ClientWithResponses) GetBlueprintVersionWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseGetBlueprintVersionResponse(rsp)
+}
+
+// SearchBranchesWithResponse request returning *SearchBranchesResponse
+func (c *ClientWithResponses) SearchBranchesWithResponse(ctx context.Context, params *SearchBranchesParams, reqEditors ...RequestEditorFn) (*SearchBranchesResponse, error) {
+	rsp, err := c.SearchBranches(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseSearchBranchesResponse(rsp)
 }
 
 // HealthWithResponse request returning *HealthResponse
@@ -24869,40 +25541,160 @@ func (c *ClientWithResponses) ValidateExperienceLocationWithResponse(ctx context
 	return ParseValidateExperienceLocationResponse(rsp)
 }
 
-// ListViewSessionsWithResponse request returning *ListViewSessionsResponse
-func (c *ClientWithResponses) ListViewSessionsWithResponse(ctx context.Context, params *ListViewSessionsParams, reqEditors ...RequestEditorFn) (*ListViewSessionsResponse, error) {
-	rsp, err := c.ListViewSessions(ctx, params, reqEditors...)
+// ParseListAgentsResponse parses an HTTP response from a ListAgentsWithResponse call
+func ParseListAgentsResponse(rsp *http.Response) (*ListAgentsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
-	return ParseListViewSessionsResponse(rsp)
+
+	response := &ListAgentsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAgentsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
-// CreateViewSessionWithResponse request returning *CreateViewSessionResponse
-func (c *ClientWithResponses) CreateViewSessionWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*CreateViewSessionResponse, error) {
-	rsp, err := c.CreateViewSession(ctx, reqEditors...)
+// ParseListAgentPoolLabelQueueResponse parses an HTTP response from a ListAgentPoolLabelQueueWithResponse call
+func ParseListAgentPoolLabelQueueResponse(rsp *http.Response) (*ListAgentPoolLabelQueueResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateViewSessionResponse(rsp)
+
+	response := &ListAgentPoolLabelQueueResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListPoolLabelQueueOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
-// GetViewSessionWithResponse request returning *GetViewSessionResponse
-func (c *ClientWithResponses) GetViewSessionWithResponse(ctx context.Context, viewSessionID ViewSessionID, reqEditors ...RequestEditorFn) (*GetViewSessionResponse, error) {
-	rsp, err := c.GetViewSession(ctx, viewSessionID, reqEditors...)
+// ParseGetAgentResponse parses an HTTP response from a GetAgentWithResponse call
+func ParseGetAgentResponse(rsp *http.Response) (*GetAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
-	return ParseGetViewSessionResponse(rsp)
+
+	response := &GetAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Agent
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
-// CreateViewUpdateWithBodyWithResponse request with arbitrary body returning *CreateViewUpdateResponse
-func (c *ClientWithResponses) CreateViewUpdateWithBodyWithResponse(ctx context.Context, viewSessionID ViewSessionID, viewUpdateID ViewUpdateID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateViewUpdateResponse, error) {
-	rsp, err := c.CreateViewUpdateWithBody(ctx, viewSessionID, viewUpdateID, contentType, body, reqEditors...)
+// ParseArchiveAgentResponse parses an HTTP response from a ArchiveAgentWithResponse call
+func ParseArchiveAgentResponse(rsp *http.Response) (*ArchiveAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
-	return ParseCreateViewUpdateResponse(rsp)
+
+	response := &ArchiveAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ArchiveAgentOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListAgentResultBranchesResponse parses an HTTP response from a ListAgentResultBranchesWithResponse call
+func ParseListAgentResultBranchesResponse(rsp *http.Response) (*ListAgentResultBranchesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAgentResultBranchesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAgentResultBranchesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListAgentResultsResponse parses an HTTP response from a ListAgentResultsWithResponse call
+func ParseListAgentResultsResponse(rsp *http.Response) (*ListAgentResultsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListAgentResultsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListAgentResultsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
 }
 
 // ParseListBlueprintsResponse parses an HTTP response from a ListBlueprintsWithResponse call
@@ -25031,6 +25823,32 @@ func ParseGetBlueprintVersionResponse(rsp *http.Response) (*GetBlueprintVersionR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest Blueprint
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseSearchBranchesResponse parses an HTTP response from a SearchBranchesWithResponse call
+func ParseSearchBranchesResponse(rsp *http.Response) (*SearchBranchesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &SearchBranchesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListBranchesOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -29109,110 +29927,6 @@ func ParseValidateExperienceLocationResponse(rsp *http.Response) (*ValidateExper
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListViewSessionsResponse parses an HTTP response from a ListViewSessionsWithResponse call
-func ParseListViewSessionsResponse(rsp *http.Response) (*ListViewSessionsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListViewSessionsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListViewObjectsOutput
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateViewSessionResponse parses an HTTP response from a CreateViewSessionWithResponse call
-func ParseCreateViewSessionResponse(rsp *http.Response) (*CreateViewSessionResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateViewSessionResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest ViewSessionID
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseGetViewSessionResponse parses an HTTP response from a GetViewSessionWithResponse call
-func ParseGetViewSessionResponse(rsp *http.Response) (*GetViewSessionResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &GetViewSessionResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ViewObjectAndMetadata
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateViewUpdateResponse parses an HTTP response from a CreateViewUpdateWithResponse call
-func ParseCreateViewUpdateResponse(rsp *http.Response) (*CreateViewUpdateResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateViewUpdateResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest ViewSessionUpdate
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
 
 	}
 

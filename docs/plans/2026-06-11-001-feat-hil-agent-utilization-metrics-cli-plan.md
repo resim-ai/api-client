@@ -51,12 +51,14 @@ has no agents surface at all on `main`.
 - R5. `--interval` is validated client-side against `hour|day`; default `day` (matches the spec default).
 - R6. 404 maps to a friendly "agent not found" error; 400 surfaces the server's validation message. Non-zero exit codes on failure, per CLI convention.
 - R7. Help text carries the spec's caveats: only `EXPERIENCE_RUNNING` time counts, offline buckets read 0.0, and a sustained 100% can indicate a stuck run.
+- R8. *(Amendment 2026-06-12)* Buckets default to the **user's local timezone**: the CLI resolves the system zone, sends it as the `timezone` query param on every request, and every rendered output states the zone explicitly. `--timezone` overrides.
+- R9. *(Amendment 2026-06-12)* `--csv` emits the bucket series as CSV (machine-readable raw fractions, RFC3339 timestamps in the resolved zone). Mutually exclusive with `--json`.
 
 ---
 
 ## Scope Boundaries
 
-- Not adding charting/sparkline output — table + JSON only.
+- Not adding charting/sparkline output — table, CSV + JSON only.
 - Not adding org-wide or pool-label rollups (the endpoint is per-agent only).
 - Not changing `api/generate.go`'s canonical spec URL — see Key Technical Decisions.
 
@@ -121,6 +123,54 @@ surface.
   - empty bucket list → window header still prints, "no buckets" notice,
   - invalid `--start-time` / `--interval` → fail before any client call,
   - 404 → exit path exercised via mocked response.
+
+## Amendment (2026-06-12): local-timezone default + CSV output
+
+**Status: pending.** Depends on the rerun-side timezone amendment (the
+`timezone` query param + echoed-`timezone` response field on both utilization
+endpoints) — regenerate the client once that lands. Applies to both the
+single-agent (`--agent-id`) and all-agents modes.
+
+### Timezone (R8)
+
+- New `--timezone` flag taking an IANA zone name. **Default = the system's
+  local timezone**, resolved in order: `$TZ` if set and loadable → the
+  `/etc/localtime` symlink target's zone name → fall back to `UTC` with a
+  one-line stderr notice. The resolved zone is **always sent** as the
+  `timezone` query param, never left to the server default, so request and
+  rendering can't disagree.
+- Validation is client-side first (`time.LoadLocation`) with a friendly error
+  before any request; server 400s still surface as today.
+- **Every rendered output names the zone explicitly:**
+  - Table: the window header carries it, e.g.
+    `Window: 2026-06-05T00:00 → 2026-06-12T00:00 (America/Los_Angeles, day buckets)`,
+    and bucket rows render in that zone.
+  - CSV: timestamps carry the zone's RFC3339 offset (self-describing).
+  - JSON: raw passthrough; the response body now echoes `timezone`.
+- Help text gains one line: daily buckets align to local midnight in the
+  requested zone; pass `--timezone UTC` for the previous behavior.
+
+### CSV (R9)
+
+- New `--csv` boolean flag, mutually exclusive with `--json`
+  (`cmd.MarkFlagsMutuallyExclusive`).
+- Written with `encoding/csv` to stdout. Header row:
+  `agent_id,bucket_start,bucket_end,utilization,avg_concurrency`.
+  `agent_id` is populated in both modes (single-agent and all-agents) so the
+  schema is stable; all-agents mode emits one block of rows per agent under
+  the single header.
+- Values are machine-readable: `utilization`/`avg_concurrency` as raw
+  fractions (no `%`), timestamps RFC3339 in the resolved zone. Spreadsheets
+  format; the CLI doesn't.
+
+### Tests to add
+
+- `--timezone` omitted → resolved system zone appears in the request params
+  and the rendered header (use `t.Setenv("TZ", ...)` for determinism).
+- Invalid `--timezone` fails before any client call.
+- CSV golden output for a 3-bucket series (single-agent) and a 2-agent
+  all-agents series; header row present; parses with `encoding/csv`.
+- `--csv --json` together → error, no request made.
 
 ## Verification
 

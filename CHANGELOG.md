@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### v0.56.0 - June 12, 2026
+
+- Adds a new `agents` command for inspecting HiL Agents: `list` (org fleet with activity, version, and out-of-date indicators), `get` (single-agent detail with recent activity), and `archive` (soft-delete, aliases `remove`/`hide`; the agent reappears if the host checks in again).
+- Adds a new `pool-labels` command with a `queue` subcommand showing the per-pool-label batch queue (active, queued, and recently completed batches), with `--completed-since-days` (1-30) and `--json`.
+
 ### v0.55.0 - June 12, 2026
 
 - `resim workflows runs create` now supports workflows spanning multiple systems. Pass one build per system with the repeatable `--build <uuid>` flag, or use `--builds <json>` / `--builds-file <path>` (a JSON array of objects `{buildID, parameters, poolLabels, allowableFailurePercent}`) for per-build configuration. The run-level `--parameter`, `--pool-labels`, and `--allowable-failure-percent` flags apply to every build when used with `--build`, and cannot be combined with `--builds`/`--builds-file`.

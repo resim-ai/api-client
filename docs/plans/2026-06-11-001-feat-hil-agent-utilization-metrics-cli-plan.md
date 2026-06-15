@@ -35,7 +35,8 @@ validation). Both #199 and #206 are superseded by this branch.
 ## Problem Frame
 
 The rerun branch ships a per-agent, bucketed utilization time-series
-(`utilization` 0.0–1.0 and `avgConcurrency` ≥ 0.0 per bucket). Customers who
+(`utilization` 0.0–1.0 per bucket, plus per-bucket `offline` and test-start
+counts; `avgConcurrency` was later dropped — see the 2026-06-15 amendment). Customers who
 script against ReSim need to pull this through the CLI ("what fraction of last
 week was rack-1 actually running tests?") without opening the UI. Today the CLI
 has no agents surface at all on `main`.
@@ -45,20 +46,19 @@ has no agents surface at all on `main`.
 ## Requirements
 
 - R1. `resim agents utilization --agent-id <id> [--start-time RFC3339] [--end-time RFC3339] [--interval hour|day]` calls `getAgentUtilization` and renders the bucket series.
-- R2. Default output is a readable table: resolved window + interval header, then one row per bucket with `bucketStart`, `utilization` (percentage), `avgConcurrency`.
+- R2. Default output is a readable table: resolved window + interval header, then one row per bucket with `bucketStart`, `utilization` and `offline` (percentages), and `tests` (count). *(Per the 2026-06-15 amendment: no `avgConcurrency` column, and `idle` is not surfaced — it's inferable as 1 − utilization − offline.)*
 - R3. `--json` dumps the raw response body (the `agentUtilizationOutput` schema) untransformed.
 - R4. Time flags accept RFC3339; invalid values fail fast client-side with a friendly error before any request is made. Omitted flags are omitted from the request so the server applies its documented defaults (end = now, start = end − 7 days).
 - R5. `--interval` is validated client-side against `hour|day`; default `day` (matches the spec default).
 - R6. 404 maps to a friendly "agent not found" error; 400 surfaces the server's validation message. Non-zero exit codes on failure, per CLI convention.
 - R7. Help text carries the spec's caveats: only `EXPERIENCE_RUNNING` time counts, offline buckets read 0.0, and a sustained 100% can indicate a stuck run.
-- R8. *(Amendment 2026-06-12)* Buckets default to the **user's local timezone**: the CLI resolves the system zone, sends it as the `timezone` query param on every request, and every rendered output states the zone explicitly. `--timezone` overrides.
-- R9. *(Amendment 2026-06-12)* `--csv` emits the bucket series as CSV (machine-readable raw fractions, RFC3339 timestamps in the resolved zone). Mutually exclusive with `--json`.
+- R8. *(Amendment 2026-06-12)* `--csv` emits the bucket series as CSV (machine-readable raw fractions, UTC RFC3339 timestamps). Mutually exclusive with `--json`.
 
 ---
 
 ## Scope Boundaries
 
-- Not adding charting/sparkline output — table, CSV + JSON only.
+- Not adding charting/sparkline output. Shipped output is table + JSON; CSV is scoped but deferred (see the 2026-06-12 amendment).
 - Not adding org-wide or pool-label rollups (the endpoint is per-agent only).
 - Not changing `api/generate.go`'s canonical spec URL — see Key Technical Decisions.
 
@@ -107,7 +107,7 @@ surface.
 - **Generate from the rerun branch's `rerun.yml`, commit the result, leave `generate.go` untouched.** One-off generation against the local superset spec; once rerun merges and deploys, the canonical `go generate` against the URL reproduces the same code.
 - **New file `cmd/resim/commands/agents.go` holds the full `agents` tree** (`list`, `get`, `archive`, `utilization`) plus the `pool-labels` tree (`queue`), consolidating PR #199's surface onto one branch.
 - **Flag naming follows precedent:** `--agent-id`, `--start-time`, `--end-time`, `--interval`, `--json`. Time parsing via `time.RFC3339`.
-- **Table rendering uses plain `fmt.Printf` columns** like the rest of the command files (no new table engine). Utilization printed as `xx.x%`, concurrency as `x.xx`.
+- **Table rendering uses plain `fmt.Printf` columns** like the rest of the command files (no new table engine). Utilization and offline printed as `xx.x%`, tests as an integer count.
 - **JSON output is the raw `JSON200` value** via `OutputJson` — no transformation, so it round-trips against the OpenAPI schema.
 
 ---
@@ -124,53 +124,74 @@ surface.
   - invalid `--start-time` / `--interval` → fail before any client call,
   - 404 → exit path exercised via mocked response.
 
-## Amendment (2026-06-12): local-timezone default + CSV output
+## Amendment (2026-06-12): CSV output
 
-**Status: pending.** Depends on the rerun-side timezone amendment (the
-`timezone` query param + echoed-`timezone` response field on both utilization
-endpoints) — regenerate the client once that lands. Applies to both the
+**Status: deferred — not implemented.** Decided 2026-06-15 to leave CSV unbuilt
+for now; the shipped CLI is table + JSON only (no `--csv` flag exists). It's
+pure client-side formatting with no server dependency, so it can be picked up
+anytime. The spec below stands for whenever it is. Would apply to both the
 single-agent (`--agent-id`) and all-agents modes.
 
-### Timezone (R8)
+> A local-timezone-aware bucketing option (`--timezone`) was scoped alongside
+> CSV on 2026-06-12 but **dropped on 2026-06-15** together with the rerun-side
+> timezone amendment; buckets stay UTC-aligned. CSV is retained, decoupled
+> from it.
 
-- New `--timezone` flag taking an IANA zone name. **Default = the system's
-  local timezone**, resolved in order: `$TZ` if set and loadable → the
-  `/etc/localtime` symlink target's zone name → fall back to `UTC` with a
-  one-line stderr notice. The resolved zone is **always sent** as the
-  `timezone` query param, never left to the server default, so request and
-  rendering can't disagree.
-- Validation is client-side first (`time.LoadLocation`) with a friendly error
-  before any request; server 400s still surface as today.
-- **Every rendered output names the zone explicitly:**
-  - Table: the window header carries it, e.g.
-    `Window: 2026-06-05T00:00 → 2026-06-12T00:00 (America/Los_Angeles, day buckets)`,
-    and bucket rows render in that zone.
-  - CSV: timestamps carry the zone's RFC3339 offset (self-describing).
-  - JSON: raw passthrough; the response body now echoes `timezone`.
-- Help text gains one line: daily buckets align to local midnight in the
-  requested zone; pass `--timezone UTC` for the previous behavior.
-
-### CSV (R9)
+### CSV (R8)
 
 - New `--csv` boolean flag, mutually exclusive with `--json`
   (`cmd.MarkFlagsMutuallyExclusive`).
 - Written with `encoding/csv` to stdout. Header row:
-  `agent_id,bucket_start,bucket_end,utilization,avg_concurrency`.
+  `agent_id,bucket_start,bucket_end,utilization,offline,tests_run`.
   `agent_id` is populated in both modes (single-agent and all-agents) so the
   schema is stable; all-agents mode emits one block of rows per agent under
-  the single header.
-- Values are machine-readable: `utilization`/`avg_concurrency` as raw
-  fractions (no `%`), timestamps RFC3339 in the resolved zone. Spreadsheets
+  the single header. No `avg_concurrency` or `idle` columns — concurrency was
+  removed, and idle is derivable as `1 - utilization - offline`.
+- Values are machine-readable: `utilization`/`offline` as raw fractions
+  (no `%`), `tests_run` as an integer, timestamps UTC RFC3339. Spreadsheets
   format; the CLI doesn't.
 
 ### Tests to add
 
-- `--timezone` omitted → resolved system zone appears in the request params
-  and the rendered header (use `t.Setenv("TZ", ...)` for determinism).
-- Invalid `--timezone` fails before any client call.
 - CSV golden output for a 3-bucket series (single-agent) and a 2-agent
   all-agents series; header row present; parses with `encoding/csv`.
 - `--csv --json` together → error, no request made.
+
+## Amendment (2026-06-15): drop concurrency; derive idle; per-agent tests-run
+
+**Status: complete (cross-repo).** A HiL agent runs one experience at a time,
+so the bucket's concurrency dimension carried no information beyond
+utilization (with no overlap, running-seconds == union-of-intervals). Removed
+end-to-end:
+
+- **rerun core** (`feat/hil-agent-utilization-breakdown`): dropped
+  `avgConcurrency` from the `agentUtilizationBucket` schema in `rerun.yml`,
+  from `utilizationBucket`/`bucketUtilization`, and from `mapUtilizationBuckets`;
+  regenerated `server.gen.go`; updated unit + endpoint tests.
+- **rerun BFF**: regenerated the core-api client + GraphQL types
+  (`mix generate.all_core_api`, run twice — `generate.schemas` reads the
+  *compiled* client schema, so a second pass is needed for the GraphQL type to
+  drop the field). The web UI never referenced `avgConcurrency`, so no UI
+  change.
+- **api-client**: regenerated `client.gen.go` + mocks from the rerun spec and
+  removed the `AVG CONCURRENCY` column + help bullet.
+
+Two related items handled in the same regen:
+
+- **idle is no longer surfaced.** The rerun spec had already dropped the
+  server-sent `idle` field (it is fully determined by
+  `1 − utilization − offline`); this branch hadn't been regenerated since, so
+  the regen synced it away. The CLI drops the `IDLE` column entirely rather
+  than deriving it — idle is reasonably inferable from utilization and offline,
+  so it doesn't warrant its own column.
+- **per-agent absolute tests-run.** The org-wide (`--agent-id`-omitted) view
+  now prints `Tests run: N` per agent, summed from that agent's per-bucket
+  `testsRun` (each run counts once across the series, so the sum is exact). The
+  single-agent view already printed the window total.
+
+Unchanged: `utilization` semantics (% of wall-clock the agent was active);
+per-bucket test counts (already attributed to the bucket a run *started* in);
+and the avg + median queue wait of runs started in the window.
 
 ## Verification
 

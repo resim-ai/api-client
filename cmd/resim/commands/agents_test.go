@@ -115,9 +115,16 @@ func (s *CommandsSuite) TestListAgentsTableOutput() {
 		}, nil)
 
 	out := captureStdout(s, func() { listAgents(nil, nil) })
+	s.Contains(out, "NAME")
+	s.Contains(out, "STATUS")
+	s.Contains(out, "VERSION")
+	s.Contains(out, "POOL LABELS")
+	s.Contains(out, "LAST CHECK-IN")
 	s.Contains(out, "agent-1")
 	s.Contains(out, "agent-2")
 	s.Contains(out, "(out of date; latest 1.2.3)")
+	// The header carries the label, so rows no longer repeat it.
+	s.NotContains(out, "last check-in")
 }
 
 func (s *CommandsSuite) TestFormatAgentRowOutOfDateSuffix() {
@@ -175,11 +182,27 @@ func (s *CommandsSuite) TestGetAgentDetailViewWithRecentActivity() {
 
 	detail := captureStdout(s, func() { getAgent(nil, nil) })
 	s.Contains(detail, "Agent ID:        agent-1")
-	s.Contains(detail, "[project-alpha] batch batch-one")
-	s.Contains(detail, "branch=main")
-	s.Contains(detail, "[project-beta] batch batch-two")
-	// The second card has no branch: no dangling branch= marker on its line.
-	s.NotContains(detail, "batch-two [RUNNING]: test test-two [RUNNING]  branch=")
+	// Recent activity is a labeled, column-aligned table: assert on the header
+	// labels and the bare cell values (cells are padded apart, and the inline
+	// "batch"/"test"/"branch=" prefixes are gone now that the header labels them).
+	s.Contains(detail, "PROJECT")
+	s.Contains(detail, "BATCH STATUS")
+	s.Contains(detail, "TEST STATUS")
+	s.Contains(detail, "BRANCH")
+	s.Contains(detail, "TIMESTAMP")
+	s.Contains(detail, "project-alpha")
+	s.Contains(detail, "batch-one")
+	s.Contains(detail, "test-one")
+	s.Contains(detail, "main")
+	s.Contains(detail, "project-beta")
+	s.Contains(detail, "batch-two")
+	// The second card has no branch: its row carries no branch value (the only
+	// branch in the fixture, "main", belongs to the first row).
+	for _, line := range strings.Split(detail, "\n") {
+		if strings.Contains(line, "batch-two") {
+			s.NotContains(line, "main")
+		}
+	}
 }
 
 func (s *CommandsSuite) TestFormatAgentDetailNoRecentActivity() {
@@ -462,22 +485,18 @@ func sampleUtilizationOutput() api.AgentUtilizationOutput {
 		MedianQueueSeconds: Ptr(34.0),
 		Buckets: []api.AgentUtilizationBucket{
 			{
-				BucketStart:    start,
-				BucketEnd:      start.AddDate(0, 0, 1),
-				Utilization:    0.425,
-				Idle:           0.45,
-				Offline:        0.125,
-				TestsRun:       12,
-				AvgConcurrency: 1.27,
+				BucketStart: start,
+				BucketEnd:   start.AddDate(0, 0, 1),
+				Utilization: 0.425,
+				Offline:     0.125,
+				TestsRun:    12,
 			},
 			{
-				BucketStart:    start.AddDate(0, 0, 1),
-				BucketEnd:      start.AddDate(0, 0, 2),
-				Utilization:    0,
-				Idle:           0,
-				Offline:        1,
-				TestsRun:       0,
-				AvgConcurrency: 0,
+				BucketStart: start.AddDate(0, 0, 1),
+				BucketEnd:   start.AddDate(0, 0, 2),
+				Utilization: 0,
+				Offline:     1,
+				TestsRun:    0,
 			},
 		},
 		TopExperiences: []api.AgentUtilizationTopExperience{
@@ -515,15 +534,15 @@ func (s *CommandsSuite) TestFormatAgentUtilization() {
 	s.Contains(out, "Agent:    agent-1")
 	s.Contains(out, "Interval: day")
 	s.Contains(out, "BUCKET START")
-	// Utilization renders as a percentage, concurrency as a plain ratio;
-	// the empty bucket carries explicit zeros.
+	// Utilization renders as a percentage; the empty bucket carries explicit
+	// zeros. There is no concurrency column — an agent runs one test at a time.
 	s.Contains(out, "42.5%")
-	s.Contains(out, "1.27")
 	s.Contains(out, "0.0%")
-	// The idle/offline split and per-bucket test counts render alongside.
-	s.Contains(out, "IDLE")
+	s.NotContains(out, "CONCURRENCY")
+	// Offline and per-bucket test counts render alongside utilization; idle is
+	// not surfaced (it is inferable as 1 − utilization − offline).
+	s.NotContains(out, "IDLE")
 	s.Contains(out, "OFFLINE")
-	s.Contains(out, "45.0%")
 	s.Contains(out, "12.5%")
 	// Window-level summary: total tests, queue wait, top experiences.
 	s.Contains(out, "Tests run: 12")
@@ -605,10 +624,9 @@ func sampleListUtilizationOutput() api.ListAgentUtilizationOutput {
 			{AgentID: "agent-1", Buckets: single.Buckets},
 			{AgentID: "agent-idle", Buckets: []api.AgentUtilizationBucket{
 				{
-					BucketStart:    single.WindowStart,
-					BucketEnd:      single.WindowEnd,
-					Utilization:    0,
-					AvgConcurrency: 0,
+					BucketStart: single.WindowStart,
+					BucketEnd:   single.WindowEnd,
+					Utilization: 0,
 				},
 			}},
 		},
@@ -667,12 +685,19 @@ func (s *CommandsSuite) TestFormatListAgentUtilization() {
 	s.Contains(out, "42.5%")
 	// The idle agent's explicit zero bucket renders rather than being elided.
 	s.Equal(2, strings.Count(out, "BUCKET START"))
-	// The fleet-wide summary and top-experiences table render once, before
-	// the per-agent sections.
+	// The fleet-wide summary renders once before the per-agent sections; the
+	// top-experiences table renders once at the very bottom, after them.
 	s.Contains(out, "Tests run: 12")
 	s.Contains(out, "Queue wait: avg 1m35s, median 34s")
 	s.Equal(1, strings.Count(out, "TOP EXPERIENCES"))
 	s.Contains(out, "Highway merge")
+	s.Greater(strings.Index(out, "TOP EXPERIENCES"), strings.LastIndex(out, "=== "),
+		"TOP EXPERIENCES should render after the per-agent sections")
+	// Each agent section also carries its own absolute tests-run total. The
+	// fleet line (12), agent-1's sum (12), and the idle agent's (0) make three
+	// "Tests run:" lines; the idle agent's 0 is distinct from the fleet total.
+	s.Contains(out, "Tests run: 0")
+	s.Equal(3, strings.Count(out, "Tests run:"))
 }
 
 func (s *CommandsSuite) TestFormatListAgentUtilizationNoAgents() {

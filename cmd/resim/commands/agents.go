@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/resim-ai/api-client/api"
@@ -52,14 +53,13 @@ agents with no activity in the window appear with all-zero buckets.
 Each bucket reports:
   utilization      fraction of wall-clock time the agent was running at least
                    one experience (union of running intervals, 0.0-1.0)
-  idle / offline   split of the non-running remainder: offline is the fraction
-                   of wall-clock during which the agent's heartbeat had been
-                   silent for over five minutes, idle the residual
-                   1 - utilization - offline (floored at 0)
+  offline          fraction of wall-clock during which the agent's heartbeat
+                   had been silent for over five minutes. Idle time is not
+                   shown; infer it as 1 - utilization - offline
   tests            number of job runs that started in the bucket; bucket
                    counts sum to the window's total
-  avgConcurrency   running job-seconds divided by bucket wall-clock seconds
-                   (>= 0.0; exceeds 1.0 when experiences run concurrently)
+
+An agent runs one experience at a time, so there is no concurrency metric.
 
 The window summary also reports the total tests run, the average and median
 queue wait (submission to execution start) of runs started in the window, and
@@ -120,7 +120,7 @@ func init() {
 	agentUtilizationCmd.Flags().String(agentIDKey, "", "Agent ID (as supplied at check-in). Omit to fetch utilization for all agents in the org")
 	agentUtilizationCmd.Flags().String(agentStartTimeKey, "", "Inclusive window start (RFC3339, e.g. 2026-06-04T00:00:00Z). Defaults to end time minus 7 days")
 	agentUtilizationCmd.Flags().String(agentEndTimeKey, "", "Exclusive window end (RFC3339). Defaults to now")
-	agentUtilizationCmd.Flags().String(agentIntervalKey, "", "Bucket width: hour or day. Buckets are UTC-aligned. Defaults to day")
+	agentUtilizationCmd.Flags().String(agentIntervalKey, "", "Bucket width: hour or day. Buckets step back from the window end one interval at a time. Defaults to day")
 	agentUtilizationCmd.Flags().Int(agentTopExperiencesKey, topExperiencesDefault, "How many top experiences (ranked by running time in the window) to include (0-50). 0 omits the list")
 	agentUtilizationCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
 
@@ -158,9 +158,16 @@ func listAgents(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Route the header and every row through a tabwriter so the tab-separated
+	// columns are padded to a consistent width; printing the raw tabs straight
+	// to the terminal would snap to fixed 8-column tab stops and the columns
+	// drift. The header carries the column labels so the rows can stay bare.
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	fmt.Fprint(w, agentListHeader)
 	for _, a := range output.Agents {
-		fmt.Print(formatAgentRow(a, output.LatestKnownVersion))
+		fmt.Fprint(w, formatAgentRow(a, output.LatestKnownVersion))
 	}
+	w.Flush()
 }
 
 func getAgent(cmd *cobra.Command, args []string) {
@@ -377,16 +384,28 @@ func queuePoolLabels(cmd *cobra.Command, args []string) {
 	}
 }
 
-// formatAgentRow renders a one-line summary suitable for `agents list`. The
-// version trailer carries an explicit "(out of date)" suffix so the CLI
-// surfaces the same signal as the UI; when the server reports no canonical
-// latest version the indicator is suppressed entirely.
+// agentListHeader labels the columns emitted by formatAgentRow. It is routed
+// through the same tabwriter as the rows so the labels align over their
+// values, matching the uppercase header style of the utilization tables.
+const agentListHeader = "NAME\tSTATUS\tVERSION\tPOOL LABELS\tLAST CHECK-IN\n"
+
+// agentActivityHeader labels the recent-activity table emitted by
+// formatAgentDetail. Like agentListHeader it is routed through the rows'
+// tabwriter so the labels align over their values; the leading indent nests
+// the table under the "Recent activity:" line.
+const agentActivityHeader = "  PROJECT\tBATCH\tBATCH STATUS\tTEST\tTEST STATUS\tBRANCH\tTIMESTAMP\n"
+
+// formatAgentRow renders a one-line summary suitable for `agents list`,
+// aligned under agentListHeader. The version trailer carries an explicit
+// "(out of date)" suffix so the CLI surfaces the same signal as the UI; when
+// the server reports no canonical latest version the indicator is suppressed
+// entirely.
 func formatAgentRow(a api.Agent, latestKnownVersion string) string {
 	verSuffix := ""
 	if a.IsOutOfDate && latestKnownVersion != "" {
 		verSuffix = fmt.Sprintf(" (out of date; latest %s)", latestKnownVersion)
 	}
-	return fmt.Sprintf("%s\t%s\tv%s%s\t%s\tlast check-in %s\n",
+	return fmt.Sprintf("%s\t%s\tv%s%s\t%s\t%s\n",
 		a.AgentID,
 		a.Activity,
 		a.Version,
@@ -400,10 +419,11 @@ func formatAgentDetail(a api.Agent) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Agent ID:        %s\n", a.AgentID)
 	fmt.Fprintf(&b, "Activity:        %s\n", a.Activity)
-	fmt.Fprintf(&b, "Version:         v%s\n", a.Version)
+	fmt.Fprintf(&b, "Version:         v%s", a.Version)
 	if a.IsOutOfDate {
-		fmt.Fprintf(&b, "                 (out of date — visit https://docs.resim.ai for the latest agent version)\n")
+		fmt.Fprint(&b, " (out of date — visit https://docs.resim.ai for the latest agent version)")
 	}
+	fmt.Fprintln(&b)
 	fmt.Fprintf(&b, "Pool labels:     %s\n", strings.Join(a.PoolLabels, ", "))
 	fmt.Fprintf(&b, "First check-in:  %s\n", a.FirstCheckin.Format("2006-01-02 15:04:05 MST"))
 	fmt.Fprintf(&b, "Last check-in:   %s\n", a.LastCheckin.Format("2006-01-02 15:04:05 MST"))
@@ -412,12 +432,19 @@ func formatAgentDetail(a api.Agent) string {
 		return b.String()
 	}
 	fmt.Fprintln(&b, "Recent activity:")
+	// Render the activity as a labeled, column-aligned table: a header row of
+	// column labels followed by bare values, all padded to a consistent width
+	// on Flush. The header carries the field names, so the rows drop the inline
+	// "batch"/"test"/"branch=" prefixes. Rows without a branch leave that cell
+	// empty so the timestamp still aligns.
+	tw := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
+	fmt.Fprint(tw, agentActivityHeader)
 	for _, r := range a.RecentActivity {
 		branch := ""
-		if r.BranchName != nil && *r.BranchName != "" {
-			branch = fmt.Sprintf("  branch=%s", *r.BranchName)
+		if r.BranchName != nil {
+			branch = *r.BranchName
 		}
-		fmt.Fprintf(&b, "  - [%s] batch %s [%s]: test %s [%s]%s  %s\n",
+		fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 			r.ProjectName,
 			r.BatchName, r.BatchConflatedStatus,
 			r.JobName, r.JobConflatedStatus,
@@ -425,24 +452,35 @@ func formatAgentDetail(a api.Agent) string {
 			r.Timestamp.Format("2006-01-02 15:04:05"),
 		)
 	}
+	tw.Flush()
 	return b.String()
 }
 
 // writeUtilizationBuckets renders the shared bucket table: one row per
-// bucket, the utilization/idle/offline split as percentages, tests started in
-// the bucket as a count, and average concurrency as a plain ratio.
+// bucket, utilization and offline as percentages, and tests started in the
+// bucket as a count. Idle time is not surfaced — it is inferable as
+// 1 − utilization − offline.
 func writeUtilizationBuckets(b *strings.Builder, buckets []api.AgentUtilizationBucket) {
-	fmt.Fprintf(b, "\n%-22s%-14s%-9s%-10s%-7s%s\n", "BUCKET START", "UTILIZATION", "IDLE", "OFFLINE", "TESTS", "AVG CONCURRENCY")
+	fmt.Fprintf(b, "\n%-22s%-14s%-10s%s\n", "BUCKET START", "UTILIZATION", "OFFLINE", "TESTS")
 	for _, bucket := range buckets {
-		fmt.Fprintf(b, "%-22s%-14s%-9s%-10s%-7d%.2f\n",
+		fmt.Fprintf(b, "%-22s%-14s%-10s%d\n",
 			bucket.BucketStart.Format("2006-01-02 15:04"),
 			fmt.Sprintf("%.1f%%", bucket.Utilization*100),
-			fmt.Sprintf("%.1f%%", bucket.Idle*100),
 			fmt.Sprintf("%.1f%%", bucket.Offline*100),
 			bucket.TestsRun,
-			bucket.AvgConcurrency,
 		)
 	}
+}
+
+// sumBucketTestsRun totals one agent's per-bucket start counts. Each run
+// counts once across the series — in the bucket it started in — so the sum
+// is that agent's total tests run in the window.
+func sumBucketTestsRun(buckets []api.AgentUtilizationBucket) int {
+	total := 0
+	for _, bucket := range buckets {
+		total += bucket.TestsRun
+	}
+	return total
 }
 
 // formatSeconds renders a seconds count as a compact duration, dropping the
@@ -518,15 +556,16 @@ func formatListAgentUtilization(out api.ListAgentUtilizationOutput) string {
 		fmt.Fprintln(&b, "No agents found in this org.")
 		return b.String()
 	}
-	writeTopExperiences(&b, out.TopExperiences)
 	for _, series := range out.Agents {
 		fmt.Fprintf(&b, "\n=== %s ===\n", series.AgentID)
 		if len(series.Buckets) == 0 {
 			fmt.Fprintln(&b, "No buckets in the window.")
 			continue
 		}
+		fmt.Fprintf(&b, "Tests run: %d\n", sumBucketTestsRun(series.Buckets))
 		writeUtilizationBuckets(&b, series.Buckets)
 	}
+	writeTopExperiences(&b, out.TopExperiences)
 	return b.String()
 }
 

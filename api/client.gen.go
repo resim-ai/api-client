@@ -354,26 +354,23 @@ type AgentResultBranch struct {
 // AgentUtilizationBucket One time bucket of agent utilization. utilization is the union of
 // the agent's EXPERIENCE_RUNNING intervals clipped to the bucket,
 // divided by the bucket's wall-clock duration — a fraction in
-// [0.0, 1.0]. avgConcurrency is total running job-seconds divided by
-// bucket wall-clock seconds (>= 0.0; exceeds 1.0 when experiences
-// run concurrently).
+// [0.0, 1.0]. An agent runs one experience at a time, so there is no
+// concurrency dimension.
 //
 // offline is the fraction of bucket wall-clock during which the
 // agent's heartbeat had been silent for over five minutes (0 before
-// offline recording was deployed). idle is the residual
-// 1 − utilization − offline, floored at 0 — a stuck run overlapping
-// recorded offline time can push utilization + offline past 1.0
-// transiently. testsRun counts job runs that started in the bucket;
-// each run counts exactly once across the series, so bucket sums
-// match the window's totalTestsRun.
+// offline recording was deployed). Online-but-idle time is derived,
+// not reported: 1 − utilization − offline, clamped at 0 — a stuck
+// run overlapping recorded offline time can push utilization +
+// offline past 1.0 transiently. testsRun counts job runs that
+// started in the bucket; each run counts exactly once across the
+// series, so bucket sums match the window's totalTestsRun.
 type AgentUtilizationBucket struct {
-	AvgConcurrency float64   `json:"avgConcurrency" yaml:"avgConcurrency"`
-	BucketEnd      time.Time `json:"bucketEnd" yaml:"bucketEnd"`
-	BucketStart    time.Time `json:"bucketStart" yaml:"bucketStart"`
-	Idle           float64   `json:"idle" yaml:"idle"`
-	Offline        float64   `json:"offline" yaml:"offline"`
-	TestsRun       int       `json:"testsRun" yaml:"testsRun"`
-	Utilization    float64   `json:"utilization" yaml:"utilization"`
+	BucketEnd   time.Time `json:"bucketEnd" yaml:"bucketEnd"`
+	BucketStart time.Time `json:"bucketStart" yaml:"bucketStart"`
+	Offline     float64   `json:"offline" yaml:"offline"`
+	TestsRun    int       `json:"testsRun" yaml:"testsRun"`
+	Utilization float64   `json:"utilization" yaml:"utilization"`
 }
 
 // AgentUtilizationOutput Dense, time-ordered utilization series for one HiL Agent. Every
@@ -1535,9 +1532,10 @@ type ListAgentResultsOutput struct {
 // a bounded number of HiL agents. windowStart/windowEnd echo the
 // resolved window after server-side defaulting. Agents with no
 // activity in the window appear with explicit all-zero buckets.
-// totalTestsRun counts job runs started in the window across the
-// whole fleet; topExperiences ranks experiences by total running
-// seconds on any agent. avgQueueSeconds/medianQueueSeconds
+// totalTestsRun counts job runs started in the window on the listed
+// (non-archived) agents; topExperiences ranks experiences by total
+// running seconds on any listed agent. Runs on archived agents are
+// excluded from both, matching the agents series. avgQueueSeconds/medianQueueSeconds
 // aggregate the queue wait (submission to execution start) of runs
 // started in the window, fleet-wide; both are omitted when no
 // started run has a measurable wait.

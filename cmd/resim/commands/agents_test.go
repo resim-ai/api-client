@@ -453,6 +453,96 @@ func (s *CommandsSuite) TestQueuePoolLabelsEmptyState() {
 	s.Contains(out, "No pool labels in the queue right now.")
 }
 
+func (s *CommandsSuite) TestValidatePoolLabelsOrderBy() {
+	// Empty stays unset (server default); rank and timestamp are accepted.
+	s.NoError(validatePoolLabelsOrderBy(""))
+	s.NoError(validatePoolLabelsOrderBy("rank"))
+	s.NoError(validatePoolLabelsOrderBy("timestamp"))
+	// Anything else is rejected client-side with the accepted values named.
+	err := validatePoolLabelsOrderBy("bogus")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "rank")
+	s.Contains(err.Error(), "timestamp")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsMultiPageAccumulates() {
+	viper.Reset()
+	defer viper.Reset()
+	// Page 1 carries a next-page token; page 2 (sent with that token) closes
+	// the series. Labels from both pages must appear, proving accumulation.
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100)}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListPoolLabelsOutput{
+				PoolLabels:    &[]api.PoolLabel{"alpha", "beta"},
+				NextPageToken: Ptr("page-2"),
+			},
+		}, nil)
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100), PageToken: Ptr("page-2")}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListPoolLabelsOutput{
+				PoolLabels: &[]api.PoolLabel{"gamma"},
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	s.Contains(out, "3 pool label(s):")
+	s.Contains(out, "alpha")
+	s.Contains(out, "beta")
+	s.Contains(out, "gamma")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsPassesNameAndOrderBy() {
+	viper.Reset()
+	viper.Set(poolLabelsNameKey, "nav")
+	viper.Set(poolLabelsOrderByKey, "rank")
+	defer viper.Reset()
+	rank := api.ListPoolLabelsParamsOrderByRank
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100), Name: Ptr("nav"), OrderBy: &rank}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelsOutput{PoolLabels: &[]api.PoolLabel{"nav-rig"}},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	s.Contains(out, "nav-rig")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsEmptyState() {
+	viper.Reset()
+	defer viper.Reset()
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100)}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelsOutput{PoolLabels: &[]api.PoolLabel{}},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	s.Contains(out, "No pool labels found in this org.")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100)}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelsOutput{PoolLabels: &[]api.PoolLabel{"alpha", "beta"}},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	var parsed []string
+	s.Require().NoError(json.Unmarshal([]byte(out), &parsed))
+	s.Equal([]string{"alpha", "beta"}, parsed)
+}
+
 func (s *CommandsSuite) TestParseAgentUtilizationParams() {
 	// All flags empty: the time/interval params stay unset so the server
 	// defaults apply; topExperiences is always sent explicitly.

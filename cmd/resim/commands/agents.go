@@ -87,6 +87,17 @@ in earlier windows offline reads 0 and all non-running time appears as idle.`,
 		Short: "queue - Lists the per-pool-label batch queue across the caller's org",
 		Run:   queuePoolLabels,
 	}
+	listPoolLabelsCmd = &cobra.Command{
+		Use:   "list",
+		Short: "list - Lists the distinct HiL pool labels visible to the caller's org",
+		Long: `list - Lists the distinct pool labels visible to your org.
+
+Labels are ordered by most recent agent check-in (the default) or, with
+--order-by rank, by trigram similarity to --name. Use --name to filter to
+labels matching a search term; --order-by rank is recommended when --name is
+set so the closest matches come first.`,
+		Run: listPoolLabels,
+	}
 )
 
 const (
@@ -98,6 +109,8 @@ const (
 	agentIntervalKey           = "interval"
 	agentTopExperiencesKey     = "top-experiences"
 	poolLabelsCompletedDaysKey = "completed-since-days"
+	poolLabelsNameKey          = "name"
+	poolLabelsOrderByKey       = "order-by"
 
 	completedSinceDaysMin = 1
 	completedSinceDaysMax = 30
@@ -128,6 +141,10 @@ func init() {
 	queuePoolLabelsCmd.Flags().Int(poolLabelsCompletedDaysKey, 7, "Window for completed batches, in days (1-30)")
 	queuePoolLabelsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of grouped output")
 
+	listPoolLabelsCmd.Flags().String(poolLabelsNameKey, "", "Filter pool labels by name (substring/trigram match). Pair with --order-by rank for the closest matches first")
+	listPoolLabelsCmd.Flags().String(poolLabelsOrderByKey, "", "Order results: timestamp (most recent check-in; default) or rank (similarity to --name)")
+	listPoolLabelsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a list")
+
 	agentsCmd.AddCommand(listAgentsCmd)
 	agentsCmd.AddCommand(getAgentCmd)
 	agentsCmd.AddCommand(archiveAgentCmd)
@@ -135,6 +152,7 @@ func init() {
 	rootCmd.AddCommand(agentsCmd)
 
 	poolLabelsCmd.AddCommand(queuePoolLabelsCmd)
+	poolLabelsCmd.AddCommand(listPoolLabelsCmd)
 	rootCmd.AddCommand(poolLabelsCmd)
 }
 
@@ -382,6 +400,72 @@ func queuePoolLabels(cmd *cobra.Command, args []string) {
 	}
 	for _, item := range output.Items {
 		fmt.Print(formatPoolLabelQueueGroup(item, days))
+	}
+}
+
+// validatePoolLabelsOrderBy checks the raw --order-by value client-side so a
+// malformed request never leaves the machine. An empty value stays unset so the
+// server applies its documented default (timestamp).
+func validatePoolLabelsOrderBy(orderBy string) error {
+	switch api.ListPoolLabelsParamsOrderBy(orderBy) {
+	case "", api.ListPoolLabelsParamsOrderByRank, api.ListPoolLabelsParamsOrderByTimestamp:
+		return nil
+	default:
+		return fmt.Errorf("--%s must be %s or %s, got %q",
+			poolLabelsOrderByKey,
+			api.ListPoolLabelsParamsOrderByTimestamp, api.ListPoolLabelsParamsOrderByRank, orderBy)
+	}
+}
+
+func listPoolLabels(cmd *cobra.Command, args []string) {
+	orderBy := viper.GetString(poolLabelsOrderByKey)
+	if err := validatePoolLabelsOrderBy(orderBy); err != nil {
+		log.Fatal(err)
+	}
+
+	params := api.ListPoolLabelsParams{PageSize: Ptr(100)}
+	if name := viper.GetString(poolLabelsNameKey); name != "" {
+		params.Name = Ptr(name)
+	}
+	if orderBy != "" {
+		ob := api.ListPoolLabelsParamsOrderBy(orderBy)
+		params.OrderBy = &ob
+	}
+
+	// Auto-paginate the full set: an org's distinct pool labels are bounded, and
+	// the rest of the CLI hides pagination behind a single command. Validate and
+	// nil-check the body before reading the token so a null page can't panic.
+	var labels []api.PoolLabel
+	for {
+		response, err := Client.ListPoolLabelsWithResponse(context.Background(), &params)
+		if err != nil {
+			log.Fatal("failed to list pool labels:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list pool labels", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response from listPoolLabels")
+		}
+		if response.JSON200.PoolLabels != nil {
+			labels = append(labels, *response.JSON200.PoolLabels...)
+		}
+		if response.JSON200.NextPageToken == nil || *response.JSON200.NextPageToken == "" {
+			break
+		}
+		params.PageToken = response.JSON200.NextPageToken
+	}
+
+	if viper.GetBool(agentJSONKey) {
+		OutputJson(labels)
+		return
+	}
+
+	if len(labels) == 0 {
+		fmt.Println("No pool labels found in this org.")
+		return
+	}
+	fmt.Printf("%d pool label(s):\n", len(labels))
+	for _, label := range labels {
+		fmt.Printf("  %s\n", label)
 	}
 }
 

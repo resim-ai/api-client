@@ -120,6 +120,7 @@ const (
 	agentIntervalKey           = "interval"
 	agentTopExperiencesKey     = "top-experiences"
 	poolLabelsCompletedDaysKey = "completed-since-days"
+	poolLabelsAllKey           = "all"
 	poolLabelsNameKey          = "name"
 	poolLabelsOrderByKey       = "order-by"
 
@@ -159,6 +160,7 @@ func init() {
 	agentResultsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
 
 	queuePoolLabelsCmd.Flags().Int(poolLabelsCompletedDaysKey, 7, "Window for completed batches, in days (1-30)")
+	queuePoolLabelsCmd.Flags().Bool(poolLabelsAllKey, false, "Show every pool label, including idle ones with no agents and no runs (hidden by default)")
 	queuePoolLabelsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of grouped output")
 
 	listPoolLabelsCmd.Flags().String(poolLabelsNameKey, "", "Filter pool labels by name (substring/trigram match). Pair with --order-by rank for the closest matches first")
@@ -494,9 +496,7 @@ func queuePoolLabels(cmd *cobra.Command, args []string) {
 		fmt.Println("No pool labels in the queue right now.")
 		return
 	}
-	for _, item := range output.Items {
-		fmt.Print(formatPoolLabelQueueGroup(item, days))
-	}
+	fmt.Print(formatPoolLabelQueue(output.Items, days, viper.GetBool(poolLabelsAllKey), time.Now()))
 }
 
 // validatePoolLabelsOrderBy checks the raw --order-by value client-side so a
@@ -786,34 +786,155 @@ func formatListAgentUtilization(out api.ListAgentUtilizationOutput) string {
 	return b.String()
 }
 
-func formatPoolLabelQueueGroup(item api.PoolLabelQueueItem, completedSinceDays int) string {
+// staleActiveAge is how long a batch may sit in an active (non-terminal) status
+// before the queue view flags it "⚠ stale". A HiL batch still running after a
+// full day is far more often a stuck/zombie run than a genuinely long job, and
+// this is the cheapest place to catch one before it pins utilization at 100%.
+const staleActiveAge = 24 * time.Hour
+
+// queueNameWidth caps the batch-name column so a pathologically long name can't
+// shove the age/pill columns off screen; longer names are truncated with an
+// ellipsis, matching the top-experiences table.
+const queueNameWidth = 40
+
+// formatPoolLabelQueue renders the whole queue view. Labels with no agents and
+// no batches of any kind are noise, so they collapse into a single footer line
+// unless --all is set; the labels that actually carry signal render as cards.
+// Any label that looks like a mis-quoted flag is called out by name, since it
+// almost certainly got into the org's label set by accident.
+func formatPoolLabelQueue(items []api.PoolLabelQueueItem, completedSinceDays int, showAll bool, now time.Time) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "\n=== %s (%d agents) ===\n", item.PoolLabel, len(item.AssociatedAgentIDs))
-	if len(item.AssociatedAgentIDs) > 0 {
-		fmt.Fprintf(&b, "    agents: %s\n", strings.Join(item.AssociatedAgentIDs, ", "))
-	}
-	for _, batch := range item.ActiveBatches {
-		fmt.Fprintf(&b, "  ACTIVE   %s [%s]%s  %s\n",
-			batch.BatchName,
-			batch.ConflatedStatus,
-			priorityLabel(batch.Priority),
-			batch.Timestamp.Format("2006-01-02 15:04:05"),
-		)
-	}
-	for _, batch := range item.QueuedBatches {
-		pos := "QUEUED"
-		if batch.QueuePosition != nil {
-			pos = fmt.Sprintf("Queued %d", *batch.QueuePosition)
+	hidden := 0
+	var suspicious []string
+	for _, item := range items {
+		if looksLikeFlag(item.PoolLabel) {
+			suspicious = append(suspicious, item.PoolLabel)
 		}
-		fmt.Fprintf(&b, "  %s   %s [%s]%s  %s\n",
-			pos, batch.BatchName, batch.ConflatedStatus, priorityLabel(batch.Priority),
-			batch.Timestamp.Format("2006-01-02 15:04:05"),
-		)
+		if !showAll && isIdleLabel(item) {
+			hidden++
+			continue
+		}
+		b.WriteString(formatPoolLabelQueueGroup(item, completedSinceDays, now))
 	}
-	if len(item.CompletedBatches) > 0 {
-		fmt.Fprintf(&b, "  + %d completed in last %d days\n", len(item.CompletedBatches), completedSinceDays)
+	if hidden > 0 {
+		fmt.Fprintf(&b, "\n%s hidden (no agents, no runs) · --all to show\n",
+			pluralize(hidden, "idle label"))
+	}
+	if len(suspicious) > 0 {
+		b.WriteByte('\n')
+		for _, label := range suspicious {
+			fmt.Fprintf(&b, "⚠ suspicious label %q looks like a mis-quoted flag, not a real pool label\n", label)
+		}
 	}
 	return b.String()
+}
+
+// isIdleLabel reports whether a label carries no signal at all: no agents, no
+// active/queued runs, and nothing completed in the window.
+func isIdleLabel(item api.PoolLabelQueueItem) bool {
+	return len(item.AssociatedAgentIDs) == 0 &&
+		len(item.ActiveBatches) == 0 &&
+		len(item.QueuedBatches) == 0 &&
+		len(item.CompletedBatches) == 0
+}
+
+// looksLikeFlag reports whether a pool label looks like a shell-quoting mistake
+// — it starts with a dash or contains whitespace, i.e. almost certainly a flag
+// (or flag plus value) captured verbatim as a label rather than a real one.
+func looksLikeFlag(label string) bool {
+	return strings.HasPrefix(label, "-") || strings.ContainsAny(label, " \t")
+}
+
+func formatPoolLabelQueueGroup(item api.PoolLabelQueueItem, completedSinceDays int, now time.Time) string {
+	var b strings.Builder
+	agentCount := len(item.AssociatedAgentIDs)
+	fmt.Fprintf(&b, "\n%s · %s", item.PoolLabel, pluralize(agentCount, "agent"))
+	if agentCount > 0 {
+		fmt.Fprintf(&b, " · %s", strings.Join(item.AssociatedAgentIDs, ", "))
+	}
+	b.WriteByte('\n')
+
+	// Size the status/position and name columns across every rendered batch so
+	// active and queued rows line their ages up within the card.
+	tagW, nameW := 0, 0
+	consider := func(tag, name string) {
+		if w := utf8.RuneCountInString(tag); w > tagW {
+			tagW = w
+		}
+		if w := utf8.RuneCountInString(truncate(name, queueNameWidth)); w > nameW {
+			nameW = w
+		}
+	}
+	for _, batch := range item.ActiveBatches {
+		consider(string(batch.ConflatedStatus), batch.BatchName)
+	}
+	for _, batch := range item.QueuedBatches {
+		consider(queuePositionTag(batch), batch.BatchName)
+	}
+
+	for _, batch := range item.ActiveBatches {
+		trailer := priorityLabel(batch.Priority)
+		if now.Sub(batch.Timestamp) >= staleActiveAge {
+			trailer = "  ⚠ stale" + trailer
+		}
+		writeQueueBatchLine(&b, "●", string(batch.ConflatedStatus), batch.BatchName,
+			tagW, nameW, formatAge(batch.Timestamp, now), trailer)
+	}
+	for _, batch := range item.QueuedBatches {
+		writeQueueBatchLine(&b, "○", queuePositionTag(batch), batch.BatchName,
+			tagW, nameW, formatAge(batch.Timestamp, now), priorityLabel(batch.Priority))
+	}
+	if len(item.ActiveBatches) == 0 && len(item.QueuedBatches) == 0 {
+		b.WriteString("  idle — no active or queued runs\n")
+	}
+	if len(item.CompletedBatches) > 0 {
+		fmt.Fprintf(&b, "  + %d completed in the last %s\n",
+			len(item.CompletedBatches), pluralize(completedSinceDays, "day"))
+	}
+	return b.String()
+}
+
+// writeQueueBatchLine renders one batch row: a status dot, the status/position
+// tag, the (padded, possibly truncated) batch name, its age, and any trailing
+// markers (stale flag, priority pill).
+func writeQueueBatchLine(b *strings.Builder, marker, tag, name string, tagW, nameW int, age, trailer string) {
+	fmt.Fprintf(b, "  %s %-*s  %-*s  %s%s\n",
+		marker, tagW, tag, nameW, truncate(name, queueNameWidth), age, trailer)
+}
+
+// queuePositionTag renders a queued batch's 1-based slot ("Queued #3"), falling
+// back to a bare "QUEUED" when the server did not report a position.
+func queuePositionTag(batch api.PoolLabelQueueBatch) string {
+	if batch.QueuePosition != nil {
+		return fmt.Sprintf("Queued #%d", *batch.QueuePosition)
+	}
+	return "QUEUED"
+}
+
+// formatAge renders how long ago t was, relative to now, as a compact
+// right-hand annotation ("just now", "45m ago", "3h ago", "12d ago"). It is
+// deliberately coarse: the queue view cares about minutes-vs-days, not seconds.
+func formatAge(t, now time.Time) string {
+	d := now.Sub(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d/time.Minute))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d/time.Hour))
+	default:
+		return fmt.Sprintf("%dd ago", int(d/(24*time.Hour)))
+	}
+}
+
+// pluralize renders a count and noun with the noun pluralized for everything but
+// exactly one: "1 agent", "0 agents", "4 agents".
+func pluralize(n int, noun string) string {
+	if n == 1 {
+		return fmt.Sprintf("1 %s", noun)
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
 }
 
 // priorityLabel maps the raw scheduler priority (ascending sort, default

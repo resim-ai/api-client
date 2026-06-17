@@ -323,6 +323,10 @@ func (s *CommandsSuite) TestValidateCompletedSinceDays() {
 	s.ErrorContains(validateCompletedSinceDays(31), "between 1 and 30")
 }
 
+// poolLabelQueueNow is a fixed "now" for the queue-format tests. The sample
+// batches are timestamped two hours earlier so they render fresh (not stale).
+var poolLabelQueueNow = time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+
 func samplePoolLabelQueueItem() api.PoolLabelQueueItem {
 	ts := time.Date(2026, 6, 1, 10, 0, 0, 0, time.UTC)
 	batch := func(name string, status api.ConflatedBatchStatus, priority int, queuePos *int) api.PoolLabelQueueBatch {
@@ -354,6 +358,17 @@ func samplePoolLabelQueueItem() api.PoolLabelQueueItem {
 	}
 }
 
+// lineWith returns the first line of out that contains needle, or "" if none
+// does. Used to tie a trailing marker (pill, stale flag) to its batch row.
+func lineWith(out, needle string) string {
+	for _, ln := range strings.Split(out, "\n") {
+		if strings.Contains(ln, needle) {
+			return ln
+		}
+	}
+	return ""
+}
+
 func (s *CommandsSuite) TestQueuePoolLabelsPassesWindow() {
 	viper.Reset()
 	viper.Set(poolLabelsCompletedDaysKey, 14)
@@ -366,35 +381,114 @@ func (s *CommandsSuite) TestQueuePoolLabelsPassesWindow() {
 		}, nil)
 
 	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
-	s.Contains(out, "=== RackHiLConfig")
-	s.Contains(out, "+ 3 completed in last 14 days")
+	s.Contains(out, "RackHiLConfig · 2 agents")
+	s.Contains(out, "+ 3 completed in the last 14 days")
 }
 
 func (s *CommandsSuite) TestFormatPoolLabelQueueGroup() {
-	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 7)
+	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 7, poolLabelQueueNow)
 
-	s.Contains(out, "=== RackHiLConfig (2 agents) ===")
-	s.Contains(out, "agents: agent-1, agent-2")
-	// Both active batches render, the elevated one with a High pill.
-	s.Contains(out, "ACTIVE   active-one [RUNNING]")
-	s.Contains(out, "ACTIVE   active-two [RUNNING] (High)")
+	// Header folds the agent count and IDs onto one line, count pluralized.
+	s.Contains(out, "RackHiLConfig · 2 agents · agent-1, agent-2")
+	// Both active batches render with a status dot; the elevated one gets a
+	// High pill, and the age is relative to now (two hours after the batch).
+	s.Contains(lineWith(out, "active-one"), "● RUNNING")
+	s.Contains(lineWith(out, "active-one"), "2h ago")
+	s.Contains(lineWith(out, "active-two"), "● RUNNING")
+	s.Contains(lineWith(out, "active-two"), "(High)")
 	// Queued batches carry their 1-based positions; deprioritised gets Low.
-	s.Contains(out, "Queued 1   queued-one [SUBMITTED]")
-	s.Contains(out, "Queued 2   queued-two [SUBMITTED] (Low)")
+	s.Contains(lineWith(out, "queued-one"), "○ Queued #1")
+	s.Contains(lineWith(out, "queued-two"), "○ Queued #2")
+	s.Contains(lineWith(out, "queued-two"), "(Low)")
 	// Completed batches collapse into a footnote interpolating the window.
-	s.Contains(out, "+ 3 completed in last 7 days")
+	s.Contains(out, "+ 3 completed in the last 7 days")
+	// Fresh batches are not flagged stale.
+	s.NotContains(out, "⚠ stale")
 }
 
 func (s *CommandsSuite) TestFormatPoolLabelQueueGroupWindowInterpolation() {
-	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 14)
-	s.Contains(out, "+ 3 completed in last 14 days")
+	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 14, poolLabelQueueNow)
+	s.Contains(out, "+ 3 completed in the last 14 days")
 }
 
 func (s *CommandsSuite) TestFormatPoolLabelQueueGroupNilQueuePosition() {
 	item := samplePoolLabelQueueItem()
 	item.QueuedBatches[0].QueuePosition = nil
-	out := formatPoolLabelQueueGroup(item, 7)
-	s.Contains(out, "QUEUED   queued-one [SUBMITTED]")
+	out := formatPoolLabelQueueGroup(item, 7, poolLabelQueueNow)
+	s.Contains(lineWith(out, "queued-one"), "○ QUEUED")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueGroupStale() {
+	item := samplePoolLabelQueueItem()
+	// Age one active batch past the 24h stale threshold; the other stays fresh.
+	item.ActiveBatches[1].Timestamp = poolLabelQueueNow.Add(-12 * 24 * time.Hour)
+	out := formatPoolLabelQueueGroup(item, 7, poolLabelQueueNow)
+	s.Contains(lineWith(out, "active-two"), "12d ago")
+	s.Contains(lineWith(out, "active-two"), "⚠ stale")
+	s.NotContains(lineWith(out, "active-one"), "⚠ stale")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueGroupIdle() {
+	item := api.PoolLabelQueueItem{
+		PoolLabel:          "hil-idle-with-agent",
+		AssociatedAgentIDs: []string{"hil-4"},
+	}
+	out := formatPoolLabelQueueGroup(item, 7, poolLabelQueueNow)
+	s.Contains(out, "hil-idle-with-agent · 1 agent · hil-4")
+	s.Contains(out, "idle — no active or queued runs")
+	s.NotContains(out, "completed in the last")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueHidesIdleLabels() {
+	items := []api.PoolLabelQueueItem{
+		samplePoolLabelQueueItem(),
+		{PoolLabel: "empty-a"},
+		{PoolLabel: "empty-b"},
+	}
+	// Default: idle labels collapse into a footer, names suppressed.
+	out := formatPoolLabelQueue(items, 7, false, poolLabelQueueNow)
+	s.Contains(out, "RackHiLConfig · 2 agents")
+	s.Contains(out, "2 idle labels hidden (no agents, no runs) · --all to show")
+	s.NotContains(out, "empty-a")
+	s.NotContains(out, "empty-b")
+
+	// --all renders every label as its own card, no hidden footer.
+	all := formatPoolLabelQueue(items, 7, true, poolLabelQueueNow)
+	s.Contains(all, "empty-a · 0 agents")
+	s.Contains(all, "empty-b · 0 agents")
+	s.NotContains(all, "idle labels hidden")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueFlagsSuspiciousLabel() {
+	items := []api.PoolLabelQueueItem{
+		{PoolLabel: "--pool-labels hil-test-system"},
+	}
+	out := formatPoolLabelQueue(items, 7, false, poolLabelQueueNow)
+	s.Contains(out, `⚠ suspicious label "--pool-labels hil-test-system"`)
+}
+
+func (s *CommandsSuite) TestFormatAge() {
+	base := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	s.Equal("just now", formatAge(base, base))
+	s.Equal("just now", formatAge(base.Add(time.Minute), base)) // future clamps
+	s.Equal("45m ago", formatAge(base.Add(-45*time.Minute), base))
+	s.Equal("3h ago", formatAge(base.Add(-3*time.Hour), base))
+	s.Equal("12d ago", formatAge(base.Add(-12*24*time.Hour), base))
+}
+
+func (s *CommandsSuite) TestPluralize() {
+	s.Equal("0 agents", pluralize(0, "agent"))
+	s.Equal("1 agent", pluralize(1, "agent"))
+	s.Equal("4 agents", pluralize(4, "agent"))
+	s.Equal("1 day", pluralize(1, "day"))
+}
+
+func (s *CommandsSuite) TestLooksLikeFlag() {
+	s.True(looksLikeFlag("--pool-labels hil-test-system"))
+	s.True(looksLikeFlag("-x"))
+	s.True(looksLikeFlag("has space"))
+	s.False(looksLikeFlag("hil-test-system"))
+	s.False(looksLikeFlag("RackHiLConfig"))
 }
 
 func (s *CommandsSuite) TestPriorityLabel() {
@@ -415,8 +509,8 @@ func (s *CommandsSuite) TestQueuePoolLabelsRendersGroups() {
 		}, nil)
 
 	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
-	s.Contains(out, "=== RackHiLConfig (2 agents) ===")
-	s.Contains(out, "+ 3 completed in last 7 days")
+	s.Contains(out, "RackHiLConfig · 2 agents")
+	s.Contains(out, "+ 3 completed in the last 7 days")
 }
 
 func (s *CommandsSuite) TestQueuePoolLabelsJSONRoundTrips() {

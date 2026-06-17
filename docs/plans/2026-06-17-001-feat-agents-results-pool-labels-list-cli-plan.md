@@ -1,7 +1,7 @@
 ---
 title: "feat: resim agents results + pool-labels list CLI subcommands"
 type: feat
-status: active
+status: completed
 date: 2026-06-17
 linear: https://linear.app/resim/issue/WOB-4131/api-client-hil-agent-status-agentspool-labels-cli-subcommands
 origin: gap analysis — current api-client CLI vs. deployed rerun agent/pool-label API

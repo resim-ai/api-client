@@ -75,6 +75,17 @@ rack. Offline intervals are recorded from this feature's deployment onward;
 in earlier windows offline reads 0 and all non-running time appears as idle.`,
 		Run: agentUtilization,
 	}
+	agentResultsCmd = &cobra.Command{
+		Use:   "results",
+		Short: "results - Lists a HiL Agent's full results history",
+		Long: `results - Lists every test result a HiL Agent has run for the caller's org.
+
+This is the full, paginated history behind the agent detail page's Results tab;
+'agents get' shows only the most recent slice. Filter with --text (case-insensitive
+substring on the test/experience name) and --created-after (RFC3339 lower bound).
+All matching results are fetched and printed; the Total line counts them.`,
+		Run: agentResults,
+	}
 
 	poolLabelsCmd = &cobra.Command{
 		Use:     "pool-labels",
@@ -112,6 +123,9 @@ const (
 	poolLabelsNameKey          = "name"
 	poolLabelsOrderByKey       = "order-by"
 
+	agentResultsTextKey         = "text"
+	agentResultsCreatedAfterKey = "created-after"
+
 	completedSinceDaysMin = 1
 	completedSinceDaysMax = 30
 
@@ -138,6 +152,12 @@ func init() {
 	agentUtilizationCmd.Flags().Int(agentTopExperiencesKey, topExperiencesDefault, "How many top experiences (ranked by running time in the window) to include (0-50). 0 omits the list")
 	agentUtilizationCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
 
+	agentResultsCmd.Flags().String(agentIDKey, "", "Agent ID (as supplied at check-in)")
+	agentResultsCmd.MarkFlagRequired(agentIDKey)
+	agentResultsCmd.Flags().String(agentResultsTextKey, "", "Filter to results whose test (experience) name contains this substring (case-insensitive)")
+	agentResultsCmd.Flags().String(agentResultsCreatedAfterKey, "", "Only results at or after this instant (RFC3339, e.g. 2026-06-04T00:00:00Z)")
+	agentResultsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
+
 	queuePoolLabelsCmd.Flags().Int(poolLabelsCompletedDaysKey, 7, "Window for completed batches, in days (1-30)")
 	queuePoolLabelsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of grouped output")
 
@@ -149,6 +169,7 @@ func init() {
 	agentsCmd.AddCommand(getAgentCmd)
 	agentsCmd.AddCommand(archiveAgentCmd)
 	agentsCmd.AddCommand(agentUtilizationCmd)
+	agentsCmd.AddCommand(agentResultsCmd)
 	rootCmd.AddCommand(agentsCmd)
 
 	poolLabelsCmd.AddCommand(queuePoolLabelsCmd)
@@ -209,6 +230,81 @@ func getAgent(cmd *cobra.Command, args []string) {
 		return
 	}
 	fmt.Print(formatAgentDetail(*agent))
+}
+
+// parseAgentResultsParams validates the raw flag values client-side so a
+// malformed request never leaves the machine. Empty values stay unset so the
+// server returns the agent's full (unfiltered) history.
+func parseAgentResultsParams(text, createdAfterRaw string) (api.ListAgentResultsParams, error) {
+	params := api.ListAgentResultsParams{PageSize: Ptr(100)}
+	if text != "" {
+		params.Text = Ptr(text)
+	}
+	if createdAfterRaw != "" {
+		t, err := time.Parse(time.RFC3339, createdAfterRaw)
+		if err != nil {
+			return params, fmt.Errorf("invalid --%s value %q: expected RFC3339, e.g. 2026-06-04T00:00:00Z", agentResultsCreatedAfterKey, createdAfterRaw)
+		}
+		params.CreatedAfter = &t
+	}
+	return params, nil
+}
+
+func agentResults(cmd *cobra.Command, args []string) {
+	agentID := viper.GetString(agentIDKey)
+	params, err := parseAgentResultsParams(
+		viper.GetString(agentResultsTextKey),
+		viper.GetString(agentResultsCreatedAfterKey),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Auto-paginate the full (filtered) history. Validate and nil-check the
+	// body before reading the token so a null page can't panic. The CLI fetches
+	// every page, so the accumulated count is the exact, filter-correct total —
+	// the server's per-page `Total` is not needed to render the header.
+	var items []api.AgentRecentActivity
+	for {
+		response, err := Client.ListAgentResultsWithResponse(context.Background(), agentID, &params)
+		if err != nil {
+			log.Fatal("failed to list agent results:", err)
+		}
+		if response.HTTPResponse.StatusCode == http.StatusNotFound {
+			log.Fatalf("agent %q not found", agentID)
+		}
+		ValidateResponse(http.StatusOK, "failed to list agent results", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response from listAgentResults")
+		}
+		items = append(items, response.JSON200.Items...)
+		if response.JSON200.NextPageToken == nil || *response.JSON200.NextPageToken == "" {
+			break
+		}
+		params.PageToken = response.JSON200.NextPageToken
+	}
+
+	if viper.GetBool(agentJSONKey) {
+		OutputJson(items)
+		return
+	}
+	fmt.Print(formatAgentResults(agentID, items))
+}
+
+// formatAgentResults renders the agent's results history: a header naming the
+// agent and the count of results returned, then the shared activity table.
+// Total is the number of rows actually fetched — because the CLI exhausts
+// pagination, that equals the full set matching the query.
+func formatAgentResults(agentID string, items []api.AgentRecentActivity) string {
+	var b strings.Builder
+	if len(items) == 0 {
+		fmt.Fprintf(&b, "No results for agent %q.\n", agentID)
+		return b.String()
+	}
+	fmt.Fprintf(&b, "Agent:  %s\n", agentID)
+	fmt.Fprintf(&b, "Total:  %d\n", len(items))
+	writeAgentActivityTable(&b, items, "")
+	return b.String()
 }
 
 // confirmArchiveAgent reads a yes/no answer from in. Anything other than an
@@ -474,11 +570,38 @@ func listPoolLabels(cmd *cobra.Command, args []string) {
 // values, matching the uppercase header style of the utilization tables.
 const agentListHeader = "NAME\tSTATUS\tVERSION\tPOOL LABELS\tLAST CHECK-IN\n"
 
-// agentActivityHeader labels the recent-activity table emitted by
-// formatAgentDetail. Like agentListHeader it is routed through the rows'
-// tabwriter so the labels align over their values; the leading indent nests
-// the table under the "Recent activity:" line.
-const agentActivityHeader = "  PROJECT\tBATCH\tBATCH STATUS\tTEST\tTEST STATUS\tBRANCH\tTIMESTAMP\n"
+// agentActivityColumns labels the agent-activity table shared by the
+// recent-activity block of `agents get` and the full history of
+// `agents results`. It carries no indent; writeAgentActivityTable prepends a
+// caller-supplied indent to the header and every row so each caller controls
+// nesting.
+const agentActivityColumns = "PROJECT\tBATCH\tBATCH STATUS\tTEST\tTEST STATUS\tBRANCH\tTIMESTAMP\n"
+
+// writeAgentActivityTable renders agent activity rows as a column-aligned
+// table on b. indent is prepended to the header and every row: `agents get`
+// nests its recent-activity table under the "Recent activity:" line with a
+// two-space indent, while `agents results` renders a flush top-level table
+// with no indent. A row with no branch leaves that cell empty so the
+// timestamp still aligns.
+func writeAgentActivityTable(b *strings.Builder, activity []api.AgentRecentActivity, indent string) {
+	tw := tabwriter.NewWriter(b, 0, 0, 2, ' ', 0)
+	fmt.Fprint(tw, indent+agentActivityColumns)
+	for _, r := range activity {
+		branch := ""
+		if r.BranchName != nil {
+			branch = *r.BranchName
+		}
+		fmt.Fprintf(tw, "%s%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			indent,
+			r.ProjectName,
+			r.BatchName, r.BatchConflatedStatus,
+			r.JobName, r.JobConflatedStatus,
+			branch,
+			r.Timestamp.Format("2006-01-02 15:04:05"),
+		)
+	}
+	tw.Flush()
+}
 
 // displayVersion renders a version string with exactly one leading "v",
 // regardless of whether the server already prefixed it. Without this the CLI
@@ -524,27 +647,7 @@ func formatAgentDetail(a api.Agent) string {
 		return b.String()
 	}
 	fmt.Fprintln(&b, "Recent activity:")
-	// Render the activity as a labeled, column-aligned table: a header row of
-	// column labels followed by bare values, all padded to a consistent width
-	// on Flush. The header carries the field names, so the rows drop the inline
-	// "batch"/"test"/"branch=" prefixes. Rows without a branch leave that cell
-	// empty so the timestamp still aligns.
-	tw := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
-	fmt.Fprint(tw, agentActivityHeader)
-	for _, r := range a.RecentActivity {
-		branch := ""
-		if r.BranchName != nil {
-			branch = *r.BranchName
-		}
-		fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			r.ProjectName,
-			r.BatchName, r.BatchConflatedStatus,
-			r.JobName, r.JobConflatedStatus,
-			branch,
-			r.Timestamp.Format("2006-01-02 15:04:05"),
-		)
-	}
-	tw.Flush()
+	writeAgentActivityTable(&b, a.RecentActivity, "  ")
 	return b.String()
 }
 

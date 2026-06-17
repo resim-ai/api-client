@@ -543,6 +543,175 @@ func (s *CommandsSuite) TestListPoolLabelsJSONRoundTrips() {
 	s.Equal([]string{"alpha", "beta"}, parsed)
 }
 
+// sampleAgentResult builds an AgentRecentActivity row for the results tests.
+// branch is optional (nil leaves the branch cell empty).
+func sampleAgentResult(batchName, jobName, projectName string, branch *string) api.AgentRecentActivity {
+	return api.AgentRecentActivity{
+		BatchID:              uuid.New(),
+		BatchName:            batchName,
+		BatchConflatedStatus: api.ConflatedBatchStatusCOMPLETE,
+		JobID:                uuid.New(),
+		JobName:              jobName,
+		JobConflatedStatus:   api.ConflatedJobStatusPASSED,
+		ProjectName:          projectName,
+		BranchName:           branch,
+		Timestamp:            time.Date(2026, 6, 1, 11, 0, 0, 0, time.UTC),
+	}
+}
+
+func (s *CommandsSuite) TestParseAgentResultsParams() {
+	// Empty flags stay unset so the server returns the full history.
+	params, err := parseAgentResultsParams("", "")
+	s.NoError(err)
+	s.Equal(Ptr(100), params.PageSize)
+	s.Nil(params.Text)
+	s.Nil(params.CreatedAfter)
+
+	// Text and a valid RFC3339 lower bound are forwarded.
+	params, err = parseAgentResultsParams("merge", "2026-06-01T00:00:00Z")
+	s.NoError(err)
+	s.Equal(Ptr("merge"), params.Text)
+	s.Require().NotNil(params.CreatedAfter)
+	s.True(params.CreatedAfter.Equal(time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)))
+
+	// A malformed created-after fails before any request is built.
+	_, err = parseAgentResultsParams("", "notatime")
+	s.Require().Error(err)
+	s.Contains(err.Error(), agentResultsCreatedAfterKey)
+}
+
+func (s *CommandsSuite) TestAgentResultsMultiPageAccumulates() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	// Page 1 carries a next-page token; page 2 (sent with it) closes the series.
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{
+					sampleAgentResult("batch-a", "test-a", "proj-a", Ptr("main")),
+					sampleAgentResult("batch-b", "test-b", "proj-b", nil),
+				},
+				NextPageToken: Ptr("p2"),
+				Total:         3,
+			},
+		}, nil)
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100), PageToken: Ptr("p2")}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{
+					sampleAgentResult("batch-c", "test-c", "proj-c", nil),
+				},
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, "Agent:  agent-1")
+	s.Contains(out, "Total:  3")
+	s.Contains(out, "PROJECT")
+	s.Contains(out, "proj-a")
+	s.Contains(out, "batch-a")
+	s.Contains(out, "proj-b")
+	s.Contains(out, "proj-c")
+	s.Contains(out, "main")
+	// The branchless rows must not borrow the first row's branch.
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, "batch-b") || strings.Contains(line, "batch-c") {
+			s.NotContains(line, "main")
+		}
+	}
+}
+
+func (s *CommandsSuite) TestAgentResultsTotalReflectsFetchedRows() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	// Server Total is deliberately larger than the rows returned. Because the
+	// CLI fetches every page, the header counts the rows actually shown so it
+	// never overstates (the count is filter-correct regardless of server Total).
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{
+					sampleAgentResult("batch-a", "test-a", "proj-a", nil),
+					sampleAgentResult("batch-b", "test-b", "proj-b", nil),
+				},
+				Total: 99,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, "Total:  2")
+	s.NotContains(out, "Total:  99")
+}
+
+func (s *CommandsSuite) TestAgentResultsEmptyState() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListAgentResultsOutput{Items: []api.AgentRecentActivity{}},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, `No results for agent "agent-1".`)
+}
+
+func (s *CommandsSuite) TestAgentResultsJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{sampleAgentResult("batch-a", "test-a", "proj-a", nil)},
+				Total: 1,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	var parsed []api.AgentRecentActivity
+	s.Require().NoError(json.Unmarshal([]byte(out), &parsed))
+	s.Require().Len(parsed, 1)
+	s.Equal("batch-a", parsed[0].BatchName)
+}
+
+func (s *CommandsSuite) TestAgentResultsPassesFilters() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	viper.Set(agentResultsTextKey, "merge")
+	viper.Set(agentResultsCreatedAfterKey, "2026-06-01T00:00:00Z")
+	defer viper.Reset()
+	after := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		mock.MatchedBy(func(p *api.ListAgentResultsParams) bool {
+			return p.Text != nil && *p.Text == "merge" &&
+				p.CreatedAfter != nil && p.CreatedAfter.Equal(after)
+		})).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{sampleAgentResult("batch-a", "merge-test", "proj-a", nil)},
+				Total: 1,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, "merge-test")
+}
+
 func (s *CommandsSuite) TestParseAgentUtilizationParams() {
 	// All flags empty: the time/interval params stay unset so the server
 	// defaults apply; topExperiences is always sent explicitly.

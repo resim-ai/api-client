@@ -2936,6 +2936,22 @@ func TestAgents(t *testing.T) {
 	queueCommand := CommandBuilder{Command: "queue"}
 	output = s.runCommand(ts, []CommandBuilder{poolLabelsCommand, queueCommand}, ExpectNoError)
 	ts.Empty(output.StdErr)
+
+	fmt.Println("Testing pool-labels list command")
+	// Like agents list, the org may have no pool labels: exit 0 with either a
+	// list or the empty-state message is a pass.
+	listPoolLabelsCommand := CommandBuilder{Command: "list"}
+	output = s.runCommand(ts, []CommandBuilder{poolLabelsCommand, listPoolLabelsCommand}, ExpectNoError)
+	ts.Empty(output.StdErr)
+
+	// --json emits a (possibly empty) JSON array of label strings.
+	listPoolLabelsJSONCommand := CommandBuilder{
+		Command: "list",
+		Flags:   []Flag{{Name: "--json", Value: ""}},
+	}
+	output = s.runCommand(ts, []CommandBuilder{poolLabelsCommand, listPoolLabelsJSONCommand}, ExpectNoError)
+	var poolLabelsOutput []string
+	ts.NoError(json.Unmarshal([]byte(strings.TrimSpace(output.StdOut)), &poolLabelsOutput))
 }
 
 func TestProjectCommands(t *testing.T) {

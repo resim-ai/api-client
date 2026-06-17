@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -122,14 +123,31 @@ func (s *CommandsSuite) TestListAgentsTableOutput() {
 	s.Contains(out, "LAST CHECK-IN")
 	s.Contains(out, "agent-1")
 	s.Contains(out, "agent-2")
-	s.Contains(out, "(out of date; latest 1.2.3)")
+	s.Contains(out, "(out of date; latest v1.2.3)")
 	// The header carries the label, so rows no longer repeat it.
 	s.NotContains(out, "last check-in")
 }
 
 func (s *CommandsSuite) TestFormatAgentRowOutOfDateSuffix() {
 	row := formatAgentRow(sampleAgent("agent-1", true), "1.2.3")
-	s.Contains(row, "(out of date; latest 1.2.3)")
+	s.Contains(row, "(out of date; latest v1.2.3)")
+}
+
+// TestFormatAgentVersionSinglePrefix guards against double-prefixing: the CLI
+// renders exactly one leading "v" whether or not the server already supplied
+// the prefix on the agent version or the latest-known version.
+func (s *CommandsSuite) TestFormatAgentVersionSinglePrefix() {
+	agent := sampleAgent("agent-1", true)
+	agent.Version = "v1.0.0"
+	row := formatAgentRow(agent, "v1.2.3")
+	s.Contains(row, "v1.0.0")
+	s.NotContains(row, "vv1.0.0")
+	s.Contains(row, "(out of date; latest v1.2.3)")
+	s.NotContains(row, "vv1.2.3")
+
+	detail := formatAgentDetail(agent)
+	s.Contains(detail, "Version:         v1.0.0")
+	s.NotContains(detail, "vv1.0.0")
 }
 
 func (s *CommandsSuite) TestFormatAgentRowSuppressesSuffixWithoutLatestVersion() {
@@ -531,8 +549,8 @@ func (s *CommandsSuite) TestActualAgentUtilization() {
 
 func (s *CommandsSuite) TestFormatAgentUtilization() {
 	out := formatAgentUtilization(sampleUtilizationOutput())
-	s.Contains(out, "Agent:    agent-1")
-	s.Contains(out, "Interval: day")
+	s.Contains(out, "Agent:      agent-1")
+	s.Contains(out, "Interval:   day")
 	s.Contains(out, "BUCKET START")
 	// Utilization renders as a percentage; the empty bucket carries explicit
 	// zeros. There is no concurrency column — an agent runs one test at a time.
@@ -545,7 +563,7 @@ func (s *CommandsSuite) TestFormatAgentUtilization() {
 	s.Contains(out, "OFFLINE")
 	s.Contains(out, "12.5%")
 	// Window-level summary: total tests, queue wait, top experiences.
-	s.Contains(out, "Tests run: 12")
+	s.Contains(out, "Tests run:  12")
 	s.Contains(out, "Queue wait: avg 1m35s, median 34s")
 	s.Contains(out, "TOP EXPERIENCES")
 	s.Contains(out, "Highway merge")
@@ -571,6 +589,28 @@ func (s *CommandsSuite) TestFormatSeconds() {
 	s.Equal("2h", formatSeconds(7200))
 	s.Equal("3h12m", formatSeconds(11520))
 	s.Equal("1h0m5s", formatSeconds(3605))
+}
+
+func (s *CommandsSuite) TestTruncate() {
+	// Short strings pass through unchanged.
+	s.Equal("Highway merge", truncate("Highway merge", 44))
+	// A string exactly at the limit is not truncated.
+	s.Equal("abcde", truncate("abcde", 5))
+	// Overflow is clipped to maxRunes display columns, ending in an ellipsis.
+	got := truncate("vat_37_state_impartial_tests--vadc-starts-in-active_moving-full", 43)
+	s.Equal(43, utf8.RuneCountInString(got))
+	s.True(strings.HasSuffix(got, "…"))
+}
+
+func (s *CommandsSuite) TestFormatAgentUtilizationTruncatesLongExperienceName() {
+	out := sampleUtilizationOutput()
+	longName := "vat_37_state_impartial_tests--vadc-starts-in-active_moving-full"
+	out.TopExperiences[0].ExperienceName = longName
+	formatted := formatAgentUtilization(out)
+	// The full name overflows the column, so it must not appear verbatim; an
+	// ellipsis-clipped prefix appears instead.
+	s.NotContains(formatted, longName)
+	s.Contains(formatted, "vat_37_state_impartial_tests--vadc-starts-…")
 }
 
 func (s *CommandsSuite) TestFormatAgentUtilizationEmptyBuckets() {
@@ -606,7 +646,7 @@ func (s *CommandsSuite) TestAgentUtilizationTableOutput() {
 	s.mockAgentUtilization(&out)
 
 	stdout := captureStdout(s, func() { agentUtilization(nil, nil) })
-	s.Contains(stdout, "Agent:    agent-1")
+	s.Contains(stdout, "Agent:      agent-1")
 	s.Contains(stdout, "42.5%")
 }
 
@@ -678,7 +718,7 @@ func (s *CommandsSuite) TestActualListAgentUtilization() {
 func (s *CommandsSuite) TestFormatListAgentUtilization() {
 	out := formatListAgentUtilization(sampleListUtilizationOutput())
 	// The shared window header renders once; each agent gets its own section.
-	s.Contains(out, "Interval: day")
+	s.Contains(out, "Interval:   day")
 	s.Equal(1, strings.Count(out, "Window:"))
 	s.Contains(out, "=== agent-1 ===")
 	s.Contains(out, "=== agent-idle ===")
@@ -687,7 +727,7 @@ func (s *CommandsSuite) TestFormatListAgentUtilization() {
 	s.Equal(2, strings.Count(out, "BUCKET START"))
 	// The fleet-wide summary renders once before the per-agent sections; the
 	// top-experiences table renders once at the very bottom, after them.
-	s.Contains(out, "Tests run: 12")
+	s.Contains(out, "Tests run:  12")
 	s.Contains(out, "Queue wait: avg 1m35s, median 34s")
 	s.Equal(1, strings.Count(out, "TOP EXPERIENCES"))
 	s.Contains(out, "Highway merge")
@@ -696,7 +736,7 @@ func (s *CommandsSuite) TestFormatListAgentUtilization() {
 	// Each agent section also carries its own absolute tests-run total. The
 	// fleet line (12), agent-1's sum (12), and the idle agent's (0) make three
 	// "Tests run:" lines; the idle agent's 0 is distinct from the fleet total.
-	s.Contains(out, "Tests run: 0")
+	s.Contains(out, "Tests run:  0")
 	s.Equal(3, strings.Count(out, "Tests run:"))
 }
 

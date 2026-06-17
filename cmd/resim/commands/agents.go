@@ -10,6 +10,7 @@ import (
 	"strings"
 	"text/tabwriter"
 	"time"
+	"unicode/utf8"
 
 	"github.com/resim-ai/api-client/api"
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
@@ -395,6 +396,13 @@ const agentListHeader = "NAME\tSTATUS\tVERSION\tPOOL LABELS\tLAST CHECK-IN\n"
 // the table under the "Recent activity:" line.
 const agentActivityHeader = "  PROJECT\tBATCH\tBATCH STATUS\tTEST\tTEST STATUS\tBRANCH\tTIMESTAMP\n"
 
+// displayVersion renders a version string with exactly one leading "v",
+// regardless of whether the server already prefixed it. Without this the CLI
+// double-prefixes server-supplied "v1.2.3" values into "vv1.2.3".
+func displayVersion(version string) string {
+	return "v" + strings.TrimPrefix(version, "v")
+}
+
 // formatAgentRow renders a one-line summary suitable for `agents list`,
 // aligned under agentListHeader. The version trailer carries an explicit
 // "(out of date)" suffix so the CLI surfaces the same signal as the UI; when
@@ -403,12 +411,12 @@ const agentActivityHeader = "  PROJECT\tBATCH\tBATCH STATUS\tTEST\tTEST STATUS\t
 func formatAgentRow(a api.Agent, latestKnownVersion string) string {
 	verSuffix := ""
 	if a.IsOutOfDate && latestKnownVersion != "" {
-		verSuffix = fmt.Sprintf(" (out of date; latest %s)", latestKnownVersion)
+		verSuffix = fmt.Sprintf(" (out of date; latest %s)", displayVersion(latestKnownVersion))
 	}
-	return fmt.Sprintf("%s\t%s\tv%s%s\t%s\t%s\n",
+	return fmt.Sprintf("%s\t%s\t%s%s\t%s\t%s\n",
 		a.AgentID,
 		a.Activity,
-		a.Version,
+		displayVersion(a.Version),
 		verSuffix,
 		strings.Join(a.PoolLabels, ", "),
 		a.LastCheckin.Format("2006-01-02 15:04:05"),
@@ -419,7 +427,7 @@ func formatAgentDetail(a api.Agent) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Agent ID:        %s\n", a.AgentID)
 	fmt.Fprintf(&b, "Activity:        %s\n", a.Activity)
-	fmt.Fprintf(&b, "Version:         v%s", a.Version)
+	fmt.Fprintf(&b, "Version:         %s", displayVersion(a.Version))
 	if a.IsOutOfDate {
 		fmt.Fprint(&b, " (out of date — visit https://docs.resim.ai for the latest agent version)")
 	}
@@ -497,15 +505,34 @@ func formatSeconds(seconds float64) string {
 	return out
 }
 
+// utilLabelWidth is the column width of the summary header labels, sized to the
+// widest label ("Queue wait:") so their values line up in a single column.
+const utilLabelWidth = 11
+
 // writeUtilizationSummary renders the window-level counters shared by the
 // single-agent and org-wide outputs. The queue-wait line is omitted when the
 // server reported no started run with a measurable wait.
 func writeUtilizationSummary(b *strings.Builder, totalTestsRun int, avgQueueSeconds, medianQueueSeconds *float64) {
-	fmt.Fprintf(b, "Tests run: %d\n", totalTestsRun)
+	fmt.Fprintf(b, "%-*s %d\n", utilLabelWidth, "Tests run:", totalTestsRun)
 	if avgQueueSeconds != nil && medianQueueSeconds != nil {
-		fmt.Fprintf(b, "Queue wait: avg %s, median %s\n",
+		fmt.Fprintf(b, "%-*s avg %s, median %s\n", utilLabelWidth, "Queue wait:",
 			formatSeconds(*avgQueueSeconds), formatSeconds(*medianQueueSeconds))
 	}
+}
+
+// topExpNameWidth is the fixed width of the experience-name column. Names
+// longer than this are truncated so they don't push the other columns out of
+// alignment; the header line fits within an 80-column terminal.
+const topExpNameWidth = 44
+
+// truncate shortens s to at most maxRunes characters, replacing the tail with
+// an ellipsis when it overflows. It counts runes (not bytes) so the result is
+// maxRunes display columns wide, matching how fmt pads fixed-width fields.
+func truncate(s string, maxRunes int) string {
+	if utf8.RuneCountInString(s) <= maxRunes {
+		return s
+	}
+	return string([]rune(s)[:maxRunes-1]) + "…"
 }
 
 // writeTopExperiences renders the experiences ranked by running time in the
@@ -514,10 +541,13 @@ func writeTopExperiences(b *strings.Builder, tops []api.AgentUtilizationTopExper
 	if len(tops) == 0 {
 		return
 	}
-	fmt.Fprintf(b, "\n%-40s%-7s%-11s%s\n", "TOP EXPERIENCES", "RUNS", "RUN TIME", "SHARE OF BUSY TIME")
+	fmt.Fprintf(b, "\n%-*s%-7s%-11s%s\n", topExpNameWidth, "TOP EXPERIENCES", "RUNS", "RUN TIME", "SHARE OF BUSY TIME")
 	for _, e := range tops {
-		fmt.Fprintf(b, "%-40s%-7d%-11s%.1f%%\n",
-			e.ExperienceName, e.RunCount, formatSeconds(e.TotalRunSeconds), e.Share*100)
+		// Truncate one rune short of the column width so a clipped name still
+		// leaves at least one space before the RUNS column.
+		fmt.Fprintf(b, "%-*s%-7d%-11s%.1f%%\n",
+			topExpNameWidth, truncate(e.ExperienceName, topExpNameWidth-1),
+			e.RunCount, formatSeconds(e.TotalRunSeconds), e.Share*100)
 	}
 }
 
@@ -525,9 +555,9 @@ func writeTopExperiences(b *strings.Builder, tops []api.AgentUtilizationTopExper
 // bucket table.
 func formatAgentUtilization(out api.AgentUtilizationOutput) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Agent:    %s\n", out.AgentID)
-	fmt.Fprintf(&b, "Interval: %s\n", out.Interval)
-	fmt.Fprintf(&b, "Window:   %s — %s\n",
+	fmt.Fprintf(&b, "%-*s %s\n", utilLabelWidth, "Agent:", out.AgentID)
+	fmt.Fprintf(&b, "%-*s %s\n", utilLabelWidth, "Interval:", out.Interval)
+	fmt.Fprintf(&b, "%-*s %s — %s\n", utilLabelWidth, "Window:",
 		out.WindowStart.Format("2006-01-02 15:04:05 MST"),
 		out.WindowEnd.Format("2006-01-02 15:04:05 MST"),
 	)
@@ -546,8 +576,8 @@ func formatAgentUtilization(out api.AgentUtilizationOutput) string {
 // so they are not repeated per section.
 func formatListAgentUtilization(out api.ListAgentUtilizationOutput) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "Interval: %s\n", out.Interval)
-	fmt.Fprintf(&b, "Window:   %s — %s\n",
+	fmt.Fprintf(&b, "%-*s %s\n", utilLabelWidth, "Interval:", out.Interval)
+	fmt.Fprintf(&b, "%-*s %s — %s\n", utilLabelWidth, "Window:",
 		out.WindowStart.Format("2006-01-02 15:04:05 MST"),
 		out.WindowEnd.Format("2006-01-02 15:04:05 MST"),
 	)
@@ -562,7 +592,7 @@ func formatListAgentUtilization(out api.ListAgentUtilizationOutput) string {
 			fmt.Fprintln(&b, "No buckets in the window.")
 			continue
 		}
-		fmt.Fprintf(&b, "Tests run: %d\n", sumBucketTestsRun(series.Buckets))
+		fmt.Fprintf(&b, "%-*s %d\n", utilLabelWidth, "Tests run:", sumBucketTestsRun(series.Buckets))
 		writeUtilizationBuckets(&b, series.Buckets)
 	}
 	writeTopExperiences(&b, out.TopExperiences)

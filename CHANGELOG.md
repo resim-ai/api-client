@@ -2,7 +2,11 @@
 
 ## ReSim CLI
 
-### v0.57.0 - Unreleased
+### v0.58.0 - June 16, 2026
+
+- Cosmetic clean-up of `agents utilization`
+
+### v0.57.0 - June 16, 2026
 
 - Adds `agents utilization`, returning a bucketed utilization time-series for HiL Agents. With `--agent-id` it fetches a single agent (`GET /agents/{agentID}/utilization`); without it, one request fetches every non-removed agent in the org (`GET /agents/utilization`), including all-zero series for agents with no activity in the window. Each bucket reports `utilization` (fraction of wall-clock time the agent was running at least one experience), the `idle`/`offline` split of the non-running remainder, `testsRun` (job runs started in the bucket), and `avgConcurrency` (average number of experiences running at once). The window summary reports the total tests run, the average and median queue wait of runs started in the window, and the top experiences by running time (`--top-experiences`, default 10, 0-50). Supports `--start-time`, `--end-time`, `--interval hour|day`, and `--json`. Requires a server with the utilization endpoints deployed.
 - Library consumers: the regenerated client adds the `getAgentUtilization` / `listAgentUtilization` methods to `ClientWithResponsesInterface`.

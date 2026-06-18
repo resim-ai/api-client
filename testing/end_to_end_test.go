@@ -356,11 +356,14 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	}
 }
 
-func syncMetrics(projectName string, verbose bool, username string, password string) []CommandBuilder {
+func syncMetrics(projectName string, branch string, verbose bool, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
 	flags := []Flag{
 		{Name: "--project", Value: projectName},
+	}
+	if branch != "" {
+		flags = append(flags, Flag{Name: "--branch", Value: branch})
 	}
 	if verbose {
 		flags = append(flags, Flag{Name: "--verbose"})
@@ -5484,8 +5487,14 @@ func TestTestSuites(t *testing.T) {
 	// The job should have the correct experience ID:
 	ts.Equal(experienceIDs[0], *jobs[0].ExperienceID)
 
+	// Sync a metrics config to the branch so it has a real metrics set ("woot", from
+	// .resim/metrics/config.resim.yml) that a metrics-set override can be validated against.
+	metricsUsername := os.Getenv(username)
+	metricsPassword := os.Getenv(password)
+	s.runCommand(ts, syncMetrics(projectIDString, branchName, false, metricsUsername, metricsPassword), ExpectNoError)
+
 	// Try running a test suite with a metrics set override, which should force an adhoc batch:
-	metricsSetOverrideName := fmt.Sprintf("metrics-set-override-%s", uuid.New().String())
+	metricsSetOverrideName := "woot"
 	metricsSetOverrideBatchName := fmt.Sprintf("metrics-set-override-batch-%s", uuid.New().String())
 	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &metricsSetOverrideBatchName, nil, nil, &metricsSetOverrideName, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
@@ -5496,6 +5505,12 @@ func TestTestSuites(t *testing.T) {
 	ts.Equal(metricsSetOverrideName, *batch.MetricsSetName)
 	ts.NotNil(batch.PoolLabels)
 	ts.Contains((*batch.PoolLabels)[0], "metrics2")
+
+	// A metrics-set override that does not exist on the branch is rejected client-side.
+	bogusOverrideName := fmt.Sprintf("does-not-exist-%s", uuid.New().String())
+	bogusOverrideBatchName := fmt.Sprintf("bogus-metrics-set-batch-%s", uuid.New().String())
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &bogusOverrideBatchName, nil, nil, &bogusOverrideName, false), ExpectError)
+	ts.Contains(output.StdErr, "not found")
 
 	// Archive the test suite
 	output = s.runCommand(ts, archiveTestSuite(projectID, firstTestSuiteName), false)
@@ -6424,12 +6439,12 @@ func TestMetricsSync(t *testing.T) {
 
 	t.Run("SyncsMetricsConfig", func(t *testing.T) {
 		// Standard behavior is exit 0 with no output
-		output := s.runCommand(ts, syncMetrics(projectIDString, false, username, password), false)
+		output := s.runCommand(ts, syncMetrics(projectIDString, "", false, username, password), false)
 		ts.Equal("", output.StdOut)
 		ts.Equal("", output.StdErr)
 
 		// Verbose logs a lot of info about what it is doing
-		output = s.runCommand(ts, syncMetrics(projectIDString, true, username, password), false)
+		output = s.runCommand(ts, syncMetrics(projectIDString, "", true, username, password), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.resim.yml")
 		ts.Contains(output.StdOut, "Found template bar.liquid")

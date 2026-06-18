@@ -54,6 +54,41 @@ func (v *CreateDebugDashboardResponse) GetCreateDebugDashboard() CreateDebugDash
 	return v.CreateDebugDashboard
 }
 
+// GetBranchMetricsSetsBranchConfigVersion includes the requested fields of the GraphQL type BranchConfigVersion.
+type GetBranchMetricsSetsBranchConfigVersion struct {
+	// List all metrics sets defined in this config version
+	MetricsSets []GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet `json:"metricsSets"`
+}
+
+// GetMetricsSets returns GetBranchMetricsSetsBranchConfigVersion.MetricsSets, and is useful for accessing the field via an interface.
+func (v *GetBranchMetricsSetsBranchConfigVersion) GetMetricsSets() []GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet {
+	return v.MetricsSets
+}
+
+// GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet includes the requested fields of the GraphQL type BranchMetricsSet.
+// The GraphQL type's documentation follows.
+//
+// A metrics set definition from a branch config
+type GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet struct {
+	Name string `json:"name"`
+}
+
+// GetName returns GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet.Name, and is useful for accessing the field via an interface.
+func (v *GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet) GetName() string {
+	return v.Name
+}
+
+// GetBranchMetricsSetsResponse is returned by GetBranchMetricsSets on success.
+type GetBranchMetricsSetsResponse struct {
+	// Returns a specific config version, or the latest if version_id is not provided.
+	BranchConfigVersion GetBranchMetricsSetsBranchConfigVersion `json:"branchConfigVersion"`
+}
+
+// GetBranchConfigVersion returns GetBranchMetricsSetsResponse.BranchConfigVersion, and is useful for accessing the field via an interface.
+func (v *GetBranchMetricsSetsResponse) GetBranchConfigVersion() GetBranchMetricsSetsBranchConfigVersion {
+	return v.BranchConfigVersion
+}
+
 // GetDashboardDashboard includes the requested fields of the GraphQL type Dashboard.
 type GetDashboardDashboard struct {
 	Id        string `json:"id"`
@@ -154,6 +189,18 @@ func (v *__CreateDebugDashboardInput) GetBranchId() string { return v.BranchId }
 
 // GetMetricsSetName returns __CreateDebugDashboardInput.MetricsSetName, and is useful for accessing the field via an interface.
 func (v *__CreateDebugDashboardInput) GetMetricsSetName() string { return v.MetricsSetName }
+
+// __GetBranchMetricsSetsInput is used internally by genqlient
+type __GetBranchMetricsSetsInput struct {
+	ProjectId string `json:"projectId"`
+	BranchId  string `json:"branchId"`
+}
+
+// GetProjectId returns __GetBranchMetricsSetsInput.ProjectId, and is useful for accessing the field via an interface.
+func (v *__GetBranchMetricsSetsInput) GetProjectId() string { return v.ProjectId }
+
+// GetBranchId returns __GetBranchMetricsSetsInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__GetBranchMetricsSetsInput) GetBranchId() string { return v.BranchId }
 
 // __GetDashboardInput is used internally by genqlient
 type __GetDashboardInput struct {
@@ -260,6 +307,44 @@ func CreateDebugDashboard(
 	}
 
 	data_ = &CreateDebugDashboardResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by GetBranchMetricsSets.
+const GetBranchMetricsSets_Operation = `
+query GetBranchMetricsSets ($projectId: String!, $branchId: String!) {
+	branchConfigVersion(projectId: $projectId, branchId: $branchId) {
+		metricsSets {
+			name
+		}
+	}
+}
+`
+
+func GetBranchMetricsSets(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	projectId string,
+	branchId string,
+) (data_ *GetBranchMetricsSetsResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "GetBranchMetricsSets",
+		Query:  GetBranchMetricsSets_Operation,
+		Variables: &__GetBranchMetricsSetsInput{
+			ProjectId: projectId,
+			BranchId:  branchId,
+		},
+	}
+
+	data_ = &GetBranchMetricsSetsResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

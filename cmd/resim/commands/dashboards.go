@@ -53,6 +53,11 @@ func createDashboard(cmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(dashboardProjectKey))
 	branchID := getBranchID(Client, projectID, viper.GetString(dashboardBranchKey), true)
 
+	metricsSet := viper.GetString(dashboardMetricsSetKey)
+	if err := validateMetricsSetExists(projectID, branchID, &metricsSet); err != nil {
+		log.Fatal(err)
+	}
+
 	resp, err := bff.CreateDashboard(
 		context.Background(),
 		BffClient,

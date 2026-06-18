@@ -1,0 +1,7 @@
+query GetBranchMetricsSets($projectId: String!, $branchId: String!) {
+    branchConfigVersion(projectId: $projectId, branchId: $branchId) {
+        metricsSets {
+            name
+        }
+    }
+}

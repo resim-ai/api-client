@@ -749,6 +749,19 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	metricsSet := ProcessMetricsSet(batchMetricsSetKey, &poolLabels)
 
+	if HasMetricsSetName(metricsSet) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+		if err := validateMetricsSetExists(projectID, build.JSON200.BranchID, metricsSet); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// Build the request body
 	body := api.BatchInput{
 		BuildID:           &buildID,

@@ -220,6 +220,37 @@ func ProcessMetricsSet(metricsSetKey string, poolLabels *[]api.PoolLabel) *strin
 	return metricsSet
 }
 
+// validateMetricsSetExists returns an error when metricsSetName is set but is not defined on the
+// branch's latest config version. Metrics set definitions live only in the BFF, so this calls the BFF
+// GraphQL API to resolve the valid names. It returns nil when metricsSetName is empty, and also when the
+// BFF lookup itself fails (transient BFF/auth issue) — in that case it warns and continues, leaving the
+// server as a backstop. Only a confirmed "not found" is treated as an error.
+func validateMetricsSetExists(projectID, branchID uuid.UUID, metricsSetName *string) error {
+	if !HasMetricsSetName(metricsSetName) {
+		return nil
+	}
+
+	resp, err := bff.GetBranchMetricsSets(context.Background(), BffClient, projectID.String(), branchID.String())
+	if err != nil {
+		log.Printf("warning: could not validate metrics set %q, continuing: %v", *metricsSetName, err)
+		return nil
+	}
+
+	sets := resp.BranchConfigVersion.MetricsSets
+	available := make([]string, 0, len(sets))
+	for _, set := range sets {
+		if set.Name == *metricsSetName {
+			return nil
+		}
+		available = append(available, set.Name)
+	}
+
+	if len(available) == 0 {
+		return fmt.Errorf("metrics set %q not found: this branch has no metrics sets defined", *metricsSetName)
+	}
+	return fmt.Errorf("metrics set %q not found on branch; available metrics sets: %s", *metricsSetName, strings.Join(available, ", "))
+}
+
 // ParseParameterString parses a string in the format "key=value" or "key:value"
 // into a key-value pair. It first tries to split on "=" and falls back to ":" if that fails.
 // This is especially useful for cases where parameter names contain colons, which

@@ -218,6 +218,19 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 	metricsSet := ProcessMetricsSet(sweepMetricsSetKey, &poolLabels)
 
+	if HasMetricsSetName(metricsSet) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+		if err := validateMetricsSetExists(projectID, build.JSON200.BranchID, metricsSet); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// Process the associated account: by default, we try to get from CI/CD environment variables
 	// Otherwise, we use the account flag. The default is "".
 	associatedAccount := GetCIEnvironmentVariableAccount()

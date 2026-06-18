@@ -233,18 +233,41 @@ func debug(ccmd *cobra.Command, args []string) {
 	t.Out = stdout
 	sizeQueue := t.MonitorSize(t.GetSize())
 
-	err = exec.StreamWithContext(
-		context.Background(),
-		remotecommand.StreamOptions{
-			Stdin:             t.In,
-			Stdout:            t.Out,
-			Stderr:            os.Stderr,
-			Tty:               true,
-			TerminalSizeQueue: sizeQueue,
-		})
+	streamOptions := remotecommand.StreamOptions{
+		Stdin:             t.In,
+		Stdout:            t.Out,
+		Stderr:            os.Stderr,
+		Tty:               true,
+		TerminalSizeQueue: sizeQueue,
+	}
+
+	// A freshly provisioned node's kubelet serving certificate may not be approved yet when the pod
+	// first reports Running, so the initial exec dial can fail the TLS handshake with
+	// "error dialing backend: remote error: tls: internal error". The connection never establishes in
+	// that case, so it is safe to retry until the certificate is approved.
+	deadline := time.Now().Add(90 * time.Second)
+	for {
+		err = exec.StreamWithContext(context.Background(), streamOptions)
+		if err == nil || !isTransientExecDialError(err) || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(3 * time.Second)
+	}
 	if err != nil {
 		fmt.Println("Error streaming: ", err)
 	}
+}
+
+// isTransientExecDialError reports whether an exec stream error is a transient failure to dial the
+// node's kubelet (typically because its serving certificate has not been approved yet), as opposed to
+// an error from an established session.
+func isTransientExecDialError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "tls: internal error") ||
+		strings.Contains(msg, "error dialing backend")
 }
 
 func cancelDebugBatch(projectID uuid.UUID, batchID uuid.UUID) {

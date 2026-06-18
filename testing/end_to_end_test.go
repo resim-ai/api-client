@@ -1736,6 +1736,14 @@ func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, ex
 	return []CommandBuilder{batchCommand, createCommand}
 }
 
+// createBatchWithMetricsSet builds a non-github batch create command with a --metrics-set flag,
+// reusing createBatch (index 1 is the "create" command).
+func createBatchWithMetricsSet(projectID uuid.UUID, buildID string, experiences []string, metricsSet string, batchName *string) []CommandBuilder {
+	cmds := createBatch(projectID, buildID, []string{}, []string{}, []string{}, experiences, []string{}, "", GithubFalse, map[string]string{}, AssociatedAccount, batchName, nil)
+	cmds[1].Flags = append(cmds[1].Flags, Flag{Name: "--metrics-set", Value: metricsSet})
+	return cmds
+}
+
 func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, version *string, metricsBuildID uuid.UUID, logName *string, logLocation *string, logsList []string, configFileLocation *string, experienceTags []string, buildID *uuid.UUID, batchName *string, github bool, reingest bool) []CommandBuilder {
 	ingestCommand := CommandBuilder{
 		Command: "ingest",
@@ -4114,6 +4122,30 @@ func TestBatchAndLogs(t *testing.T) {
 	output = s.runCommand(ts, getBatchByName(projectID, batchName, ExitStatusFalse), ExpectNoError)
 	ts.Contains(output.StdOut, batchName)
 	ts.Contains(output.StdOut, batchIDStringGH4)
+
+	// Validate the metrics-set precheck (WOB-4051). Sync a metrics config so the branch has a real
+	// metrics set ("woot", from .resim/metrics/config.resim.yml); a batch can be created against it,
+	// while a name that isn't defined on the branch is rejected client-side.
+	metricsUsername := os.Getenv(username)
+	metricsPassword := os.Getenv(password)
+	s.runCommand(ts, syncMetrics(projectIDString, branchName, false, metricsUsername, metricsPassword), ExpectNoError)
+
+	metricsSetBatchName := fmt.Sprintf("metrics-set-batch-%s", uuid.New().String())
+	output = s.runCommand(ts, createBatchWithMetricsSet(projectID, buildIDString, []string{experienceIDString1}, "woot", &metricsSetBatchName), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedBatch)
+	output = s.runCommand(ts, getBatchByName(projectID, metricsSetBatchName, ExitStatusFalse), ExpectNoError)
+	var metricsSetBatch api.Batch
+	metricsErr := json.Unmarshal([]byte(output.StdOut), &metricsSetBatch)
+	ts.NoError(metricsErr)
+	ts.NotNil(metricsSetBatch.MetricsSetName)
+	ts.Equal("woot", *metricsSetBatch.MetricsSetName)
+	ts.NotNil(metricsSetBatch.PoolLabels)
+	ts.Contains((*metricsSetBatch.PoolLabels)[0], "metrics2")
+
+	bogusBatchName := fmt.Sprintf("bogus-metrics-set-batch-%s", uuid.New().String())
+	bogusMetricsSet := fmt.Sprintf("does-not-exist-%s", uuid.New().String())
+	output = s.runCommand(ts, createBatchWithMetricsSet(projectID, buildIDString, []string{experienceIDString1}, bogusMetricsSet, &bogusBatchName), ExpectError)
+	ts.Contains(output.StdErr, "not found")
 
 	// Now create a batch without the github flag, but with metrics
 	output = s.runCommand(ts, createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, metricsBuildIDString, GithubFalse, emptyParameterMap, AssociatedAccount, nil, nil), ExpectNoError)

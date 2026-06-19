@@ -74,8 +74,8 @@ func (s *CommandsSuite) setupRunTestSuiteMocks(metricsBuildID *uuid.UUID) (uuid.
 		}, nil).Maybe()
 
 	mockBff := new(mockGraphQLClient)
-	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetBranchMetricsSetsRequest), mock.Anything).
-		Run(withBranchMetricsSets("my-override-metrics-set")).
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsSetRequest), mock.Anything).
+		Run(withValidateMetricsSetResult(true)).
 		Return(nil).Maybe()
 	BffClient = mockBff
 

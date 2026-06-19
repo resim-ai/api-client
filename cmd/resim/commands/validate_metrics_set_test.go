@@ -10,22 +10,19 @@ import (
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func isGetBranchMetricsSetsRequest(req *graphql.Request) bool {
-	return req.OpName == "GetBranchMetricsSets"
+func isValidateMetricsSetRequest(req *graphql.Request) bool {
+	return req.OpName == "ValidateMetricsSet"
 }
 
-// withBranchMetricsSets configures a mock GetBranchMetricsSets call to return the given set names.
-func withBranchMetricsSets(names ...string) func(args mock.Arguments) {
+// withValidateMetricsSetResult configures a mock ValidateMetricsSet call to return the given verdict.
+func withValidateMetricsSetResult(valid bool) func(args mock.Arguments) {
 	return func(args mock.Arguments) {
 		resp := args.Get(2).(*graphql.Response)
-		data := resp.Data.(*bff.GetBranchMetricsSetsResponse)
-		sets := make([]bff.GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet, 0, len(names))
-		for _, name := range names {
-			sets = append(sets, bff.GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet{Name: name})
-		}
-		data.BranchConfigVersion.MetricsSets = sets
+		data := resp.Data.(*bff.ValidateMetricsSetResponse)
+		data.ValidateMetricsSet = valid
 	}
 }
 
@@ -41,58 +38,43 @@ func TestValidateMetricsSetExists_EmptyNameSkipsLookup(t *testing.T) {
 	withMockBffClient(t, mockBff)
 
 	// nil and empty-string names are both treated as "unset" and must not call the BFF.
-	assert.NoError(t, validateMetricsSetExists(uuid.New(), uuid.New(), nil))
-	assert.NoError(t, validateMetricsSetExists(uuid.New(), uuid.New(), Ptr("")))
+	assert.NoError(t, validateMetricsSetExists(uuid.New(), nil))
+	assert.NoError(t, validateMetricsSetExists(uuid.New(), Ptr("")))
 
 	mockBff.AssertNotCalled(t, "MakeRequest", mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestValidateMetricsSetExists_ValidName(t *testing.T) {
 	mockBff := new(mockGraphQLClient)
-	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetBranchMetricsSetsRequest), mock.Anything).
-		Run(withBranchMetricsSets("speed", "safety")).
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsSetRequest), mock.Anything).
+		Run(withValidateMetricsSetResult(true)).
 		Return(nil).Once()
 	withMockBffClient(t, mockBff)
 
-	assert.NoError(t, validateMetricsSetExists(uuid.New(), uuid.New(), Ptr("safety")))
+	assert.NoError(t, validateMetricsSetExists(uuid.New(), Ptr("safety")))
 	mockBff.AssertExpectations(t)
 }
 
-func TestValidateMetricsSetExists_UnknownNameListsAvailable(t *testing.T) {
+func TestValidateMetricsSetExists_UnknownNameSurfacesBffError(t *testing.T) {
 	mockBff := new(mockGraphQLClient)
-	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetBranchMetricsSetsRequest), mock.Anything).
-		Run(withBranchMetricsSets("speed", "safety")).
-		Return(nil).Once()
+	message := "Metrics set 'typo' was not found in the latest metrics config (available sets: speed, safety)."
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsSetRequest), mock.Anything).
+		Return(gqlerror.List{{Message: message}}).Once()
 	withMockBffClient(t, mockBff)
 
-	err := validateMetricsSetExists(uuid.New(), uuid.New(), Ptr("typo"))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), `"typo"`)
-	assert.Contains(t, err.Error(), "speed")
-	assert.Contains(t, err.Error(), "safety")
+	// A GraphQL error from the BFF means the set was rejected; surface its message verbatim.
+	err := validateMetricsSetExists(uuid.New(), Ptr("typo"))
+	assert.EqualError(t, err, message)
 	mockBff.AssertExpectations(t)
 }
 
-func TestValidateMetricsSetExists_NoSetsDefined(t *testing.T) {
+func TestValidateMetricsSetExists_TransportErrorSoftFails(t *testing.T) {
 	mockBff := new(mockGraphQLClient)
-	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetBranchMetricsSetsRequest), mock.Anything).
-		Run(withBranchMetricsSets()).
-		Return(nil).Once()
-	withMockBffClient(t, mockBff)
-
-	err := validateMetricsSetExists(uuid.New(), uuid.New(), Ptr("anything"))
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no metrics sets defined")
-	mockBff.AssertExpectations(t)
-}
-
-func TestValidateMetricsSetExists_LookupErrorSoftFails(t *testing.T) {
-	mockBff := new(mockGraphQLClient)
-	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isGetBranchMetricsSetsRequest), mock.Anything).
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsSetRequest), mock.Anything).
 		Return(errors.New("bff unavailable")).Once()
 	withMockBffClient(t, mockBff)
 
-	// A failed lookup must not block creation — the server stays the backstop.
-	assert.NoError(t, validateMetricsSetExists(uuid.New(), uuid.New(), Ptr("safety")))
+	// A non-GraphQL (transport) error must not block creation — the server stays the backstop.
+	assert.NoError(t, validateMetricsSetExists(uuid.New(), Ptr("safety")))
 	mockBff.AssertExpectations(t)
 }

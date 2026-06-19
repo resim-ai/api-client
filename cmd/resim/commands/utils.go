@@ -3,6 +3,7 @@ package commands
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"github.com/resim-ai/api-client/bff"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 	"gopkg.in/yaml.v3"
 )
 
@@ -221,34 +223,28 @@ func ProcessMetricsSet(metricsSetKey string, poolLabels *[]api.PoolLabel) *strin
 }
 
 // validateMetricsSetExists returns an error when metricsSetName is set but is not defined on the
-// branch's latest config version. Metrics set definitions live only in the BFF, so this calls the BFF
-// GraphQL API to resolve the valid names. It returns nil when metricsSetName is empty, and also when the
-// BFF lookup itself fails (transient BFF/auth issue) — in that case it warns and continues, leaving the
-// server as a backstop. Only a confirmed "not found" is treated as an error.
-func validateMetricsSetExists(projectID, branchID uuid.UUID, metricsSetName *string) error {
+// branch's latest metrics config. Metrics set definitions live only in the BFF, so this delegates to
+// the BFF's validateMetricsSet query — the same validator the batch-creation resolvers use — keeping the
+// membership check and error message in one place. A GraphQL error means the BFF ran the check and
+// rejected the set, so its message is surfaced; any other error means the BFF was unreachable, so it
+// warns and continues, leaving the server as a backstop.
+func validateMetricsSetExists(branchID uuid.UUID, metricsSetName *string) error {
 	if !HasMetricsSetName(metricsSetName) {
 		return nil
 	}
 
-	resp, err := bff.GetBranchMetricsSets(context.Background(), BffClient, projectID.String(), branchID.String())
-	if err != nil {
-		log.Printf("warning: could not validate metrics set %q, continuing: %v", *metricsSetName, err)
+	_, err := bff.ValidateMetricsSet(context.Background(), BffClient, branchID.String(), *metricsSetName)
+	if err == nil {
 		return nil
 	}
 
-	sets := resp.BranchConfigVersion.MetricsSets
-	available := make([]string, 0, len(sets))
-	for _, set := range sets {
-		if set.Name == *metricsSetName {
-			return nil
-		}
-		available = append(available, set.Name)
+	var gqlErrs gqlerror.List
+	if errors.As(err, &gqlErrs) && len(gqlErrs) > 0 {
+		return errors.New(gqlErrs[0].Message)
 	}
 
-	if len(available) == 0 {
-		return fmt.Errorf("metrics set %q not found: this branch has no metrics sets defined", *metricsSetName)
-	}
-	return fmt.Errorf("metrics set %q not found on branch; available metrics sets: %s", *metricsSetName, strings.Join(available, ", "))
+	log.Printf("warning: could not validate metrics set %q, continuing: %v", *metricsSetName, err)
+	return nil
 }
 
 // ParseParameterString parses a string in the format "key=value" or "key:value"

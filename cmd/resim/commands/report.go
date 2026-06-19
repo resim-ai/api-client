@@ -195,7 +195,9 @@ func createReport(ccmd *cobra.Command, args []string) {
 
 	poolLabels := api.PoolLabels{}
 	metricsSet := ProcessMetricsSet(reportMetricsSetKey, &poolLabels)
-	validateMetricsSetExists(projectID, branchID, metricsSet)
+	if err := validateMetricsSetExists(branchID, metricsSet); err != nil {
+		log.Fatal(err)
+	}
 
 	// Build the request body
 	body := api.ReportInput{

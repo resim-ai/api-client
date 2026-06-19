@@ -226,7 +226,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
 			log.Fatal("build has no branch associated with it")
 		}
-		if err := validateMetricsSetExists(projectID, build.JSON200.BranchID, metricsSet); err != nil {
+		if err := validateMetricsSetExists(build.JSON200.BranchID, metricsSet); err != nil {
 			log.Fatal(err)
 		}
 	}

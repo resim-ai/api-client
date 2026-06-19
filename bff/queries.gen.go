@@ -54,41 +54,6 @@ func (v *CreateDebugDashboardResponse) GetCreateDebugDashboard() CreateDebugDash
 	return v.CreateDebugDashboard
 }
 
-// GetBranchMetricsSetsBranchConfigVersion includes the requested fields of the GraphQL type BranchConfigVersion.
-type GetBranchMetricsSetsBranchConfigVersion struct {
-	// List all metrics sets defined in this config version
-	MetricsSets []GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet `json:"metricsSets"`
-}
-
-// GetMetricsSets returns GetBranchMetricsSetsBranchConfigVersion.MetricsSets, and is useful for accessing the field via an interface.
-func (v *GetBranchMetricsSetsBranchConfigVersion) GetMetricsSets() []GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet {
-	return v.MetricsSets
-}
-
-// GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet includes the requested fields of the GraphQL type BranchMetricsSet.
-// The GraphQL type's documentation follows.
-//
-// A metrics set definition from a branch config
-type GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet struct {
-	Name string `json:"name"`
-}
-
-// GetName returns GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet.Name, and is useful for accessing the field via an interface.
-func (v *GetBranchMetricsSetsBranchConfigVersionMetricsSetsBranchMetricsSet) GetName() string {
-	return v.Name
-}
-
-// GetBranchMetricsSetsResponse is returned by GetBranchMetricsSets on success.
-type GetBranchMetricsSetsResponse struct {
-	// Returns a specific config version, or the latest if version_id is not provided.
-	BranchConfigVersion GetBranchMetricsSetsBranchConfigVersion `json:"branchConfigVersion"`
-}
-
-// GetBranchConfigVersion returns GetBranchMetricsSetsResponse.BranchConfigVersion, and is useful for accessing the field via an interface.
-func (v *GetBranchMetricsSetsResponse) GetBranchConfigVersion() GetBranchMetricsSetsBranchConfigVersion {
-	return v.BranchConfigVersion
-}
-
 // GetDashboardDashboard includes the requested fields of the GraphQL type Dashboard.
 type GetDashboardDashboard struct {
 	Id        string `json:"id"`
@@ -137,6 +102,15 @@ type UpdateMetricsConfigResponse struct {
 
 // GetUpdateMetricsConfig returns UpdateMetricsConfigResponse.UpdateMetricsConfig, and is useful for accessing the field via an interface.
 func (v *UpdateMetricsConfigResponse) GetUpdateMetricsConfig() string { return v.UpdateMetricsConfig }
+
+// ValidateMetricsSetResponse is returned by ValidateMetricsSet on success.
+type ValidateMetricsSetResponse struct {
+	// Validates that a metrics set exists in the branch's latest metrics config. Returns true when valid; otherwise errors with the list of available sets.
+	ValidateMetricsSet bool `json:"validateMetricsSet"`
+}
+
+// GetValidateMetricsSet returns ValidateMetricsSetResponse.ValidateMetricsSet, and is useful for accessing the field via an interface.
+func (v *ValidateMetricsSetResponse) GetValidateMetricsSet() bool { return v.ValidateMetricsSet }
 
 // __CreateDashboardInput is used internally by genqlient
 type __CreateDashboardInput struct {
@@ -190,18 +164,6 @@ func (v *__CreateDebugDashboardInput) GetBranchId() string { return v.BranchId }
 // GetMetricsSetName returns __CreateDebugDashboardInput.MetricsSetName, and is useful for accessing the field via an interface.
 func (v *__CreateDebugDashboardInput) GetMetricsSetName() string { return v.MetricsSetName }
 
-// __GetBranchMetricsSetsInput is used internally by genqlient
-type __GetBranchMetricsSetsInput struct {
-	ProjectId string `json:"projectId"`
-	BranchId  string `json:"branchId"`
-}
-
-// GetProjectId returns __GetBranchMetricsSetsInput.ProjectId, and is useful for accessing the field via an interface.
-func (v *__GetBranchMetricsSetsInput) GetProjectId() string { return v.ProjectId }
-
-// GetBranchId returns __GetBranchMetricsSetsInput.BranchId, and is useful for accessing the field via an interface.
-func (v *__GetBranchMetricsSetsInput) GetBranchId() string { return v.BranchId }
-
 // __GetDashboardInput is used internally by genqlient
 type __GetDashboardInput struct {
 	Id string `json:"id"`
@@ -229,6 +191,18 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
+// __ValidateMetricsSetInput is used internally by genqlient
+type __ValidateMetricsSetInput struct {
+	BranchId       string `json:"branchId"`
+	MetricsSetName string `json:"metricsSetName"`
+}
+
+// GetBranchId returns __ValidateMetricsSetInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__ValidateMetricsSetInput) GetBranchId() string { return v.BranchId }
+
+// GetMetricsSetName returns __ValidateMetricsSetInput.MetricsSetName, and is useful for accessing the field via an interface.
+func (v *__ValidateMetricsSetInput) GetMetricsSetName() string { return v.MetricsSetName }
 
 // The mutation executed by CreateDashboard.
 const CreateDashboard_Operation = `
@@ -318,44 +292,6 @@ func CreateDebugDashboard(
 	return data_, err_
 }
 
-// The query executed by GetBranchMetricsSets.
-const GetBranchMetricsSets_Operation = `
-query GetBranchMetricsSets ($projectId: String!, $branchId: String!) {
-	branchConfigVersion(projectId: $projectId, branchId: $branchId) {
-		metricsSets {
-			name
-		}
-	}
-}
-`
-
-func GetBranchMetricsSets(
-	ctx_ context.Context,
-	client_ graphql.Client,
-	projectId string,
-	branchId string,
-) (data_ *GetBranchMetricsSetsResponse, err_ error) {
-	req_ := &graphql.Request{
-		OpName: "GetBranchMetricsSets",
-		Query:  GetBranchMetricsSets_Operation,
-		Variables: &__GetBranchMetricsSetsInput{
-			ProjectId: projectId,
-			BranchId:  branchId,
-		},
-	}
-
-	data_ = &GetBranchMetricsSetsResponse{}
-	resp_ := &graphql.Response{Data: data_}
-
-	err_ = client_.MakeRequest(
-		ctx_,
-		req_,
-		resp_,
-	)
-
-	return data_, err_
-}
-
 // The query executed by GetDashboard.
 const GetDashboard_Operation = `
 query GetDashboard ($id: String!) {
@@ -420,6 +356,40 @@ func UpdateMetricsConfig(
 	}
 
 	data_ = &UpdateMetricsConfigResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by ValidateMetricsSet.
+const ValidateMetricsSet_Operation = `
+query ValidateMetricsSet ($branchId: String!, $metricsSetName: String!) {
+	validateMetricsSet(branchId: $branchId, metricsSetName: $metricsSetName)
+}
+`
+
+func ValidateMetricsSet(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	branchId string,
+	metricsSetName string,
+) (data_ *ValidateMetricsSetResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "ValidateMetricsSet",
+		Query:  ValidateMetricsSet_Operation,
+		Variables: &__ValidateMetricsSetInput{
+			BranchId:       branchId,
+			MetricsSetName: metricsSetName,
+		},
+	}
+
+	data_ = &ValidateMetricsSetResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

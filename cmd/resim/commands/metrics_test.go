@@ -46,6 +46,17 @@ func TestDebugMetricsCmdHasRequiredFlags(t *testing.T) {
 	}
 }
 
+func TestConfigSchemaCmdIsRegistered(t *testing.T) {
+	var found bool
+	for _, sub := range metricsCmd.Commands() {
+		if sub.Name() == "config-schema" {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "config-schema subcommand should be registered under metricsCmd")
+}
+
 // mockGraphQLClient implements graphql.Client for testing.
 type mockGraphQLClient struct {
 	mock.Mock

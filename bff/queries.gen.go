@@ -54,6 +54,15 @@ func (v *CreateDebugDashboardResponse) GetCreateDebugDashboard() CreateDebugDash
 	return v.CreateDebugDashboard
 }
 
+// GetConfigFileSchemaResponse is returned by GetConfigFileSchema on success.
+type GetConfigFileSchemaResponse struct {
+	// Returns the JSON Schema (Draft-07) describing the metrics configuration file format.
+	ConfigFileSchema string `json:"configFileSchema"`
+}
+
+// GetConfigFileSchema returns GetConfigFileSchemaResponse.ConfigFileSchema, and is useful for accessing the field via an interface.
+func (v *GetConfigFileSchemaResponse) GetConfigFileSchema() string { return v.ConfigFileSchema }
+
 // GetDashboardDashboard includes the requested fields of the GraphQL type Dashboard.
 type GetDashboardDashboard struct {
 	Id        string `json:"id"`
@@ -84,15 +93,16 @@ type GetDashboardResponse struct {
 func (v *GetDashboardResponse) GetDashboard() GetDashboardDashboard { return v.Dashboard }
 
 type MetricsTemplate struct {
+	Name string `json:"name"`
+	// base64 encoded template contents
 	Contents string `json:"contents"`
-	Name     string `json:"name"`
 }
-
-// GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
-func (v *MetricsTemplate) GetContents() string { return v.Contents }
 
 // GetName returns MetricsTemplate.Name, and is useful for accessing the field via an interface.
 func (v *MetricsTemplate) GetName() string { return v.Name }
+
+// GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
+func (v *MetricsTemplate) GetContents() string { return v.Contents }
 
 // UpdateMetricsConfigResponse is returned by UpdateMetricsConfig on success.
 type UpdateMetricsConfigResponse struct {
@@ -260,6 +270,34 @@ func CreateDebugDashboard(
 	}
 
 	data_ = &CreateDebugDashboardResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by GetConfigFileSchema.
+const GetConfigFileSchema_Operation = `
+query GetConfigFileSchema {
+	configFileSchema
+}
+`
+
+func GetConfigFileSchema(
+	ctx_ context.Context,
+	client_ graphql.Client,
+) (data_ *GetConfigFileSchemaResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "GetConfigFileSchema",
+		Query:  GetConfigFileSchema_Operation,
+	}
+
+	data_ = &GetConfigFileSchemaResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

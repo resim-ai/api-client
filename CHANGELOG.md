@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.59.0 - June 22, 2026
+
+- Adds `resim metrics config-schema`, which prints the JSON Schema for the metrics configuration file to stdout (pipe to a file to use for editor validation and autocomplete).
+
 ### v0.58.0 - June 16, 2026
 
 - Cosmetic clean-up of `agents utilization`

@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### v0.59.0 - June 22, 2026
+
+- Commands that take a metrics set (`batches create`, `sweeps create`, `reports create`, `ingest`, `suites run --metrics-set-name-override`, and `dashboards create`) now validate that the metrics set exists on the branch before creating, failing fast with the available sets instead of silently creating work that produces no metrics. Validation is delegated to the BFF, so an unreachable BFF does not block creation.
+- `resim debug` now retries connecting to the debug environment while a freshly provisioned node's kubelet certificate is still being issued, instead of failing immediately with a TLS error.
+
 ### v0.58.0 - June 16, 2026
 
 - Cosmetic clean-up of `agents utilization`

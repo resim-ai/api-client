@@ -41,6 +41,12 @@ var (
 		Long:  "Creates an ephemeral debug dashboard by uploading an emissions file and metrics config. Polls until the dashboard is ready, then prints its URL. Note: debug dashboards may be cleaned up after 24 hours.",
 		Run:   debugMetrics,
 	}
+	configSchemaMetricsCmd = &cobra.Command{
+		Use:   "config-schema",
+		Short: "config-schema - prints the JSON schema for the metrics config file",
+		Long:  "Fetches and prints the JSON Schema describing the metrics configuration file format. Pipe to a file to use it for editor validation and autocomplete.",
+		Run:   getMetricsConfigSchema,
+	}
 )
 
 const (
@@ -85,7 +91,18 @@ func init() {
 	debugMetricsCmd.MarkFlagRequired(metricsSetNameKey)
 	metricsCmd.AddCommand(debugMetricsCmd)
 
+	metricsCmd.AddCommand(configSchemaMetricsCmd)
+
 	rootCmd.AddCommand(metricsCmd)
+}
+
+func getMetricsConfigSchema(cmd *cobra.Command, args []string) {
+	resp, err := bff.GetConfigFileSchema(context.Background(), BffClient)
+	if err != nil {
+		log.Fatal("failed to fetch metrics config schema: ", err)
+	}
+
+	fmt.Println(resp.ConfigFileSchema)
 }
 
 // Read the given file and return a base64 encoded string of the file contents

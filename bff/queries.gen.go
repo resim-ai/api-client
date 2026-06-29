@@ -54,6 +54,15 @@ func (v *CreateDebugDashboardResponse) GetCreateDebugDashboard() CreateDebugDash
 	return v.CreateDebugDashboard
 }
 
+// GetConfigFileSchemaResponse is returned by GetConfigFileSchema on success.
+type GetConfigFileSchemaResponse struct {
+	// Returns the JSON Schema (Draft-07) describing the metrics configuration file format.
+	ConfigFileSchema string `json:"configFileSchema"`
+}
+
+// GetConfigFileSchema returns GetConfigFileSchemaResponse.ConfigFileSchema, and is useful for accessing the field via an interface.
+func (v *GetConfigFileSchemaResponse) GetConfigFileSchema() string { return v.ConfigFileSchema }
+
 // GetDashboardDashboard includes the requested fields of the GraphQL type Dashboard.
 type GetDashboardDashboard struct {
 	Id        string `json:"id"`
@@ -309,6 +318,34 @@ func CreateDebugDashboard(
 	}
 
 	data_ = &CreateDebugDashboardResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by GetConfigFileSchema.
+const GetConfigFileSchema_Operation = `
+query GetConfigFileSchema {
+	configFileSchema
+}
+`
+
+func GetConfigFileSchema(
+	ctx_ context.Context,
+	client_ graphql.Client,
+) (data_ *GetConfigFileSchemaResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "GetConfigFileSchema",
+		Query:  GetConfigFileSchema_Operation,
+	}
+
+	data_ = &GetConfigFileSchemaResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

@@ -1,0 +1,3 @@
+query ValidateMetricsSet($branchId: String!, $metricsSetName: String!) {
+    validateMetricsSet(branchId: $branchId, metricsSetName: $metricsSetName)
+}

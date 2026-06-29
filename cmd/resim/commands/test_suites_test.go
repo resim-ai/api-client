@@ -64,6 +64,21 @@ func (s *CommandsSuite) setupRunTestSuiteMocks(metricsBuildID *uuid.UUID) (uuid.
 			},
 		}, nil)
 
+	// A metrics-set override resolves the build's branch and validates the set against the BFF. These are
+	// optional (.Maybe) since they only fire when a test sets testSuiteMetricsSetOverrideKey.
+	branchID := uuid.New()
+	s.mockClient.On("GetBuildWithResponse", matchContext, projectID, buildID).Return(
+		&api.GetBuildResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.Build{BranchID: branchID},
+		}, nil).Maybe()
+
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsSetRequest), mock.Anything).
+		Run(withValidateMetricsSetResult(true)).
+		Return(nil).Maybe()
+	BffClient = mockBff
+
 	return projectID, testSuiteID, buildID
 }
 

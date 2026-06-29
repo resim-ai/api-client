@@ -1,0 +1,3 @@
+query ValidateMetricsConfig($branchId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!) {
+    validateMetricsConfig(branchId: $branchId, config: $config, templateFiles: $templateFiles)
+}

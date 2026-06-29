@@ -113,6 +113,17 @@ type UpdateMetricsConfigResponse struct {
 // GetUpdateMetricsConfig returns UpdateMetricsConfigResponse.UpdateMetricsConfig, and is useful for accessing the field via an interface.
 func (v *UpdateMetricsConfigResponse) GetUpdateMetricsConfig() string { return v.UpdateMetricsConfig }
 
+// ValidateMetricsConfigResponse is returned by ValidateMetricsConfig on success.
+type ValidateMetricsConfigResponse struct {
+	// Validates a metrics config against an existing branch without persisting it. Returns true when valid; otherwise errors with the validation messages.
+	ValidateMetricsConfig bool `json:"validateMetricsConfig"`
+}
+
+// GetValidateMetricsConfig returns ValidateMetricsConfigResponse.ValidateMetricsConfig, and is useful for accessing the field via an interface.
+func (v *ValidateMetricsConfigResponse) GetValidateMetricsConfig() bool {
+	return v.ValidateMetricsConfig
+}
+
 // ValidateMetricsSetResponse is returned by ValidateMetricsSet on success.
 type ValidateMetricsSetResponse struct {
 	// Validates that a metrics set exists in the branch's latest metrics config. Returns true when valid; otherwise errors with the list of available sets.
@@ -201,6 +212,22 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
+// __ValidateMetricsConfigInput is used internally by genqlient
+type __ValidateMetricsConfigInput struct {
+	BranchId      string            `json:"branchId"`
+	Config        string            `json:"config"`
+	TemplateFiles []MetricsTemplate `json:"templateFiles"`
+}
+
+// GetBranchId returns __ValidateMetricsConfigInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__ValidateMetricsConfigInput) GetBranchId() string { return v.BranchId }
+
+// GetConfig returns __ValidateMetricsConfigInput.Config, and is useful for accessing the field via an interface.
+func (v *__ValidateMetricsConfigInput) GetConfig() string { return v.Config }
+
+// GetTemplateFiles returns __ValidateMetricsConfigInput.TemplateFiles, and is useful for accessing the field via an interface.
+func (v *__ValidateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { return v.TemplateFiles }
 
 // __ValidateMetricsSetInput is used internally by genqlient
 type __ValidateMetricsSetInput struct {
@@ -394,6 +421,42 @@ func UpdateMetricsConfig(
 	}
 
 	data_ = &UpdateMetricsConfigResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by ValidateMetricsConfig.
+const ValidateMetricsConfig_Operation = `
+query ValidateMetricsConfig ($branchId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!) {
+	validateMetricsConfig(branchId: $branchId, config: $config, templateFiles: $templateFiles)
+}
+`
+
+func ValidateMetricsConfig(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	branchId string,
+	config string,
+	templateFiles []MetricsTemplate,
+) (data_ *ValidateMetricsConfigResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "ValidateMetricsConfig",
+		Query:  ValidateMetricsConfig_Operation,
+		Variables: &__ValidateMetricsConfigInput{
+			BranchId:      branchId,
+			Config:        config,
+			TemplateFiles: templateFiles,
+		},
+	}
+
+	data_ = &ValidateMetricsConfigResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

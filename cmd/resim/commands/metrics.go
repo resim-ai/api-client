@@ -29,6 +29,12 @@ var (
 		Long:  ``,
 		Run:   syncMetrics,
 	}
+	validateMetricsCmd = &cobra.Command{
+		Use:   "validate",
+		Short: "validate - validates your metrics config files against a branch without syncing",
+		Long:  "Runs the same validations as `sync` (schema, query building, and backwards-compatibility against the branch's current config) but does not persist anything. The branch must already exist.",
+		Run:   validateMetrics,
+	}
 	debugMetricsCmd = &cobra.Command{
 		Use:   "debug",
 		Short: "debug - creates a debug dashboard from an emissions file and metrics config",
@@ -64,6 +70,13 @@ func init() {
 	syncMetricsCmd.Flags().String(metricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates")
 	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
+
+	validateMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project")
+	validateMetricsCmd.Flags().String(metricsBranchNameKey, "main", "The name of the branch to validate against. The default is main")
+	validateMetricsCmd.Flags().StringSlice(metricsConfigPathAliasKey, []string{".resim/metrics/config.resim.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Default is .resim/metrics/config.resim.yml")
+	validateMetricsCmd.Flags().String(metricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates")
+	validateMetricsCmd.MarkFlagRequired(metricsProjectKey)
+	metricsCmd.AddCommand(validateMetricsCmd)
 
 	debugMetricsCmd.Flags().String(metricsProjectKey, "", "The name or ID of the project")
 	debugMetricsCmd.Flags().String(metricsEmissionsFileKey, "", "The path to the emissions file")
@@ -117,6 +130,20 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	templatesPath := viper.GetString(metricsTemplatesPathKey)
 
 	if err := SyncMetricsConfig(projectID, branchID, configPaths, templatesPath, verboseMode); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func validateMetrics(cmd *cobra.Command, args []string) {
+	verboseMode := viper.GetBool(verboseKey)
+	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
+	branchName := viper.GetString(metricsBranchNameKey)
+	branchID := getBranchID(Client, projectID, branchName, true)
+
+	configPaths := viper.GetStringSlice(metricsConfigPathAliasKey)
+	templatesPath := viper.GetString(metricsTemplatesPathKey)
+
+	if err := ValidateMetricsConfig(branchID, configPaths, templatesPath, verboseMode); err != nil {
 		log.Fatal(err)
 	}
 }

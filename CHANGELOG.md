@@ -2,9 +2,13 @@
 
 ## ReSim CLI
 
-### v0.60.0 - June 29, 2026
+### v0.61.0 - June 29, 2026
 
 - Adds `resim metrics config-schema`, which prints the JSON Schema for the metrics configuration file to stdout (pipe to a file to use for editor validation and autocomplete).
+
+### v0.60.0 - June 29, 2026
+
+- Added `resim metrics validate`, which runs the same validations as `metrics sync` (schema, query building, and backwards-compatibility against the branch's current config) against an existing branch without persisting anything. Useful for checking a `metrics.yml` before committing to a sync.
 
 ### v0.59.0 - June 22, 2026
 

@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.60.0 - June 29, 2026
+
+- Added `resim metrics validate`, which runs the same validations as `metrics sync` (schema, query building, and backwards-compatibility against the branch's current config) against an existing branch without persisting anything. Useful for checking a `metrics.yml` before committing to a sync.
+
 ### v0.59.0 - June 22, 2026
 
 - Commands that take a metrics set (`batches create`, `sweeps create`, `ingest`, `suites run --metrics-set-name-override`, and `dashboards create`) now validate that the metrics set exists on the branch before creating, failing fast with the available sets instead of silently creating work that produces no metrics. Validation is delegated to the BFF, so an unreachable BFF does not block creation.

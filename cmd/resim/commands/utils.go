@@ -445,3 +445,37 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []st
 	}
 	return nil
 }
+
+// ValidateMetricsConfig runs the same validations as a sync against an existing branch
+// without persisting anything. The branch must already exist.
+func ValidateMetricsConfig(branchID uuid.UUID, configPaths []string, templatesPath string, verbose bool) error {
+	configB64, err := prepareMetricsConfig(configPaths, verbose)
+	if err != nil {
+		return err
+	}
+
+	templates, err := readTemplates(templatesPath, verbose)
+	if err != nil {
+		return err
+	}
+
+	_, err = bff.ValidateMetricsConfig(
+		context.Background(),
+		BffClient,
+		branchID.String(),
+		configB64,
+		templates,
+	)
+	if err != nil {
+		return fmt.Errorf("metrics config validation failed: %w", err)
+	}
+
+	fmt.Println("Validation passed — no changes applied.")
+	if verbose && len(templates) > 0 {
+		fmt.Println("Validated templates:")
+		for _, t := range templates {
+			fmt.Printf("\t%s\n", t.Name)
+		}
+	}
+	return nil
+}

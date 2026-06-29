@@ -384,6 +384,34 @@ func syncMetrics(projectName string, branch string, verbose bool, username strin
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
+func validateMetrics(projectName string, branch string, verbose bool, username string, password string) []CommandBuilder {
+	metricsCommand := CommandBuilder{Command: "metrics"}
+
+	flags := []Flag{
+		{Name: "--project", Value: projectName},
+	}
+	if branch != "" {
+		flags = append(flags, Flag{Name: "--branch", Value: branch})
+	}
+	if verbose {
+		flags = append(flags, Flag{Name: "--verbose"})
+	}
+	// The CI fails if we use a different authentication method since it will
+	// report a different auth0 id for the user. The bff api is expecting the
+	// auth0 id reported with username/password auth. This also matches the
+	// rerun CI setup
+	if username != "" {
+		flags = append(flags, Flag{Name: "--username", Value: username})
+	}
+	if password != "" {
+		flags = append(flags, Flag{Name: "--password", Value: password})
+	}
+
+	validateCommand := CommandBuilder{Command: "validate", Flags: flags}
+
+	return []CommandBuilder{metricsCommand, validateCommand}
+}
+
 func debugMetricsCommand(projectName string, emissionsFile string, configPath string, metricsSetName string, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 	flags := []Flag{
@@ -6481,6 +6509,15 @@ func TestMetricsSync(t *testing.T) {
 		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.resim.yml")
 		ts.Contains(output.StdOut, "Found template bar.liquid")
 		ts.Contains(output.StdOut, "Successfully synced metrics config, and the following templates:")
+	})
+
+	t.Run("ValidatesMetricsConfig", func(t *testing.T) {
+		// validate runs the same validations against the branch's existing config and
+		// reports success without persisting anything. Runs after the sync subtest so
+		// the branch already has a config to validate against.
+		output := s.runCommand(ts, validateMetrics(projectIDString, "", false, username, password), false)
+		ts.Equal("", output.StdErr)
+		ts.Contains(output.StdOut, "Validation passed")
 	})
 }
 

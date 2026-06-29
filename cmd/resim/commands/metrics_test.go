@@ -46,6 +46,14 @@ func TestDebugMetricsCmdHasRequiredFlags(t *testing.T) {
 	}
 }
 
+func TestValidateMetricsCmdHasRequiredFlags(t *testing.T) {
+	flags := []string{"project", "branch", "metrics-config-path", "templates-path"}
+	for _, name := range flags {
+		flag := validateMetricsCmd.Flags().Lookup(name)
+		assert.NotNil(t, flag, "--%s flag should exist on validateMetricsCmd", name)
+	}
+}
+
 // mockGraphQLClient implements graphql.Client for testing.
 type mockGraphQLClient struct {
 	mock.Mock
@@ -137,6 +145,43 @@ func TestWaitForDashboardReady_APIError(t *testing.T) {
 	err := waitForDashboardReady(context.Background(), mockClient, "test-dashboard-id", 5*time.Second, 50*time.Millisecond, testSpinner())
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "connection refused")
+	mockClient.AssertExpectations(t)
+}
+
+func isValidateMetricsConfigRequest(req *graphql.Request) bool {
+	return req.OpName == "ValidateMetricsConfig"
+}
+
+func TestValidateMetricsConfig_Success(t *testing.T) {
+	mockClient := new(mockGraphQLClient)
+
+	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsConfigRequest), mock.Anything).
+		Run(func(args mock.Arguments) {
+			resp := args.Get(2).(*graphql.Response)
+			data := resp.Data.(*bff.ValidateMetricsConfigResponse)
+			data.ValidateMetricsConfig = true
+		}).
+		Return(nil).Once()
+
+	resp, err := bff.ValidateMetricsConfig(
+		context.Background(), mockClient, "branch-id", "config", []bff.MetricsTemplate{},
+	)
+	assert.NoError(t, err)
+	assert.True(t, resp.ValidateMetricsConfig)
+	mockClient.AssertExpectations(t)
+}
+
+func TestValidateMetricsConfig_SurfacesValidationError(t *testing.T) {
+	mockClient := new(mockGraphQLClient)
+
+	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsConfigRequest), mock.Anything).
+		Return(fmt.Errorf("topic 'foo' is invalid")).Once()
+
+	_, err := bff.ValidateMetricsConfig(
+		context.Background(), mockClient, "branch-id", "config", []bff.MetricsTemplate{},
+	)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "topic 'foo' is invalid")
 	mockClient.AssertExpectations(t)
 }
 

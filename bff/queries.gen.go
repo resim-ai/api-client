@@ -113,6 +113,15 @@ type UpdateMetricsConfigResponse struct {
 // GetUpdateMetricsConfig returns UpdateMetricsConfigResponse.UpdateMetricsConfig, and is useful for accessing the field via an interface.
 func (v *UpdateMetricsConfigResponse) GetUpdateMetricsConfig() string { return v.UpdateMetricsConfig }
 
+// ValidateMetricsSetResponse is returned by ValidateMetricsSet on success.
+type ValidateMetricsSetResponse struct {
+	// Validates that a metrics set exists in the branch's latest metrics config. Returns true when valid; otherwise errors with the list of available sets.
+	ValidateMetricsSet bool `json:"validateMetricsSet"`
+}
+
+// GetValidateMetricsSet returns ValidateMetricsSetResponse.ValidateMetricsSet, and is useful for accessing the field via an interface.
+func (v *ValidateMetricsSetResponse) GetValidateMetricsSet() bool { return v.ValidateMetricsSet }
+
 // __CreateDashboardInput is used internally by genqlient
 type __CreateDashboardInput struct {
 	ProjectId  string `json:"projectId"`
@@ -192,6 +201,18 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
+// __ValidateMetricsSetInput is used internally by genqlient
+type __ValidateMetricsSetInput struct {
+	BranchId       string `json:"branchId"`
+	MetricsSetName string `json:"metricsSetName"`
+}
+
+// GetBranchId returns __ValidateMetricsSetInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__ValidateMetricsSetInput) GetBranchId() string { return v.BranchId }
+
+// GetMetricsSetName returns __ValidateMetricsSetInput.MetricsSetName, and is useful for accessing the field via an interface.
+func (v *__ValidateMetricsSetInput) GetMetricsSetName() string { return v.MetricsSetName }
 
 // The mutation executed by CreateDashboard.
 const CreateDashboard_Operation = `
@@ -373,6 +394,40 @@ func UpdateMetricsConfig(
 	}
 
 	data_ = &UpdateMetricsConfigResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by ValidateMetricsSet.
+const ValidateMetricsSet_Operation = `
+query ValidateMetricsSet ($branchId: String!, $metricsSetName: String!) {
+	validateMetricsSet(branchId: $branchId, metricsSetName: $metricsSetName)
+}
+`
+
+func ValidateMetricsSet(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	branchId string,
+	metricsSetName string,
+) (data_ *ValidateMetricsSetResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "ValidateMetricsSet",
+		Query:  ValidateMetricsSet_Operation,
+		Variables: &__ValidateMetricsSetInput{
+			BranchId:       branchId,
+			MetricsSetName: metricsSetName,
+		},
+	}
+
+	data_ = &ValidateMetricsSetResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

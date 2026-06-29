@@ -61,6 +61,8 @@ func (s *CommandsSuite) TestCreateDashboard_Success() {
 	}, nil)
 
 	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isValidateMetricsSetRequest), mock.Anything).
+		Run(withValidateMetricsSetResult(true)).Return(nil).Once()
 	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
 		return req.OpName == "CreateDashboard"
 	}), mock.Anything).Run(func(args mock.Arguments) {

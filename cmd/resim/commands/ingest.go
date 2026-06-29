@@ -261,6 +261,19 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	poolLabels := getAndValidatePoolLabels(ingestPoolLabelsKey)
 	metricsSet := ProcessMetricsSet(ingestMetricsSetKey, &poolLabels)
 
+	if HasMetricsSetName(metricsSet) {
+		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+		if err != nil {
+			log.Fatal("unable to retrieve build:", err)
+		}
+		if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
+			log.Fatal("build has no branch associated with it")
+		}
+		if err := validateMetricsSetExists(build.JSON200.BranchID, metricsSet); err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	// Finally, create a batch to process the log(s)
 	batchBody := api.BatchInput{
 		ExperienceIDs:     Ptr(experienceIDs),

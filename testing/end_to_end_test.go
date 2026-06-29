@@ -356,11 +356,14 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	}
 }
 
-func syncMetrics(projectName string, verbose bool, username string, password string) []CommandBuilder {
+func syncMetrics(projectName string, branch string, verbose bool, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
 	flags := []Flag{
 		{Name: "--project", Value: projectName},
+	}
+	if branch != "" {
+		flags = append(flags, Flag{Name: "--branch", Value: branch})
 	}
 	if verbose {
 		flags = append(flags, Flag{Name: "--verbose"})
@@ -1731,6 +1734,14 @@ func createBatch(projectID uuid.UUID, buildID string, experienceIDs []string, ex
 		})
 	}
 	return []CommandBuilder{batchCommand, createCommand}
+}
+
+// createBatchWithMetricsSet builds a non-github batch create command with a --metrics-set flag,
+// reusing createBatch (index 1 is the "create" command).
+func createBatchWithMetricsSet(projectID uuid.UUID, buildID string, experiences []string, metricsSet string, batchName *string) []CommandBuilder {
+	cmds := createBatch(projectID, buildID, []string{}, []string{}, []string{}, experiences, []string{}, "", GithubFalse, map[string]string{}, AssociatedAccount, batchName, nil)
+	cmds[1].Flags = append(cmds[1].Flags, Flag{Name: "--metrics-set", Value: metricsSet})
+	return cmds
 }
 
 func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, version *string, metricsBuildID uuid.UUID, logName *string, logLocation *string, logsList []string, configFileLocation *string, experienceTags []string, buildID *uuid.UUID, batchName *string, github bool, reingest bool) []CommandBuilder {
@@ -4112,6 +4123,30 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.Contains(output.StdOut, batchName)
 	ts.Contains(output.StdOut, batchIDStringGH4)
 
+	// Validate the metrics-set precheck (WOB-4051). Sync a metrics config so the branch has a real
+	// metrics set ("woot", from .resim/metrics/config.resim.yml); a batch can be created against it,
+	// while a name that isn't defined on the branch is rejected client-side.
+	metricsUsername := os.Getenv(username)
+	metricsPassword := os.Getenv(password)
+	s.runCommand(ts, syncMetrics(projectIDString, branchName, false, metricsUsername, metricsPassword), ExpectNoError)
+
+	metricsSetBatchName := fmt.Sprintf("metrics-set-batch-%s", uuid.New().String())
+	output = s.runCommand(ts, createBatchWithMetricsSet(projectID, buildIDString, []string{experienceIDString1}, "woot", &metricsSetBatchName), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedBatch)
+	output = s.runCommand(ts, getBatchByName(projectID, metricsSetBatchName, ExitStatusFalse), ExpectNoError)
+	var metricsSetBatch api.Batch
+	metricsErr := json.Unmarshal([]byte(output.StdOut), &metricsSetBatch)
+	ts.NoError(metricsErr)
+	ts.NotNil(metricsSetBatch.MetricsSetName)
+	ts.Equal("woot", *metricsSetBatch.MetricsSetName)
+	ts.NotNil(metricsSetBatch.PoolLabels)
+	ts.Contains((*metricsSetBatch.PoolLabels)[0], "metrics2")
+
+	bogusBatchName := fmt.Sprintf("bogus-metrics-set-batch-%s", uuid.New().String())
+	bogusMetricsSet := fmt.Sprintf("does-not-exist-%s", uuid.New().String())
+	output = s.runCommand(ts, createBatchWithMetricsSet(projectID, buildIDString, []string{experienceIDString1}, bogusMetricsSet, &bogusBatchName), ExpectError)
+	ts.Contains(output.StdErr, "not found")
+
 	// Now create a batch without the github flag, but with metrics
 	output = s.runCommand(ts, createBatch(projectID, buildIDString, []string{experienceIDString1, experienceIDString2}, []string{}, []string{}, []string{}, []string{}, metricsBuildIDString, GithubFalse, emptyParameterMap, AssociatedAccount, nil, nil), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedBatch)
@@ -5484,8 +5519,14 @@ func TestTestSuites(t *testing.T) {
 	// The job should have the correct experience ID:
 	ts.Equal(experienceIDs[0], *jobs[0].ExperienceID)
 
+	// Sync a metrics config to the branch so it has a real metrics set ("woot", from
+	// .resim/metrics/config.resim.yml) that a metrics-set override can be validated against.
+	metricsUsername := os.Getenv(username)
+	metricsPassword := os.Getenv(password)
+	s.runCommand(ts, syncMetrics(projectIDString, branchName, false, metricsUsername, metricsPassword), ExpectNoError)
+
 	// Try running a test suite with a metrics set override, which should force an adhoc batch:
-	metricsSetOverrideName := fmt.Sprintf("metrics-set-override-%s", uuid.New().String())
+	metricsSetOverrideName := "woot"
 	metricsSetOverrideBatchName := fmt.Sprintf("metrics-set-override-batch-%s", uuid.New().String())
 	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &metricsSetOverrideBatchName, nil, nil, &metricsSetOverrideName, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
@@ -5496,6 +5537,12 @@ func TestTestSuites(t *testing.T) {
 	ts.Equal(metricsSetOverrideName, *batch.MetricsSetName)
 	ts.NotNil(batch.PoolLabels)
 	ts.Contains((*batch.PoolLabels)[0], "metrics2")
+
+	// A metrics-set override that does not exist on the branch is rejected client-side.
+	bogusOverrideName := fmt.Sprintf("does-not-exist-%s", uuid.New().String())
+	bogusOverrideBatchName := fmt.Sprintf("bogus-metrics-set-batch-%s", uuid.New().String())
+	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &bogusOverrideBatchName, nil, nil, &bogusOverrideName, false), ExpectError)
+	ts.Contains(output.StdErr, "not found")
 
 	// Archive the test suite
 	output = s.runCommand(ts, archiveTestSuite(projectID, firstTestSuiteName), false)
@@ -6424,12 +6471,12 @@ func TestMetricsSync(t *testing.T) {
 
 	t.Run("SyncsMetricsConfig", func(t *testing.T) {
 		// Standard behavior is exit 0 with no output
-		output := s.runCommand(ts, syncMetrics(projectIDString, false, username, password), false)
+		output := s.runCommand(ts, syncMetrics(projectIDString, "", false, username, password), false)
 		ts.Equal("", output.StdOut)
 		ts.Equal("", output.StdErr)
 
 		// Verbose logs a lot of info about what it is doing
-		output = s.runCommand(ts, syncMetrics(projectIDString, true, username, password), false)
+		output = s.runCommand(ts, syncMetrics(projectIDString, "", true, username, password), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Looking for metrics config at .resim/metrics/config.resim.yml")
 		ts.Contains(output.StdOut, "Found template bar.liquid")

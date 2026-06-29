@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
 	mockapiclient "github.com/resim-ai/api-client/api/mocks"
@@ -21,7 +22,8 @@ func TestCommandsSuite(t *testing.T) {
 
 type CommandsSuite struct {
 	suite.Suite
-	mockClient *mockapiclient.ClientWithResponsesInterface
+	mockClient    *mockapiclient.ClientWithResponsesInterface
+	origBffClient graphql.Client
 }
 
 func (s *CommandsSuite) SetupTest() {
@@ -29,9 +31,11 @@ func (s *CommandsSuite) SetupTest() {
 	// these tests cannot be run in parallel.
 	s.mockClient = mockapiclient.NewClientWithResponsesInterface(s.T())
 	Client = s.mockClient
+	s.origBffClient = BffClient
 }
 
 func (s *CommandsSuite) TearDownTest() {
+	BffClient = s.origBffClient
 	s.mockClient.AssertExpectations(s.T())
 }
 

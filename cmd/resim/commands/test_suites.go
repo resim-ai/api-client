@@ -615,6 +615,18 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	effectiveMetricsSetName := NormalizeMetricsSetName(testSuite.MetricsSetName)
 	if viper.IsSet(testSuiteMetricsSetOverrideKey) {
 		effectiveMetricsSetName = NormalizeMetricsSetName(Ptr(viper.GetString(testSuiteMetricsSetOverrideKey)))
+		if HasMetricsSetName(effectiveMetricsSetName) {
+			build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+			if err != nil {
+				log.Fatal("unable to retrieve build:", err)
+			}
+			if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
+				log.Fatal("build has no branch associated with it")
+			}
+			if err := validateMetricsSetExists(build.JSON200.BranchID, effectiveMetricsSetName); err != nil {
+				log.Fatal(err)
+			}
+		}
 	}
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables

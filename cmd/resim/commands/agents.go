@@ -75,6 +75,17 @@ rack. Offline intervals are recorded from this feature's deployment onward;
 in earlier windows offline reads 0 and all non-running time appears as idle.`,
 		Run: agentUtilization,
 	}
+	agentResultsCmd = &cobra.Command{
+		Use:   "results",
+		Short: "results - Lists a HiL Agent's full results history",
+		Long: `results - Lists every test result a HiL Agent has run for the caller's org.
+
+This is the full, paginated history behind the agent detail page's Results tab;
+'agents get' shows only the most recent slice. Filter with --text (case-insensitive
+substring on the test/experience name) and --created-after (RFC3339 lower bound).
+All matching results are fetched and printed; the Total line counts them.`,
+		Run: agentResults,
+	}
 
 	poolLabelsCmd = &cobra.Command{
 		Use:     "pool-labels",
@@ -87,6 +98,17 @@ in earlier windows offline reads 0 and all non-running time appears as idle.`,
 		Short: "queue - Lists the per-pool-label batch queue across the caller's org",
 		Run:   queuePoolLabels,
 	}
+	listPoolLabelsCmd = &cobra.Command{
+		Use:   "list",
+		Short: "list - Lists the distinct HiL pool labels visible to the caller's org",
+		Long: `list - Lists the distinct pool labels visible to your org.
+
+Labels are ordered by most recent agent check-in (the default) or, with
+--order-by rank, by trigram similarity to --name. Use --name to filter to
+labels matching a search term; --order-by rank is recommended when --name is
+set so the closest matches come first.`,
+		Run: listPoolLabels,
+	}
 )
 
 const (
@@ -98,6 +120,12 @@ const (
 	agentIntervalKey           = "interval"
 	agentTopExperiencesKey     = "top-experiences"
 	poolLabelsCompletedDaysKey = "completed-since-days"
+	poolLabelsAllKey           = "all"
+	poolLabelsNameKey          = "name"
+	poolLabelsOrderByKey       = "order-by"
+
+	agentResultsTextKey         = "text"
+	agentResultsCreatedAfterKey = "created-after"
 
 	completedSinceDaysMin = 1
 	completedSinceDaysMax = 30
@@ -125,16 +153,29 @@ func init() {
 	agentUtilizationCmd.Flags().Int(agentTopExperiencesKey, topExperiencesDefault, "How many top experiences (ranked by running time in the window) to include (0-50). 0 omits the list")
 	agentUtilizationCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
 
+	agentResultsCmd.Flags().String(agentIDKey, "", "Agent ID (as supplied at check-in)")
+	agentResultsCmd.MarkFlagRequired(agentIDKey)
+	agentResultsCmd.Flags().String(agentResultsTextKey, "", "Filter to results whose test (experience) name contains this substring (case-insensitive)")
+	agentResultsCmd.Flags().String(agentResultsCreatedAfterKey, "", "Only results at or after this instant (RFC3339, e.g. 2026-06-04T00:00:00Z)")
+	agentResultsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
+
 	queuePoolLabelsCmd.Flags().Int(poolLabelsCompletedDaysKey, 7, "Window for completed batches, in days (1-30)")
+	queuePoolLabelsCmd.Flags().Bool(poolLabelsAllKey, false, "Show every pool label, including idle ones with no agents and no runs (hidden by default)")
 	queuePoolLabelsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of grouped output")
+
+	listPoolLabelsCmd.Flags().String(poolLabelsNameKey, "", "Filter pool labels by name (substring/trigram match). Pair with --order-by rank for the closest matches first")
+	listPoolLabelsCmd.Flags().String(poolLabelsOrderByKey, "", "Order results: timestamp (most recent check-in; default) or rank (similarity to --name)")
+	listPoolLabelsCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a list")
 
 	agentsCmd.AddCommand(listAgentsCmd)
 	agentsCmd.AddCommand(getAgentCmd)
 	agentsCmd.AddCommand(archiveAgentCmd)
 	agentsCmd.AddCommand(agentUtilizationCmd)
+	agentsCmd.AddCommand(agentResultsCmd)
 	rootCmd.AddCommand(agentsCmd)
 
 	poolLabelsCmd.AddCommand(queuePoolLabelsCmd)
+	poolLabelsCmd.AddCommand(listPoolLabelsCmd)
 	rootCmd.AddCommand(poolLabelsCmd)
 }
 
@@ -191,6 +232,81 @@ func getAgent(cmd *cobra.Command, args []string) {
 		return
 	}
 	fmt.Print(formatAgentDetail(*agent))
+}
+
+// parseAgentResultsParams validates the raw flag values client-side so a
+// malformed request never leaves the machine. Empty values stay unset so the
+// server returns the agent's full (unfiltered) history.
+func parseAgentResultsParams(text, createdAfterRaw string) (api.ListAgentResultsParams, error) {
+	params := api.ListAgentResultsParams{PageSize: Ptr(100)}
+	if text != "" {
+		params.Text = Ptr(text)
+	}
+	if createdAfterRaw != "" {
+		t, err := time.Parse(time.RFC3339, createdAfterRaw)
+		if err != nil {
+			return params, fmt.Errorf("invalid --%s value %q: expected RFC3339, e.g. 2026-06-04T00:00:00Z", agentResultsCreatedAfterKey, createdAfterRaw)
+		}
+		params.CreatedAfter = &t
+	}
+	return params, nil
+}
+
+func agentResults(cmd *cobra.Command, args []string) {
+	agentID := viper.GetString(agentIDKey)
+	params, err := parseAgentResultsParams(
+		viper.GetString(agentResultsTextKey),
+		viper.GetString(agentResultsCreatedAfterKey),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Auto-paginate the full (filtered) history. Validate and nil-check the
+	// body before reading the token so a null page can't panic. The CLI fetches
+	// every page, so the accumulated count is the exact, filter-correct total —
+	// the server's per-page `Total` is not needed to render the header.
+	var items []api.AgentRecentActivity
+	for {
+		response, err := Client.ListAgentResultsWithResponse(context.Background(), agentID, &params)
+		if err != nil {
+			log.Fatal("failed to list agent results:", err)
+		}
+		if response.HTTPResponse.StatusCode == http.StatusNotFound {
+			log.Fatalf("agent %q not found", agentID)
+		}
+		ValidateResponse(http.StatusOK, "failed to list agent results", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response from listAgentResults")
+		}
+		items = append(items, response.JSON200.Items...)
+		if response.JSON200.NextPageToken == nil || *response.JSON200.NextPageToken == "" {
+			break
+		}
+		params.PageToken = response.JSON200.NextPageToken
+	}
+
+	if viper.GetBool(agentJSONKey) {
+		OutputJson(items)
+		return
+	}
+	fmt.Print(formatAgentResults(agentID, items))
+}
+
+// formatAgentResults renders the agent's results history: a header naming the
+// agent and the count of results returned, then the shared activity table.
+// Total is the number of rows actually fetched — because the CLI exhausts
+// pagination, that equals the full set matching the query.
+func formatAgentResults(agentID string, items []api.AgentRecentActivity) string {
+	var b strings.Builder
+	if len(items) == 0 {
+		fmt.Fprintf(&b, "No results for agent %q.\n", agentID)
+		return b.String()
+	}
+	fmt.Fprintf(&b, "Agent:  %s\n", agentID)
+	fmt.Fprintf(&b, "Total:  %d\n", len(items))
+	writeAgentActivityTable(&b, items, "")
+	return b.String()
 }
 
 // confirmArchiveAgent reads a yes/no answer from in. Anything other than an
@@ -380,8 +496,72 @@ func queuePoolLabels(cmd *cobra.Command, args []string) {
 		fmt.Println("No pool labels in the queue right now.")
 		return
 	}
-	for _, item := range output.Items {
-		fmt.Print(formatPoolLabelQueueGroup(item, days))
+	fmt.Print(formatPoolLabelQueue(output.Items, days, viper.GetBool(poolLabelsAllKey), time.Now()))
+}
+
+// validatePoolLabelsOrderBy checks the raw --order-by value client-side so a
+// malformed request never leaves the machine. An empty value stays unset so the
+// server applies its documented default (timestamp).
+func validatePoolLabelsOrderBy(orderBy string) error {
+	switch api.ListPoolLabelsParamsOrderBy(orderBy) {
+	case "", api.ListPoolLabelsParamsOrderByRank, api.ListPoolLabelsParamsOrderByTimestamp:
+		return nil
+	default:
+		return fmt.Errorf("--%s must be %s or %s, got %q",
+			poolLabelsOrderByKey,
+			api.ListPoolLabelsParamsOrderByTimestamp, api.ListPoolLabelsParamsOrderByRank, orderBy)
+	}
+}
+
+func listPoolLabels(cmd *cobra.Command, args []string) {
+	orderBy := viper.GetString(poolLabelsOrderByKey)
+	if err := validatePoolLabelsOrderBy(orderBy); err != nil {
+		log.Fatal(err)
+	}
+
+	params := api.ListPoolLabelsParams{PageSize: Ptr(100)}
+	if name := viper.GetString(poolLabelsNameKey); name != "" {
+		params.Name = Ptr(name)
+	}
+	if orderBy != "" {
+		ob := api.ListPoolLabelsParamsOrderBy(orderBy)
+		params.OrderBy = &ob
+	}
+
+	// Auto-paginate the full set: an org's distinct pool labels are bounded, and
+	// the rest of the CLI hides pagination behind a single command. Validate and
+	// nil-check the body before reading the token so a null page can't panic.
+	var labels []api.PoolLabel
+	for {
+		response, err := Client.ListPoolLabelsWithResponse(context.Background(), &params)
+		if err != nil {
+			log.Fatal("failed to list pool labels:", err)
+		}
+		ValidateResponse(http.StatusOK, "failed to list pool labels", response.HTTPResponse, response.Body)
+		if response.JSON200 == nil {
+			log.Fatal("empty response from listPoolLabels")
+		}
+		if response.JSON200.PoolLabels != nil {
+			labels = append(labels, *response.JSON200.PoolLabels...)
+		}
+		if response.JSON200.NextPageToken == nil || *response.JSON200.NextPageToken == "" {
+			break
+		}
+		params.PageToken = response.JSON200.NextPageToken
+	}
+
+	if viper.GetBool(agentJSONKey) {
+		OutputJson(labels)
+		return
+	}
+
+	if len(labels) == 0 {
+		fmt.Println("No pool labels found in this org.")
+		return
+	}
+	fmt.Printf("%d pool label(s):\n", len(labels))
+	for _, label := range labels {
+		fmt.Printf("  %s\n", label)
 	}
 }
 
@@ -390,11 +570,38 @@ func queuePoolLabels(cmd *cobra.Command, args []string) {
 // values, matching the uppercase header style of the utilization tables.
 const agentListHeader = "NAME\tSTATUS\tVERSION\tPOOL LABELS\tLAST CHECK-IN\n"
 
-// agentActivityHeader labels the recent-activity table emitted by
-// formatAgentDetail. Like agentListHeader it is routed through the rows'
-// tabwriter so the labels align over their values; the leading indent nests
-// the table under the "Recent activity:" line.
-const agentActivityHeader = "  PROJECT\tBATCH\tBATCH STATUS\tTEST\tTEST STATUS\tBRANCH\tTIMESTAMP\n"
+// agentActivityColumns labels the agent-activity table shared by the
+// recent-activity block of `agents get` and the full history of
+// `agents results`. It carries no indent; writeAgentActivityTable prepends a
+// caller-supplied indent to the header and every row so each caller controls
+// nesting.
+const agentActivityColumns = "PROJECT\tBATCH\tBATCH STATUS\tTEST\tTEST STATUS\tBRANCH\tTIMESTAMP\n"
+
+// writeAgentActivityTable renders agent activity rows as a column-aligned
+// table on b. indent is prepended to the header and every row: `agents get`
+// nests its recent-activity table under the "Recent activity:" line with a
+// two-space indent, while `agents results` renders a flush top-level table
+// with no indent. A row with no branch leaves that cell empty so the
+// timestamp still aligns.
+func writeAgentActivityTable(b *strings.Builder, activity []api.AgentRecentActivity, indent string) {
+	tw := tabwriter.NewWriter(b, 0, 0, 2, ' ', 0)
+	fmt.Fprint(tw, indent+agentActivityColumns)
+	for _, r := range activity {
+		branch := ""
+		if r.BranchName != nil {
+			branch = *r.BranchName
+		}
+		fmt.Fprintf(tw, "%s%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			indent,
+			r.ProjectName,
+			r.BatchName, r.BatchConflatedStatus,
+			r.JobName, r.JobConflatedStatus,
+			branch,
+			r.Timestamp.Format("2006-01-02 15:04:05"),
+		)
+	}
+	tw.Flush()
+}
 
 // displayVersion renders a version string with exactly one leading "v",
 // regardless of whether the server already prefixed it. Without this the CLI
@@ -440,27 +647,7 @@ func formatAgentDetail(a api.Agent) string {
 		return b.String()
 	}
 	fmt.Fprintln(&b, "Recent activity:")
-	// Render the activity as a labeled, column-aligned table: a header row of
-	// column labels followed by bare values, all padded to a consistent width
-	// on Flush. The header carries the field names, so the rows drop the inline
-	// "batch"/"test"/"branch=" prefixes. Rows without a branch leave that cell
-	// empty so the timestamp still aligns.
-	tw := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
-	fmt.Fprint(tw, agentActivityHeader)
-	for _, r := range a.RecentActivity {
-		branch := ""
-		if r.BranchName != nil {
-			branch = *r.BranchName
-		}
-		fmt.Fprintf(tw, "  %s\t%s\t%s\t%s\t%s\t%s\t%s\n",
-			r.ProjectName,
-			r.BatchName, r.BatchConflatedStatus,
-			r.JobName, r.JobConflatedStatus,
-			branch,
-			r.Timestamp.Format("2006-01-02 15:04:05"),
-		)
-	}
-	tw.Flush()
+	writeAgentActivityTable(&b, a.RecentActivity, "  ")
 	return b.String()
 }
 
@@ -599,34 +786,155 @@ func formatListAgentUtilization(out api.ListAgentUtilizationOutput) string {
 	return b.String()
 }
 
-func formatPoolLabelQueueGroup(item api.PoolLabelQueueItem, completedSinceDays int) string {
+// staleActiveAge is how long a batch may sit in an active (non-terminal) status
+// before the queue view flags it "⚠ stale". A HiL batch still running after a
+// full day is far more often a stuck/zombie run than a genuinely long job, and
+// this is the cheapest place to catch one before it pins utilization at 100%.
+const staleActiveAge = 24 * time.Hour
+
+// queueNameWidth caps the batch-name column so a pathologically long name can't
+// shove the age/pill columns off screen; longer names are truncated with an
+// ellipsis, matching the top-experiences table.
+const queueNameWidth = 40
+
+// formatPoolLabelQueue renders the whole queue view. Labels with no agents and
+// no batches of any kind are noise, so they collapse into a single footer line
+// unless --all is set; the labels that actually carry signal render as cards.
+// Any label that looks like a mis-quoted flag is called out by name, since it
+// almost certainly got into the org's label set by accident.
+func formatPoolLabelQueue(items []api.PoolLabelQueueItem, completedSinceDays int, showAll bool, now time.Time) string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "\n=== %s (%d agents) ===\n", item.PoolLabel, len(item.AssociatedAgentIDs))
-	if len(item.AssociatedAgentIDs) > 0 {
-		fmt.Fprintf(&b, "    agents: %s\n", strings.Join(item.AssociatedAgentIDs, ", "))
-	}
-	for _, batch := range item.ActiveBatches {
-		fmt.Fprintf(&b, "  ACTIVE   %s [%s]%s  %s\n",
-			batch.BatchName,
-			batch.ConflatedStatus,
-			priorityLabel(batch.Priority),
-			batch.Timestamp.Format("2006-01-02 15:04:05"),
-		)
-	}
-	for _, batch := range item.QueuedBatches {
-		pos := "QUEUED"
-		if batch.QueuePosition != nil {
-			pos = fmt.Sprintf("Queued %d", *batch.QueuePosition)
+	hidden := 0
+	var suspicious []string
+	for _, item := range items {
+		if looksLikeFlag(item.PoolLabel) {
+			suspicious = append(suspicious, item.PoolLabel)
 		}
-		fmt.Fprintf(&b, "  %s   %s [%s]%s  %s\n",
-			pos, batch.BatchName, batch.ConflatedStatus, priorityLabel(batch.Priority),
-			batch.Timestamp.Format("2006-01-02 15:04:05"),
-		)
+		if !showAll && isIdleLabel(item) {
+			hidden++
+			continue
+		}
+		b.WriteString(formatPoolLabelQueueGroup(item, completedSinceDays, now))
 	}
-	if len(item.CompletedBatches) > 0 {
-		fmt.Fprintf(&b, "  + %d completed in last %d days\n", len(item.CompletedBatches), completedSinceDays)
+	if hidden > 0 {
+		fmt.Fprintf(&b, "\n%s hidden (no agents, no runs) · --all to show\n",
+			pluralize(hidden, "idle label"))
+	}
+	if len(suspicious) > 0 {
+		b.WriteByte('\n')
+		for _, label := range suspicious {
+			fmt.Fprintf(&b, "⚠ suspicious label %q looks like a mis-quoted flag, not a real pool label\n", label)
+		}
 	}
 	return b.String()
+}
+
+// isIdleLabel reports whether a label carries no signal at all: no agents, no
+// active/queued runs, and nothing completed in the window.
+func isIdleLabel(item api.PoolLabelQueueItem) bool {
+	return len(item.AssociatedAgentIDs) == 0 &&
+		len(item.ActiveBatches) == 0 &&
+		len(item.QueuedBatches) == 0 &&
+		len(item.CompletedBatches) == 0
+}
+
+// looksLikeFlag reports whether a pool label looks like a shell-quoting mistake
+// — it starts with a dash or contains whitespace, i.e. almost certainly a flag
+// (or flag plus value) captured verbatim as a label rather than a real one.
+func looksLikeFlag(label string) bool {
+	return strings.HasPrefix(label, "-") || strings.ContainsAny(label, " \t")
+}
+
+func formatPoolLabelQueueGroup(item api.PoolLabelQueueItem, completedSinceDays int, now time.Time) string {
+	var b strings.Builder
+	agentCount := len(item.AssociatedAgentIDs)
+	fmt.Fprintf(&b, "\n%s · %s", item.PoolLabel, pluralize(agentCount, "agent"))
+	if agentCount > 0 {
+		fmt.Fprintf(&b, " · %s", strings.Join(item.AssociatedAgentIDs, ", "))
+	}
+	b.WriteByte('\n')
+
+	// Size the status/position and name columns across every rendered batch so
+	// active and queued rows line their ages up within the card.
+	tagW, nameW := 0, 0
+	consider := func(tag, name string) {
+		if w := utf8.RuneCountInString(tag); w > tagW {
+			tagW = w
+		}
+		if w := utf8.RuneCountInString(truncate(name, queueNameWidth)); w > nameW {
+			nameW = w
+		}
+	}
+	for _, batch := range item.ActiveBatches {
+		consider(string(batch.ConflatedStatus), batch.BatchName)
+	}
+	for _, batch := range item.QueuedBatches {
+		consider(queuePositionTag(batch), batch.BatchName)
+	}
+
+	for _, batch := range item.ActiveBatches {
+		trailer := priorityLabel(batch.Priority)
+		if now.Sub(batch.Timestamp) >= staleActiveAge {
+			trailer = "  ⚠ stale" + trailer
+		}
+		writeQueueBatchLine(&b, "●", string(batch.ConflatedStatus), batch.BatchName,
+			tagW, nameW, formatAge(batch.Timestamp, now), trailer)
+	}
+	for _, batch := range item.QueuedBatches {
+		writeQueueBatchLine(&b, "○", queuePositionTag(batch), batch.BatchName,
+			tagW, nameW, formatAge(batch.Timestamp, now), priorityLabel(batch.Priority))
+	}
+	if len(item.ActiveBatches) == 0 && len(item.QueuedBatches) == 0 {
+		b.WriteString("  idle — no active or queued runs\n")
+	}
+	if len(item.CompletedBatches) > 0 {
+		fmt.Fprintf(&b, "  + %d completed in the last %s\n",
+			len(item.CompletedBatches), pluralize(completedSinceDays, "day"))
+	}
+	return b.String()
+}
+
+// writeQueueBatchLine renders one batch row: a status dot, the status/position
+// tag, the (padded, possibly truncated) batch name, its age, and any trailing
+// markers (stale flag, priority pill).
+func writeQueueBatchLine(b *strings.Builder, marker, tag, name string, tagW, nameW int, age, trailer string) {
+	fmt.Fprintf(b, "  %s %-*s  %-*s  %s%s\n",
+		marker, tagW, tag, nameW, truncate(name, queueNameWidth), age, trailer)
+}
+
+// queuePositionTag renders a queued batch's 1-based slot ("Queued #3"), falling
+// back to a bare "QUEUED" when the server did not report a position.
+func queuePositionTag(batch api.PoolLabelQueueBatch) string {
+	if batch.QueuePosition != nil {
+		return fmt.Sprintf("Queued #%d", *batch.QueuePosition)
+	}
+	return "QUEUED"
+}
+
+// formatAge renders how long ago t was, relative to now, as a compact
+// right-hand annotation ("just now", "45m ago", "3h ago", "12d ago"). It is
+// deliberately coarse: the queue view cares about minutes-vs-days, not seconds.
+func formatAge(t, now time.Time) string {
+	d := now.Sub(t)
+	switch {
+	case d < time.Minute:
+		return "just now"
+	case d < time.Hour:
+		return fmt.Sprintf("%dm ago", int(d/time.Minute))
+	case d < 24*time.Hour:
+		return fmt.Sprintf("%dh ago", int(d/time.Hour))
+	default:
+		return fmt.Sprintf("%dd ago", int(d/(24*time.Hour)))
+	}
+}
+
+// pluralize renders a count and noun with the noun pluralized for everything but
+// exactly one: "1 agent", "0 agents", "4 agents".
+func pluralize(n int, noun string) string {
+	if n == 1 {
+		return fmt.Sprintf("1 %s", noun)
+	}
+	return fmt.Sprintf("%d %ss", n, noun)
 }
 
 // priorityLabel maps the raw scheduler priority (ascending sort, default

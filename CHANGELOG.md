@@ -2,6 +2,12 @@
 
 ## ReSim CLI
 
+### v0.62.0 - July 7, 2026
+
+- Adds `pool-labels list`, listing the distinct HiL pool labels visible to your org (`GET /poolLabels`). Auto-paginates the full set. Supports `--name` (substring/trigram filter), `--order-by rank|timestamp` (default `timestamp`; `rank` is recommended alongside `--name`), and `--json`.
+- Reworks `pool-labels queue` output for scanning: idle labels (no agents, no runs) collapse into a one-line footer (pass `--all` to show them), each label renders as a card with its agents folded onto the header line, batch ages are relative (`3h ago`, `12d ago`), an active batch older than 24h is flagged `⚠ stale`, and a label that looks like a mis-quoted flag is called out by name. `--json` output is unchanged.
+- Adds `agents results`, listing a HiL Agent's full results history (`GET /agents/{agentID}/results`) — the complete, paginated set behind the agent detail page's Results tab, of which `agents get` shows only the most recent slice. Supports `--text` (case-insensitive substring on the test name), `--created-after` (RFC3339 lower bound), and `--json`.
+
 ### v0.61.0 - June 29, 2026
 
 - Adds `resim metrics config-schema`, which prints the JSON Schema for the metrics configuration file to stdout (pipe to a file to use for editor validation and autocomplete).

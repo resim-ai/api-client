@@ -323,6 +323,10 @@ func (s *CommandsSuite) TestValidateCompletedSinceDays() {
 	s.ErrorContains(validateCompletedSinceDays(31), "between 1 and 30")
 }
 
+// poolLabelQueueNow is a fixed "now" for the queue-format tests. The sample
+// batches are timestamped two hours earlier so they render fresh (not stale).
+var poolLabelQueueNow = time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+
 func samplePoolLabelQueueItem() api.PoolLabelQueueItem {
 	ts := time.Date(2026, 6, 1, 10, 0, 0, 0, time.UTC)
 	batch := func(name string, status api.ConflatedBatchStatus, priority int, queuePos *int) api.PoolLabelQueueBatch {
@@ -354,6 +358,17 @@ func samplePoolLabelQueueItem() api.PoolLabelQueueItem {
 	}
 }
 
+// lineWith returns the first line of out that contains needle, or "" if none
+// does. Used to tie a trailing marker (pill, stale flag) to its batch row.
+func lineWith(out, needle string) string {
+	for _, ln := range strings.Split(out, "\n") {
+		if strings.Contains(ln, needle) {
+			return ln
+		}
+	}
+	return ""
+}
+
 func (s *CommandsSuite) TestQueuePoolLabelsPassesWindow() {
 	viper.Reset()
 	viper.Set(poolLabelsCompletedDaysKey, 14)
@@ -366,35 +381,114 @@ func (s *CommandsSuite) TestQueuePoolLabelsPassesWindow() {
 		}, nil)
 
 	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
-	s.Contains(out, "=== RackHiLConfig")
-	s.Contains(out, "+ 3 completed in last 14 days")
+	s.Contains(out, "RackHiLConfig · 2 agents")
+	s.Contains(out, "+ 3 completed in the last 14 days")
 }
 
 func (s *CommandsSuite) TestFormatPoolLabelQueueGroup() {
-	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 7)
+	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 7, poolLabelQueueNow)
 
-	s.Contains(out, "=== RackHiLConfig (2 agents) ===")
-	s.Contains(out, "agents: agent-1, agent-2")
-	// Both active batches render, the elevated one with a High pill.
-	s.Contains(out, "ACTIVE   active-one [RUNNING]")
-	s.Contains(out, "ACTIVE   active-two [RUNNING] (High)")
+	// Header folds the agent count and IDs onto one line, count pluralized.
+	s.Contains(out, "RackHiLConfig · 2 agents · agent-1, agent-2")
+	// Both active batches render with a status dot; the elevated one gets a
+	// High pill, and the age is relative to now (two hours after the batch).
+	s.Contains(lineWith(out, "active-one"), "● RUNNING")
+	s.Contains(lineWith(out, "active-one"), "2h ago")
+	s.Contains(lineWith(out, "active-two"), "● RUNNING")
+	s.Contains(lineWith(out, "active-two"), "(High)")
 	// Queued batches carry their 1-based positions; deprioritised gets Low.
-	s.Contains(out, "Queued 1   queued-one [SUBMITTED]")
-	s.Contains(out, "Queued 2   queued-two [SUBMITTED] (Low)")
+	s.Contains(lineWith(out, "queued-one"), "○ Queued #1")
+	s.Contains(lineWith(out, "queued-two"), "○ Queued #2")
+	s.Contains(lineWith(out, "queued-two"), "(Low)")
 	// Completed batches collapse into a footnote interpolating the window.
-	s.Contains(out, "+ 3 completed in last 7 days")
+	s.Contains(out, "+ 3 completed in the last 7 days")
+	// Fresh batches are not flagged stale.
+	s.NotContains(out, "⚠ stale")
 }
 
 func (s *CommandsSuite) TestFormatPoolLabelQueueGroupWindowInterpolation() {
-	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 14)
-	s.Contains(out, "+ 3 completed in last 14 days")
+	out := formatPoolLabelQueueGroup(samplePoolLabelQueueItem(), 14, poolLabelQueueNow)
+	s.Contains(out, "+ 3 completed in the last 14 days")
 }
 
 func (s *CommandsSuite) TestFormatPoolLabelQueueGroupNilQueuePosition() {
 	item := samplePoolLabelQueueItem()
 	item.QueuedBatches[0].QueuePosition = nil
-	out := formatPoolLabelQueueGroup(item, 7)
-	s.Contains(out, "QUEUED   queued-one [SUBMITTED]")
+	out := formatPoolLabelQueueGroup(item, 7, poolLabelQueueNow)
+	s.Contains(lineWith(out, "queued-one"), "○ QUEUED")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueGroupStale() {
+	item := samplePoolLabelQueueItem()
+	// Age one active batch past the 24h stale threshold; the other stays fresh.
+	item.ActiveBatches[1].Timestamp = poolLabelQueueNow.Add(-12 * 24 * time.Hour)
+	out := formatPoolLabelQueueGroup(item, 7, poolLabelQueueNow)
+	s.Contains(lineWith(out, "active-two"), "12d ago")
+	s.Contains(lineWith(out, "active-two"), "⚠ stale")
+	s.NotContains(lineWith(out, "active-one"), "⚠ stale")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueGroupIdle() {
+	item := api.PoolLabelQueueItem{
+		PoolLabel:          "hil-idle-with-agent",
+		AssociatedAgentIDs: []string{"hil-4"},
+	}
+	out := formatPoolLabelQueueGroup(item, 7, poolLabelQueueNow)
+	s.Contains(out, "hil-idle-with-agent · 1 agent · hil-4")
+	s.Contains(out, "idle — no active or queued runs")
+	s.NotContains(out, "completed in the last")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueHidesIdleLabels() {
+	items := []api.PoolLabelQueueItem{
+		samplePoolLabelQueueItem(),
+		{PoolLabel: "empty-a"},
+		{PoolLabel: "empty-b"},
+	}
+	// Default: idle labels collapse into a footer, names suppressed.
+	out := formatPoolLabelQueue(items, 7, false, poolLabelQueueNow)
+	s.Contains(out, "RackHiLConfig · 2 agents")
+	s.Contains(out, "2 idle labels hidden (no agents, no runs) · --all to show")
+	s.NotContains(out, "empty-a")
+	s.NotContains(out, "empty-b")
+
+	// --all renders every label as its own card, no hidden footer.
+	all := formatPoolLabelQueue(items, 7, true, poolLabelQueueNow)
+	s.Contains(all, "empty-a · 0 agents")
+	s.Contains(all, "empty-b · 0 agents")
+	s.NotContains(all, "idle labels hidden")
+}
+
+func (s *CommandsSuite) TestFormatPoolLabelQueueFlagsSuspiciousLabel() {
+	items := []api.PoolLabelQueueItem{
+		{PoolLabel: "--pool-labels hil-test-system"},
+	}
+	out := formatPoolLabelQueue(items, 7, false, poolLabelQueueNow)
+	s.Contains(out, `⚠ suspicious label "--pool-labels hil-test-system"`)
+}
+
+func (s *CommandsSuite) TestFormatAge() {
+	base := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	s.Equal("just now", formatAge(base, base))
+	s.Equal("just now", formatAge(base.Add(time.Minute), base)) // future clamps
+	s.Equal("45m ago", formatAge(base.Add(-45*time.Minute), base))
+	s.Equal("3h ago", formatAge(base.Add(-3*time.Hour), base))
+	s.Equal("12d ago", formatAge(base.Add(-12*24*time.Hour), base))
+}
+
+func (s *CommandsSuite) TestPluralize() {
+	s.Equal("0 agents", pluralize(0, "agent"))
+	s.Equal("1 agent", pluralize(1, "agent"))
+	s.Equal("4 agents", pluralize(4, "agent"))
+	s.Equal("1 day", pluralize(1, "day"))
+}
+
+func (s *CommandsSuite) TestLooksLikeFlag() {
+	s.True(looksLikeFlag("--pool-labels hil-test-system"))
+	s.True(looksLikeFlag("-x"))
+	s.True(looksLikeFlag("has space"))
+	s.False(looksLikeFlag("hil-test-system"))
+	s.False(looksLikeFlag("RackHiLConfig"))
 }
 
 func (s *CommandsSuite) TestPriorityLabel() {
@@ -415,8 +509,8 @@ func (s *CommandsSuite) TestQueuePoolLabelsRendersGroups() {
 		}, nil)
 
 	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
-	s.Contains(out, "=== RackHiLConfig (2 agents) ===")
-	s.Contains(out, "+ 3 completed in last 7 days")
+	s.Contains(out, "RackHiLConfig · 2 agents")
+	s.Contains(out, "+ 3 completed in the last 7 days")
 }
 
 func (s *CommandsSuite) TestQueuePoolLabelsJSONRoundTrips() {
@@ -451,6 +545,265 @@ func (s *CommandsSuite) TestQueuePoolLabelsEmptyState() {
 
 	out := captureStdout(s, func() { queuePoolLabels(nil, nil) })
 	s.Contains(out, "No pool labels in the queue right now.")
+}
+
+func (s *CommandsSuite) TestValidatePoolLabelsOrderBy() {
+	// Empty stays unset (server default); rank and timestamp are accepted.
+	s.NoError(validatePoolLabelsOrderBy(""))
+	s.NoError(validatePoolLabelsOrderBy("rank"))
+	s.NoError(validatePoolLabelsOrderBy("timestamp"))
+	// Anything else is rejected client-side with the accepted values named.
+	err := validatePoolLabelsOrderBy("bogus")
+	s.Require().Error(err)
+	s.Contains(err.Error(), "rank")
+	s.Contains(err.Error(), "timestamp")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsMultiPageAccumulates() {
+	viper.Reset()
+	defer viper.Reset()
+	// Page 1 carries a next-page token; page 2 (sent with that token) closes
+	// the series. Labels from both pages must appear, proving accumulation.
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100)}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListPoolLabelsOutput{
+				PoolLabels:    &[]api.PoolLabel{"alpha", "beta"},
+				NextPageToken: Ptr("page-2"),
+			},
+		}, nil)
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100), PageToken: Ptr("page-2")}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListPoolLabelsOutput{
+				PoolLabels: &[]api.PoolLabel{"gamma"},
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	s.Contains(out, "3 pool label(s):")
+	s.Contains(out, "alpha")
+	s.Contains(out, "beta")
+	s.Contains(out, "gamma")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsPassesNameAndOrderBy() {
+	viper.Reset()
+	viper.Set(poolLabelsNameKey, "nav")
+	viper.Set(poolLabelsOrderByKey, "rank")
+	defer viper.Reset()
+	rank := api.ListPoolLabelsParamsOrderByRank
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100), Name: Ptr("nav"), OrderBy: &rank}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelsOutput{PoolLabels: &[]api.PoolLabel{"nav-rig"}},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	s.Contains(out, "nav-rig")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsEmptyState() {
+	viper.Reset()
+	defer viper.Reset()
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100)}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelsOutput{PoolLabels: &[]api.PoolLabel{}},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	s.Contains(out, "No pool labels found in this org.")
+}
+
+func (s *CommandsSuite) TestListPoolLabelsJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	s.mockClient.On("ListPoolLabelsWithResponse", matchContext,
+		&api.ListPoolLabelsParams{PageSize: Ptr(100)}).Return(
+		&api.ListPoolLabelsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListPoolLabelsOutput{PoolLabels: &[]api.PoolLabel{"alpha", "beta"}},
+		}, nil)
+
+	out := captureStdout(s, func() { listPoolLabels(nil, nil) })
+	var parsed []string
+	s.Require().NoError(json.Unmarshal([]byte(out), &parsed))
+	s.Equal([]string{"alpha", "beta"}, parsed)
+}
+
+// sampleAgentResult builds an AgentRecentActivity row for the results tests.
+// branch is optional (nil leaves the branch cell empty).
+func sampleAgentResult(batchName, jobName, projectName string, branch *string) api.AgentRecentActivity {
+	return api.AgentRecentActivity{
+		BatchID:              uuid.New(),
+		BatchName:            batchName,
+		BatchConflatedStatus: api.ConflatedBatchStatusCOMPLETE,
+		JobID:                uuid.New(),
+		JobName:              jobName,
+		JobConflatedStatus:   api.ConflatedJobStatusPASSED,
+		ProjectName:          projectName,
+		BranchName:           branch,
+		Timestamp:            time.Date(2026, 6, 1, 11, 0, 0, 0, time.UTC),
+	}
+}
+
+func (s *CommandsSuite) TestParseAgentResultsParams() {
+	// Empty flags stay unset so the server returns the full history.
+	params, err := parseAgentResultsParams("", "")
+	s.NoError(err)
+	s.Equal(Ptr(100), params.PageSize)
+	s.Nil(params.Text)
+	s.Nil(params.CreatedAfter)
+
+	// Text and a valid RFC3339 lower bound are forwarded.
+	params, err = parseAgentResultsParams("merge", "2026-06-01T00:00:00Z")
+	s.NoError(err)
+	s.Equal(Ptr("merge"), params.Text)
+	s.Require().NotNil(params.CreatedAfter)
+	s.True(params.CreatedAfter.Equal(time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)))
+
+	// A malformed created-after fails before any request is built.
+	_, err = parseAgentResultsParams("", "notatime")
+	s.Require().Error(err)
+	s.Contains(err.Error(), agentResultsCreatedAfterKey)
+}
+
+func (s *CommandsSuite) TestAgentResultsMultiPageAccumulates() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	// Page 1 carries a next-page token; page 2 (sent with it) closes the series.
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{
+					sampleAgentResult("batch-a", "test-a", "proj-a", Ptr("main")),
+					sampleAgentResult("batch-b", "test-b", "proj-b", nil),
+				},
+				NextPageToken: Ptr("p2"),
+				Total:         3,
+			},
+		}, nil)
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100), PageToken: Ptr("p2")}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{
+					sampleAgentResult("batch-c", "test-c", "proj-c", nil),
+				},
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, "Agent:  agent-1")
+	s.Contains(out, "Total:  3")
+	s.Contains(out, "PROJECT")
+	s.Contains(out, "proj-a")
+	s.Contains(out, "batch-a")
+	s.Contains(out, "proj-b")
+	s.Contains(out, "proj-c")
+	s.Contains(out, "main")
+	// The branchless rows must not borrow the first row's branch.
+	for _, line := range strings.Split(out, "\n") {
+		if strings.Contains(line, "batch-b") || strings.Contains(line, "batch-c") {
+			s.NotContains(line, "main")
+		}
+	}
+}
+
+func (s *CommandsSuite) TestAgentResultsTotalReflectsFetchedRows() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	// Server Total is deliberately larger than the rows returned. Because the
+	// CLI fetches every page, the header counts the rows actually shown so it
+	// never overstates (the count is filter-correct regardless of server Total).
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{
+					sampleAgentResult("batch-a", "test-a", "proj-a", nil),
+					sampleAgentResult("batch-b", "test-b", "proj-b", nil),
+				},
+				Total: 99,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, "Total:  2")
+	s.NotContains(out, "Total:  99")
+}
+
+func (s *CommandsSuite) TestAgentResultsEmptyState() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListAgentResultsOutput{Items: []api.AgentRecentActivity{}},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, `No results for agent "agent-1".`)
+}
+
+func (s *CommandsSuite) TestAgentResultsJSONRoundTrips() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	viper.Set(agentJSONKey, true)
+	defer viper.Reset()
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		&api.ListAgentResultsParams{PageSize: Ptr(100)}).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{sampleAgentResult("batch-a", "test-a", "proj-a", nil)},
+				Total: 1,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	var parsed []api.AgentRecentActivity
+	s.Require().NoError(json.Unmarshal([]byte(out), &parsed))
+	s.Require().Len(parsed, 1)
+	s.Equal("batch-a", parsed[0].BatchName)
+}
+
+func (s *CommandsSuite) TestAgentResultsPassesFilters() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	viper.Set(agentResultsTextKey, "merge")
+	viper.Set(agentResultsCreatedAfterKey, "2026-06-01T00:00:00Z")
+	defer viper.Reset()
+	after := time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC)
+	s.mockClient.On("ListAgentResultsWithResponse", matchContext, "agent-1",
+		mock.MatchedBy(func(p *api.ListAgentResultsParams) bool {
+			return p.Text != nil && *p.Text == "merge" &&
+				p.CreatedAfter != nil && p.CreatedAfter.Equal(after)
+		})).Return(
+		&api.ListAgentResultsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListAgentResultsOutput{
+				Items: []api.AgentRecentActivity{sampleAgentResult("batch-a", "merge-test", "proj-a", nil)},
+				Total: 1,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { agentResults(nil, nil) })
+	s.Contains(out, "merge-test")
 }
 
 func (s *CommandsSuite) TestParseAgentUtilizationParams() {

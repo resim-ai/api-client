@@ -6564,7 +6564,10 @@ func TestMetricsDebug(t *testing.T) {
 	req.NoError(err)
 	absEmissionsPath, err := filepath.Abs(".resim/emissions.resim.jsonl")
 	req.NoError(err)
-	absMediaPath, err := filepath.Abs(".resim/media/screenshot.png")
+	absImagePath, err := filepath.Abs(".resim/media/screenshot.png")
+	req.NoError(err)
+	// Real, playable video — Mux needs genuine content to process an asset from.
+	absVideoPath, err := filepath.Abs(".resim/media/test.mp4")
 	req.NoError(err)
 
 	output = s.runCommand(ts, debugMetricsCommand(
@@ -6572,7 +6575,7 @@ func TestMetricsDebug(t *testing.T) {
 		absEmissionsPath,
 		absConfigPath,
 		"woot",
-		[]string{absMediaPath},
+		[]string{absImagePath, absVideoPath},
 		username,
 		password,
 	), ExpectNoError)

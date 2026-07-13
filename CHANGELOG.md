@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.63.0 - July 9, 2026
+
+- Adds `--media-file` to `resim metrics debug` (repeatable), for uploading image/video files referenced by the emissions file so debug dashboards can resolve them.
+
 ### v0.62.0 - July 7, 2026
 
 - Adds `pool-labels list`, listing the distinct HiL pool labels visible to your org (`GET /poolLabels`). Auto-paginates the full set. Supports `--name` (substring/trigram filter), `--order-by rank|timestamp` (default `timestamp`; `rank` is recommended alongside `--name`), and `--json`.

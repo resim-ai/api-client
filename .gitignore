@@ -25,6 +25,18 @@ cmd/resim/resim
 
 .env.local
 
+# Env & secrets
+.env
+.env.*
+!.env.*.example
+*.pem
+
+# Claude Code machine-local settings (never commit)
+.claude/settings.local.json
+
+# Vim swap files
+*.swp
+
 # Emacs
 *~
 .\#*

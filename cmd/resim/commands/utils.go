@@ -268,17 +268,15 @@ func previewTopicArchivalImpact(branchID uuid.UUID, configB64 string) error {
 	}
 
 	fmt.Println("This sync would archive the following topics:")
+	topicNames := make([]string, 0, len(resp.PreviewTopicArchivals))
 	for _, p := range resp.PreviewTopicArchivals {
 		fmt.Printf("  - %s: %d row(s) would be hidden, %d chart(s) reference it\n", p.TopicName, p.RowsToBeHidden, p.ChartCount)
 		for _, d := range p.Dashboards {
 			fmt.Printf("      affects dashboard %q (%s)\n", d.Name, d.Id)
 		}
-	}
-
-	topicNames := make([]string, 0, len(resp.PreviewTopicArchivals))
-	for _, p := range resp.PreviewTopicArchivals {
 		topicNames = append(topicNames, p.TopicName)
 	}
+
 	return fmt.Errorf(
 		"sync would archive topic(s) %s; re-run with --allow-topic-archival to confirm",
 		strings.Join(topicNames, ", "),

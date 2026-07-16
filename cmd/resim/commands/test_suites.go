@@ -650,7 +650,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		}
 		metricsConfigPaths := viper.GetStringSlice(testSuitesMetricsConfigPathKey)
 		metricsTemplatesPath := viper.GetString(testSuitesMetricsTemplatesPathKey)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false); err != nil {
+		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}
 	}

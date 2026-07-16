@@ -247,6 +247,44 @@ func validateMetricsSetExists(branchID uuid.UUID, metricsSetName *string) error 
 	return nil
 }
 
+// previewTopicArchivalImpact calls the BFF's previewTopicArchivals query and, if any
+// topics would be archived by this config, returns a descriptive error listing the
+// impact and requiring --allow-topic-archival. A transport (non-GraphQL) error is
+// logged and swallowed — the BFF's own allowTopicArchival gate is the backstop, same
+// as validateMetricsSetExists's soft-fail-on-unreachable behavior.
+func previewTopicArchivalImpact(branchID uuid.UUID, configB64 string) error {
+	resp, err := bff.PreviewTopicArchivals(context.Background(), BffClient, branchID.String(), configB64)
+	if err != nil {
+		var gqlErrs gqlerror.List
+		if errors.As(err, &gqlErrs) && len(gqlErrs) > 0 {
+			return errors.New(gqlErrs[0].Message)
+		}
+		log.Printf("warning: could not preview topic archival impact, continuing: %v", err)
+		return nil
+	}
+
+	if len(resp.PreviewTopicArchivals) == 0 {
+		return nil
+	}
+
+	fmt.Println("This sync would archive the following topics:")
+	for _, p := range resp.PreviewTopicArchivals {
+		fmt.Printf("  - %s: %d row(s) would be hidden, %d chart(s) reference it\n", p.TopicName, p.RowsToBeHidden, p.ChartCount)
+		for _, d := range p.Dashboards {
+			fmt.Printf("      affects dashboard %q (%s)\n", d.Name, d.Id)
+		}
+	}
+
+	topicNames := make([]string, 0, len(resp.PreviewTopicArchivals))
+	for _, p := range resp.PreviewTopicArchivals {
+		topicNames = append(topicNames, p.TopicName)
+	}
+	return fmt.Errorf(
+		"sync would archive topic(s) %s; re-run with --allow-topic-archival to confirm",
+		strings.Join(topicNames, ", "),
+	)
+}
+
 // ParseParameterString parses a string in the format "key=value" or "key:value"
 // into a key-value pair. It first tries to split on "=" and falls back to ":" if that fails.
 // This is especially useful for cases where parameter names contain colons, which
@@ -400,7 +438,7 @@ func readTemplates(templatesPath string, verbose bool) ([]bff.MetricsTemplate, e
 	return templates, nil
 }
 
-func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []string, templatesPath string, verbose bool) error {
+func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []string, templatesPath string, allowTopicArchival bool, verbose bool) error {
 	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
 	if err != nil {
 		log.Fatal("unable to retrieve branch associated with the build being run:", err)
@@ -415,6 +453,12 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []st
 		return err
 	}
 
+	if !allowTopicArchival {
+		if err := previewTopicArchivalImpact(branchID, configB64); err != nil {
+			return err
+		}
+	}
+
 	templates, err := readTemplates(templatesPath, verbose)
 	if err != nil {
 		return err
@@ -427,8 +471,13 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []st
 		configB64,
 		templates,
 		branchName, //TODO: We should use branch ids instead of names
+		allowTopicArchival,
 	)
 	if err != nil {
+		var gqlErrs gqlerror.List
+		if errors.As(err, &gqlErrs) && len(gqlErrs) > 0 {
+			return errors.New(gqlErrs[0].Message)
+		}
 		return fmt.Errorf("failed to sync metrics config: %w", err)
 	}
 

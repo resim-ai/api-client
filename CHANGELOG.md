@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-- `resim metrics sync` now previews and confirms topic removal: if a config drop would remove a topic, sync prints the affected row count, chart count, and dashboards, then refuses to proceed unless `--allow-topic-removal` is set.
+- `resim metrics sync` now previews and confirms topic removal: if a config drop would remove a topic, sync prints the affected row count, chart count, and dashboards. Without `--allow-topic-removal` it then refuses to proceed; with the flag set it prints the same impact as a confirmation notice and proceeds.
 
 ### v0.66.0 - July 28, 2026
 

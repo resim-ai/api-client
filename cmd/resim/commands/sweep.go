@@ -285,7 +285,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 		metricsConfigPaths := viper.GetStringSlice(sweepMetricsConfigPathKey)
 		metricsTemplatesPath := viper.GetString(sweepMetricsTemplatesPathKey)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false); err != nil {
+		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}
 	}

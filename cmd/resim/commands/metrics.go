@@ -51,16 +51,17 @@ var (
 )
 
 const (
-	metricsProjectKey         = "project"
-	metricsBranchNameKey      = "branch"
-	metricsConfigPathKey      = "config-path"
-	metricsConfigPathAliasKey = "metrics-config-path"
-	metricsTemplatesPathKey   = "templates-path"
-	metricsEmissionsFileKey   = "emissions-file"
-	metricsTimeoutKey         = "timeout"
-	metricsPollIntervalKey    = "poll-interval"
-	metricsSetNameKey         = "metrics-set"
-	metricsMediaFilesKey      = "media-file"
+	metricsProjectKey            = "project"
+	metricsBranchNameKey         = "branch"
+	metricsConfigPathKey         = "config-path"
+	metricsConfigPathAliasKey    = "metrics-config-path"
+	metricsTemplatesPathKey      = "templates-path"
+	metricsEmissionsFileKey      = "emissions-file"
+	metricsTimeoutKey            = "timeout"
+	metricsPollIntervalKey       = "poll-interval"
+	metricsSetNameKey            = "metrics-set"
+	metricsMediaFilesKey         = "media-file"
+	metricsAllowTopicArchivalKey = "allow-topic-archival"
 )
 
 func init() {
@@ -70,6 +71,7 @@ func init() {
 	syncMetricsCmd.Flags().StringSlice(metricsConfigPathKey, []string{".resim/metrics/config.resim.yml"}, "Deprecated: use --metrics-config-path instead")
 	syncMetricsCmd.Flags().MarkDeprecated(metricsConfigPathKey, "use --metrics-config-path instead")
 	syncMetricsCmd.Flags().String(metricsTemplatesPathKey, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates")
+	syncMetricsCmd.Flags().Bool(metricsAllowTopicArchivalKey, false, "Confirm archiving any topics this sync would drop. Without this flag, a sync that drops a topic is rejected after previewing the impact.")
 	syncMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	metricsCmd.AddCommand(syncMetricsCmd)
 
@@ -124,6 +126,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(metricsProjectKey))
 	branchName := viper.GetString(metricsBranchNameKey)
 	branchID := getBranchID(Client, projectID, branchName, true)
+	allowTopicArchival := viper.GetBool(metricsAllowTopicArchivalKey)
 
 	// Prefer --metrics-config-path if explicitly set; fall back to deprecated --config-path
 	configPaths := viper.GetStringSlice(metricsConfigPathAliasKey)
@@ -132,7 +135,7 @@ func syncMetrics(cmd *cobra.Command, args []string) {
 	}
 	templatesPath := viper.GetString(metricsTemplatesPathKey)
 
-	if err := SyncMetricsConfig(projectID, branchID, configPaths, templatesPath, verboseMode); err != nil {
+	if err := SyncMetricsConfig(projectID, branchID, configPaths, templatesPath, allowTopicArchival, verboseMode); err != nil {
 		log.Fatal(err)
 	}
 }

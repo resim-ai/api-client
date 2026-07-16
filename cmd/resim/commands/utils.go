@@ -270,9 +270,13 @@ func previewTopicArchivalImpact(branchID uuid.UUID, configB64 string) error {
 	fmt.Println("This sync would archive the following topics:")
 	topicNames := make([]string, 0, len(resp.PreviewTopicArchivals))
 	for _, p := range resp.PreviewTopicArchivals {
-		fmt.Printf("  - %s: %d row(s) would be hidden, %d chart(s) reference it\n", p.TopicName, p.RowsToBeHidden, p.ChartCount)
-		for _, d := range p.Dashboards {
-			fmt.Printf("      affects dashboard %q (%s)\n", d.Name, d.Id)
+		fmt.Printf("  - %s: %d emission(s) would be archived, %d batch/job metric chart(s) reference it\n", p.TopicName, p.RowsToBeHidden, p.ChartCount)
+		if len(p.Dashboards) > 0 {
+			dashboards := make([]string, 0, len(p.Dashboards))
+			for _, d := range p.Dashboards {
+				dashboards = append(dashboards, fmt.Sprintf("%s (%s)", d.Name, d.Id))
+			}
+			fmt.Printf("      Affected dashboards: %s\n", strings.Join(dashboards, ", "))
 		}
 		topicNames = append(topicNames, p.TopicName)
 	}

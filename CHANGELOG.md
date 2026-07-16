@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-- Heads up: the BFF (rerun#3630, WOB-4284) is adding topic archival for metrics configs. Once deployed, dropping a topic from `metrics sync` will require a new `allowTopicArchival` flag (independent of the not-yet-wired-up `allowBreakingChanges`) — CLI support (flag + a `previewTopicArchivals`-backed pre-check) is planned as a follow-up, not yet implemented here.
+- `resim metrics sync` now previews and confirms topic archival: if a config drop would archive a topic, sync prints the affected row count, chart count, and dashboards, then refuses to proceed unless `--allow-topic-archival` is set.
 
 ### v0.64.0 - July 21, 2026
 

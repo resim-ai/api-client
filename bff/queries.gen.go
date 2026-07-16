@@ -116,6 +116,61 @@ func (v *MetricsTemplate) GetName() string { return v.Name }
 // GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
 func (v *MetricsTemplate) GetContents() string { return v.Contents }
 
+// PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview includes the requested fields of the GraphQL type TopicArchivalPreview.
+type PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview struct {
+	TopicName      string                                                                                              `json:"topicName"`
+	RowsToBeHidden int                                                                                                 `json:"rowsToBeHidden"`
+	ChartCount     int                                                                                                 `json:"chartCount"`
+	Dashboards     []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef `json:"dashboards"`
+}
+
+// GetTopicName returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.TopicName, and is useful for accessing the field via an interface.
+func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetTopicName() string {
+	return v.TopicName
+}
+
+// GetRowsToBeHidden returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.RowsToBeHidden, and is useful for accessing the field via an interface.
+func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetRowsToBeHidden() int {
+	return v.RowsToBeHidden
+}
+
+// GetChartCount returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.ChartCount, and is useful for accessing the field via an interface.
+func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetChartCount() int {
+	return v.ChartCount
+}
+
+// GetDashboards returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.Dashboards, and is useful for accessing the field via an interface.
+func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetDashboards() []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef {
+	return v.Dashboards
+}
+
+// PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef includes the requested fields of the GraphQL type TopicArchivalDashboardRef.
+type PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// GetId returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef.Id, and is useful for accessing the field via an interface.
+func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef) GetId() string {
+	return v.Id
+}
+
+// GetName returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef.Name, and is useful for accessing the field via an interface.
+func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef) GetName() string {
+	return v.Name
+}
+
+// PreviewTopicArchivalsResponse is returned by PreviewTopicArchivals on success.
+type PreviewTopicArchivalsResponse struct {
+	// Previews the topics a config sync would archive: rows that would be hidden, job/batch chart count, and affected dashboards. Does not persist anything.
+	PreviewTopicArchivals []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview `json:"previewTopicArchivals"`
+}
+
+// GetPreviewTopicArchivals returns PreviewTopicArchivalsResponse.PreviewTopicArchivals, and is useful for accessing the field via an interface.
+func (v *PreviewTopicArchivalsResponse) GetPreviewTopicArchivals() []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview {
+	return v.PreviewTopicArchivals
+}
+
 // UpdateMetricsConfigResponse is returned by UpdateMetricsConfig on success.
 type UpdateMetricsConfigResponse struct {
 	// Update metrics config with the given configuration
@@ -209,12 +264,25 @@ type __GetDashboardInput struct {
 // GetId returns __GetDashboardInput.Id, and is useful for accessing the field via an interface.
 func (v *__GetDashboardInput) GetId() string { return v.Id }
 
+// __PreviewTopicArchivalsInput is used internally by genqlient
+type __PreviewTopicArchivalsInput struct {
+	BranchId string `json:"branchId"`
+	Config   string `json:"config"`
+}
+
+// GetBranchId returns __PreviewTopicArchivalsInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__PreviewTopicArchivalsInput) GetBranchId() string { return v.BranchId }
+
+// GetConfig returns __PreviewTopicArchivalsInput.Config, and is useful for accessing the field via an interface.
+func (v *__PreviewTopicArchivalsInput) GetConfig() string { return v.Config }
+
 // __UpdateMetricsConfigInput is used internally by genqlient
 type __UpdateMetricsConfigInput struct {
-	ProjectId     string            `json:"projectId"`
-	Config        string            `json:"config"`
-	TemplateFiles []MetricsTemplate `json:"templateFiles"`
-	Branch        string            `json:"branch"`
+	ProjectId          string            `json:"projectId"`
+	Config             string            `json:"config"`
+	TemplateFiles      []MetricsTemplate `json:"templateFiles"`
+	Branch             string            `json:"branch"`
+	AllowTopicArchival bool              `json:"allowTopicArchival"`
 }
 
 // GetProjectId returns __UpdateMetricsConfigInput.ProjectId, and is useful for accessing the field via an interface.
@@ -228,6 +296,9 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
+// GetAllowTopicArchival returns __UpdateMetricsConfigInput.AllowTopicArchival, and is useful for accessing the field via an interface.
+func (v *__UpdateMetricsConfigInput) GetAllowTopicArchival() bool { return v.AllowTopicArchival }
 
 // __ValidateMetricsConfigInput is used internally by genqlient
 type __ValidateMetricsConfigInput struct {
@@ -412,10 +483,52 @@ func GetDashboard(
 	return data_, err_
 }
 
+// The query executed by PreviewTopicArchivals.
+const PreviewTopicArchivals_Operation = `
+query PreviewTopicArchivals ($branchId: String!, $config: String!) {
+	previewTopicArchivals(branchId: $branchId, config: $config) {
+		topicName
+		rowsToBeHidden
+		chartCount
+		dashboards {
+			id
+			name
+		}
+	}
+}
+`
+
+func PreviewTopicArchivals(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	branchId string,
+	config string,
+) (data_ *PreviewTopicArchivalsResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "PreviewTopicArchivals",
+		Query:  PreviewTopicArchivals_Operation,
+		Variables: &__PreviewTopicArchivalsInput{
+			BranchId: branchId,
+			Config:   config,
+		},
+	}
+
+	data_ = &PreviewTopicArchivalsResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
 // The mutation executed by UpdateMetricsConfig.
 const UpdateMetricsConfig_Operation = `
-mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String) {
-	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch)
+mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String, $allowTopicArchival: Boolean) {
+	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch, allowTopicArchival: $allowTopicArchival)
 }
 `
 
@@ -426,15 +539,17 @@ func UpdateMetricsConfig(
 	config string,
 	templateFiles []MetricsTemplate,
 	branch string,
+	allowTopicArchival bool,
 ) (data_ *UpdateMetricsConfigResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "UpdateMetricsConfig",
 		Query:  UpdateMetricsConfig_Operation,
 		Variables: &__UpdateMetricsConfigInput{
-			ProjectId:     projectId,
-			Config:        config,
-			TemplateFiles: templateFiles,
-			Branch:        branch,
+			ProjectId:          projectId,
+			Config:             config,
+			TemplateFiles:      templateFiles,
+			Branch:             branch,
+			AllowTopicArchival: allowTopicArchival,
 		},
 	}
 

@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-- Heads up: the BFF (rerun#3630, WOB-4284) is adding topic removal for metrics configs. Once deployed, dropping a topic from `metrics sync` will require a new `allowTopicRemoval` flag (independent of the not-yet-wired-up `allowBreakingChanges`) — CLI support (flag + a `previewTopicRemoval`-backed pre-check) is planned as a follow-up, not yet implemented here.
+- `resim metrics sync` now previews and confirms topic removal: if a config drop would remove a topic, sync prints the affected row count, chart count, and dashboards, then refuses to proceed unless `--allow-topic-removal` is set.
 
 ### v0.66.0 - July 28, 2026
 

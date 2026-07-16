@@ -248,11 +248,14 @@ func validateMetricsSetExists(branchID uuid.UUID, metricsSetName *string) error 
 }
 
 // previewTopicArchivalImpact calls the BFF's previewTopicArchivals query and, if any
-// topics would be archived by this config, returns a descriptive error listing the
-// impact and requiring --allow-topic-archival. A transport (non-GraphQL) error is
-// logged and swallowed — the BFF's own allowTopicArchival gate is the backstop, same
-// as validateMetricsSetExists's soft-fail-on-unreachable behavior.
-func previewTopicArchivalImpact(branchID uuid.UUID, configB64 string) error {
+// topics would be archived by this config, prints the impact (row count, chart count,
+// dashboards) so the user sees it either way. When allowTopicArchival is false this
+// blocks the sync with a descriptive error requiring --allow-topic-archival; when it's
+// true the sync has already been confirmed, so the notice is printed but sync proceeds.
+// A transport (non-GraphQL) error is logged and swallowed — the BFF's own
+// allowTopicArchival gate is the backstop, same as validateMetricsSetExists's
+// soft-fail-on-unreachable behavior.
+func previewTopicArchivalImpact(branchID uuid.UUID, configB64 string, allowTopicArchival bool) error {
 	resp, err := bff.PreviewTopicArchivals(context.Background(), BffClient, branchID.String(), configB64)
 	if err != nil {
 		var gqlErrs gqlerror.List
@@ -267,7 +270,11 @@ func previewTopicArchivalImpact(branchID uuid.UUID, configB64 string) error {
 		return nil
 	}
 
-	fmt.Println("This sync would archive the following topics:")
+	if allowTopicArchival {
+		fmt.Println("This sync will archive the following topics:")
+	} else {
+		fmt.Println("This sync would archive the following topics:")
+	}
 	topicNames := make([]string, 0, len(resp.PreviewTopicArchivals))
 	for _, p := range resp.PreviewTopicArchivals {
 		fmt.Printf("  - %s: %d emission(s) would be archived, %d batch/job metric chart(s) reference it\n", p.TopicName, p.RowsToBeHidden, p.ChartCount)
@@ -279,6 +286,10 @@ func previewTopicArchivalImpact(branchID uuid.UUID, configB64 string) error {
 			fmt.Printf("      Affected dashboards: %s\n", strings.Join(dashboards, ", "))
 		}
 		topicNames = append(topicNames, p.TopicName)
+	}
+
+	if allowTopicArchival {
+		return nil
 	}
 
 	return fmt.Errorf(
@@ -455,10 +466,8 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []st
 		return err
 	}
 
-	if !allowTopicArchival {
-		if err := previewTopicArchivalImpact(branchID, configB64); err != nil {
-			return err
-		}
+	if err := previewTopicArchivalImpact(branchID, configB64, allowTopicArchival); err != nil {
+		return err
 	}
 
 	templates, err := readTemplates(templatesPath, verbose)

@@ -340,16 +340,21 @@ func TestSyncMetricsConfig_TopicsWouldBeArchived_ProceedsWithFlag(t *testing.T) 
 	mockBff := new(mockGraphQLClient)
 	withMockBffClient(t, mockBff)
 
-	// With --allow-topic-archival already set, the user has confirmed the archival, so
-	// the preview is intentionally skipped (see previewTopicArchivalImpact's caller in
-	// SyncMetricsConfig) — only UpdateMetricsConfig should be invoked.
+	// With --allow-topic-archival already set, the archival is confirmed, so the preview
+	// still runs (and its impact is printed for the user) but must not block the sync —
+	// UpdateMetricsConfig is still invoked.
+	previews := []bff.PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview{
+		{TopicName: "old_topic", RowsToBeHidden: 42, ChartCount: 2},
+	}
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicArchivalsRequest), mock.Anything).
+		Run(withPreviewTopicArchivalsResponse(previews)).
+		Return(nil).Once()
 	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything).
 		Run(withUpdateMetricsConfigSuccess()).
 		Return(nil).Once()
 
 	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", true, false)
 	assert.NoError(t, err)
-	mockBff.AssertNotCalled(t, "MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicArchivalsRequest), mock.Anything)
 	mockBff.AssertExpectations(t)
 }
 

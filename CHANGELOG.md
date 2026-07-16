@@ -4,7 +4,7 @@
 
 ### Unreleased
 
-- `resim metrics sync` now previews and confirms topic archival: if a config drop would archive a topic, sync prints the affected row count, chart count, and dashboards, then refuses to proceed unless `--allow-topic-archival` is set.
+- `resim metrics sync` now previews and confirms topic archival: if a config drop would archive a topic, sync prints the affected row count, chart count, and dashboards. Without `--allow-topic-archival` it then refuses to proceed; with the flag set it prints the same impact as a confirmation notice and proceeds.
 
 ### v0.64.0 - July 21, 2026
 

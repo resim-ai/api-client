@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### Unreleased
+
+- Heads up: the BFF (rerun#3630, WOB-4284) is adding topic removal for metrics configs. Once deployed, dropping a topic from `metrics sync` will require a new `allowTopicRemoval` flag (independent of the not-yet-wired-up `allowBreakingChanges`) — CLI support (flag + a `previewTopicRemoval`-backed pre-check) is planned as a follow-up, not yet implemented here.
+
 ### v0.66.0 - July 28, 2026
 
 - Adds `resim agents pause/unpause`

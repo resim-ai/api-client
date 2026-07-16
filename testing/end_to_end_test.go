@@ -384,6 +384,31 @@ func syncMetrics(projectName string, branch string, verbose bool, username strin
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
+func syncMetricsWithConfig(projectName string, branch string, configPath string, allowTopicArchival bool, username string, password string) []CommandBuilder {
+	metricsCommand := CommandBuilder{Command: "metrics"}
+
+	flags := []Flag{
+		{Name: "--project", Value: projectName},
+		{Name: "--metrics-config-path", Value: configPath},
+	}
+	if branch != "" {
+		flags = append(flags, Flag{Name: "--branch", Value: branch})
+	}
+	if allowTopicArchival {
+		flags = append(flags, Flag{Name: "--allow-topic-archival"})
+	}
+	if username != "" {
+		flags = append(flags, Flag{Name: "--username", Value: username})
+	}
+	if password != "" {
+		flags = append(flags, Flag{Name: "--password", Value: password})
+	}
+
+	syncCommand := CommandBuilder{Command: "sync", Flags: flags}
+
+	return []CommandBuilder{metricsCommand, syncCommand}
+}
+
 func validateMetrics(projectName string, branch string, verbose bool, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
@@ -6537,6 +6562,24 @@ func TestMetricsSync(t *testing.T) {
 		output := s.runCommand(ts, validateMetrics(projectIDString, "", false, username, password), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Validation passed")
+	})
+
+	t.Run("RejectsTopicArchivalWithoutFlag", func(t *testing.T) {
+		absConfigPath, err := filepath.Abs(".resim/metrics/config-no-topics.resim.yml")
+		req.NoError(err)
+
+		output := s.runCommand(ts, syncMetricsWithConfig(projectIDString, "", absConfigPath, false, username, password), true)
+		ts.Contains(output.StdOut, "This sync would archive the following topics")
+		ts.Contains(output.StdOut, "ok")
+		ts.Contains(output.StdErr, "--allow-topic-archival")
+	})
+
+	t.Run("ArchivesTopicWithFlag", func(t *testing.T) {
+		absConfigPath, err := filepath.Abs(".resim/metrics/config-no-topics.resim.yml")
+		req.NoError(err)
+
+		output := s.runCommand(ts, syncMetricsWithConfig(projectIDString, "", absConfigPath, true, username, password), false)
+		ts.Equal("", output.StdErr)
 	})
 }
 

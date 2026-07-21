@@ -37,6 +37,13 @@ jobs:
         tag: ${{ env.GITHUB_REF_NAME }}
         artifacts: "cmd/resim/resim-*"
         token: ${{ secrets.GITHUB_TOKEN }}
+        # If the release/tag already exists (e.g. it was created manually via
+        # the GitHub UI), update it and attach the binaries instead of failing
+        # with "422 already_exists" and leaving the release with no assets.
+        allowUpdates: true
+        # But don't clobber a human-authored release title/body when updating.
+        omitNameDuringUpdate: true
+        omitBodyDuringUpdate: true
 
     - name: Update Go pkg DB
       run: curl https://sum.golang.org/lookup/github.com/resim-ai/api-client@$GITHUB_REF_NAME

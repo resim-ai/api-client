@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
+	"text/tabwriter"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
@@ -57,7 +59,11 @@ const (
 	blueprintCueFileKey = "cue-file"
 	blueprintVersionKey = "version"
 	blueprintCueOnlyKey = "cue-only"
+	blueprintJSONKey    = "json"
+	blueprintAllKey     = "all-versions"
 )
+
+const blueprintListHeader = "NAME\tVERSION\tCREATED AT\n"
 
 func init() {
 	// Create Blueprint
@@ -68,6 +74,8 @@ func init() {
 	blueprintCmd.AddCommand(createBlueprintCmd)
 
 	// List Blueprints
+	listBlueprintsCmd.Flags().Bool(blueprintJSONKey, false, "Output raw JSON instead of a table. The CUE content is omitted; use `blueprints get` to fetch it.")
+	listBlueprintsCmd.Flags().Bool(blueprintAllKey, false, "List every version of each blueprint instead of only the most recent.")
 	blueprintCmd.AddCommand(listBlueprintsCmd)
 
 	// Get Blueprint
@@ -128,7 +136,57 @@ func createBlueprint(ccmd *cobra.Command, args []string) {
 	fmt.Println("Blueprint Version:", blueprint.Version)
 }
 
+// blueprintSummary is the JSON shape emitted by `blueprints list`: a blueprint
+// without its (potentially large) CUE content, which is available via
+// `blueprints get`.
+type blueprintSummary struct {
+	BlueprintID uuid.UUID     `json:"blueprintID"`
+	Name        string        `json:"name"`
+	Version     int           `json:"version"`
+	CreatedAt   api.Timestamp `json:"createdAt"`
+	OrgID       api.OrgID     `json:"orgID"`
+	UserID      api.UserID    `json:"userID"`
+}
+
 func listBlueprints(ccmd *cobra.Command, args []string) {
+	blueprints := fetchAllBlueprints()
+
+	// By default collapse to the most recent version of each blueprint name;
+	// --all-versions shows every version.
+	if !viper.GetBool(blueprintAllKey) {
+		blueprints = latestBlueprintPerName(blueprints)
+	}
+
+	// Stable ordering: by name, then most-recent version first.
+	sort.Slice(blueprints, func(i, j int) bool {
+		if blueprints[i].Name != blueprints[j].Name {
+			return blueprints[i].Name < blueprints[j].Name
+		}
+		return blueprints[i].Version > blueprints[j].Version
+	})
+
+	if viper.GetBool(blueprintJSONKey) {
+		OutputJson(blueprintSummaries(blueprints))
+		return
+	}
+
+	if len(blueprints) == 0 {
+		fmt.Println("no blueprints")
+		return
+	}
+
+	// Route the header and every row through a tabwriter so the tab-separated
+	// columns are padded to a consistent width.
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 4, ' ', 0)
+	fmt.Fprint(w, blueprintListHeader)
+	for _, b := range blueprints {
+		fmt.Fprintf(w, "%s\t%d\t%s\n", b.Name, b.Version, b.CreatedAt.Format("2006-01-02 15:04:05"))
+	}
+	w.Flush()
+}
+
+// fetchAllBlueprints pages through every blueprint visible to the caller's org.
+func fetchAllBlueprints() []api.Blueprint {
 	var pageToken *string = nil
 	allBlueprints := []api.Blueprint{}
 
@@ -154,12 +212,38 @@ func listBlueprints(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	if len(allBlueprints) == 0 {
-		fmt.Println("no blueprints")
-		return
-	}
+	return allBlueprints
+}
 
-	OutputJson(allBlueprints)
+// latestBlueprintPerName keeps only the highest-versioned blueprint for each
+// distinct name.
+func latestBlueprintPerName(blueprints []api.Blueprint) []api.Blueprint {
+	latest := map[string]api.Blueprint{}
+	for _, b := range blueprints {
+		if existing, ok := latest[b.Name]; !ok || b.Version > existing.Version {
+			latest[b.Name] = b
+		}
+	}
+	result := make([]api.Blueprint, 0, len(latest))
+	for _, b := range latest {
+		result = append(result, b)
+	}
+	return result
+}
+
+func blueprintSummaries(blueprints []api.Blueprint) []blueprintSummary {
+	summaries := make([]blueprintSummary, 0, len(blueprints))
+	for _, b := range blueprints {
+		summaries = append(summaries, blueprintSummary{
+			BlueprintID: b.BlueprintID,
+			Name:        b.Name,
+			Version:     b.Version,
+			CreatedAt:   b.CreatedAt,
+			OrgID:       b.OrgID,
+			UserID:      b.UserID,
+		})
+	}
+	return summaries
 }
 
 // actualGetBlueprint retrieves a blueprint by name. When version is nil the

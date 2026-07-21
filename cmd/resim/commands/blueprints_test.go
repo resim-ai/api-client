@@ -1,9 +1,11 @@
 package commands
 
 import (
+	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -91,6 +93,16 @@ func (s *CommandsSuite) TestCreateBlueprint() {
 	s.Assert().Contains(out, "Blueprint Version: 1")
 }
 
+func TestListBlueprintsCmdHasFlags(t *testing.T) {
+	for _, name := range []string{blueprintJSONKey, blueprintAllKey} {
+		flag := listBlueprintsCmd.Flags().Lookup(name)
+		assert.NotNil(t, flag, "--%s flag should exist on listBlueprintsCmd", name)
+		assert.Nil(t, flag.Annotations[cobra.BashCompOneRequiredFlag], "--%s should not be required", name)
+	}
+}
+
+// TestListBlueprints verifies the default output: a table of name/version/created-at
+// showing only the most recent version of each blueprint name.
 func (s *CommandsSuite) TestListBlueprints() {
 	viper.Reset()
 
@@ -102,15 +114,107 @@ func (s *CommandsSuite) TestListBlueprints() {
 			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 			JSON200: &api.ListBlueprintsOutput{
 				Blueprints: &[]api.Blueprint{
-					{BlueprintID: uuid.New(), Name: "blueprint-1", Version: 1},
-					{BlueprintID: uuid.New(), Name: "blueprint-2", Version: 3},
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 1},
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 3},
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 2},
+					{BlueprintID: uuid.New(), Name: "beta", Version: 1},
 				},
 			},
 		}, nil)
 
 	out := captureStdout(s, func() { listBlueprints(nil, nil) })
-	s.Assert().Contains(out, "blueprint-1")
-	s.Assert().Contains(out, "blueprint-2")
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	// Header + one row per distinct name (latest version only).
+	s.Require().Len(lines, 3)
+	s.Assert().Contains(lines[0], "NAME")
+	s.Assert().Contains(lines[0], "VERSION")
+	s.Assert().Contains(lines[0], "CREATED AT")
+	// Sorted by name; alpha collapses to its latest version (3), not 1 or 2.
+	s.Assert().Contains(lines[1], "alpha")
+	s.Assert().Contains(lines[1], "3")
+	s.Assert().Contains(lines[2], "beta")
+}
+
+// TestListBlueprintsJSON verifies --json output omits the CUE content and still
+// collapses to the latest version per name.
+func (s *CommandsSuite) TestListBlueprintsJSON() {
+	viper.Reset()
+	viper.Set(blueprintJSONKey, true)
+
+	s.mockClient.On("ListBlueprintsWithResponse", matchContext,
+		mock.AnythingOfType("*api.ListBlueprintsParams")).Return(
+		&api.ListBlueprintsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListBlueprintsOutput{
+				Blueprints: &[]api.Blueprint{
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 1, CueContent: "secret-cue-1"},
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 3, CueContent: "secret-cue-3"},
+					{BlueprintID: uuid.New(), Name: "beta", Version: 1, CueContent: "secret-cue-b"},
+				},
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { listBlueprints(nil, nil) })
+
+	// CUE content must never appear in list JSON.
+	s.Assert().NotContains(out, "cueContent")
+	s.Assert().NotContains(out, "secret-cue")
+
+	// Collapsed to latest version per name.
+	var got []blueprintSummary
+	s.Require().NoError(json.Unmarshal([]byte(out), &got))
+	s.Require().Len(got, 2)
+	byName := map[string]blueprintSummary{}
+	for _, b := range got {
+		byName[b.Name] = b
+	}
+	s.Assert().Equal(3, byName["alpha"].Version)
+	s.Assert().Equal(1, byName["beta"].Version)
+}
+
+// TestListBlueprintsAllVersions verifies --all-versions lists every version.
+func (s *CommandsSuite) TestListBlueprintsAllVersions() {
+	viper.Reset()
+	viper.Set(blueprintAllKey, true)
+
+	s.mockClient.On("ListBlueprintsWithResponse", matchContext,
+		mock.AnythingOfType("*api.ListBlueprintsParams")).Return(
+		&api.ListBlueprintsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.ListBlueprintsOutput{
+				Blueprints: &[]api.Blueprint{
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 1},
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 3},
+					{BlueprintID: uuid.New(), Name: "alpha", Version: 2},
+					{BlueprintID: uuid.New(), Name: "beta", Version: 1},
+				},
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { listBlueprints(nil, nil) })
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	// Header + every version of every name.
+	s.Require().Len(lines, 5)
+	s.Assert().Contains(lines[0], "NAME")
+	s.Assert().Contains(lines[1], "alpha")
+	s.Assert().Contains(lines[2], "alpha")
+	s.Assert().Contains(lines[3], "alpha")
+	s.Assert().Contains(lines[4], "beta")
+}
+
+// TestListBlueprintsEmpty verifies the friendly message when there are none.
+func (s *CommandsSuite) TestListBlueprintsEmpty() {
+	viper.Reset()
+
+	s.mockClient.On("ListBlueprintsWithResponse", matchContext,
+		mock.AnythingOfType("*api.ListBlueprintsParams")).Return(
+		&api.ListBlueprintsResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ListBlueprintsOutput{},
+		}, nil)
+
+	out := captureStdout(s, func() { listBlueprints(nil, nil) })
+	s.Assert().Contains(out, "no blueprints")
 }
 
 func (s *CommandsSuite) TestListBlueprintsPaginates() {

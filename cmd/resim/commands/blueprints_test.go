@@ -31,6 +31,10 @@ func TestGetBlueprintCmdHasFlags(t *testing.T) {
 	versionFlag := getBlueprintCmd.Flags().Lookup(blueprintVersionKey)
 	assert.NotNil(t, versionFlag, "--version flag should exist on getBlueprintCmd")
 	assert.Nil(t, versionFlag.Annotations[cobra.BashCompOneRequiredFlag], "--version should not be required")
+
+	cueOnlyFlag := getBlueprintCmd.Flags().Lookup(blueprintCueOnlyKey)
+	assert.NotNil(t, cueOnlyFlag, "--cue-only flag should exist on getBlueprintCmd")
+	assert.Nil(t, cueOnlyFlag.Annotations[cobra.BashCompOneRequiredFlag], "--cue-only should not be required")
 }
 
 func TestArchiveBlueprintCmdHasFlags(t *testing.T) {
@@ -184,6 +188,32 @@ func (s *CommandsSuite) TestGetBlueprintVersion() {
 
 	out := captureStdout(s, func() { getBlueprint(nil, nil) })
 	s.Assert().Contains(out, "\"version\": 2")
+}
+
+// TestGetBlueprintCueOnly exercises getBlueprint with --cue-only: the raw CUE
+// content is printed verbatim, with none of the surrounding JSON.
+func (s *CommandsSuite) TestGetBlueprintCueOnly() {
+	viper.Reset()
+	blueprintID := uuid.New()
+	cueContent := "package blueprint\n\nfoo: \"bar\"\n"
+	viper.Set(blueprintNameKey, "my-blueprint")
+	viper.Set(blueprintCueOnlyKey, true)
+
+	s.mockClient.On("GetLatestBlueprintWithResponse", matchContext, "my-blueprint").Return(
+		&api.GetLatestBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.Blueprint{
+				BlueprintID: blueprintID,
+				Name:        "my-blueprint",
+				CueContent:  cueContent,
+				Version:     4,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { getBlueprint(nil, nil) })
+	s.Assert().Equal(cueContent, out)
+	s.Assert().NotContains(out, blueprintID.String())
+	s.Assert().NotContains(out, "\"name\"")
 }
 
 func (s *CommandsSuite) TestArchiveBlueprint() {

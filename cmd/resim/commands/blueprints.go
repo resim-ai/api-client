@@ -56,6 +56,7 @@ const (
 	blueprintNameKey    = "name"
 	blueprintCueFileKey = "cue-file"
 	blueprintVersionKey = "version"
+	blueprintCueOnlyKey = "cue-only"
 )
 
 func init() {
@@ -73,6 +74,7 @@ func init() {
 	getBlueprintCmd.Flags().String(blueprintNameKey, "", "The name of the blueprint to retrieve.")
 	getBlueprintCmd.MarkFlagRequired(blueprintNameKey)
 	getBlueprintCmd.Flags().Int(blueprintVersionKey, 0, "The specific version of the blueprint to retrieve. Defaults to the latest version.")
+	getBlueprintCmd.Flags().Bool(blueprintCueOnlyKey, false, "Print only the blueprint's CUE content, unformatted, instead of the full JSON. Useful for writing the CUE to a file.")
 	blueprintCmd.AddCommand(getBlueprintCmd)
 
 	// Archive Blueprint
@@ -196,6 +198,14 @@ func getBlueprint(ccmd *cobra.Command, args []string) {
 		version = Ptr(viper.GetInt(blueprintVersionKey))
 	}
 	blueprint := actualGetBlueprint(viper.GetString(blueprintNameKey), version)
+
+	if viper.GetBool(blueprintCueOnlyKey) {
+		// Print the CUE content verbatim (no added formatting) so it can be
+		// redirected straight into a file.
+		fmt.Print(blueprint.CueContent)
+		return
+	}
+
 	OutputJson(blueprint)
 }
 

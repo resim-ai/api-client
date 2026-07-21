@@ -25,6 +25,15 @@ func TestCreateBlueprintCmdHasRequiredFlags(t *testing.T) {
 	}
 }
 
+func TestReviseBlueprintCmdHasRequiredFlags(t *testing.T) {
+	requiredFlags := []string{blueprintNameKey, blueprintCueFileKey}
+	for _, name := range requiredFlags {
+		flag := reviseBlueprintCmd.Flags().Lookup(name)
+		assert.NotNil(t, flag, "--%s flag should exist on reviseBlueprintCmd", name)
+		assert.Equal(t, []string{"true"}, flag.Annotations[cobra.BashCompOneRequiredFlag], "--%s should be required", name)
+	}
+}
+
 func TestGetBlueprintCmdHasFlags(t *testing.T) {
 	nameFlag := getBlueprintCmd.Flags().Lookup(blueprintNameKey)
 	assert.NotNil(t, nameFlag, "--name flag should exist on getBlueprintCmd")
@@ -50,7 +59,7 @@ func TestArchiveBlueprintCmdHasFlags(t *testing.T) {
 }
 
 func TestBlueprintSubcommandsRegistered(t *testing.T) {
-	expected := map[string]bool{"create": false, "list": false, "get": false, "archive": false}
+	expected := map[string]bool{"create": false, "revise": false, "list": false, "get": false, "archive": false}
 	for _, sub := range blueprintCmd.Commands() {
 		if _, ok := expected[sub.Name()]; ok {
 			expected[sub.Name()] = true
@@ -62,6 +71,8 @@ func TestBlueprintSubcommandsRegistered(t *testing.T) {
 	assert.Contains(t, blueprintCmd.Aliases, "blueprint", "blueprintCmd should have a 'blueprint' alias")
 }
 
+// TestCreateBlueprint verifies the happy path: when no blueprint with the name
+// exists (GetLatestBlueprint 404s), `create` creates version 1.
 func (s *CommandsSuite) TestCreateBlueprint() {
 	viper.Reset()
 	blueprintID := uuid.New()
@@ -72,6 +83,12 @@ func (s *CommandsSuite) TestCreateBlueprint() {
 
 	viper.Set(blueprintNameKey, "my-blueprint")
 	viper.Set(blueprintCueFileKey, cueFile)
+
+	// The name is free: no blueprint with it exists yet.
+	s.mockClient.On("GetLatestBlueprintWithResponse", matchContext, "my-blueprint").Return(
+		&api.GetLatestBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusNotFound},
+		}, nil)
 
 	s.mockClient.On("CreateBlueprintWithResponse", matchContext,
 		mock.MatchedBy(func(body api.CreateBlueprintInput) bool {
@@ -91,6 +108,76 @@ func (s *CommandsSuite) TestCreateBlueprint() {
 	s.Assert().Contains(out, "Created blueprint successfully!")
 	s.Assert().Contains(out, blueprintID.String())
 	s.Assert().Contains(out, "Blueprint Version: 1")
+}
+
+// TestReviseBlueprint verifies the happy path: when a blueprint with the name
+// already exists (GetLatestBlueprint 200s), `revise` creates the next version.
+func (s *CommandsSuite) TestReviseBlueprint() {
+	viper.Reset()
+	blueprintID := uuid.New()
+	cueContent := "package blueprint\n\nfoo: \"baz\"\n"
+
+	cueFile := filepath.Join(s.T().TempDir(), "blueprint.cue")
+	s.Require().NoError(os.WriteFile(cueFile, []byte(cueContent), 0644))
+
+	viper.Set(blueprintNameKey, "my-blueprint")
+	viper.Set(blueprintCueFileKey, cueFile)
+
+	// The blueprint already exists, so revising is allowed.
+	s.mockClient.On("GetLatestBlueprintWithResponse", matchContext, "my-blueprint").Return(
+		&api.GetLatestBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.Blueprint{
+				BlueprintID: blueprintID,
+				Name:        "my-blueprint",
+				Version:     1,
+			},
+		}, nil)
+
+	s.mockClient.On("CreateBlueprintWithResponse", matchContext,
+		mock.MatchedBy(func(body api.CreateBlueprintInput) bool {
+			return body.Name == "my-blueprint" && body.CueContent == cueContent
+		})).Return(
+		&api.CreateBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusCreated},
+			JSON201: &api.Blueprint{
+				BlueprintID: blueprintID,
+				Name:        "my-blueprint",
+				CueContent:  cueContent,
+				Version:     2,
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { reviseBlueprint(nil, nil) })
+	s.Assert().Contains(out, "Revised blueprint successfully!")
+	s.Assert().Contains(out, blueprintID.String())
+	s.Assert().Contains(out, "Blueprint Version: 2")
+}
+
+// TestBlueprintExistsTrue verifies blueprintExists reports true when the
+// GetLatestBlueprint endpoint returns a blueprint. This is the decision that
+// makes `create` refuse and `revise` proceed.
+func (s *CommandsSuite) TestBlueprintExistsTrue() {
+	viper.Reset()
+	s.mockClient.On("GetLatestBlueprintWithResponse", matchContext, "existing").Return(
+		&api.GetLatestBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.Blueprint{Name: "existing", Version: 1},
+		}, nil)
+
+	s.Assert().True(blueprintExists("existing"))
+}
+
+// TestBlueprintExistsFalse verifies blueprintExists reports false on a 404. This
+// is the decision that makes `create` proceed and `revise` refuse.
+func (s *CommandsSuite) TestBlueprintExistsFalse() {
+	viper.Reset()
+	s.mockClient.On("GetLatestBlueprintWithResponse", matchContext, "missing").Return(
+		&api.GetLatestBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusNotFound},
+		}, nil)
+
+	s.Assert().False(blueprintExists("missing"))
 }
 
 func TestListBlueprintsCmdHasFlags(t *testing.T) {

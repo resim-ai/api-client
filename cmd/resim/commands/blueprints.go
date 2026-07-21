@@ -27,9 +27,16 @@ var (
 
 	createBlueprintCmd = &cobra.Command{
 		Use:   "create",
-		Short: "create - Creates a new blueprint, or a new version of an existing blueprint",
+		Short: "create - Creates a new blueprint. Fails if one with the same name already exists; use `revise` to add a version.",
 		Long:  ``,
 		Run:   createBlueprint,
+	}
+
+	reviseBlueprintCmd = &cobra.Command{
+		Use:   "revise",
+		Short: "revise - Creates a new version of an existing blueprint. Fails if no blueprint with the name exists; use `create` to make one.",
+		Long:  ``,
+		Run:   reviseBlueprint,
 	}
 
 	listBlueprintsCmd = &cobra.Command{
@@ -73,6 +80,13 @@ func init() {
 	createBlueprintCmd.MarkFlagRequired(blueprintCueFileKey)
 	blueprintCmd.AddCommand(createBlueprintCmd)
 
+	// Revise Blueprint
+	reviseBlueprintCmd.Flags().String(blueprintNameKey, "", "The name of the existing blueprint to revise.")
+	reviseBlueprintCmd.MarkFlagRequired(blueprintNameKey)
+	reviseBlueprintCmd.Flags().String(blueprintCueFileKey, "", "Path to a file containing the CUE content for the new version.")
+	reviseBlueprintCmd.MarkFlagRequired(blueprintCueFileKey)
+	blueprintCmd.AddCommand(reviseBlueprintCmd)
+
 	// List Blueprints
 	listBlueprintsCmd.Flags().Bool(blueprintJSONKey, false, "Output raw JSON instead of a table. The CUE content is omitted; use `blueprints get` to fetch it.")
 	listBlueprintsCmd.Flags().Bool(blueprintAllKey, false, "List every version of each blueprint instead of only the most recent.")
@@ -95,8 +109,41 @@ func init() {
 }
 
 func createBlueprint(ccmd *cobra.Command, args []string) {
-	fmt.Println("Creating a blueprint...")
+	name, cueContent := readBlueprintInputs()
 
+	// `create` only ever makes a brand-new blueprint. Creating a further version
+	// of an existing one is `revise`'s job; refusing here guards against
+	// accidentally spawning unwanted versions by re-running `create`. This is
+	// stricter than the API, which would happily add a version.
+	if blueprintExists(name) {
+		log.Fatalf("blueprint %q already exists; use `resim blueprints revise` to create a new version", name)
+	}
+
+	fmt.Println("Creating a blueprint...")
+	blueprint := writeBlueprint(name, cueContent)
+	fmt.Println("Created blueprint successfully!")
+	printBlueprintResult(blueprint)
+}
+
+func reviseBlueprint(ccmd *cobra.Command, args []string) {
+	name, cueContent := readBlueprintInputs()
+
+	// `revise` only ever adds a version to an existing blueprint. Use `create` to
+	// make a brand-new one.
+	if !blueprintExists(name) {
+		log.Fatalf("blueprint %q does not exist; use `resim blueprints create` to create it", name)
+	}
+
+	fmt.Println("Revising blueprint...")
+	blueprint := writeBlueprint(name, cueContent)
+	fmt.Println("Revised blueprint successfully!")
+	printBlueprintResult(blueprint)
+}
+
+// readBlueprintInputs reads and validates the --name and --cue-file flags shared
+// by `create` and `revise`, returning the blueprint name and the CUE file's
+// contents.
+func readBlueprintInputs() (string, string) {
 	name := viper.GetString(blueprintNameKey)
 	if name == "" {
 		log.Fatal("empty blueprint name")
@@ -110,10 +157,30 @@ func createBlueprint(ccmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("failed to read cue file: ", err)
 	}
+	return name, string(cueContent)
+}
 
+// blueprintExists reports whether a blueprint with the given name already exists
+// in the caller's org. It fatals on any error other than a clean 404.
+func blueprintExists(name string) bool {
+	response, err := Client.GetLatestBlueprintWithResponse(context.Background(), name)
+	if err != nil {
+		log.Fatal("failed to check whether blueprint exists:", err)
+	}
+	if response.HTTPResponse != nil && response.HTTPResponse.StatusCode == http.StatusNotFound {
+		return false
+	}
+	ValidateResponse(http.StatusOK, "failed to check whether blueprint exists", response.HTTPResponse, response.Body)
+	return true
+}
+
+// writeBlueprint sends the create request. The API creates a new blueprint or,
+// if one with this name already exists, a new version of it; `create` and
+// `revise` gate which of those is allowed before calling here.
+func writeBlueprint(name, cueContent string) api.Blueprint {
 	body := api.CreateBlueprintInput{
 		Name:       name,
-		CueContent: string(cueContent),
+		CueContent: cueContent,
 	}
 
 	response, err := Client.CreateBlueprintWithResponse(context.Background(), body)
@@ -129,8 +196,10 @@ func createBlueprint(ccmd *cobra.Command, args []string) {
 	if blueprint.BlueprintID == uuid.Nil {
 		log.Fatal("empty blueprint ID")
 	}
+	return blueprint
+}
 
-	fmt.Println("Created blueprint successfully!")
+func printBlueprintResult(blueprint api.Blueprint) {
 	fmt.Println("Blueprint ID:", blueprint.BlueprintID.String())
 	fmt.Println("Blueprint Name:", blueprint.Name)
 	fmt.Println("Blueprint Version:", blueprint.Version)

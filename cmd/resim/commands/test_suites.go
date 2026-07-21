@@ -105,6 +105,7 @@ const (
 	testSuiteSyncMetricsConfigKey       = "sync-metrics-config"
 	testSuitesMetricsConfigPathKey      = "metrics-config-path"
 	testSuitesMetricsTemplatesPathKey   = "metrics-templates-path"
+	testSuiteBlueprintKey               = "blueprint"
 )
 
 func init() {
@@ -215,6 +216,7 @@ func init() {
 	// Optional: Metrics build override:
 	runTestSuiteCmd.Flags().String(testSuiteMetricsBuildOverrideKey, "", "An optional ID of a metrics build to override the standard metrics build in this test suite run (which will be run as an adhoc batch).")
 	runTestSuiteCmd.Flags().String(testSuiteMetricsSetOverrideKey, "", "An optional metrics set name to override the test suite's metrics set for this run. Supplying this flag runs the test suite as an adhoc batch.")
+	runTestSuiteCmd.Flags().String(testSuiteBlueprintKey, "", "(Optional) The name of a blueprint to apply to this test suite run. The blueprint's latest version is used.")
 	// Optional: Sync metrics config
 	runTestSuiteCmd.Flags().Bool(testSuiteSyncMetricsConfigKey, false, "If set, run metrics sync before running the test suite")
 	runTestSuiteCmd.Flags().StringSlice(testSuitesMetricsConfigPathKey, []string{".resim/metrics/config.resim.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
@@ -686,6 +688,11 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 			body.BatchName = Ptr(viper.GetString(testSuiteBatchNameKey))
 		}
 
+		// Add the blueprint if any. The API resolves the name to its latest version.
+		if viper.IsSet(testSuiteBlueprintKey) {
+			body.BlueprintName = Ptr(viper.GetString(testSuiteBlueprintKey))
+		}
+
 		// Parse --allowable-failure-percent (if any provided)
 		if viper.IsSet(testSuiteAllowableFailurePercentKey) {
 			allowableFailurePercent := viper.GetInt(testSuiteAllowableFailurePercentKey)
@@ -724,6 +731,11 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		// Add the batch name if any
 		if viper.IsSet(testSuiteBatchNameKey) {
 			body.BatchName = Ptr(viper.GetString(testSuiteBatchNameKey))
+		}
+
+		// Add the blueprint if any. The API resolves the name to its latest version.
+		if viper.IsSet(testSuiteBlueprintKey) {
+			body.BlueprintName = Ptr(viper.GetString(testSuiteBlueprintKey))
 		}
 
 		// Parse --allowable-failure-percent (if any provided)

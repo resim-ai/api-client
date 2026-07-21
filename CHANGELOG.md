@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.64.0 - July 21, 2026
+
+- Adds `resim blueprints`, a new command for managing blueprints in your org. Subcommands: `create` (creates a blueprint, or a new version of an existing one, from a CUE file), `list` (auto-paginates every blueprint visible to your org as JSON), `get` (view information about a specific blueprint), and `archive` (blueprint removal).
+
 ### v0.63.0 - July 9, 2026
 
 - Adds `--media-file` to `resim metrics debug` (repeatable), for uploading image/video files referenced by the emissions file so debug dashboards can resolve them.

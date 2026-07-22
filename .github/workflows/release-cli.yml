@@ -102,8 +102,6 @@ jobs:
 
     # Failure-only alert: fires if the build, upload, or asset check failed, so a
     # borked release gets noticed instead of silently 404ing for customers.
-    # Requires a Slack incoming-webhook URL in the RELEASE_SLACK_WEBHOOK_URL
-    # repo secret; the step no-ops (rather than erroring) if it isn't set.
     - name: Notify Slack on failure
       if: failure()
       env:

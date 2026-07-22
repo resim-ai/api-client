@@ -7,7 +7,6 @@ import (
 	"log"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -60,7 +59,6 @@ const (
 	metricsTimeoutKey         = "timeout"
 	metricsPollIntervalKey    = "poll-interval"
 	metricsSetNameKey         = "metrics-set"
-	metricsMediaFilesKey      = "media-file"
 )
 
 func init() {
@@ -88,7 +86,6 @@ func init() {
 	debugMetricsCmd.Flags().String(metricsSetNameKey, "", "The name of the metrics set to use")
 	debugMetricsCmd.Flags().Duration(metricsTimeoutKey, 10*time.Minute, "Maximum time to wait for the dashboard to be ready. Default is 10m")
 	debugMetricsCmd.Flags().Duration(metricsPollIntervalKey, 10*time.Second, "How often to poll for dashboard readiness. Default is 10s")
-	debugMetricsCmd.Flags().StringSlice(metricsMediaFilesKey, []string{}, "Path(s) to media files (images/videos) referenced by the emissions file. Can be specified multiple times.")
 	debugMetricsCmd.MarkFlagRequired(metricsProjectKey)
 	debugMetricsCmd.MarkFlagRequired(metricsEmissionsFileKey)
 	debugMetricsCmd.MarkFlagRequired(metricsSetNameKey)
@@ -183,16 +180,6 @@ func debugMetrics(cmd *cobra.Command, args []string) {
 	// Read and base64-encode emissions file
 	emissionsB64 := readFile(emissionsFilePath)
 
-	// Read and base64-encode any referenced media files
-	mediaFilePaths := viper.GetStringSlice(metricsMediaFilesKey)
-	mediaFiles := make([]bff.MediaFileInput, 0, len(mediaFilePaths))
-	for _, path := range mediaFilePaths {
-		mediaFiles = append(mediaFiles, bff.MediaFileInput{
-			Name:     filepath.Base(path),
-			Contents: readFile(path),
-		})
-	}
-
 	// Create the debug dashboard
 	fmt.Println("Creating debug dashboard...")
 	resp, err := bff.CreateDebugDashboard(
@@ -204,7 +191,6 @@ func debugMetrics(cmd *cobra.Command, args []string) {
 		emissionsB64,
 		branchID,
 		metricsSetName,
-		mediaFiles,
 	)
 	if err != nil {
 		log.Fatalf("failed to create debug dashboard: %v", err)

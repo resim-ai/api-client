@@ -114,7 +114,6 @@ const (
 	batchGithubKey                  = "github"
 	batchMetricsBuildKey            = "metrics-build-id"
 	batchMetricsSetKey              = "metrics-set"
-	batchBlueprintKey               = "blueprint"
 	batchExitStatusKey              = "exit-status"
 	batchWaitTimeoutKey             = "wait-timeout"
 	batchWaitPollKey                = "poll-every"
@@ -172,7 +171,6 @@ func init() {
 	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
 	createBatchCmd.Flags().Int(batchPriorityKey, requestPriorityDefault, requestPriorityDescription)
 	createBatchCmd.Flags().String(batchMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
-	createBatchCmd.Flags().String(batchBlueprintKey, "", "(Optional) The name of a blueprint to apply to this batch. The blueprint's latest version is used.")
 	createBatchCmd.Flags().Bool(batchSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
 	createBatchCmd.Flags().StringSlice(batchMetricsConfigPath, []string{".resim/metrics/config.resim.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
 	createBatchCmd.Flags().String(batchMetricsTemplatesPath, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates. Only used if sync-metrics-config is set to true")
@@ -776,12 +774,6 @@ func createBatch(ccmd *cobra.Command, args []string) {
 	// Parse --batch-name (if any provided)
 	if viper.IsSet(batchNameKey) {
 		body.BatchName = Ptr(viper.GetString(batchNameKey))
-	}
-
-	// Parse --blueprint (if any provided). The API resolves the name to its
-	// latest version.
-	if viper.IsSet(batchBlueprintKey) {
-		body.BlueprintName = Ptr(viper.GetString(batchBlueprintKey))
 	}
 
 	// Parse --allowable-failure-percent (if any provided)

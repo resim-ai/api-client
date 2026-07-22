@@ -2,10 +2,22 @@ name: build-release-binary
 
 run-name: Create Github Release for ReSim CLI
 
-on: 
+on:
   push:
     tags:
     - 'v*'
+  # Also run when a release is published directly (e.g. created via the GitHub
+  # UI or `gh release create`). Those paths create the tag server-side instead
+  # of pushing it, so the `push: tags` trigger never fires and the release would
+  # otherwise be published with no binaries attached.
+  release:
+    types: [published]
+
+# Serialise runs for the same tag so that a push- and a release-triggered run
+# for the same version don't build and upload concurrently.
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -14,31 +26,94 @@ jobs:
       contents: write
 
     steps:
+    # The tag lives in a different place depending on the trigger (ref_name on a
+    # tag push, event.release.tag_name on a release), so resolve it once and
+    # reuse it everywhere below. Values are passed via env, not interpolated into
+    # the script, to avoid shell injection from a crafted tag name.
+    - name: Resolve release tag
+      id: tag
+      env:
+        EVENT_NAME: ${{ github.event_name }}
+        RELEASE_TAG: ${{ github.event.release.tag_name }}
+        REF_NAME: ${{ github.ref_name }}
+      run: |
+        if [ "$EVENT_NAME" = "release" ]; then
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+        else
+          echo "tag=$REF_NAME" >> "$GITHUB_OUTPUT"
+        fi
+
     - uses: actions/checkout@v3
       with:
         fetch-depth: 0
-        ref: ${{ env.GITHUB_REF_NAME }}
+        ref: ${{ steps.tag.outputs.tag }}
 
     - uses: actions/setup-go@v3
       with:
         go-version-file: 'go.mod'
 
     - name: Build
+      env:
+        CGO_ENABLED: 0
+        TAG: ${{ steps.tag.outputs.tag }}
       run: |
         cd cmd/resim
-        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-amd64
-        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-linux-arm64
-        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-arm64
-        GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${GITHUB_REF_NAME} -X main.BuiltBy=github-actions" -o resim-darwin-amd64
-      env:
-       CGO_ENABLED: 0
+        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-linux-amd64
+        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-linux-arm64
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-darwin-arm64
+        GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-darwin-amd64
+
     - uses: ncipollo/release-action@v1.12.0
       with:
-        tag: ${{ env.GITHUB_REF_NAME }}
+        tag: ${{ steps.tag.outputs.tag }}
         artifacts: "cmd/resim/resim-*"
         token: ${{ secrets.GITHUB_TOKEN }}
+        # If the release/tag already exists (e.g. it was created manually via
+        # the GitHub UI), update it and attach the binaries instead of failing
+        # with "422 already_exists" and leaving the release with no assets.
+        allowUpdates: true
+        # But don't clobber a human-authored release title/body when updating.
+        omitNameDuringUpdate: true
+        omitBodyDuringUpdate: true
+
+    # Even with the trigger + idempotency above, a partial/failed upload could
+    # still leave the release short of binaries. Verify the four platform
+    # binaries are actually attached and fail loudly (feeding the Slack alert)
+    # if not, rather than letting customers discover it via a download 404.
+    - name: Verify release assets
+      id: verify
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ steps.tag.outputs.tag }}
+      run: |
+        count=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
+          --jq '[.assets[] | select(.name | startswith("resim-"))] | length')
+        echo "count=$count" >> "$GITHUB_OUTPUT"
+        echo "Found ${count}/4 resim binaries attached to ${TAG}"
+        if [ "$count" -ne 4 ]; then
+          echo "::error::Release ${TAG} has ${count}/4 binaries attached"
+          exit 1
+        fi
 
     - name: Update Go pkg DB
-      run: curl https://sum.golang.org/lookup/github.com/resim-ai/api-client@$GITHUB_REF_NAME
       env:
-        GITHUB_REF_NAME: ${{ env.GITHUB_REF_NAME }}
+        TAG: ${{ steps.tag.outputs.tag }}
+      run: curl https://sum.golang.org/lookup/github.com/resim-ai/api-client@$TAG
+
+    # Failure-only alert: fires if the build, upload, or asset check failed, so a
+    # borked release gets noticed instead of silently 404ing for customers.
+    - name: Notify Slack on failure
+      if: failure()
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.RELEASE_SLACK_WEBHOOK_URL }}
+        TAG: ${{ steps.tag.outputs.tag }}
+        COUNT: ${{ steps.verify.outputs.count }}
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      run: |
+        if [ -z "$SLACK_WEBHOOK_URL" ]; then
+          echo "RELEASE_SLACK_WEBHOOK_URL not set; skipping Slack notification."
+          exit 0
+        fi
+        text=":rotating_light: ReSim CLI release *${TAG:-unknown}* failed to publish binaries (${COUNT:-unknown}/4 attached). <${RUN_URL}|View workflow run>"
+        payload=$(jq -n --arg text "$text" '{text: $text}')
+        curl -sS -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"

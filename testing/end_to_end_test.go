@@ -412,13 +412,16 @@ func validateMetrics(projectName string, branch string, verbose bool, username s
 	return []CommandBuilder{metricsCommand, validateCommand}
 }
 
-func debugMetricsCommand(projectName string, emissionsFile string, configPath string, metricsSetName string, username string, password string) []CommandBuilder {
+func debugMetricsCommand(projectName string, emissionsFile string, configPath string, metricsSetName string, mediaFiles []string, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 	flags := []Flag{
 		{Name: "--project", Value: projectName},
 		{Name: "--emissions-file", Value: emissionsFile},
 		{Name: "--metrics-config-path", Value: configPath},
 		{Name: "--metrics-set", Value: metricsSetName},
+	}
+	for _, mediaFile := range mediaFiles {
+		flags = append(flags, Flag{Name: "--media-file", Value: mediaFile})
 	}
 	// The CI fails if we use a different authentication method since it will
 	// report a different auth0 id for the user. The bff api is expecting the
@@ -6561,12 +6564,18 @@ func TestMetricsDebug(t *testing.T) {
 	req.NoError(err)
 	absEmissionsPath, err := filepath.Abs(".resim/emissions.resim.jsonl")
 	req.NoError(err)
+	absImagePath, err := filepath.Abs(".resim/media/screenshot.png")
+	req.NoError(err)
+	// Real, playable video — Mux needs genuine content to process an asset from.
+	absVideoPath, err := filepath.Abs(".resim/media/test.mp4")
+	req.NoError(err)
 
 	output = s.runCommand(ts, debugMetricsCommand(
 		projectIDString,
 		absEmissionsPath,
 		absConfigPath,
 		"woot",
+		[]string{absImagePath, absVideoPath},
 		username,
 		password,
 	), ExpectNoError)

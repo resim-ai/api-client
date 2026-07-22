@@ -39,6 +39,7 @@ func TestDebugMetricsCmdHasRequiredFlags(t *testing.T) {
 		"poll-interval",
 		"branch",
 		"metrics-set",
+		"media-file",
 	}
 	for _, name := range flags {
 		flag := debugMetricsCmd.Flags().Lookup(name)
@@ -244,7 +245,7 @@ func TestMockGraphQLClient_SatisfiesInterface(t *testing.T) {
 
 	result, err := bff.CreateDebugDashboard(
 		context.Background(), mockClient,
-		"project-id", "config", []bff.MetricsTemplate{}, "emissions", "", "",
+		"project-id", "config", []bff.MetricsTemplate{}, "emissions", "", "", []bff.MediaFileInput{},
 	)
 	assert.NoError(t, err)
 	assert.Equal(t, "abc-123", result.CreateDebugDashboard.Id)

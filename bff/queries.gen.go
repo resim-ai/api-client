@@ -92,18 +92,6 @@ type GetDashboardResponse struct {
 // GetDashboard returns GetDashboardResponse.Dashboard, and is useful for accessing the field via an interface.
 func (v *GetDashboardResponse) GetDashboard() GetDashboardDashboard { return v.Dashboard }
 
-type MediaFileInput struct {
-	Name string `json:"name"`
-	// base64 encoded media file contents
-	Contents string `json:"contents"`
-}
-
-// GetName returns MediaFileInput.Name, and is useful for accessing the field via an interface.
-func (v *MediaFileInput) GetName() string { return v.Name }
-
-// GetContents returns MediaFileInput.Contents, and is useful for accessing the field via an interface.
-func (v *MediaFileInput) GetContents() string { return v.Contents }
-
 type MetricsTemplate struct {
 	Name string `json:"name"`
 	// base64 encoded template contents
@@ -177,7 +165,6 @@ type __CreateDebugDashboardInput struct {
 	EmissionsFile  string            `json:"emissionsFile"`
 	BranchId       string            `json:"branchId"`
 	MetricsSetName string            `json:"metricsSetName"`
-	MediaFiles     []MediaFileInput  `json:"mediaFiles"`
 }
 
 // GetProjectId returns __CreateDebugDashboardInput.ProjectId, and is useful for accessing the field via an interface.
@@ -197,9 +184,6 @@ func (v *__CreateDebugDashboardInput) GetBranchId() string { return v.BranchId }
 
 // GetMetricsSetName returns __CreateDebugDashboardInput.MetricsSetName, and is useful for accessing the field via an interface.
 func (v *__CreateDebugDashboardInput) GetMetricsSetName() string { return v.MetricsSetName }
-
-// GetMediaFiles returns __CreateDebugDashboardInput.MediaFiles, and is useful for accessing the field via an interface.
-func (v *__CreateDebugDashboardInput) GetMediaFiles() []MediaFileInput { return v.MediaFiles }
 
 // __GetDashboardInput is used internally by genqlient
 type __GetDashboardInput struct {
@@ -302,8 +286,8 @@ func CreateDashboard(
 
 // The mutation executed by CreateDebugDashboard.
 const CreateDebugDashboard_Operation = `
-mutation CreateDebugDashboard ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $emissionsFile: String!, $branchId: String, $metricsSetName: String, $mediaFiles: [MediaFileInput!]) {
-	createDebugDashboard(projectId: $projectId, config: $config, templateFiles: $templateFiles, emissionsFile: $emissionsFile, branchId: $branchId, metricsSetName: $metricsSetName, mediaFiles: $mediaFiles) {
+mutation CreateDebugDashboard ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $emissionsFile: String!, $branchId: String, $metricsSetName: String) {
+	createDebugDashboard(projectId: $projectId, config: $config, templateFiles: $templateFiles, emissionsFile: $emissionsFile, branchId: $branchId, metricsSetName: $metricsSetName) {
 		id
 		name
 	}
@@ -319,7 +303,6 @@ func CreateDebugDashboard(
 	emissionsFile string,
 	branchId string,
 	metricsSetName string,
-	mediaFiles []MediaFileInput,
 ) (data_ *CreateDebugDashboardResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "CreateDebugDashboard",
@@ -331,7 +314,6 @@ func CreateDebugDashboard(
 			EmissionsFile:  emissionsFile,
 			BranchId:       branchId,
 			MetricsSetName: metricsSetName,
-			MediaFiles:     mediaFiles,
 		},
 	}
 

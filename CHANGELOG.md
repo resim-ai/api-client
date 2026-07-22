@@ -2,15 +2,6 @@
 
 ## ReSim CLI
 
-### v0.64.0 - July 21, 2026
-
-- Adds `resim blueprints`, a new command for managing blueprints in your org. Subcommands: `create` (creates a new blueprint from a CUE file; fails if a blueprint with the same name already exists), `revise` (creates a new version of an existing blueprint from a CUE file; fails if no blueprint with the name exists), `list` (a table of name/version/created-at showing the most recent version of each blueprint by default; `--all-versions` shows every version, and `--json` emits raw JSON without the CUE content), `get` (view information about a specific blueprint, or just its CUE content with `--cue-only`), and `archive` (blueprint removal).
-- Adds an optional `--blueprint` flag to `resim batches create` and `resim suites run`, applying the named blueprint (latest version) to the resulting batch.
-
-### v0.63.0 - July 9, 2026
-
-- Adds `--media-file` to `resim metrics debug` (repeatable), for uploading image/video files referenced by the emissions file so debug dashboards can resolve them.
-
 ### v0.62.0 - July 7, 2026
 
 - Adds `pool-labels list`, listing the distinct HiL pool labels visible to your org (`GET /poolLabels`). Auto-paginates the full set. Supports `--name` (substring/trigram filter), `--order-by rank|timestamp` (default `timestamp`; `rank` is recommended alongside `--name`), and `--json`.

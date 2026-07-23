@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### Unreleased
+
+- `resim metrics sync` now previews and confirms topic archival: if a config drop would archive a topic, sync prints the affected row count, chart count, and dashboards. Without `--allow-topic-archival` it then refuses to proceed; with the flag set it prints the same impact as a confirmation notice and proceeds.
+
 ### v0.64.0 - July 21, 2026
 
 - Adds `resim blueprints`, a new command for managing blueprints in your org. Subcommands: `create` (creates a new blueprint from a CUE file; fails if a blueprint with the same name already exists), `revise` (creates a new version of an existing blueprint from a CUE file; fails if no blueprint with the name exists), `list` (a table of name/version/created-at showing the most recent version of each blueprint by default; `--all-versions` shows every version, and `--json` emits raw JSON without the CUE content), `get` (view information about a specific blueprint, or just its CUE content with `--cue-only`), and `archive` (blueprint removal).

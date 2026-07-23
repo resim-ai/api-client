@@ -1,0 +1,15 @@
+version: 1
+topics:
+  ok:
+    schema:
+      speed: float
+metrics:
+  Average Speed:
+    type: test
+    query_string: SELECT AVG(speed) FROM ok
+    template_type: system
+    template: scalar
+metrics sets:
+  woot:
+    metrics:
+      - Average Speed

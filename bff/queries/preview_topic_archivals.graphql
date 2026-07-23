@@ -1,0 +1,11 @@
+query PreviewTopicArchivals($branchId: String!, $config: String!) {
+    previewTopicArchivals(branchId: $branchId, config: $config) {
+        topicName
+        rowsToBeHidden
+        chartCount
+        dashboards {
+            id
+            name
+        }
+    }
+}

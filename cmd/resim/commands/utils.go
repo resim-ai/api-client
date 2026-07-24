@@ -34,6 +34,7 @@ type MetricsConfig struct {
 	Topics      map[string]interface{} `yaml:"topics"`
 	Metrics     map[string]interface{} `yaml:"metrics"`
 	MetricsSets map[string]interface{} `yaml:"metrics sets"`
+	Dashboards  map[string]interface{} `yaml:"dashboards"`
 }
 
 func applyGlobalSettings(config *MetricsConfig) {
@@ -61,6 +62,7 @@ func mergeConfigs(configs []MetricsConfig) (MetricsConfig, error) {
 		Topics:      make(map[string]interface{}),
 		Metrics:     make(map[string]interface{}),
 		MetricsSets: make(map[string]interface{}),
+		Dashboards:  make(map[string]interface{}),
 	}
 
 	for i, cfg := range configs {
@@ -89,6 +91,13 @@ func mergeConfigs(configs []MetricsConfig) (MetricsConfig, error) {
 				return MetricsConfig{}, fmt.Errorf("duplicate metrics set name %q found across config files", k)
 			}
 			result.MetricsSets[k] = v
+		}
+
+		for k, v := range cfg.Dashboards {
+			if _, exists := result.Dashboards[k]; exists {
+				return MetricsConfig{}, fmt.Errorf("duplicate dashboard name %q found across config files", k)
+			}
+			result.Dashboards[k] = v
 		}
 	}
 

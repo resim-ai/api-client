@@ -278,6 +278,7 @@ func TestMergeConfigs(t *testing.T) {
 				MetricsSets: map[string]interface{}{"set_a": map[string]interface{}{
 					"metrics": []interface{}{"metric_a"},
 				}},
+				Dashboards: map[string]interface{}{},
 			},
 		},
 		{
@@ -300,6 +301,7 @@ func TestMergeConfigs(t *testing.T) {
 				Topics:      map[string]interface{}{"topic_a": "val_a", "topic_b": "val_b"},
 				Metrics:     map[string]interface{}{"metric_a": "val_a", "metric_b": "val_b"},
 				MetricsSets: map[string]interface{}{"set_b": "val_b"},
+				Dashboards:  map[string]interface{}{},
 			},
 		},
 		{
@@ -330,6 +332,28 @@ func TestMergeConfigs(t *testing.T) {
 			errContains: "duplicate metrics set name",
 		},
 		{
+			name: "Dashboards merge across configs",
+			configs: []MetricsConfig{
+				{Dashboards: map[string]interface{}{"dash_a": "val_a"}},
+				{Dashboards: map[string]interface{}{"dash_b": "val_b"}},
+			},
+			expected: MetricsConfig{
+				Topics:      map[string]interface{}{},
+				Metrics:     map[string]interface{}{},
+				MetricsSets: map[string]interface{}{},
+				Dashboards:  map[string]interface{}{"dash_a": "val_a", "dash_b": "val_b"},
+			},
+		},
+		{
+			name: "Duplicate dashboard name causes error",
+			configs: []MetricsConfig{
+				{Dashboards: map[string]interface{}{"dup_dash": "a"}},
+				{Dashboards: map[string]interface{}{"dup_dash": "b"}},
+			},
+			shouldError: true,
+			errContains: "duplicate dashboard name",
+		},
+		{
 			name: "Mismatched versions cause error",
 			configs: []MetricsConfig{
 				{Version: 1},
@@ -349,6 +373,7 @@ func TestMergeConfigs(t *testing.T) {
 				Topics:      map[string]interface{}{},
 				Metrics:     map[string]interface{}{},
 				MetricsSets: map[string]interface{}{},
+				Dashboards:  map[string]interface{}{},
 			},
 		},
 	}
@@ -365,6 +390,7 @@ func TestMergeConfigs(t *testing.T) {
 				assert.Equal(t, tc.expected.Topics, result.Topics)
 				assert.Equal(t, tc.expected.Metrics, result.Metrics)
 				assert.Equal(t, tc.expected.MetricsSets, result.MetricsSets)
+				assert.Equal(t, tc.expected.Dashboards, result.Dashboards)
 			}
 		})
 	}
@@ -379,6 +405,21 @@ func TestMergeConfigFiles(t *testing.T) {
 		data, err := mergeConfigFiles([]string{file1}, false)
 		assert.NoError(t, err)
 		assert.Contains(t, string(data), "t1")
+	})
+
+	t.Run("dashboards section survives the merge round-trip", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		file1 := fmt.Sprintf("%s/config.resim.yml", tmpDir)
+		os.WriteFile(file1, []byte(
+			"version: 1\ntopics:\n  t1:\n    type: float\n"+
+				"dashboards:\n  My Dashboard:\n    description: test\n    metrics_set: set_a\n",
+		), 0644)
+
+		data, err := mergeConfigFiles([]string{file1}, false)
+		assert.NoError(t, err)
+		content := string(data)
+		assert.Contains(t, content, "My Dashboard")
+		assert.Contains(t, content, "metrics_set")
 	})
 
 	t.Run("Two files with additive content", func(t *testing.T) {

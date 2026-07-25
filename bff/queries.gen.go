@@ -116,59 +116,59 @@ func (v *MetricsTemplate) GetName() string { return v.Name }
 // GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
 func (v *MetricsTemplate) GetContents() string { return v.Contents }
 
-// PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview includes the requested fields of the GraphQL type TopicArchivalPreview.
-type PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview struct {
-	TopicName      string                                                                                              `json:"topicName"`
-	RowsToBeHidden int                                                                                                 `json:"rowsToBeHidden"`
-	ChartCount     int                                                                                                 `json:"chartCount"`
-	Dashboards     []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef `json:"dashboards"`
+// PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview includes the requested fields of the GraphQL type TopicRemovalPreview.
+type PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview struct {
+	TopicName      string                                                                                        `json:"topicName"`
+	RowsToBeHidden int                                                                                           `json:"rowsToBeHidden"`
+	ChartCount     int                                                                                           `json:"chartCount"`
+	Dashboards     []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef `json:"dashboards"`
 }
 
-// GetTopicName returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.TopicName, and is useful for accessing the field via an interface.
-func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetTopicName() string {
+// GetTopicName returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.TopicName, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetTopicName() string {
 	return v.TopicName
 }
 
-// GetRowsToBeHidden returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.RowsToBeHidden, and is useful for accessing the field via an interface.
-func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetRowsToBeHidden() int {
+// GetRowsToBeHidden returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.RowsToBeHidden, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetRowsToBeHidden() int {
 	return v.RowsToBeHidden
 }
 
-// GetChartCount returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.ChartCount, and is useful for accessing the field via an interface.
-func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetChartCount() int {
+// GetChartCount returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.ChartCount, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetChartCount() int {
 	return v.ChartCount
 }
 
-// GetDashboards returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview.Dashboards, and is useful for accessing the field via an interface.
-func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview) GetDashboards() []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef {
+// GetDashboards returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.Dashboards, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetDashboards() []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef {
 	return v.Dashboards
 }
 
-// PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef includes the requested fields of the GraphQL type TopicArchivalDashboardRef.
-type PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef struct {
+// PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef includes the requested fields of the GraphQL type TopicRemovalDashboardRef.
+type PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef struct {
 	Id   string `json:"id"`
 	Name string `json:"name"`
 }
 
-// GetId returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef.Id, and is useful for accessing the field via an interface.
-func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef) GetId() string {
+// GetId returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef.Id, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef) GetId() string {
 	return v.Id
 }
 
-// GetName returns PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef.Name, and is useful for accessing the field via an interface.
-func (v *PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreviewDashboardsTopicArchivalDashboardRef) GetName() string {
+// GetName returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef.Name, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef) GetName() string {
 	return v.Name
 }
 
-// PreviewTopicArchivalsResponse is returned by PreviewTopicArchivals on success.
-type PreviewTopicArchivalsResponse struct {
-	// Previews the topics a config sync would archive: rows that would be hidden, job/batch chart count, and affected dashboards. Does not persist anything.
-	PreviewTopicArchivals []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview `json:"previewTopicArchivals"`
+// PreviewTopicRemovalResponse is returned by PreviewTopicRemoval on success.
+type PreviewTopicRemovalResponse struct {
+	// Previews the topics a config sync would remove: rows that would be hidden, job/batch chart count, and affected dashboards. Does not persist anything.
+	PreviewTopicRemoval []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview `json:"previewTopicRemoval"`
 }
 
-// GetPreviewTopicArchivals returns PreviewTopicArchivalsResponse.PreviewTopicArchivals, and is useful for accessing the field via an interface.
-func (v *PreviewTopicArchivalsResponse) GetPreviewTopicArchivals() []PreviewTopicArchivalsPreviewTopicArchivalsTopicArchivalPreview {
-	return v.PreviewTopicArchivals
+// GetPreviewTopicRemoval returns PreviewTopicRemovalResponse.PreviewTopicRemoval, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalResponse) GetPreviewTopicRemoval() []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview {
+	return v.PreviewTopicRemoval
 }
 
 // UpdateMetricsConfigResponse is returned by UpdateMetricsConfig on success.
@@ -264,25 +264,25 @@ type __GetDashboardInput struct {
 // GetId returns __GetDashboardInput.Id, and is useful for accessing the field via an interface.
 func (v *__GetDashboardInput) GetId() string { return v.Id }
 
-// __PreviewTopicArchivalsInput is used internally by genqlient
-type __PreviewTopicArchivalsInput struct {
+// __PreviewTopicRemovalInput is used internally by genqlient
+type __PreviewTopicRemovalInput struct {
 	BranchId string `json:"branchId"`
 	Config   string `json:"config"`
 }
 
-// GetBranchId returns __PreviewTopicArchivalsInput.BranchId, and is useful for accessing the field via an interface.
-func (v *__PreviewTopicArchivalsInput) GetBranchId() string { return v.BranchId }
+// GetBranchId returns __PreviewTopicRemovalInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__PreviewTopicRemovalInput) GetBranchId() string { return v.BranchId }
 
-// GetConfig returns __PreviewTopicArchivalsInput.Config, and is useful for accessing the field via an interface.
-func (v *__PreviewTopicArchivalsInput) GetConfig() string { return v.Config }
+// GetConfig returns __PreviewTopicRemovalInput.Config, and is useful for accessing the field via an interface.
+func (v *__PreviewTopicRemovalInput) GetConfig() string { return v.Config }
 
 // __UpdateMetricsConfigInput is used internally by genqlient
 type __UpdateMetricsConfigInput struct {
-	ProjectId          string            `json:"projectId"`
-	Config             string            `json:"config"`
-	TemplateFiles      []MetricsTemplate `json:"templateFiles"`
-	Branch             string            `json:"branch"`
-	AllowTopicArchival bool              `json:"allowTopicArchival"`
+	ProjectId         string            `json:"projectId"`
+	Config            string            `json:"config"`
+	TemplateFiles     []MetricsTemplate `json:"templateFiles"`
+	Branch            string            `json:"branch"`
+	AllowTopicRemoval bool              `json:"allowTopicRemoval"`
 }
 
 // GetProjectId returns __UpdateMetricsConfigInput.ProjectId, and is useful for accessing the field via an interface.
@@ -297,8 +297,8 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
 
-// GetAllowTopicArchival returns __UpdateMetricsConfigInput.AllowTopicArchival, and is useful for accessing the field via an interface.
-func (v *__UpdateMetricsConfigInput) GetAllowTopicArchival() bool { return v.AllowTopicArchival }
+// GetAllowTopicRemoval returns __UpdateMetricsConfigInput.AllowTopicRemoval, and is useful for accessing the field via an interface.
+func (v *__UpdateMetricsConfigInput) GetAllowTopicRemoval() bool { return v.AllowTopicRemoval }
 
 // __ValidateMetricsConfigInput is used internally by genqlient
 type __ValidateMetricsConfigInput struct {
@@ -483,10 +483,10 @@ func GetDashboard(
 	return data_, err_
 }
 
-// The query executed by PreviewTopicArchivals.
-const PreviewTopicArchivals_Operation = `
-query PreviewTopicArchivals ($branchId: String!, $config: String!) {
-	previewTopicArchivals(branchId: $branchId, config: $config) {
+// The query executed by PreviewTopicRemoval.
+const PreviewTopicRemoval_Operation = `
+query PreviewTopicRemoval ($branchId: String!, $config: String!) {
+	previewTopicRemoval(branchId: $branchId, config: $config) {
 		topicName
 		rowsToBeHidden
 		chartCount
@@ -498,22 +498,22 @@ query PreviewTopicArchivals ($branchId: String!, $config: String!) {
 }
 `
 
-func PreviewTopicArchivals(
+func PreviewTopicRemoval(
 	ctx_ context.Context,
 	client_ graphql.Client,
 	branchId string,
 	config string,
-) (data_ *PreviewTopicArchivalsResponse, err_ error) {
+) (data_ *PreviewTopicRemovalResponse, err_ error) {
 	req_ := &graphql.Request{
-		OpName: "PreviewTopicArchivals",
-		Query:  PreviewTopicArchivals_Operation,
-		Variables: &__PreviewTopicArchivalsInput{
+		OpName: "PreviewTopicRemoval",
+		Query:  PreviewTopicRemoval_Operation,
+		Variables: &__PreviewTopicRemovalInput{
 			BranchId: branchId,
 			Config:   config,
 		},
 	}
 
-	data_ = &PreviewTopicArchivalsResponse{}
+	data_ = &PreviewTopicRemovalResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(
@@ -527,8 +527,8 @@ func PreviewTopicArchivals(
 
 // The mutation executed by UpdateMetricsConfig.
 const UpdateMetricsConfig_Operation = `
-mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String, $allowTopicArchival: Boolean) {
-	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch, allowTopicArchival: $allowTopicArchival)
+mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String, $allowTopicRemoval: Boolean) {
+	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch, allowTopicRemoval: $allowTopicRemoval)
 }
 `
 
@@ -539,17 +539,17 @@ func UpdateMetricsConfig(
 	config string,
 	templateFiles []MetricsTemplate,
 	branch string,
-	allowTopicArchival bool,
+	allowTopicRemoval bool,
 ) (data_ *UpdateMetricsConfigResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "UpdateMetricsConfig",
 		Query:  UpdateMetricsConfig_Operation,
 		Variables: &__UpdateMetricsConfigInput{
-			ProjectId:          projectId,
-			Config:             config,
-			TemplateFiles:      templateFiles,
-			Branch:             branch,
-			AllowTopicArchival: allowTopicArchival,
+			ProjectId:         projectId,
+			Config:            config,
+			TemplateFiles:     templateFiles,
+			Branch:            branch,
+			AllowTopicRemoval: allowTopicRemoval,
 		},
 	}
 

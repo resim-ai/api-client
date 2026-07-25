@@ -1,3 +1,3 @@
-mutation UpdateMetricsConfig($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String, $allowTopicArchival: Boolean) {
-    updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch, allowTopicArchival: $allowTopicArchival)
+mutation UpdateMetricsConfig($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String, $allowTopicRemoval: Boolean) {
+    updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch, allowTopicRemoval: $allowTopicRemoval)
 }

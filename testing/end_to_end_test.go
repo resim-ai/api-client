@@ -384,7 +384,7 @@ func syncMetrics(projectName string, branch string, verbose bool, username strin
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
-func syncMetricsWithConfig(projectName string, branch string, configPath string, allowTopicArchival bool, username string, password string) []CommandBuilder {
+func syncMetricsWithConfig(projectName string, branch string, configPath string, allowTopicRemoval bool, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
 	flags := []Flag{
@@ -394,8 +394,8 @@ func syncMetricsWithConfig(projectName string, branch string, configPath string,
 	if branch != "" {
 		flags = append(flags, Flag{Name: "--branch", Value: branch})
 	}
-	if allowTopicArchival {
-		flags = append(flags, Flag{Name: "--allow-topic-archival"})
+	if allowTopicRemoval {
+		flags = append(flags, Flag{Name: "--allow-topic-removal"})
 	}
 	if username != "" {
 		flags = append(flags, Flag{Name: "--username", Value: username})
@@ -6564,17 +6564,17 @@ func TestMetricsSync(t *testing.T) {
 		ts.Contains(output.StdOut, "Validation passed")
 	})
 
-	t.Run("RejectsTopicArchivalWithoutFlag", func(t *testing.T) {
+	t.Run("RejectsTopicRemovalWithoutFlag", func(t *testing.T) {
 		absConfigPath, err := filepath.Abs(".resim/metrics/config-no-topics.resim.yml")
 		req.NoError(err)
 
 		output := s.runCommand(ts, syncMetricsWithConfig(projectIDString, "", absConfigPath, false, username, password), true)
-		ts.Contains(output.StdOut, "This sync would archive the following topics")
+		ts.Contains(output.StdOut, "This sync would remove the following topics")
 		ts.Contains(output.StdOut, "ok")
-		ts.Contains(output.StdErr, "--allow-topic-archival")
+		ts.Contains(output.StdErr, "--allow-topic-removal")
 	})
 
-	t.Run("ArchivesTopicWithFlag", func(t *testing.T) {
+	t.Run("RemovesTopicWithFlag", func(t *testing.T) {
 		absConfigPath, err := filepath.Abs(".resim/metrics/config-no-topics.resim.yml")
 		req.NoError(err)
 

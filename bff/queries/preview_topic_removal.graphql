@@ -1,0 +1,11 @@
+query PreviewTopicRemoval($branchId: String!, $config: String!) {
+    previewTopicRemoval(branchId: $branchId, config: $config) {
+        topicName
+        rowsToBeHidden
+        chartCount
+        dashboards {
+            id
+            name
+        }
+    }
+}

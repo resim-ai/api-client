@@ -131,6 +131,12 @@ const (
 	ListAgentUtilizationOutputIntervalHour ListAgentUtilizationOutputInterval = "hour"
 )
 
+// Defines values for ListPoolLabelUtilizationOutputInterval.
+const (
+	ListPoolLabelUtilizationOutputIntervalDay  ListPoolLabelUtilizationOutputInterval = "day"
+	ListPoolLabelUtilizationOutputIntervalHour ListPoolLabelUtilizationOutputInterval = "hour"
+)
+
 // Defines values for LogType.
 const (
 	ARCHIVELOG       LogType = "ARCHIVE_LOG"
@@ -203,6 +209,12 @@ const (
 	WEBAPP TriggeredVia = "WEBAPP"
 )
 
+// Defines values for ListPoolLabelUtilizationParamsInterval.
+const (
+	ListPoolLabelUtilizationParamsIntervalDay  ListPoolLabelUtilizationParamsInterval = "day"
+	ListPoolLabelUtilizationParamsIntervalHour ListPoolLabelUtilizationParamsInterval = "hour"
+)
+
 // Defines values for ListAgentUtilizationParamsInterval.
 const (
 	ListAgentUtilizationParamsIntervalDay  ListAgentUtilizationParamsInterval = "day"
@@ -271,14 +283,32 @@ type Agent struct {
 	// prerelease stripped) than latestKnownVersion. False when
 	// latestKnownVersion is unset (the UI suppresses the indicator
 	// entirely in that case).
-	IsOutOfDate bool       `json:"isOutOfDate" yaml:"isOutOfDate"`
-	LastCheckin time.Time  `json:"lastCheckin" yaml:"lastCheckin"`
-	OrgID       OrgID      `json:"orgID" yaml:"orgID"`
-	PoolLabels  PoolLabels `json:"poolLabels" yaml:"poolLabels"`
+	IsOutOfDate bool      `json:"isOutOfDate" yaml:"isOutOfDate"`
+	LastCheckin time.Time `json:"lastCheckin" yaml:"lastCheckin"`
+	OrgID       OrgID     `json:"orgID" yaml:"orgID"`
+
+	// PauseReason The free-text reason recorded with the pause, if any. Absent when not paused or no reason was given.
+	PauseReason *string `json:"pauseReason,omitempty" yaml:"pauseReason,omitempty"`
+
+	// PausedAt When the agent was paused, or absent if it is not paused. A paused
+	// agent stops launching workers and has its in-flight worker
+	// terminated (the interrupted task is requeued, not cancelled).
+	PausedAt *time.Time `json:"pausedAt,omitempty" yaml:"pausedAt,omitempty"`
+
+	// PausedBy The actor (email, or client identity for machine tokens) who set the current pause. Absent when not paused.
+	PausedBy   *string    `json:"pausedBy,omitempty" yaml:"pausedBy,omitempty"`
+	PoolLabels PoolLabels `json:"poolLabels" yaml:"poolLabels"`
 
 	// RecentActivity Up to a server-defined cap of most-recent unified batch+job activity cards.
 	RecentActivity []AgentRecentActivity `json:"recentActivity" yaml:"recentActivity"`
-	Version        string                `json:"version" yaml:"version"`
+
+	// ReportedPausedAt When the agent last confirmed it had quiesced — observed the pause
+	// and its in-flight worker exited. Absent if it has not acknowledged
+	// the current pause (an older agent binary never will; use `version`
+	// to disambiguate "old binary" from "still draining"). Raw timestamp
+	// rather than a derived boolean by design.
+	ReportedPausedAt *time.Time `json:"reportedPausedAt,omitempty" yaml:"reportedPausedAt,omitempty"`
+	Version          string     `json:"version" yaml:"version"`
 }
 
 // AgentActivity Whether the agent is actively running a job. ACTIVE means the agent
@@ -314,7 +344,13 @@ type AgentRecentActivity struct {
 	BuildVersion *string `json:"buildVersion,omitempty" yaml:"buildVersion,omitempty"`
 
 	// ErrorSummary Latest error_text recorded against the job. Optional — null when the job has no errors.
-	ErrorSummary       *string            `json:"errorSummary,omitempty" yaml:"errorSummary,omitempty"`
+	ErrorSummary *string `json:"errorSummary,omitempty" yaml:"errorSummary,omitempty"`
+
+	// ExecutionErrors Structured errors recorded against the job on its current run, keyed
+	// by error code so the UI can resolve brief/full copy (mirrors the Job
+	// shape). Scoped to the current run_counter, so a stale error from a
+	// prior attempt is not surfaced after a passing rerun.
+	ExecutionErrors    *[]ExecutionError  `json:"executionErrors,omitempty" yaml:"executionErrors,omitempty"`
 	JobConflatedStatus ConflatedJobStatus `json:"jobConflatedStatus" yaml:"jobConflatedStatus"`
 	JobID              openapi_types.UUID `json:"jobID" yaml:"jobID"`
 
@@ -408,6 +444,11 @@ type AgentUtilizationOutputInterval string
 type AgentUtilizationSeries struct {
 	AgentID string                   `json:"agentID" yaml:"agentID"`
 	Buckets []AgentUtilizationBucket `json:"buckets" yaml:"buckets"`
+
+	// PoolLabels The agent's pool labels at query time, so a consumer can group the
+	// per-agent series by pool client-side. Empty when the agent carries
+	// no labels.
+	PoolLabels []PoolLabel `json:"poolLabels" yaml:"poolLabels"`
 }
 
 // AgentUtilizationTopExperience One experience's share of running time within a utilization
@@ -499,7 +540,7 @@ type Batch struct {
 	CreationTimestamp       *Timestamp              `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
 	Description             *string                 `json:"description,omitempty" yaml:"description,omitempty"`
 	ExecutionError          *ExecutionError         `json:"executionError,omitempty" yaml:"executionError,omitempty"`
-	ExecutionErrors         *[]ExecutionError       `json:"executionErrors" yaml:"executionErrors"`
+	ExecutionErrors         *[]ExecutionError       `json:"executionErrors,omitempty" yaml:"executionErrors,omitempty"`
 	FriendlyName            *FriendlyName           `json:"friendlyName,omitempty" yaml:"friendlyName,omitempty"`
 	JobMetricsStatusCounts  *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty" yaml:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts         *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty" yaml:"jobStatusCounts,omitempty"`
@@ -660,6 +701,50 @@ type BatchTotalJobs = int
 
 // BatchType defines model for batchType.
 type BatchType string
+
+// BatchUsageOutput One page of per-test runtime usage for a batch, one row per (job, run) for the page's tests.
+type BatchUsageOutput struct {
+	BatchID       BatchID            `json:"batchID" yaml:"batchID"`
+	NextPageToken string             `json:"nextPageToken" yaml:"nextPageToken"`
+	ProjectID     ProjectID          `json:"projectID" yaml:"projectID"`
+	Runs          []BatchUsageRunRow `json:"runs" yaml:"runs"`
+
+	// TotalTests Total number of tests (jobs) in the batch, across all pages.
+	TotalTests int64 `json:"totalTests" yaml:"totalTests"`
+}
+
+// BatchUsageRunRow Rerun-sourced runtime usage for one run (run_counter) of one test
+// (job) within a batch. Same meters as jobUsageRunRow, plus jobID,
+// experienceID, and experienceName identifying which test the run
+// belongs to.
+type BatchUsageRunRow struct {
+	CpuSeconds           int64          `json:"cpuSeconds" yaml:"cpuSeconds"`
+	ExperienceID         ExperienceID   `json:"experienceID" yaml:"experienceID"`
+	ExperienceName       ExperienceName `json:"experienceName" yaml:"experienceName"`
+	GpuSeconds           int64          `json:"gpuSeconds" yaml:"gpuSeconds"`
+	JobID                JobID          `json:"jobID" yaml:"jobID"`
+	MemoryMibSeconds     int64          `json:"memoryMibSeconds" yaml:"memoryMibSeconds"`
+	OrchestrationSeconds int64          `json:"orchestrationSeconds" yaml:"orchestrationSeconds"`
+	RunCounter           RunCounter     `json:"runCounter" yaml:"runCounter"`
+
+	// StorageBytes Rerun-side storage for the run.
+	StorageBytes int64 `json:"storageBytes" yaml:"storageBytes"`
+}
+
+// BatchUsageTotalsOutput Rerun-sourced runtime usage totals for the batch: the compute meters
+// (orchestration/cpu/gpu/memory seconds) summed across every test, plus
+// total rerun-side log storage. All integer base units. Metrics-compute
+// scan bytes, data-lake storage, and the batch-processes breakdown are
+// added downstream in the BFF.
+type BatchUsageTotalsOutput struct {
+	CpuSeconds int64 `json:"cpuSeconds" yaml:"cpuSeconds"`
+	GpuSeconds int64 `json:"gpuSeconds" yaml:"gpuSeconds"`
+
+	// LogStorageBytes Total rerun-side log storage for the batch.
+	LogStorageBytes      int64 `json:"logStorageBytes" yaml:"logStorageBytes"`
+	MemoryMibSeconds     int64 `json:"memoryMibSeconds" yaml:"memoryMibSeconds"`
+	OrchestrationSeconds int64 `json:"orchestrationSeconds" yaml:"orchestrationSeconds"`
+}
 
 // Blueprint defines model for blueprint.
 type Blueprint struct {
@@ -967,10 +1052,10 @@ type CreateSystemInput struct {
 	BuildSharedMemoryMb        int           `json:"build_shared_memory_mb" yaml:"build_shared_memory_mb"`
 	BuildVcpus                 int           `json:"build_vcpus" yaml:"build_vcpus"`
 	Description                string        `json:"description" yaml:"description"`
-	MetricsBuildGpus           int           `json:"metrics_build_gpus" yaml:"metrics_build_gpus"`
-	MetricsBuildMemoryMib      int           `json:"metrics_build_memory_mib" yaml:"metrics_build_memory_mib"`
-	MetricsBuildSharedMemoryMb int           `json:"metrics_build_shared_memory_mb" yaml:"metrics_build_shared_memory_mb"`
-	MetricsBuildVcpus          int           `json:"metrics_build_vcpus" yaml:"metrics_build_vcpus"`
+	MetricsBuildGpus           *int          `json:"metrics_build_gpus" yaml:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      *int          `json:"metrics_build_memory_mib" yaml:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb *int          `json:"metrics_build_shared_memory_mb" yaml:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          *int          `json:"metrics_build_vcpus" yaml:"metrics_build_vcpus"`
 	Name                       string        `json:"name" yaml:"name"`
 }
 
@@ -1338,7 +1423,7 @@ type Job struct {
 	CreationTimestamp              *Timestamp             `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
 	Description                    *string                `json:"description,omitempty" yaml:"description,omitempty"`
 	ExecutionError                 *ExecutionError        `json:"executionError,omitempty" yaml:"executionError,omitempty"`
-	ExecutionErrors                *[]ExecutionError      `json:"executionErrors" yaml:"executionErrors"`
+	ExecutionErrors                *[]ExecutionError      `json:"executionErrors,omitempty" yaml:"executionErrors,omitempty"`
 	ExperienceEnvironmentVariables *[]EnvironmentVariable `json:"experienceEnvironmentVariables,omitempty" yaml:"experienceEnvironmentVariables,omitempty"`
 	ExperienceID                   *ExperienceID          `json:"experienceID,omitempty" yaml:"experienceID,omitempty"`
 	ExperienceName                 *ExperienceName        `json:"experienceName,omitempty" yaml:"experienceName,omitempty"`
@@ -1447,6 +1532,32 @@ type JobStatusHistory = []JobStatusHistoryType
 type JobStatusHistoryType struct {
 	Status    *JobStatus `json:"status,omitempty" yaml:"status,omitempty"`
 	UpdatedAt *Timestamp `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
+}
+
+// JobUsageOutput Rerun-sourced runtime usage for a job, one row per run
+// (run_counter). The BFF augments each row with the meters it stores
+// itself (data-lake storage, metrics-compute scan bytes, agentic
+// tokens) before exposing them through GraphQL.
+type JobUsageOutput struct {
+	BatchID   BatchID          `json:"batchID" yaml:"batchID"`
+	JobID     JobID            `json:"jobID" yaml:"jobID"`
+	ProjectID ProjectID        `json:"projectID" yaml:"projectID"`
+	Runs      []JobUsageRunRow `json:"runs" yaml:"runs"`
+}
+
+// JobUsageRunRow Rerun-sourced runtime usage for one run (run_counter) of a job.
+// All quantities are integer base units. The *Seconds compute meters
+// are the resource (vcpus/gpus/memory_mib) multiplied by the task's
+// total wall-clock seconds, summed over the run's experience tasks.
+type JobUsageRunRow struct {
+	CpuSeconds           int64      `json:"cpuSeconds" yaml:"cpuSeconds"`
+	GpuSeconds           int64      `json:"gpuSeconds" yaml:"gpuSeconds"`
+	MemoryMibSeconds     int64      `json:"memoryMibSeconds" yaml:"memoryMibSeconds"`
+	OrchestrationSeconds int64      `json:"orchestrationSeconds" yaml:"orchestrationSeconds"`
+	RunCounter           RunCounter `json:"runCounter" yaml:"runCounter"`
+
+	// StorageBytes Rerun-side storage for the run.
+	StorageBytes int64 `json:"storageBytes" yaml:"storageBytes"`
 }
 
 // KeyMetric defines model for keyMetric.
@@ -1735,6 +1846,22 @@ type ListParameterSweepsOutput struct {
 type ListPoolLabelQueueOutput struct {
 	Items []PoolLabelQueueItem `json:"items" yaml:"items"`
 }
+
+// ListPoolLabelUtilizationOutput Per-pool-label utilization for the caller's org, ordered by pool label
+// ASC. Pools group non-removed agents by their pool_labels' colon-prefix
+// (resim*-reserved labels excluded). windowStart/windowEnd echo the
+// resolved window after server-side defaulting. Not paginated. An agent
+// in multiple pools contributes to each pool's series and totals, so the
+// org total is not the sum of pool totals.
+type ListPoolLabelUtilizationOutput struct {
+	Interval    ListPoolLabelUtilizationOutputInterval `json:"interval" yaml:"interval"`
+	PoolLabels  []PoolUtilizationSeries                `json:"poolLabels" yaml:"poolLabels"`
+	WindowEnd   time.Time                              `json:"windowEnd" yaml:"windowEnd"`
+	WindowStart time.Time                              `json:"windowStart" yaml:"windowStart"`
+}
+
+// ListPoolLabelUtilizationOutputInterval defines model for ListPoolLabelUtilizationOutput.Interval.
+type ListPoolLabelUtilizationOutputInterval string
 
 // ListPoolLabelsOutput defines model for listPoolLabelsOutput.
 type ListPoolLabelsOutput struct {
@@ -2052,6 +2179,28 @@ type ParameterSweepStatusHistoryType struct {
 	UpdatedAt *Timestamp            `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
 }
 
+// PauseAgentInput Optional metadata supplied with a pause request.
+type PauseAgentInput struct {
+	// Reason Optional free-text reason for the pause. It is stored on the
+	// agent, returned in list/get responses, written to the pause audit
+	// history, and surfaced in the paused agent's logs on the customer
+	// host — so it is bounded to 500 characters and restricted to
+	// printable text (no control characters).
+	Reason *string `json:"reason,omitempty" yaml:"reason,omitempty"`
+}
+
+// PauseAgentOutput Response shape for pauseAgent. Because pausing is idempotent, these
+// fields echo the effective pause slot: re-pausing an already-paused
+// agent returns the original pausedAt/reason/actor rather than the
+// values from this call.
+type PauseAgentOutput struct {
+	AgentID          string     `json:"agentID" yaml:"agentID"`
+	PauseReason      *string    `json:"pauseReason,omitempty" yaml:"pauseReason,omitempty"`
+	PausedAt         time.Time  `json:"pausedAt" yaml:"pausedAt"`
+	PausedBy         string     `json:"pausedBy" yaml:"pausedBy"`
+	ReportedPausedAt *time.Time `json:"reportedPausedAt,omitempty" yaml:"reportedPausedAt,omitempty"`
+}
+
 // PoolLabel defines model for poolLabel.
 type PoolLabel = string
 
@@ -2107,6 +2256,29 @@ type PoolLabelQueueItem struct {
 
 // PoolLabels defines model for poolLabels.
 type PoolLabels = []PoolLabel
+
+// PoolUtilizationSeries One pool label's utilization within a listPoolLabelUtilization
+// response. utilization per bucket is the mean of the pool's distinct
+// agents' per-agent utilizations (dark/offline agents count as 0%, so
+// idle/dark capacity is surfaced); offline is the mean per-agent offline
+// fraction on the same denominator, so idle = 1 − utilization − offline
+// (clamped at 0) holds as in the per-agent series. agentCount is the
+// number of distinct agents in the pool (the mean's denominator). The
+// window and interval are shared across all series and live on the
+// enclosing output. totalTestsRun counts runs started in the window by
+// the pool's agents; topExperiences ranks them; avgQueueSeconds and
+// medianQueueSeconds aggregate their queue wait (both omitted when none
+// is measurable). An agent in multiple pools contributes to each, so
+// these totals overlap across pools.
+type PoolUtilizationSeries struct {
+	AgentCount         int                             `json:"agentCount" yaml:"agentCount"`
+	AvgQueueSeconds    *float64                        `json:"avgQueueSeconds,omitempty" yaml:"avgQueueSeconds,omitempty"`
+	Buckets            []AgentUtilizationBucket        `json:"buckets" yaml:"buckets"`
+	MedianQueueSeconds *float64                        `json:"medianQueueSeconds,omitempty" yaml:"medianQueueSeconds,omitempty"`
+	PoolLabel          PoolLabel                       `json:"poolLabel" yaml:"poolLabel"`
+	TopExperiences     []AgentUtilizationTopExperience `json:"topExperiences" yaml:"topExperiences"`
+	TotalTestsRun      int                             `json:"totalTestsRun" yaml:"totalTestsRun"`
+}
 
 // Profile defines model for profile.
 type Profile = string
@@ -2305,10 +2477,10 @@ type System struct {
 	BuildVcpus                 int          `json:"build_vcpus" yaml:"build_vcpus"`
 	CreationTimestamp          Timestamp    `json:"creationTimestamp" yaml:"creationTimestamp"`
 	Description                string       `json:"description" yaml:"description"`
-	MetricsBuildGpus           int          `json:"metrics_build_gpus" yaml:"metrics_build_gpus"`
-	MetricsBuildMemoryMib      int          `json:"metrics_build_memory_mib" yaml:"metrics_build_memory_mib"`
-	MetricsBuildSharedMemoryMb int          `json:"metrics_build_shared_memory_mb" yaml:"metrics_build_shared_memory_mb"`
-	MetricsBuildVcpus          int          `json:"metrics_build_vcpus" yaml:"metrics_build_vcpus"`
+	MetricsBuildGpus           *int         `json:"metrics_build_gpus" yaml:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      *int         `json:"metrics_build_memory_mib" yaml:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb *int         `json:"metrics_build_shared_memory_mb" yaml:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          *int         `json:"metrics_build_vcpus" yaml:"metrics_build_vcpus"`
 	Name                       string       `json:"name" yaml:"name"`
 	NumBatches                 int          `json:"numBatches" yaml:"numBatches"`
 	NumBuilds                  int          `json:"numBuilds" yaml:"numBuilds"`
@@ -2427,6 +2599,11 @@ type Timestamp = time.Time
 // TriggeredVia defines model for triggeredVia.
 type TriggeredVia string
 
+// UnpauseAgentOutput Response shape for unpauseAgent. The agent is no longer paused.
+type UnpauseAgentOutput struct {
+	AgentID string `json:"agentID" yaml:"agentID"`
+}
+
 // UpdateAssetInput defines model for updateAssetInput.
 type UpdateAssetInput struct {
 	Description *string `json:"description,omitempty" yaml:"description,omitempty"`
@@ -2529,10 +2706,10 @@ type UpdateSystemInput struct {
 	BuildSharedMemoryMb        *int          `json:"build_shared_memory_mb,omitempty" yaml:"build_shared_memory_mb,omitempty"`
 	BuildVcpus                 *int          `json:"build_vcpus,omitempty" yaml:"build_vcpus,omitempty"`
 	Description                *string       `json:"description,omitempty" yaml:"description,omitempty"`
-	MetricsBuildGpus           *int          `json:"metrics_build_gpus,omitempty" yaml:"metrics_build_gpus,omitempty"`
-	MetricsBuildMemoryMib      *int          `json:"metrics_build_memory_mib,omitempty" yaml:"metrics_build_memory_mib,omitempty"`
-	MetricsBuildSharedMemoryMb *int          `json:"metrics_build_shared_memory_mb,omitempty" yaml:"metrics_build_shared_memory_mb,omitempty"`
-	MetricsBuildVcpus          *int          `json:"metrics_build_vcpus,omitempty" yaml:"metrics_build_vcpus,omitempty"`
+	MetricsBuildGpus           *int          `json:"metrics_build_gpus" yaml:"metrics_build_gpus"`
+	MetricsBuildMemoryMib      *int          `json:"metrics_build_memory_mib" yaml:"metrics_build_memory_mib"`
+	MetricsBuildSharedMemoryMb *int          `json:"metrics_build_shared_memory_mb" yaml:"metrics_build_shared_memory_mb"`
+	MetricsBuildVcpus          *int          `json:"metrics_build_vcpus" yaml:"metrics_build_vcpus"`
 	Name                       *string       `json:"name,omitempty" yaml:"name,omitempty"`
 }
 
@@ -2568,6 +2745,13 @@ type UpdateWorkflowSuitesOutput struct {
 
 // UserID defines model for userID.
 type UserID = string
+
+// ValidateBlueprintOutput defines model for validateBlueprintOutput.
+type ValidateBlueprintOutput struct {
+	// Error The validation error, present only when valid is false.
+	Error *string `json:"error,omitempty" yaml:"error,omitempty"`
+	Valid bool    `json:"valid" yaml:"valid"`
+}
 
 // Workflow defines model for workflow.
 type Workflow struct {
@@ -2699,11 +2883,44 @@ type PageSizeUnbounded = int
 // PageToken defines model for pageToken.
 type PageToken = string
 
+// ListAgentsParams defines parameters for ListAgents.
+type ListAgentsParams struct {
+	// RecentActivityLimit Maximum number of recent-activity cards to return per agent,
+	// newest-first. Defaults to 2 (the latest-run summary). The HiL
+	// agent status UI requests up to 20 to render a recent-status
+	// timeline. Values are clamped server-side to [1, 50].
+	RecentActivityLimit *int `form:"recentActivityLimit,omitempty" json:"recentActivityLimit,omitempty" yaml:"recentActivityLimit,omitempty"`
+}
+
 // ListAgentPoolLabelQueueParams defines parameters for ListAgentPoolLabelQueue.
 type ListAgentPoolLabelQueueParams struct {
 	// CompletedSinceDays Window for completed batches surfaced under the per-pool-label collapse. Defaults to 7.
 	CompletedSinceDays *int `form:"completedSinceDays,omitempty" json:"completedSinceDays,omitempty" yaml:"completedSinceDays,omitempty"`
 }
+
+// ListPoolLabelUtilizationParams defines parameters for ListPoolLabelUtilization.
+type ListPoolLabelUtilizationParams struct {
+	// StartTime Inclusive window start. Defaults to endTime minus 7 days.
+	// Must be strictly before endTime; requests where
+	// startTime >= endTime return 400.
+	StartTime *time.Time `form:"startTime,omitempty" json:"startTime,omitempty" yaml:"startTime,omitempty"`
+
+	// EndTime Exclusive window end. Defaults to now.
+	EndTime *time.Time `form:"endTime,omitempty" json:"endTime,omitempty" yaml:"endTime,omitempty"`
+
+	// Interval Bucket width. Buckets are UTC-aligned (hour to the top of the
+	// hour, day to UTC midnight). The window may span at most 1000
+	// buckets; wider requests return 400.
+	Interval *ListPoolLabelUtilizationParamsInterval `form:"interval,omitempty" json:"interval,omitempty" yaml:"interval,omitempty"`
+
+	// TopExperiences How many top experiences (ranked by total running seconds in the
+	// window, per pool) to include in each pool's `topExperiences`. 0
+	// returns an empty list. Values above 50 return 400.
+	TopExperiences *int `form:"topExperiences,omitempty" json:"topExperiences,omitempty" yaml:"topExperiences,omitempty"`
+}
+
+// ListPoolLabelUtilizationParamsInterval defines parameters for ListPoolLabelUtilization.
+type ListPoolLabelUtilizationParamsInterval string
 
 // ListAgentUtilizationParams defines parameters for ListAgentUtilization.
 type ListAgentUtilizationParams struct {
@@ -3024,6 +3241,12 @@ type ListBatchMetricsDataForBatchMetricsDataIDsParams struct {
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 }
 
+// GetBatchUsageParams defines parameters for GetBatchUsage.
+type GetBatchUsageParams struct {
+	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
+	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+}
+
 // ListBranchesForProjectParams defines parameters for ListBranchesForProject.
 type ListBranchesForProjectParams struct {
 	// Name Filter branches by name. It is recommended to use orderBy=rank with this so the closest matches surface first. When orderBy=rank is set without a name, the 'main' branch is bubbled to the top.
@@ -3296,8 +3519,14 @@ type ListWorkflowRunsParams struct {
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
 }
 
+// PauseAgentJSONRequestBody defines body for PauseAgent for application/json ContentType.
+type PauseAgentJSONRequestBody = PauseAgentInput
+
 // CreateBlueprintJSONRequestBody defines body for CreateBlueprint for application/json ContentType.
 type CreateBlueprintJSONRequestBody = CreateBlueprintInput
+
+// ValidateBlueprintJSONRequestBody defines body for ValidateBlueprint for application/json ContentType.
+type ValidateBlueprintJSONRequestBody = CreateBlueprintInput
 
 // CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
 type CreateProjectJSONRequestBody = CreateProjectInput
@@ -3965,10 +4194,13 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 	// ListAgents request
-	ListAgents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+	ListAgents(ctx context.Context, params *ListAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListAgentPoolLabelQueue request
 	ListAgentPoolLabelQueue(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListPoolLabelUtilization request
+	ListPoolLabelUtilization(ctx context.Context, params *ListPoolLabelUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListAgentUtilization request
 	ListAgentUtilization(ctx context.Context, params *ListAgentUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3979,11 +4211,19 @@ type ClientInterface interface {
 	// ArchiveAgent request
 	ArchiveAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PauseAgentWithBody request with any body
+	PauseAgentWithBody(ctx context.Context, agentID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PauseAgent(ctx context.Context, agentID string, body PauseAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListAgentResultBranches request
 	ListAgentResultBranches(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListAgentResults request
 	ListAgentResults(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UnpauseAgent request
+	UnpauseAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetAgentUtilization request
 	GetAgentUtilization(ctx context.Context, agentID string, params *GetAgentUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -3995,6 +4235,11 @@ type ClientInterface interface {
 	CreateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateBlueprint(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ValidateBlueprintWithBody request with any body
+	ValidateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	ValidateBlueprint(ctx context.Context, body ValidateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ArchiveBlueprint request
 	ArchiveBlueprint(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4196,6 +4441,9 @@ type ClientInterface interface {
 	// ListMetricsDataForMetricsDataIDs request
 	ListMetricsDataForMetricsDataIDs(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// GetJobUsage request
+	GetJobUsage(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListBatchLogsForBatch request
 	ListBatchLogsForBatch(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -4233,6 +4481,12 @@ type ClientInterface interface {
 
 	// GetBatchSuggestions request
 	GetBatchSuggestions(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBatchUsage request
+	GetBatchUsage(ctx context.Context, projectID ProjectID, batchID BatchID, params *GetBatchUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetBatchUsageTotals request
+	GetBatchUsageTotals(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListBranchesForProject request
 	ListBranchesForProject(ctx context.Context, projectID ProjectID, params *ListBranchesForProjectParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4615,8 +4869,8 @@ type ClientInterface interface {
 	ValidateExperienceLocation(ctx context.Context, body ValidateExperienceLocationJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-func (c *Client) ListAgents(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListAgentsRequest(c.Server)
+func (c *Client) ListAgents(ctx context.Context, params *ListAgentsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListAgentsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4629,6 +4883,18 @@ func (c *Client) ListAgents(ctx context.Context, reqEditors ...RequestEditorFn) 
 
 func (c *Client) ListAgentPoolLabelQueue(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAgentPoolLabelQueueRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListPoolLabelUtilization(ctx context.Context, params *ListPoolLabelUtilizationParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListPoolLabelUtilizationRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -4675,6 +4941,30 @@ func (c *Client) ArchiveAgent(ctx context.Context, agentID string, reqEditors ..
 	return c.Client.Do(req)
 }
 
+func (c *Client) PauseAgentWithBody(ctx context.Context, agentID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPauseAgentRequestWithBody(c.Server, agentID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PauseAgent(ctx context.Context, agentID string, body PauseAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPauseAgentRequest(c.Server, agentID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListAgentResultBranches(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAgentResultBranchesRequest(c.Server, agentID, params)
 	if err != nil {
@@ -4689,6 +4979,18 @@ func (c *Client) ListAgentResultBranches(ctx context.Context, agentID string, pa
 
 func (c *Client) ListAgentResults(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAgentResultsRequest(c.Server, agentID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UnpauseAgent(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUnpauseAgentRequest(c.Server, agentID)
 	if err != nil {
 		return nil, err
 	}
@@ -4737,6 +5039,30 @@ func (c *Client) CreateBlueprintWithBody(ctx context.Context, contentType string
 
 func (c *Client) CreateBlueprint(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateBlueprintRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ValidateBlueprintWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewValidateBlueprintRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ValidateBlueprint(ctx context.Context, body ValidateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewValidateBlueprintRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -5599,6 +5925,18 @@ func (c *Client) ListMetricsDataForMetricsDataIDs(ctx context.Context, projectID
 	return c.Client.Do(req)
 }
 
+func (c *Client) GetJobUsage(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetJobUsageRequest(c.Server, projectID, batchID, jobID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ListBatchLogsForBatch(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListBatchLogsForBatchRequest(c.Server, projectID, batchID, params)
 	if err != nil {
@@ -5745,6 +6083,30 @@ func (c *Client) RerunBatch(ctx context.Context, projectID ProjectID, batchID Ba
 
 func (c *Client) GetBatchSuggestions(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetBatchSuggestionsRequest(c.Server, projectID, batchID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBatchUsage(ctx context.Context, projectID ProjectID, batchID BatchID, params *GetBatchUsageParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBatchUsageRequest(c.Server, projectID, batchID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetBatchUsageTotals(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetBatchUsageTotalsRequest(c.Server, projectID, batchID)
 	if err != nil {
 		return nil, err
 	}
@@ -7412,7 +7774,7 @@ func (c *Client) ValidateExperienceLocation(ctx context.Context, body ValidateEx
 }
 
 // NewListAgentsRequest generates requests for ListAgents
-func NewListAgentsRequest(server string) (*http.Request, error) {
+func NewListAgentsRequest(server string, params *ListAgentsParams) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -7428,6 +7790,28 @@ func NewListAgentsRequest(server string) (*http.Request, error) {
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.RecentActivityLimit != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "recentActivityLimit", runtime.ParamLocationQuery, *params.RecentActivityLimit); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -7463,6 +7847,103 @@ func NewListAgentPoolLabelQueueRequest(server string, params *ListAgentPoolLabel
 		if params.CompletedSinceDays != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "completedSinceDays", runtime.ParamLocationQuery, *params.CompletedSinceDays); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListPoolLabelUtilizationRequest generates requests for ListPoolLabelUtilization
+func NewListPoolLabelUtilizationRequest(server string, params *ListPoolLabelUtilizationParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/poolLabels/utilization")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.StartTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "startTime", runtime.ParamLocationQuery, *params.StartTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.EndTime != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endTime", runtime.ParamLocationQuery, *params.EndTime); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Interval != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "interval", runtime.ParamLocationQuery, *params.Interval); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.TopExperiences != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "topExperiences", runtime.ParamLocationQuery, *params.TopExperiences); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -7652,6 +8133,53 @@ func NewArchiveAgentRequest(server string, agentID string) (*http.Request, error
 	return req, nil
 }
 
+// NewPauseAgentRequest calls the generic PauseAgent builder with application/json body
+func NewPauseAgentRequest(server string, agentID string, body PauseAgentJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPauseAgentRequestWithBody(server, agentID, "application/json", bodyReader)
+}
+
+// NewPauseAgentRequestWithBody generates requests for PauseAgent with any type of body
+func NewPauseAgentRequestWithBody(server string, agentID string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agentID", runtime.ParamLocationPath, agentID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/%s/pause", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewListAgentResultBranchesRequest generates requests for ListAgentResultBranches
 func NewListAgentResultBranchesRequest(server string, agentID string, params *ListAgentResultBranchesParams) (*http.Request, error) {
 	var err error
@@ -7821,6 +8349,40 @@ func NewListAgentResultsRequest(server string, agentID string, params *ListAgent
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewUnpauseAgentRequest generates requests for UnpauseAgent
+func NewUnpauseAgentRequest(server string, agentID string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "agentID", runtime.ParamLocationPath, agentID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/agents/%s/unpause", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -8018,6 +8580,46 @@ func NewCreateBlueprintRequestWithBody(server string, contentType string, body i
 	}
 
 	operationPath := fmt.Sprintf("/blueprints")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewValidateBlueprintRequest calls the generic ValidateBlueprint builder with application/json body
+func NewValidateBlueprintRequest(server string, body ValidateBlueprintJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewValidateBlueprintRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewValidateBlueprintRequestWithBody generates requests for ValidateBlueprint with any type of body
+func NewValidateBlueprintRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/blueprints/validate")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -11985,6 +12587,54 @@ func NewListMetricsDataForMetricsDataIDsRequest(server string, projectID Project
 	return req, nil
 }
 
+// NewGetJobUsageRequest generates requests for GetJobUsage
+func NewGetJobUsageRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/usage", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewListBatchLogsForBatchRequest generates requests for ListBatchLogsForBatch
 func NewListBatchLogsForBatchRequest(server string, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams) (*http.Request, error) {
 	var err error
@@ -12781,6 +13431,126 @@ func NewGetBatchSuggestionsRequest(server string, projectID ProjectID, batchID B
 	}
 
 	operationPath := fmt.Sprintf("/projects/%s/batches/%s/suggestions", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBatchUsageRequest generates requests for GetBatchUsage
+func NewGetBatchUsageRequest(server string, projectID ProjectID, batchID BatchID, params *GetBatchUsageParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/usage", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.PageSize != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.PageToken != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetBatchUsageTotalsRequest generates requests for GetBatchUsageTotals
+func NewGetBatchUsageTotalsRequest(server string, projectID ProjectID, batchID BatchID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/batches/%s/usage/totals", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -19300,10 +20070,13 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 	// ListAgentsWithResponse request
-	ListAgentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAgentsResponse, error)
+	ListAgentsWithResponse(ctx context.Context, params *ListAgentsParams, reqEditors ...RequestEditorFn) (*ListAgentsResponse, error)
 
 	// ListAgentPoolLabelQueueWithResponse request
 	ListAgentPoolLabelQueueWithResponse(ctx context.Context, params *ListAgentPoolLabelQueueParams, reqEditors ...RequestEditorFn) (*ListAgentPoolLabelQueueResponse, error)
+
+	// ListPoolLabelUtilizationWithResponse request
+	ListPoolLabelUtilizationWithResponse(ctx context.Context, params *ListPoolLabelUtilizationParams, reqEditors ...RequestEditorFn) (*ListPoolLabelUtilizationResponse, error)
 
 	// ListAgentUtilizationWithResponse request
 	ListAgentUtilizationWithResponse(ctx context.Context, params *ListAgentUtilizationParams, reqEditors ...RequestEditorFn) (*ListAgentUtilizationResponse, error)
@@ -19314,11 +20087,19 @@ type ClientWithResponsesInterface interface {
 	// ArchiveAgentWithResponse request
 	ArchiveAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*ArchiveAgentResponse, error)
 
+	// PauseAgentWithBodyWithResponse request with any body
+	PauseAgentWithBodyWithResponse(ctx context.Context, agentID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PauseAgentResponse, error)
+
+	PauseAgentWithResponse(ctx context.Context, agentID string, body PauseAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*PauseAgentResponse, error)
+
 	// ListAgentResultBranchesWithResponse request
 	ListAgentResultBranchesWithResponse(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*ListAgentResultBranchesResponse, error)
 
 	// ListAgentResultsWithResponse request
 	ListAgentResultsWithResponse(ctx context.Context, agentID string, params *ListAgentResultsParams, reqEditors ...RequestEditorFn) (*ListAgentResultsResponse, error)
+
+	// UnpauseAgentWithResponse request
+	UnpauseAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*UnpauseAgentResponse, error)
 
 	// GetAgentUtilizationWithResponse request
 	GetAgentUtilizationWithResponse(ctx context.Context, agentID string, params *GetAgentUtilizationParams, reqEditors ...RequestEditorFn) (*GetAgentUtilizationResponse, error)
@@ -19330,6 +20111,11 @@ type ClientWithResponsesInterface interface {
 	CreateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error)
 
 	CreateBlueprintWithResponse(ctx context.Context, body CreateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBlueprintResponse, error)
+
+	// ValidateBlueprintWithBodyWithResponse request with any body
+	ValidateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateBlueprintResponse, error)
+
+	ValidateBlueprintWithResponse(ctx context.Context, body ValidateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*ValidateBlueprintResponse, error)
 
 	// ArchiveBlueprintWithResponse request
 	ArchiveBlueprintWithResponse(ctx context.Context, blueprintName string, reqEditors ...RequestEditorFn) (*ArchiveBlueprintResponse, error)
@@ -19531,6 +20317,9 @@ type ClientWithResponsesInterface interface {
 	// ListMetricsDataForMetricsDataIDsWithResponse request
 	ListMetricsDataForMetricsDataIDsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, metricsDataID []MetricsDataID, params *ListMetricsDataForMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListMetricsDataForMetricsDataIDsResponse, error)
 
+	// GetJobUsageWithResponse request
+	GetJobUsageWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetJobUsageResponse, error)
+
 	// ListBatchLogsForBatchWithResponse request
 	ListBatchLogsForBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*ListBatchLogsForBatchResponse, error)
 
@@ -19568,6 +20357,12 @@ type ClientWithResponsesInterface interface {
 
 	// GetBatchSuggestionsWithResponse request
 	GetBatchSuggestionsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchSuggestionsResponse, error)
+
+	// GetBatchUsageWithResponse request
+	GetBatchUsageWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *GetBatchUsageParams, reqEditors ...RequestEditorFn) (*GetBatchUsageResponse, error)
+
+	// GetBatchUsageTotalsWithResponse request
+	GetBatchUsageTotalsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchUsageTotalsResponse, error)
 
 	// ListBranchesForProjectWithResponse request
 	ListBranchesForProjectWithResponse(ctx context.Context, projectID ProjectID, params *ListBranchesForProjectParams, reqEditors ...RequestEditorFn) (*ListBranchesForProjectResponse, error)
@@ -19994,6 +20789,28 @@ func (r ListAgentPoolLabelQueueResponse) StatusCode() int {
 	return 0
 }
 
+type ListPoolLabelUtilizationResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListPoolLabelUtilizationOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListPoolLabelUtilizationResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListPoolLabelUtilizationResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListAgentUtilizationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -20060,6 +20877,28 @@ func (r ArchiveAgentResponse) StatusCode() int {
 	return 0
 }
 
+type PauseAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *PauseAgentOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r PauseAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PauseAgentResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListAgentResultBranchesResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -20098,6 +20937,28 @@ func (r ListAgentResultsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListAgentResultsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type UnpauseAgentResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *UnpauseAgentOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r UnpauseAgentResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UnpauseAgentResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -20164,6 +21025,28 @@ func (r CreateBlueprintResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r CreateBlueprintResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ValidateBlueprintResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ValidateBlueprintOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ValidateBlueprintResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ValidateBlueprintResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -21435,6 +22318,28 @@ func (r ListMetricsDataForMetricsDataIDsResponse) StatusCode() int {
 	return 0
 }
 
+type GetJobUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *JobUsageOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetJobUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetJobUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ListBatchLogsForBatchResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -21692,6 +22597,50 @@ func (r GetBatchSuggestionsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r GetBatchSuggestionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBatchUsageResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BatchUsageOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBatchUsageResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBatchUsageResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetBatchUsageTotalsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BatchUsageTotalsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r GetBatchUsageTotalsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetBatchUsageTotalsResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -23965,8 +24914,8 @@ func (r ValidateExperienceLocationResponse) StatusCode() int {
 }
 
 // ListAgentsWithResponse request returning *ListAgentsResponse
-func (c *ClientWithResponses) ListAgentsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListAgentsResponse, error) {
-	rsp, err := c.ListAgents(ctx, reqEditors...)
+func (c *ClientWithResponses) ListAgentsWithResponse(ctx context.Context, params *ListAgentsParams, reqEditors ...RequestEditorFn) (*ListAgentsResponse, error) {
+	rsp, err := c.ListAgents(ctx, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -23980,6 +24929,15 @@ func (c *ClientWithResponses) ListAgentPoolLabelQueueWithResponse(ctx context.Co
 		return nil, err
 	}
 	return ParseListAgentPoolLabelQueueResponse(rsp)
+}
+
+// ListPoolLabelUtilizationWithResponse request returning *ListPoolLabelUtilizationResponse
+func (c *ClientWithResponses) ListPoolLabelUtilizationWithResponse(ctx context.Context, params *ListPoolLabelUtilizationParams, reqEditors ...RequestEditorFn) (*ListPoolLabelUtilizationResponse, error) {
+	rsp, err := c.ListPoolLabelUtilization(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListPoolLabelUtilizationResponse(rsp)
 }
 
 // ListAgentUtilizationWithResponse request returning *ListAgentUtilizationResponse
@@ -24009,6 +24967,23 @@ func (c *ClientWithResponses) ArchiveAgentWithResponse(ctx context.Context, agen
 	return ParseArchiveAgentResponse(rsp)
 }
 
+// PauseAgentWithBodyWithResponse request with arbitrary body returning *PauseAgentResponse
+func (c *ClientWithResponses) PauseAgentWithBodyWithResponse(ctx context.Context, agentID string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PauseAgentResponse, error) {
+	rsp, err := c.PauseAgentWithBody(ctx, agentID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePauseAgentResponse(rsp)
+}
+
+func (c *ClientWithResponses) PauseAgentWithResponse(ctx context.Context, agentID string, body PauseAgentJSONRequestBody, reqEditors ...RequestEditorFn) (*PauseAgentResponse, error) {
+	rsp, err := c.PauseAgent(ctx, agentID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePauseAgentResponse(rsp)
+}
+
 // ListAgentResultBranchesWithResponse request returning *ListAgentResultBranchesResponse
 func (c *ClientWithResponses) ListAgentResultBranchesWithResponse(ctx context.Context, agentID string, params *ListAgentResultBranchesParams, reqEditors ...RequestEditorFn) (*ListAgentResultBranchesResponse, error) {
 	rsp, err := c.ListAgentResultBranches(ctx, agentID, params, reqEditors...)
@@ -24025,6 +25000,15 @@ func (c *ClientWithResponses) ListAgentResultsWithResponse(ctx context.Context, 
 		return nil, err
 	}
 	return ParseListAgentResultsResponse(rsp)
+}
+
+// UnpauseAgentWithResponse request returning *UnpauseAgentResponse
+func (c *ClientWithResponses) UnpauseAgentWithResponse(ctx context.Context, agentID string, reqEditors ...RequestEditorFn) (*UnpauseAgentResponse, error) {
+	rsp, err := c.UnpauseAgent(ctx, agentID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUnpauseAgentResponse(rsp)
 }
 
 // GetAgentUtilizationWithResponse request returning *GetAgentUtilizationResponse
@@ -24060,6 +25044,23 @@ func (c *ClientWithResponses) CreateBlueprintWithResponse(ctx context.Context, b
 		return nil, err
 	}
 	return ParseCreateBlueprintResponse(rsp)
+}
+
+// ValidateBlueprintWithBodyWithResponse request with arbitrary body returning *ValidateBlueprintResponse
+func (c *ClientWithResponses) ValidateBlueprintWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateBlueprintResponse, error) {
+	rsp, err := c.ValidateBlueprintWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseValidateBlueprintResponse(rsp)
+}
+
+func (c *ClientWithResponses) ValidateBlueprintWithResponse(ctx context.Context, body ValidateBlueprintJSONRequestBody, reqEditors ...RequestEditorFn) (*ValidateBlueprintResponse, error) {
+	rsp, err := c.ValidateBlueprint(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseValidateBlueprintResponse(rsp)
 }
 
 // ArchiveBlueprintWithResponse request returning *ArchiveBlueprintResponse
@@ -24688,6 +25689,15 @@ func (c *ClientWithResponses) ListMetricsDataForMetricsDataIDsWithResponse(ctx c
 	return ParseListMetricsDataForMetricsDataIDsResponse(rsp)
 }
 
+// GetJobUsageWithResponse request returning *GetJobUsageResponse
+func (c *ClientWithResponses) GetJobUsageWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, reqEditors ...RequestEditorFn) (*GetJobUsageResponse, error) {
+	rsp, err := c.GetJobUsage(ctx, projectID, batchID, jobID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetJobUsageResponse(rsp)
+}
+
 // ListBatchLogsForBatchWithResponse request returning *ListBatchLogsForBatchResponse
 func (c *ClientWithResponses) ListBatchLogsForBatchWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *ListBatchLogsForBatchParams, reqEditors ...RequestEditorFn) (*ListBatchLogsForBatchResponse, error) {
 	rsp, err := c.ListBatchLogsForBatch(ctx, projectID, batchID, params, reqEditors...)
@@ -24802,6 +25812,24 @@ func (c *ClientWithResponses) GetBatchSuggestionsWithResponse(ctx context.Contex
 		return nil, err
 	}
 	return ParseGetBatchSuggestionsResponse(rsp)
+}
+
+// GetBatchUsageWithResponse request returning *GetBatchUsageResponse
+func (c *ClientWithResponses) GetBatchUsageWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, params *GetBatchUsageParams, reqEditors ...RequestEditorFn) (*GetBatchUsageResponse, error) {
+	rsp, err := c.GetBatchUsage(ctx, projectID, batchID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBatchUsageResponse(rsp)
+}
+
+// GetBatchUsageTotalsWithResponse request returning *GetBatchUsageTotalsResponse
+func (c *ClientWithResponses) GetBatchUsageTotalsWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, reqEditors ...RequestEditorFn) (*GetBatchUsageTotalsResponse, error) {
+	rsp, err := c.GetBatchUsageTotals(ctx, projectID, batchID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetBatchUsageTotalsResponse(rsp)
 }
 
 // ListBranchesForProjectWithResponse request returning *ListBranchesForProjectResponse
@@ -26064,6 +27092,32 @@ func ParseListAgentPoolLabelQueueResponse(rsp *http.Response) (*ListAgentPoolLab
 	return response, nil
 }
 
+// ParseListPoolLabelUtilizationResponse parses an HTTP response from a ListPoolLabelUtilizationWithResponse call
+func ParseListPoolLabelUtilizationResponse(rsp *http.Response) (*ListPoolLabelUtilizationResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListPoolLabelUtilizationResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListPoolLabelUtilizationOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListAgentUtilizationResponse parses an HTTP response from a ListAgentUtilizationWithResponse call
 func ParseListAgentUtilizationResponse(rsp *http.Response) (*ListAgentUtilizationResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -26142,6 +27196,32 @@ func ParseArchiveAgentResponse(rsp *http.Response) (*ArchiveAgentResponse, error
 	return response, nil
 }
 
+// ParsePauseAgentResponse parses an HTTP response from a PauseAgentWithResponse call
+func ParsePauseAgentResponse(rsp *http.Response) (*PauseAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PauseAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest PauseAgentOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListAgentResultBranchesResponse parses an HTTP response from a ListAgentResultBranchesWithResponse call
 func ParseListAgentResultBranchesResponse(rsp *http.Response) (*ListAgentResultBranchesResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -26184,6 +27264,32 @@ func ParseListAgentResultsResponse(rsp *http.Response) (*ListAgentResultsRespons
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListAgentResultsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUnpauseAgentResponse parses an HTTP response from a UnpauseAgentWithResponse call
+func ParseUnpauseAgentResponse(rsp *http.Response) (*UnpauseAgentResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UnpauseAgentResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest UnpauseAgentOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -26266,6 +27372,32 @@ func ParseCreateBlueprintResponse(rsp *http.Response) (*CreateBlueprintResponse,
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseValidateBlueprintResponse parses an HTTP response from a ValidateBlueprintWithResponse call
+func ParseValidateBlueprintResponse(rsp *http.Response) (*ValidateBlueprintResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ValidateBlueprintResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ValidateBlueprintOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
 
 	}
 
@@ -27670,6 +28802,32 @@ func ParseListMetricsDataForMetricsDataIDsResponse(rsp *http.Response) (*ListMet
 	return response, nil
 }
 
+// ParseGetJobUsageResponse parses an HTTP response from a GetJobUsageWithResponse call
+func ParseGetJobUsageResponse(rsp *http.Response) (*GetJobUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetJobUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest JobUsageOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseListBatchLogsForBatchResponse parses an HTTP response from a ListBatchLogsForBatchWithResponse call
 func ParseListBatchLogsForBatchResponse(rsp *http.Response) (*ListBatchLogsForBatchResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -27962,6 +29120,58 @@ func ParseGetBatchSuggestionsResponse(rsp *http.Response) (*GetBatchSuggestionsR
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest BatchSuggestionsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBatchUsageResponse parses an HTTP response from a GetBatchUsageWithResponse call
+func ParseGetBatchUsageResponse(rsp *http.Response) (*GetBatchUsageResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBatchUsageResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BatchUsageOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetBatchUsageTotalsResponse parses an HTTP response from a GetBatchUsageTotalsWithResponse call
+func ParseGetBatchUsageTotalsResponse(rsp *http.Response) (*GetBatchUsageTotalsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetBatchUsageTotalsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BatchUsageTotalsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

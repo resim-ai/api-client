@@ -320,10 +320,10 @@ func createSystem(cmd *cobra.Command, args []string) {
 		BuildVcpus:                 viper.GetInt(systemBuildVCPUsKey),
 		BuildMemoryMib:             viper.GetInt(systemBuildMemoryMiBKey),
 		BuildSharedMemoryMb:        viper.GetInt(systemBuildSharedMemoryMBKey),
-		MetricsBuildVcpus:          viper.GetInt(systemMetricsBuildVCPUsKey),
-		MetricsBuildGpus:           viper.GetInt(systemMetricsBuildGPUsKey),
-		MetricsBuildMemoryMib:      viper.GetInt(systemMetricsBuildMemoryMibKey),
-		MetricsBuildSharedMemoryMb: viper.GetInt(systemMetricsBuildSharedMemoryMbKey),
+		MetricsBuildVcpus:          Ptr(viper.GetInt(systemMetricsBuildVCPUsKey)),
+		MetricsBuildGpus:           Ptr(viper.GetInt(systemMetricsBuildGPUsKey)),
+		MetricsBuildMemoryMib:      Ptr(viper.GetInt(systemMetricsBuildMemoryMibKey)),
+		MetricsBuildSharedMemoryMb: Ptr(viper.GetInt(systemMetricsBuildSharedMemoryMbKey)),
 	}
 
 	if viper.IsSet(systemArchitectureKey) {

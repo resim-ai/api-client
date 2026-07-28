@@ -55,7 +55,7 @@ func (s *CommandsSuite) TestListAgentsParsesResponse() {
 	viper.Reset()
 	viper.Set(agentJSONKey, true)
 	defer viper.Reset()
-	s.mockClient.On("ListAgentsWithResponse", matchContext).Return(
+	s.mockClient.On("ListAgentsWithResponse", matchContext, &api.ListAgentsParams{}).Return(
 		&api.ListAgentsResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 			JSON200: &api.ListAgentsOutput{
@@ -73,7 +73,7 @@ func (s *CommandsSuite) TestListAgentsParsesResponse() {
 
 func (s *CommandsSuite) TestListAgentsEmptyState() {
 	viper.Reset()
-	s.mockClient.On("ListAgentsWithResponse", matchContext).Return(
+	s.mockClient.On("ListAgentsWithResponse", matchContext, &api.ListAgentsParams{}).Return(
 		&api.ListAgentsResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 			JSON200:      &api.ListAgentsOutput{Agents: []api.Agent{}, LatestKnownVersion: ""},
@@ -87,7 +87,7 @@ func (s *CommandsSuite) TestListAgentsJSONRoundTrips() {
 	viper.Reset()
 	viper.Set(agentJSONKey, true)
 	defer viper.Reset()
-	s.mockClient.On("ListAgentsWithResponse", matchContext).Return(
+	s.mockClient.On("ListAgentsWithResponse", matchContext, &api.ListAgentsParams{}).Return(
 		&api.ListAgentsResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 			JSON200: &api.ListAgentsOutput{
@@ -106,7 +106,7 @@ func (s *CommandsSuite) TestListAgentsJSONRoundTrips() {
 
 func (s *CommandsSuite) TestListAgentsTableOutput() {
 	viper.Reset()
-	s.mockClient.On("ListAgentsWithResponse", matchContext).Return(
+	s.mockClient.On("ListAgentsWithResponse", matchContext, &api.ListAgentsParams{}).Return(
 		&api.ListAgentsResponse{
 			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 			JSON200: &api.ListAgentsOutput{
@@ -313,6 +313,118 @@ func (s *CommandsSuite) TestArchiveAgentDeclinedMakesNoClientCall() {
 	// No expectation is registered on the mock: any client call would fail the test.
 	out := captureStdout(s, func() { archiveAgent(nil, nil) })
 	s.Contains(out, "Aborted.")
+}
+
+func (s *CommandsSuite) TestPauseAgentWithReason() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	viper.Set(agentReasonKey, "draining for maintenance")
+	defer viper.Reset()
+
+	pausedAt := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
+	s.mockClient.On("PauseAgentWithResponse", matchContext, "agent-1",
+		api.PauseAgentJSONRequestBody{Reason: Ptr("draining for maintenance")}).Return(
+		&api.PauseAgentResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.PauseAgentOutput{
+				AgentID:     "agent-1",
+				PausedAt:    pausedAt,
+				PausedBy:    "barnaby@resim.ai",
+				PauseReason: Ptr("draining for maintenance"),
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { pauseAgent(nil, nil) })
+	s.Contains(out, `Paused agent "agent-1"`)
+	s.Contains(out, "2026-06-10")
+	s.Contains(out, "by barnaby@resim.ai")
+	s.Contains(out, "Reason: draining for maintenance")
+}
+
+func (s *CommandsSuite) TestPauseAgentWithoutReason() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+
+	pausedAt := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
+	// No reason flag: the request body carries a nil reason.
+	s.mockClient.On("PauseAgentWithResponse", matchContext, "agent-1",
+		api.PauseAgentJSONRequestBody{}).Return(
+		&api.PauseAgentResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200: &api.PauseAgentOutput{
+				AgentID:  "agent-1",
+				PausedAt: pausedAt,
+				PausedBy: "barnaby@resim.ai",
+			},
+		}, nil)
+
+	out := captureStdout(s, func() { pauseAgent(nil, nil) })
+	s.Contains(out, `Paused agent "agent-1"`)
+	s.NotContains(out, "Reason:")
+}
+
+func (s *CommandsSuite) TestUnpauseAgent() {
+	viper.Reset()
+	viper.Set(agentIDKey, "agent-1")
+	defer viper.Reset()
+
+	s.mockClient.On("UnpauseAgentWithResponse", matchContext, "agent-1").Return(
+		&api.UnpauseAgentResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.UnpauseAgentOutput{AgentID: "agent-1"},
+		}, nil)
+
+	out := captureStdout(s, func() { unpauseAgent(nil, nil) })
+	s.Contains(out, `Unpaused agent "agent-1"`)
+}
+
+func (s *CommandsSuite) TestFormatAgentDetailNotPaused() {
+	detail := formatAgentDetail(sampleAgent("agent-1", false))
+	s.Contains(detail, "Paused:          no")
+	s.NotContains(detail, "Pause reason:")
+	s.NotContains(detail, "Quiesced at:")
+}
+
+func (s *CommandsSuite) TestFormatAgentDetailPausedAndQuiesced() {
+	agent := sampleAgent("agent-1", false)
+	pausedAt := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
+	quiescedAt := pausedAt.Add(90 * time.Second)
+	agent.PausedAt = &pausedAt
+	agent.PausedBy = Ptr("barnaby@resim.ai")
+	agent.PauseReason = Ptr("draining for maintenance")
+	agent.ReportedPausedAt = &quiescedAt
+
+	detail := formatAgentDetail(agent)
+	s.Contains(detail, "Paused:          yes — since 2026-06-10")
+	s.Contains(detail, "by barnaby@resim.ai")
+	s.Contains(detail, "Pause reason:    draining for maintenance")
+	s.Contains(detail, "Quiesced at:     2026-06-10")
+	s.NotContains(detail, "not yet acknowledged")
+}
+
+func (s *CommandsSuite) TestFormatAgentDetailPausedNotYetQuiesced() {
+	agent := sampleAgent("agent-1", false)
+	pausedAt := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
+	agent.PausedAt = &pausedAt
+	agent.PausedBy = Ptr("barnaby@resim.ai")
+	// No ReportedPausedAt: the agent has not confirmed it drained.
+
+	detail := formatAgentDetail(agent)
+	s.Contains(detail, "Paused:          yes")
+	s.Contains(detail, "Quiesced at:     not yet acknowledged")
+	// No reason was recorded, so no reason line renders.
+	s.NotContains(detail, "Pause reason:")
+}
+
+func (s *CommandsSuite) TestFormatAgentRowPaused() {
+	agent := sampleAgent("agent-1", false)
+	pausedAt := time.Date(2026, 6, 10, 9, 0, 0, 0, time.UTC)
+	agent.PausedAt = &pausedAt
+	row := formatAgentRow(agent, "1.2.3")
+	s.Contains(row, "ACTIVE (paused)")
+	// An unpaused agent carries no paused marker.
+	s.NotContains(formatAgentRow(sampleAgent("agent-2", false), "1.2.3"), "(paused)")
 }
 
 func (s *CommandsSuite) TestValidateCompletedSinceDays() {

@@ -75,6 +75,30 @@ rack. Offline intervals are recorded from this feature's deployment onward;
 in earlier windows offline reads 0 and all non-running time appears as idle.`,
 		Run: agentUtilization,
 	}
+	pauseAgentCmd = &cobra.Command{
+		Use:   "pause",
+		Short: "pause - Pauses a HiL Agent so it stops picking up new work",
+		Long: `pause - Pauses a HiL Agent.
+
+A paused agent stops picking up new work and its in-flight worker is
+terminated, with the interrupted task requeued rather than cancelled. The
+agent observes the pause within roughly one check-in interval.
+
+Pausing is idempotent: re-pausing an already-paused agent preserves the
+original pause time, actor, and reason. To change the reason, unpause then
+pause again. Pause state is durable and survives agent restarts and
+archive/restore cycles until an explicit 'agents unpause'.`,
+		Run: pauseAgent,
+	}
+	unpauseAgentCmd = &cobra.Command{
+		Use:   "unpause",
+		Short: "unpause - Unpauses a HiL Agent so it resumes picking up work",
+		Long: `unpause - Unpauses a HiL Agent.
+
+The agent resumes launching workers on its next check-in (within roughly one
+check-in interval). Idempotent — a no-op on an agent that is not paused.`,
+		Run: unpauseAgent,
+	}
 	agentResultsCmd = &cobra.Command{
 		Use:   "results",
 		Short: "results - Lists a HiL Agent's full results history",
@@ -113,6 +137,7 @@ set so the closest matches come first.`,
 
 const (
 	agentIDKey                 = "agent-id"
+	agentReasonKey             = "reason"
 	agentYesKey                = "yes"
 	agentJSONKey               = "json"
 	agentStartTimeKey          = "start-time"
@@ -153,6 +178,13 @@ func init() {
 	agentUtilizationCmd.Flags().Int(agentTopExperiencesKey, topExperiencesDefault, "How many top experiences (ranked by running time in the window) to include (0-50). 0 omits the list")
 	agentUtilizationCmd.Flags().Bool(agentJSONKey, false, "Output raw JSON instead of a table")
 
+	pauseAgentCmd.Flags().String(agentIDKey, "", "Agent ID to pause (as supplied at check-in)")
+	pauseAgentCmd.MarkFlagRequired(agentIDKey)
+	pauseAgentCmd.Flags().String(agentReasonKey, "", "Optional free-text reason for the pause (max 500 characters). Stored on the agent, surfaced in list/get and the agent's logs")
+
+	unpauseAgentCmd.Flags().String(agentIDKey, "", "Agent ID to unpause (as supplied at check-in)")
+	unpauseAgentCmd.MarkFlagRequired(agentIDKey)
+
 	agentResultsCmd.Flags().String(agentIDKey, "", "Agent ID (as supplied at check-in)")
 	agentResultsCmd.MarkFlagRequired(agentIDKey)
 	agentResultsCmd.Flags().String(agentResultsTextKey, "", "Filter to results whose test (experience) name contains this substring (case-insensitive)")
@@ -170,6 +202,8 @@ func init() {
 	agentsCmd.AddCommand(listAgentsCmd)
 	agentsCmd.AddCommand(getAgentCmd)
 	agentsCmd.AddCommand(archiveAgentCmd)
+	agentsCmd.AddCommand(pauseAgentCmd)
+	agentsCmd.AddCommand(unpauseAgentCmd)
 	agentsCmd.AddCommand(agentUtilizationCmd)
 	agentsCmd.AddCommand(agentResultsCmd)
 	rootCmd.AddCommand(agentsCmd)
@@ -180,7 +214,7 @@ func init() {
 }
 
 func listAgents(cmd *cobra.Command, args []string) {
-	response, err := Client.ListAgentsWithResponse(context.Background())
+	response, err := Client.ListAgentsWithResponse(context.Background(), &api.ListAgentsParams{})
 	if err != nil {
 		log.Fatal("failed to list agents:", err)
 	}
@@ -343,6 +377,60 @@ func archiveAgent(cmd *cobra.Command, args []string) {
 	}
 	output := response.JSON200
 	fmt.Printf("Archived agent %q at %s.\n", output.AgentID, output.ArchivedAt.Format("2006-01-02 15:04:05 MST"))
+}
+
+// agentPauseReasonMaxLen mirrors the server's maxLength on pauseAgentInput.reason
+// so an over-long reason is rejected client-side with a clear message instead of
+// a raw 400.
+const agentPauseReasonMaxLen = 500
+
+func pauseAgent(cmd *cobra.Command, args []string) {
+	agentID := viper.GetString(agentIDKey)
+
+	body := api.PauseAgentJSONRequestBody{}
+	if reason := viper.GetString(agentReasonKey); reason != "" {
+		if utf8.RuneCountInString(reason) > agentPauseReasonMaxLen {
+			log.Fatalf("--%s must be at most %d characters", agentReasonKey, agentPauseReasonMaxLen)
+		}
+		body.Reason = Ptr(reason)
+	}
+
+	response, err := Client.PauseAgentWithResponse(context.Background(), agentID, body)
+	if err != nil {
+		log.Fatal("failed to pause agent:", err)
+	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatalf("agent %q not found", agentID)
+	}
+	ValidateResponse(http.StatusOK, "failed to pause agent", response.HTTPResponse, response.Body)
+	if response.JSON200 == nil {
+		log.Fatal("empty response from pauseAgent")
+	}
+	output := response.JSON200
+	fmt.Printf("Paused agent %q at %s by %s.\n",
+		output.AgentID, output.PausedAt.Format("2006-01-02 15:04:05 MST"), output.PausedBy)
+	if output.PauseReason != nil && *output.PauseReason != "" {
+		fmt.Printf("Reason: %s\n", *output.PauseReason)
+	}
+	fmt.Println("The agent stops picking up new work within roughly one check-in interval; its in-flight task is requeued.")
+}
+
+func unpauseAgent(cmd *cobra.Command, args []string) {
+	agentID := viper.GetString(agentIDKey)
+
+	response, err := Client.UnpauseAgentWithResponse(context.Background(), agentID)
+	if err != nil {
+		log.Fatal("failed to unpause agent:", err)
+	}
+	if response.HTTPResponse.StatusCode == http.StatusNotFound {
+		log.Fatalf("agent %q not found", agentID)
+	}
+	ValidateResponse(http.StatusOK, "failed to unpause agent", response.HTTPResponse, response.Body)
+	if response.JSON200 == nil {
+		log.Fatal("empty response from unpauseAgent")
+	}
+	fmt.Printf("Unpaused agent %q. It resumes picking up work within roughly one check-in interval.\n",
+		response.JSON200.AgentID)
 }
 
 // parseAgentUtilizationParams validates the raw flag values client-side so a
@@ -620,14 +708,43 @@ func formatAgentRow(a api.Agent, latestKnownVersion string) string {
 	if a.IsOutOfDate && latestKnownVersion != "" {
 		verSuffix = fmt.Sprintf(" (out of date; latest %s)", displayVersion(latestKnownVersion))
 	}
+	status := string(a.Activity)
+	if a.PausedAt != nil {
+		status += " (paused)"
+	}
 	return fmt.Sprintf("%s\t%s\t%s%s\t%s\t%s\n",
 		a.AgentID,
-		a.Activity,
+		status,
 		displayVersion(a.Version),
 		verSuffix,
 		strings.Join(a.PoolLabels, ", "),
 		a.LastCheckin.Format("2006-01-02 15:04:05"),
 	)
+}
+
+// writeAgentPauseState renders the agent's pause status. An agent with no
+// pausedAt is not paused and gets a single one-line summary; a paused agent
+// gets the pause time, actor, reason, and whether it has confirmed it quiesced
+// (reportedPausedAt) — an unacknowledged pause on a current binary means the
+// agent is still draining its in-flight worker.
+func writeAgentPauseState(b *strings.Builder, a api.Agent) {
+	if a.PausedAt == nil {
+		fmt.Fprintf(b, "Paused:          no\n")
+		return
+	}
+	by := ""
+	if a.PausedBy != nil {
+		by = fmt.Sprintf(" by %s", *a.PausedBy)
+	}
+	fmt.Fprintf(b, "Paused:          yes — since %s%s\n", a.PausedAt.Format("2006-01-02 15:04:05 MST"), by)
+	if a.PauseReason != nil && *a.PauseReason != "" {
+		fmt.Fprintf(b, "Pause reason:    %s\n", *a.PauseReason)
+	}
+	if a.ReportedPausedAt != nil {
+		fmt.Fprintf(b, "Quiesced at:     %s\n", a.ReportedPausedAt.Format("2006-01-02 15:04:05 MST"))
+	} else {
+		fmt.Fprintf(b, "Quiesced at:     not yet acknowledged (still draining, or an older agent binary)\n")
+	}
 }
 
 func formatAgentDetail(a api.Agent) string {
@@ -640,6 +757,7 @@ func formatAgentDetail(a api.Agent) string {
 	}
 	fmt.Fprintln(&b)
 	fmt.Fprintf(&b, "Pool labels:     %s\n", strings.Join(a.PoolLabels, ", "))
+	writeAgentPauseState(&b, a)
 	fmt.Fprintf(&b, "First check-in:  %s\n", a.FirstCheckin.Format("2006-01-02 15:04:05 MST"))
 	fmt.Fprintf(&b, "Last check-in:   %s\n", a.LastCheckin.Format("2006-01-02 15:04:05 MST"))
 	if len(a.RecentActivity) == 0 {

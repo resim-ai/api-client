@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### v0.66.0 - July 28, 2026
+
+- Adds `resim agents pause/unpause`
+- Adds `resim blueprints validate`
+
 ### v0.65.0 - July 24, 2026
 
 - Fixes `resim metrics sync` silently dropping a config's `dashboards:` section. Merging config files (even a single one) round-tripped the parsed config through a struct with no `dashboards` field, so config-driven dashboards were never created or updated by the CLI.

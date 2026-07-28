@@ -59,6 +59,17 @@ var (
 		Long:  ``,
 		Run:   archiveBlueprint,
 	}
+
+	validateBlueprintCmd = &cobra.Command{
+		Use:   "validate",
+		Short: "validate - Validates blueprint CUE content without creating a blueprint",
+		Long: `validate - Validates blueprint CUE content without creating a blueprint.
+
+Runs the same validator that 'create' and 'revise' apply, but does not persist
+anything. Prints whether the content is valid and, if not, the validation
+error. Exits non-zero when the content is invalid, so it can gate a CI step.`,
+		Run: validateBlueprint,
+	}
 )
 
 const (
@@ -104,6 +115,13 @@ func init() {
 	archiveBlueprintCmd.MarkFlagRequired(blueprintNameKey)
 	archiveBlueprintCmd.Flags().Int(blueprintVersionKey, 0, "The specific version of the blueprint to archive. Defaults to archiving every version of the blueprint.")
 	blueprintCmd.AddCommand(archiveBlueprintCmd)
+
+	// Validate Blueprint
+	validateBlueprintCmd.Flags().String(blueprintCueFileKey, "", "Path to a file containing the CUE content to validate.")
+	validateBlueprintCmd.MarkFlagRequired(blueprintCueFileKey)
+	validateBlueprintCmd.Flags().String(blueprintNameKey, "", "Optional blueprint name to validate against. Defaults to a placeholder; the CUE content is what gets validated.")
+	validateBlueprintCmd.Flags().Bool(blueprintJSONKey, false, "Output raw JSON ({valid, error}) instead of a human-readable message.")
+	blueprintCmd.AddCommand(validateBlueprintCmd)
 
 	rootCmd.AddCommand(blueprintCmd)
 }
@@ -385,4 +403,69 @@ func archiveBlueprint(ccmd *cobra.Command, args []string) {
 	}
 	ValidateResponse(http.StatusNoContent, "failed to archive blueprint", response.HTTPResponse, response.Body)
 	fmt.Printf("Archived blueprint %q successfully!\n", name)
+}
+
+// blueprintValidationName is sent as the name when --name is omitted. The
+// validate endpoint checks CUE content and does not persist, so the name is
+// only present to satisfy the request shape.
+const blueprintValidationName = "validation-check"
+
+// actualValidateBlueprint sends the CUE content to the validate endpoint and
+// returns the result. The name only satisfies the request shape; the CUE
+// content is what gets validated.
+func actualValidateBlueprint(name, cueContent string) *api.ValidateBlueprintOutput {
+	response, err := Client.ValidateBlueprintWithResponse(context.Background(), api.ValidateBlueprintJSONRequestBody{
+		Name:       name,
+		CueContent: cueContent,
+	})
+	if err != nil {
+		log.Fatal("failed to validate blueprint:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to validate blueprint", response.HTTPResponse, response.Body)
+	if response.JSON200 == nil {
+		log.Fatal("empty response")
+	}
+	return response.JSON200
+}
+
+func validateBlueprint(ccmd *cobra.Command, args []string) {
+	cueFile := viper.GetString(blueprintCueFileKey)
+	if cueFile == "" {
+		log.Fatal("empty blueprint cue file")
+	}
+	cueContent, err := os.ReadFile(cueFile)
+	if err != nil {
+		log.Fatal("failed to read cue file: ", err)
+	}
+
+	name := viper.GetString(blueprintNameKey)
+	if name == "" {
+		name = blueprintValidationName
+	}
+
+	output := actualValidateBlueprint(name, string(cueContent))
+
+	if viper.GetBool(blueprintJSONKey) {
+		OutputJson(*output)
+	} else {
+		fmt.Print(formatBlueprintValidation(*output))
+	}
+
+	// Exit non-zero on invalid content so the command can gate a CI step.
+	if !output.Valid {
+		os.Exit(1)
+	}
+}
+
+// formatBlueprintValidation renders the validation result. A valid blueprint
+// gets a single confirmation line; an invalid one surfaces the server's
+// validation error (falling back to a generic message if none was returned).
+func formatBlueprintValidation(out api.ValidateBlueprintOutput) string {
+	if out.Valid {
+		return "Blueprint CUE is valid.\n"
+	}
+	if out.Error != nil && *out.Error != "" {
+		return fmt.Sprintf("Blueprint CUE is invalid:\n%s\n", *out.Error)
+	}
+	return "Blueprint CUE is invalid.\n"
 }

@@ -3146,10 +3146,10 @@ func TestSystems(t *testing.T) {
 	ts.Equal(buildGPUs, system.BuildGpus)
 	ts.Equal(buildMemoryMiB, system.BuildMemoryMib)
 	ts.Equal(buildSharedMemoryMB, system.BuildSharedMemoryMb)
-	ts.Equal(metricsBuildVCPUs, system.MetricsBuildVcpus)
-	ts.Equal(metricsBuildGPUs, system.MetricsBuildGpus)
-	ts.Equal(metricsBuildMemoryMiB, system.MetricsBuildMemoryMib)
-	ts.Equal(metricsBuildSharedMemoryMB, system.MetricsBuildSharedMemoryMb)
+	ts.Equal(metricsBuildVCPUs, *system.MetricsBuildVcpus)
+	ts.Equal(metricsBuildGPUs, *system.MetricsBuildGpus)
+	ts.Equal(metricsBuildMemoryMiB, *system.MetricsBuildMemoryMib)
+	ts.Equal(metricsBuildSharedMemoryMB, *system.MetricsBuildSharedMemoryMb)
 	ts.Empty(output.StdErr)
 	systemID := system.SystemID
 
@@ -3168,10 +3168,10 @@ func TestSystems(t *testing.T) {
 	ts.Equal(commands.DefaultGPUs, system2.BuildGpus)
 	ts.Equal(commands.DefaultMemoryMiB, system2.BuildMemoryMib)
 	ts.Equal(commands.DefaultSharedMemoryMB, system2.BuildSharedMemoryMb)
-	ts.Equal(commands.DefaultCPUs, system2.MetricsBuildVcpus)
-	ts.Equal(commands.DefaultGPUs, system2.MetricsBuildGpus)
-	ts.Equal(commands.DefaultMemoryMiB, system2.MetricsBuildMemoryMib)
-	ts.Equal(commands.DefaultSharedMemoryMB, system2.MetricsBuildSharedMemoryMb)
+	ts.Equal(commands.DefaultCPUs, *system2.MetricsBuildVcpus)
+	ts.Equal(commands.DefaultGPUs, *system2.MetricsBuildGpus)
+	ts.Equal(commands.DefaultMemoryMiB, *system2.MetricsBuildMemoryMib)
+	ts.Equal(commands.DefaultSharedMemoryMB, *system2.MetricsBuildSharedMemoryMb)
 	ts.Empty(output.StdErr)
 
 	// Validate that missing name, project, or description returns errors:
@@ -3352,10 +3352,10 @@ func TestSystems(t *testing.T) {
 	ts.Equal(buildGPUs, updatedSystem.BuildGpus)
 	ts.Equal(buildMemoryMiB, updatedSystem.BuildMemoryMib)
 	ts.Equal(buildSharedMemoryMB, updatedSystem.BuildSharedMemoryMb)
-	ts.Equal(metricsBuildVCPUs, updatedSystem.MetricsBuildVcpus)
-	ts.Equal(metricsBuildGPUs, updatedSystem.MetricsBuildGpus)
-	ts.Equal(metricsBuildMemoryMiB, updatedSystem.MetricsBuildMemoryMib)
-	ts.Equal(metricsBuildSharedMemoryMB, updatedSystem.MetricsBuildSharedMemoryMb)
+	ts.Equal(metricsBuildVCPUs, *updatedSystem.MetricsBuildVcpus)
+	ts.Equal(metricsBuildGPUs, *updatedSystem.MetricsBuildGpus)
+	ts.Equal(metricsBuildMemoryMiB, *updatedSystem.MetricsBuildMemoryMib)
+	ts.Equal(metricsBuildSharedMemoryMB, *updatedSystem.MetricsBuildSharedMemoryMb)
 	ts.Empty(output.StdErr)
 
 	// Sample edit for all the resout of the resources
@@ -3386,10 +3386,10 @@ func TestSystems(t *testing.T) {
 	ts.Equal(newBuildGPUs, newUpdatedSystem.BuildGpus)
 	ts.Equal(newBuildMemory, newUpdatedSystem.BuildMemoryMib)
 	ts.Equal(newBuildSharedMemory, newUpdatedSystem.BuildSharedMemoryMb)
-	ts.Equal(newMetricsBuildCPUs, newUpdatedSystem.MetricsBuildVcpus)
-	ts.Equal(newMetricsBuildGPUs, newUpdatedSystem.MetricsBuildGpus)
-	ts.Equal(newMetricsBuildMemory, newUpdatedSystem.MetricsBuildMemoryMib)
-	ts.Equal(newMetricsBuildSharedMemory, newUpdatedSystem.MetricsBuildSharedMemoryMb)
+	ts.Equal(newMetricsBuildCPUs, *newUpdatedSystem.MetricsBuildVcpus)
+	ts.Equal(newMetricsBuildGPUs, *newUpdatedSystem.MetricsBuildGpus)
+	ts.Equal(newMetricsBuildMemory, *newUpdatedSystem.MetricsBuildMemoryMib)
+	ts.Equal(newMetricsBuildSharedMemory, *newUpdatedSystem.MetricsBuildSharedMemoryMb)
 	ts.Empty(output.StdErr)
 
 	// Archive the system:
@@ -3432,10 +3432,10 @@ func TestSystemCreateGithub(t *testing.T) {
 	ts.Equal(commands.DefaultGPUs, system2.BuildGpus)
 	ts.Equal(commands.DefaultMemoryMiB, system2.BuildMemoryMib)
 	ts.Equal(commands.DefaultSharedMemoryMB, system2.BuildSharedMemoryMb)
-	ts.Equal(commands.DefaultCPUs, system2.MetricsBuildVcpus)
-	ts.Equal(commands.DefaultGPUs, system2.MetricsBuildGpus)
-	ts.Equal(commands.DefaultMemoryMiB, system2.MetricsBuildMemoryMib)
-	ts.Equal(commands.DefaultSharedMemoryMB, system2.MetricsBuildSharedMemoryMb)
+	ts.Equal(commands.DefaultCPUs, *system2.MetricsBuildVcpus)
+	ts.Equal(commands.DefaultGPUs, *system2.MetricsBuildGpus)
+	ts.Equal(commands.DefaultMemoryMiB, *system2.MetricsBuildMemoryMib)
+	ts.Equal(commands.DefaultSharedMemoryMB, *system2.MetricsBuildSharedMemoryMb)
 	ts.Empty(output.StdErr)
 
 	// Check we can list the systems, and our new system is in it:

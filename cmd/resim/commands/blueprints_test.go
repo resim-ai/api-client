@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -59,7 +60,7 @@ func TestArchiveBlueprintCmdHasFlags(t *testing.T) {
 }
 
 func TestBlueprintSubcommandsRegistered(t *testing.T) {
-	expected := map[string]bool{"create": false, "revise": false, "list": false, "get": false, "archive": false}
+	expected := map[string]bool{"create": false, "revise": false, "list": false, "get": false, "archive": false, "validate": false}
 	for _, sub := range blueprintCmd.Commands() {
 		if _, ok := expected[sub.Name()]; ok {
 			expected[sub.Name()] = true
@@ -432,4 +433,115 @@ func (s *CommandsSuite) TestArchiveBlueprintVersion() {
 
 	out := captureStdout(s, func() { archiveBlueprint(nil, nil) })
 	s.Assert().Contains(out, "Archived blueprint \"my-blueprint\" version 2 successfully!")
+}
+
+func TestValidateBlueprintCmdHasFlags(t *testing.T) {
+	cueFlag := validateBlueprintCmd.Flags().Lookup(blueprintCueFileKey)
+	assert.NotNil(t, cueFlag, "--cue-file flag should exist on validateBlueprintCmd")
+	assert.Equal(t, []string{"true"}, cueFlag.Annotations[cobra.BashCompOneRequiredFlag], "--cue-file should be required")
+
+	for _, name := range []string{blueprintNameKey, blueprintJSONKey} {
+		flag := validateBlueprintCmd.Flags().Lookup(name)
+		assert.NotNil(t, flag, "--%s flag should exist on validateBlueprintCmd", name)
+		assert.Nil(t, flag.Annotations[cobra.BashCompOneRequiredFlag], "--%s should not be required", name)
+	}
+}
+
+// TestFormatBlueprintValidation covers the three rendering cases: valid, invalid
+// with a server-supplied error, and invalid with no error string.
+func (s *CommandsSuite) TestFormatBlueprintValidation() {
+	s.Assert().Equal("Blueprint CUE is valid.\n",
+		formatBlueprintValidation(api.ValidateBlueprintOutput{Valid: true}))
+
+	withErr := formatBlueprintValidation(api.ValidateBlueprintOutput{Valid: false, Error: Ptr("line 3: unresolved reference")})
+	s.Assert().Contains(withErr, "Blueprint CUE is invalid:")
+	s.Assert().Contains(withErr, "line 3: unresolved reference")
+
+	s.Assert().Equal("Blueprint CUE is invalid.\n",
+		formatBlueprintValidation(api.ValidateBlueprintOutput{Valid: false}))
+}
+
+// TestValidateBlueprintValid exercises the happy path: a valid CUE file prints
+// the confirmation, and the request carries the file's contents with the
+// placeholder name (since --name was omitted).
+func (s *CommandsSuite) TestValidateBlueprintValid() {
+	viper.Reset()
+	cueContent := "package blueprint\n\nfoo: \"bar\"\n"
+	cueFile := filepath.Join(s.T().TempDir(), "blueprint.cue")
+	s.Require().NoError(os.WriteFile(cueFile, []byte(cueContent), 0644))
+	viper.Set(blueprintCueFileKey, cueFile)
+
+	s.mockClient.On("ValidateBlueprintWithResponse", matchContext,
+		mock.MatchedBy(func(body api.ValidateBlueprintJSONRequestBody) bool {
+			return body.CueContent == cueContent && body.Name == blueprintValidationName
+		})).Return(
+		&api.ValidateBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ValidateBlueprintOutput{Valid: true},
+		}, nil)
+
+	out := captureStdout(s, func() { validateBlueprint(nil, nil) })
+	s.Assert().Contains(out, "Blueprint CUE is valid.")
+}
+
+// TestValidateBlueprintPassesName verifies an explicit --name overrides the
+// placeholder in the request body.
+func (s *CommandsSuite) TestValidateBlueprintPassesName() {
+	viper.Reset()
+	cueContent := "package blueprint\n"
+	cueFile := filepath.Join(s.T().TempDir(), "blueprint.cue")
+	s.Require().NoError(os.WriteFile(cueFile, []byte(cueContent), 0644))
+	viper.Set(blueprintCueFileKey, cueFile)
+	viper.Set(blueprintNameKey, "my-blueprint")
+
+	s.mockClient.On("ValidateBlueprintWithResponse", matchContext,
+		mock.MatchedBy(func(body api.ValidateBlueprintJSONRequestBody) bool {
+			return body.Name == "my-blueprint"
+		})).Return(
+		&api.ValidateBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ValidateBlueprintOutput{Valid: true},
+		}, nil)
+
+	out := captureStdout(s, func() { validateBlueprint(nil, nil) })
+	s.Assert().Contains(out, "Blueprint CUE is valid.")
+}
+
+// TestValidateBlueprintJSON verifies --json emits the raw {valid, error} shape.
+func (s *CommandsSuite) TestValidateBlueprintJSON() {
+	viper.Reset()
+	cueFile := filepath.Join(s.T().TempDir(), "blueprint.cue")
+	s.Require().NoError(os.WriteFile(cueFile, []byte("package blueprint\n"), 0644))
+	viper.Set(blueprintCueFileKey, cueFile)
+	viper.Set(blueprintJSONKey, true)
+
+	s.mockClient.On("ValidateBlueprintWithResponse", matchContext,
+		mock.AnythingOfType("api.CreateBlueprintInput")).Return(
+		&api.ValidateBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ValidateBlueprintOutput{Valid: true},
+		}, nil)
+
+	out := captureStdout(s, func() { validateBlueprint(nil, nil) })
+	var parsed api.ValidateBlueprintOutput
+	s.Require().NoError(json.Unmarshal([]byte(out), &parsed))
+	s.Assert().True(parsed.Valid)
+}
+
+// TestActualValidateBlueprintInvalid verifies the invalid result flows back with
+// its error intact (the run function's non-zero exit is not exercised here, as
+// it would terminate the test process).
+func (s *CommandsSuite) TestActualValidateBlueprintInvalid() {
+	viper.Reset()
+	s.mockClient.On("ValidateBlueprintWithResponse", matchContext,
+		mock.AnythingOfType("api.CreateBlueprintInput")).Return(
+		&api.ValidateBlueprintResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.ValidateBlueprintOutput{Valid: false, Error: Ptr("line 3: unresolved reference")},
+		}, nil)
+
+	out := actualValidateBlueprint("my-blueprint", "package blueprint\n")
+	s.Assert().False(out.Valid)
+	s.Require().NotNil(out.Error)
+	s.Assert().Equal("line 3: unresolved reference", *out.Error)
 }

@@ -118,6 +118,7 @@ const (
 	experienceProfileKey              = "profile"
 	experienceEnvironnmentVariableKey = "environment-variable"
 	experienceCustomFieldKey          = "custom-field"
+	experienceKindKey                 = "kind"
 )
 
 func init() {
@@ -139,6 +140,7 @@ func init() {
 	createExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	createExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables to set in the build container for this experience")
 	createExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Multiple values for the same field name are allowed.")
+	createExperienceCmd.Flags().String(experienceKindKey, "", "The kind of experience: 'experience' (default) or 'recording' (a raw field log)")
 	createExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(createExperienceCmd)
 
@@ -272,6 +274,14 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		Description:             experienceDescription,
 		Locations:               &experienceLocations,
 		ContainerTimeoutSeconds: &containerTimeoutSeconds,
+	}
+
+	if viper.IsSet(experienceKindKey) {
+		kind := api.ExperienceKind(viper.GetString(experienceKindKey))
+		if kind != api.ExperienceKindExperience && kind != api.ExperienceKindRecording {
+			log.Fatalf("invalid experience kind %q: must be %q or %q", kind, api.ExperienceKindExperience, api.ExperienceKindRecording)
+		}
+		body.Kind = &kind
 	}
 
 	if viper.IsSet(experienceLaunchProfileKey) {

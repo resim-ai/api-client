@@ -2221,6 +2221,157 @@ func (_c *ClientInterface_CompareBatches_Call) RunAndReturn(run func(context.Con
 	return _c
 }
 
+// CreateAnalysis provides a mock function with given fields: ctx, projectID, body, reqEditors
+func (_m *ClientInterface) CreateAnalysis(ctx context.Context, projectID uuid.UUID, body api.CreateAnalysisInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAnalysis")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateAnalysisInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateAnalysisInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, api.CreateAnalysisInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateAnalysis_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAnalysis'
+type ClientInterface_CreateAnalysis_Call struct {
+	*mock.Call
+}
+
+// CreateAnalysis is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - body api.CreateAnalysisInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateAnalysis(ctx interface{}, projectID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateAnalysis_Call {
+	return &ClientInterface_CreateAnalysis_Call{Call: _e.mock.On("CreateAnalysis",
+		append([]interface{}{ctx, projectID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateAnalysis_Call) Run(run func(ctx context.Context, projectID uuid.UUID, body api.CreateAnalysisInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateAnalysis_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(api.CreateAnalysisInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateAnalysis_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateAnalysis_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateAnalysis_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.CreateAnalysisInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateAnalysis_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateAnalysisWithBody provides a mock function with given fields: ctx, projectID, contentType, body, reqEditors
+func (_m *ClientInterface) CreateAnalysisWithBody(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAnalysisWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateAnalysisWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAnalysisWithBody'
+type ClientInterface_CreateAnalysisWithBody_Call struct {
+	*mock.Call
+}
+
+// CreateAnalysisWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateAnalysisWithBody(ctx interface{}, projectID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateAnalysisWithBody_Call {
+	return &ClientInterface_CreateAnalysisWithBody_Call{Call: _e.mock.On("CreateAnalysisWithBody",
+		append([]interface{}{ctx, projectID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateAnalysisWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateAnalysisWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), args[3].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateAnalysisWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateAnalysisWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateAnalysisWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateAnalysisWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateAsset provides a mock function with given fields: ctx, projectID, body, reqEditors
 func (_m *ClientInterface) CreateAsset(ctx context.Context, projectID uuid.UUID, body api.CreateAssetInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -3508,6 +3659,157 @@ func (_c *ClientInterface_CreateExperience_Call) Return(_a0 *http.Response, _a1 
 }
 
 func (_c *ClientInterface_CreateExperience_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.CreateExperienceInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateExperience_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateExperienceFromEvent provides a mock function with given fields: ctx, projectID, body, reqEditors
+func (_m *ClientInterface) CreateExperienceFromEvent(ctx context.Context, projectID uuid.UUID, body api.CreateExperienceFromEventInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateExperienceFromEvent")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateExperienceFromEventInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateExperienceFromEventInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, api.CreateExperienceFromEventInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateExperienceFromEvent_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateExperienceFromEvent'
+type ClientInterface_CreateExperienceFromEvent_Call struct {
+	*mock.Call
+}
+
+// CreateExperienceFromEvent is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - body api.CreateExperienceFromEventInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateExperienceFromEvent(ctx interface{}, projectID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateExperienceFromEvent_Call {
+	return &ClientInterface_CreateExperienceFromEvent_Call{Call: _e.mock.On("CreateExperienceFromEvent",
+		append([]interface{}{ctx, projectID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateExperienceFromEvent_Call) Run(run func(ctx context.Context, projectID uuid.UUID, body api.CreateExperienceFromEventInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateExperienceFromEvent_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(api.CreateExperienceFromEventInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateExperienceFromEvent_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateExperienceFromEvent_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateExperienceFromEvent_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.CreateExperienceFromEventInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateExperienceFromEvent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateExperienceFromEventWithBody provides a mock function with given fields: ctx, projectID, contentType, body, reqEditors
+func (_m *ClientInterface) CreateExperienceFromEventWithBody(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateExperienceFromEventWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_CreateExperienceFromEventWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateExperienceFromEventWithBody'
+type ClientInterface_CreateExperienceFromEventWithBody_Call struct {
+	*mock.Call
+}
+
+// CreateExperienceFromEventWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) CreateExperienceFromEventWithBody(ctx interface{}, projectID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_CreateExperienceFromEventWithBody_Call {
+	return &ClientInterface_CreateExperienceFromEventWithBody_Call{Call: _e.mock.On("CreateExperienceFromEventWithBody",
+		append([]interface{}{ctx, projectID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_CreateExperienceFromEventWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_CreateExperienceFromEventWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), args[3].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_CreateExperienceFromEventWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_CreateExperienceFromEventWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_CreateExperienceFromEventWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_CreateExperienceFromEventWithBody_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -8500,6 +8802,81 @@ func (_c *ClientInterface_GetReportLog_Call) Return(_a0 *http.Response, _a1 erro
 }
 
 func (_c *ClientInterface_GetReportLog_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetReportLog_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetSkill provides a mock function with given fields: ctx, projectID, skillID, reqEditors
+func (_m *ClientInterface) GetSkill(ctx context.Context, projectID uuid.UUID, skillID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, skillID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetSkill")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, skillID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, skillID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, skillID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetSkill_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSkill'
+type ClientInterface_GetSkill_Call struct {
+	*mock.Call
+}
+
+// GetSkill is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - skillID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetSkill(ctx interface{}, projectID interface{}, skillID interface{}, reqEditors ...interface{}) *ClientInterface_GetSkill_Call {
+	return &ClientInterface_GetSkill_Call{Call: _e.mock.On("GetSkill",
+		append([]interface{}{ctx, projectID, skillID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetSkill_Call) Run(run func(ctx context.Context, projectID uuid.UUID, skillID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetSkill_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetSkill_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetSkill_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetSkill_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetSkill_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -13876,6 +14253,154 @@ func (_c *ClientInterface_ListServiceProfiles_Call) RunAndReturn(run func(contex
 	return _c
 }
 
+// ListSkillCatalog provides a mock function with given fields: ctx, projectID, reqEditors
+func (_m *ClientInterface) ListSkillCatalog(ctx context.Context, projectID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListSkillCatalog")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListSkillCatalog_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListSkillCatalog'
+type ClientInterface_ListSkillCatalog_Call struct {
+	*mock.Call
+}
+
+// ListSkillCatalog is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListSkillCatalog(ctx interface{}, projectID interface{}, reqEditors ...interface{}) *ClientInterface_ListSkillCatalog_Call {
+	return &ClientInterface_ListSkillCatalog_Call{Call: _e.mock.On("ListSkillCatalog",
+		append([]interface{}{ctx, projectID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListSkillCatalog_Call) Run(run func(ctx context.Context, projectID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListSkillCatalog_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListSkillCatalog_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListSkillCatalog_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListSkillCatalog_Call) RunAndReturn(run func(context.Context, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListSkillCatalog_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListSkills provides a mock function with given fields: ctx, projectID, reqEditors
+func (_m *ClientInterface) ListSkills(ctx context.Context, projectID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListSkills")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_ListSkills_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListSkills'
+type ClientInterface_ListSkills_Call struct {
+	*mock.Call
+}
+
+// ListSkills is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) ListSkills(ctx interface{}, projectID interface{}, reqEditors ...interface{}) *ClientInterface_ListSkills_Call {
+	return &ClientInterface_ListSkills_Call{Call: _e.mock.On("ListSkills",
+		append([]interface{}{ctx, projectID}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_ListSkills_Call) Run(run func(ctx context.Context, projectID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListSkills_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-2)
+		for i, a := range args[2:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_ListSkills_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListSkills_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_ListSkills_Call) RunAndReturn(run func(context.Context, uuid.UUID, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListSkills_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListSweepAccounts provides a mock function with given fields: ctx, projectID, reqEditors
 func (_m *ClientInterface) ListSweepAccounts(ctx context.Context, projectID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -14856,6 +15381,157 @@ func (_c *ClientInterface_PauseAgentWithBody_Call) Return(_a0 *http.Response, _a
 }
 
 func (_c *ClientInterface_PauseAgentWithBody_Call) RunAndReturn(run func(context.Context, string, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_PauseAgentWithBody_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RegisterSkill provides a mock function with given fields: ctx, projectID, body, reqEditors
+func (_m *ClientInterface) RegisterSkill(ctx context.Context, projectID uuid.UUID, body api.CreateSkillInput, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RegisterSkill")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateSkillInput, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, api.CreateSkillInput, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, api.CreateSkillInput, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_RegisterSkill_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterSkill'
+type ClientInterface_RegisterSkill_Call struct {
+	*mock.Call
+}
+
+// RegisterSkill is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - body api.CreateSkillInput
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) RegisterSkill(ctx interface{}, projectID interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_RegisterSkill_Call {
+	return &ClientInterface_RegisterSkill_Call{Call: _e.mock.On("RegisterSkill",
+		append([]interface{}{ctx, projectID, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_RegisterSkill_Call) Run(run func(ctx context.Context, projectID uuid.UUID, body api.CreateSkillInput, reqEditors ...api.RequestEditorFn)) *ClientInterface_RegisterSkill_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(api.CreateSkillInput), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_RegisterSkill_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_RegisterSkill_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_RegisterSkill_Call) RunAndReturn(run func(context.Context, uuid.UUID, api.CreateSkillInput, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_RegisterSkill_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RegisterSkillWithBody provides a mock function with given fields: ctx, projectID, contentType, body, reqEditors
+func (_m *ClientInterface) RegisterSkillWithBody(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, contentType, body)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RegisterSkillWithBody")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, contentType, body, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_RegisterSkillWithBody_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterSkillWithBody'
+type ClientInterface_RegisterSkillWithBody_Call struct {
+	*mock.Call
+}
+
+// RegisterSkillWithBody is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) RegisterSkillWithBody(ctx interface{}, projectID interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *ClientInterface_RegisterSkillWithBody_Call {
+	return &ClientInterface_RegisterSkillWithBody_Call{Call: _e.mock.On("RegisterSkillWithBody",
+		append([]interface{}{ctx, projectID, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_RegisterSkillWithBody_Call) Run(run func(ctx context.Context, projectID uuid.UUID, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn)) *ClientInterface_RegisterSkillWithBody_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(string), args[3].(io.Reader), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_RegisterSkillWithBody_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_RegisterSkillWithBody_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_RegisterSkillWithBody_Call) RunAndReturn(run func(context.Context, uuid.UUID, string, io.Reader, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_RegisterSkillWithBody_Call {
 	_c.Call.Return(run)
 	return _c
 }

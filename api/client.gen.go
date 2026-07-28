@@ -108,6 +108,12 @@ const (
 	RELATIVE EventTimestampType = "RELATIVE"
 )
 
+// Defines values for ExperienceKind.
+const (
+	ExperienceKindExperience ExperienceKind = "experience"
+	ExperienceKindRecording  ExperienceKind = "recording"
+)
+
 // Defines values for JobStatus.
 const (
 	JobStatusCANCELLED         JobStatus = "CANCELLED"
@@ -464,6 +470,12 @@ type AgentUtilizationTopExperience struct {
 	RunCount        int                `json:"runCount" yaml:"runCount"`
 	Share           float64            `json:"share" yaml:"share"`
 	TotalRunSeconds float64            `json:"totalRunSeconds" yaml:"totalRunSeconds"`
+}
+
+// AnalysisRun The created Analysis (test suite) together with the batch that runs it.
+type AnalysisRun struct {
+	Analysis TestSuite `json:"analysis" yaml:"analysis"`
+	Batch    Batch     `json:"batch" yaml:"batch"`
 }
 
 // Architecture defines model for architecture.
@@ -896,6 +908,24 @@ type ContainerStatusLine struct {
 	StatusChangedTimestamp Timestamp       `json:"statusChangedTimestamp" yaml:"statusChangedTimestamp"`
 }
 
+// CreateAnalysisInput Create and run an Analysis: a named, revisioned test suite over the selected Recordings, run as an ordinary no-GPU system build on the metrics-2 event path.
+type CreateAnalysisInput struct {
+	BatchName          *Name    `json:"batchName,omitempty" yaml:"batchName,omitempty"`
+	BuildID            BuildID  `json:"buildID" yaml:"buildID"`
+	CustomImageBuildID *BuildID `json:"customImageBuildID,omitempty" yaml:"customImageBuildID,omitempty"`
+
+	// Description The plain-language detection prompt (skill input tier b). Also used as the Analysis description.
+	Description *string     `json:"description,omitempty" yaml:"description,omitempty"`
+	Name        string      `json:"name" yaml:"name"`
+	PoolLabels  *PoolLabels `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
+
+	// RecordingIDs The Recording experiences (kind=recording) to analyze.
+	RecordingIDs []ExperienceID `json:"recordingIDs" yaml:"recordingIDs"`
+
+	// SkillID A catalog skill id (skill input tier a), resolved to a prompt fragment.
+	SkillID *string `json:"skillID" yaml:"skillID"`
+}
+
 // CreateAssetInput defines model for createAssetInput.
 type CreateAssetInput struct {
 	// CacheExempt If true, the asset will not be cached.
@@ -974,6 +1004,15 @@ type CreateBuildForSystemInput1 = interface{}
 // CreateBuildForSystemInput2 defines model for .
 type CreateBuildForSystemInput2 = interface{}
 
+// CreateExperienceFromEventInput defines model for createExperienceFromEventInput.
+type CreateExperienceFromEventInput struct {
+	EndTime               Timestamp       `json:"endTime" yaml:"endTime"`
+	EventID               *EventID        `json:"eventID,omitempty" yaml:"eventID,omitempty"`
+	Name                  *ExperienceName `json:"name,omitempty" yaml:"name,omitempty"`
+	RecordingExperienceID ExperienceID    `json:"recordingExperienceID" yaml:"recordingExperienceID"`
+	StartTime             Timestamp       `json:"startTime" yaml:"startTime"`
+}
+
 // CreateExperienceInput defines model for createExperienceInput.
 type CreateExperienceInput struct {
 	// CacheExempt If true, the experience will not be cached.
@@ -985,6 +1024,9 @@ type CreateExperienceInput struct {
 	Description          string                   `json:"description" yaml:"description"`
 	EnvironmentVariables *[]EnvironmentVariable   `json:"environmentVariables,omitempty" yaml:"environmentVariables,omitempty"`
 	ExperienceTagIDs     *[]ExperienceTagID       `json:"experienceTagIDs,omitempty" yaml:"experienceTagIDs,omitempty"`
+
+	// Kind Discriminates an ordinary experience from a recording (a raw field log). Defaults to 'experience'.
+	Kind *ExperienceKind `json:"kind,omitempty" yaml:"kind,omitempty"`
 
 	// Location [DEPRECATED] This field was previously used to define an experience's location. Experiences can now be defined with multiple locations, using the locations field. This field will be removed in a later release.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -1042,6 +1084,15 @@ type CreateProjectInput struct {
 	AgentMarkdown *string `json:"agentMarkdown,omitempty" yaml:"agentMarkdown,omitempty"`
 	Description   string  `json:"description" yaml:"description"`
 	Name          string  `json:"name" yaml:"name"`
+}
+
+// CreateSkillInput Register an event-detection skill for a project.
+type CreateSkillInput struct {
+	Description *string `json:"description,omitempty" yaml:"description,omitempty"`
+	Name        string  `json:"name" yaml:"name"`
+
+	// PromptFragment The text the agentic triage build feeds Claude when this skill is selected.
+	PromptFragment *string `json:"promptFragment,omitempty" yaml:"promptFragment,omitempty"`
 }
 
 // CreateSystemInput defines model for createSystemInput.
@@ -1288,6 +1339,9 @@ type Experience struct {
 	EnvironmentVariables []EnvironmentVariable   `json:"environmentVariables" yaml:"environmentVariables"`
 	ExperienceID         ExperienceID            `json:"experienceID" yaml:"experienceID"`
 
+	// Kind Discriminates an ordinary experience from a recording (a raw field log). Defaults to 'experience'.
+	Kind *ExperienceKind `json:"kind,omitempty" yaml:"kind,omitempty"`
+
 	// Location [DEPRECATED] This field was previously used to report an experience's location. Experiences can now be defined with multiple locations, this field will display the first location; this field will be removed in a future version.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	Location        string         `json:"location" yaml:"location"`
@@ -1315,6 +1369,9 @@ type ExperienceFilterInput struct {
 
 // ExperienceID defines model for experienceID.
 type ExperienceID = openapi_types.UUID
+
+// ExperienceKind Discriminates an ordinary experience from a recording (a raw field log). Defaults to 'experience'.
+type ExperienceKind string
 
 // ExperienceLocation defines model for experienceLocation.
 type ExperienceLocation struct {
@@ -1906,6 +1963,11 @@ type ListReportsOutput struct {
 	Total         *int      `json:"total,omitempty" yaml:"total,omitempty"`
 }
 
+// ListSkillsOutput defines model for listSkillsOutput.
+type ListSkillsOutput struct {
+	Skills []Skill `json:"skills" yaml:"skills"`
+}
+
 // ListSystemsOutput defines model for listSystemsOutput.
 type ListSystemsOutput struct {
 	NextPageToken *string   `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
@@ -2460,6 +2522,33 @@ type SelectExperiencesInput struct {
 	Experiences    *[]ExperienceID        `json:"experiences,omitempty" yaml:"experiences,omitempty"`
 	Filters        *ExperienceFilterInput `json:"filters,omitempty" yaml:"filters,omitempty"`
 }
+
+// Skill A registered event-detection skill.
+type Skill struct {
+	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
+	Description       string    `json:"description" yaml:"description"`
+	Name              string    `json:"name" yaml:"name"`
+	OrgID             OrgID     `json:"orgID" yaml:"orgID"`
+	ProjectID         ProjectID `json:"projectID" yaml:"projectID"`
+	PromptFragment    string    `json:"promptFragment" yaml:"promptFragment"`
+	SkillID           SkillID   `json:"skillID" yaml:"skillID"`
+	UserID            UserID    `json:"userID" yaml:"userID"`
+}
+
+// SkillCatalogEntry A predefined detection skill the user can select for an Analysis (tier a of the skill input).
+type SkillCatalogEntry struct {
+	Id             string `json:"id" yaml:"id"`
+	Label          string `json:"label" yaml:"label"`
+	PromptFragment string `json:"promptFragment" yaml:"promptFragment"`
+}
+
+// SkillCatalogOutput defines model for skillCatalogOutput.
+type SkillCatalogOutput struct {
+	Skills []SkillCatalogEntry `json:"skills" yaml:"skills"`
+}
+
+// SkillID defines model for skillID.
+type SkillID = openapi_types.UUID
 
 // SweepParameter defines model for sweepParameter.
 type SweepParameter struct {
@@ -3320,6 +3409,9 @@ type ListExperiencesParams struct {
 	Search   *string `form:"search,omitempty" json:"search,omitempty" yaml:"search,omitempty"`
 	Archived *bool   `form:"archived,omitempty" json:"archived,omitempty" yaml:"archived,omitempty"`
 
+	// Kind Filter experiences by kind. Defaults to 'experience', which excludes recordings.
+	Kind *ExperienceKind `form:"kind,omitempty" json:"kind,omitempty" yaml:"kind,omitempty"`
+
 	// IncludeCustomFields If true, includes customFields in the response. Defaults to false to avoid performance issues when listing many experiences.
 	IncludeCustomFields *bool              `form:"includeCustomFields,omitempty" json:"includeCustomFields,omitempty" yaml:"includeCustomFields,omitempty"`
 	PageSize            *PageSizeUnbounded `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
@@ -3534,6 +3626,9 @@ type CreateProjectJSONRequestBody = CreateProjectInput
 // UpdateProjectJSONRequestBody defines body for UpdateProject for application/json ContentType.
 type UpdateProjectJSONRequestBody = UpdateProjectInput
 
+// CreateAnalysisJSONRequestBody defines body for CreateAnalysis for application/json ContentType.
+type CreateAnalysisJSONRequestBody = CreateAnalysisInput
+
 // CreateAssetJSONRequestBody defines body for CreateAsset for application/json ContentType.
 type CreateAssetJSONRequestBody = CreateAssetInput
 
@@ -3600,6 +3695,9 @@ type CreateExperienceJSONRequestBody = CreateExperienceInput
 // BulkArchiveExperiencesJSONRequestBody defines body for BulkArchiveExperiences for application/json ContentType.
 type BulkArchiveExperiencesJSONRequestBody = BulkArchiveExperiencesInput
 
+// CreateExperienceFromEventJSONRequestBody defines body for CreateExperienceFromEvent for application/json ContentType.
+type CreateExperienceFromEventJSONRequestBody = CreateExperienceFromEventInput
+
 // UpdateExperienceJSONRequestBody defines body for UpdateExperience for application/json ContentType.
 type UpdateExperienceJSONRequestBody = UpdateExperienceInput
 
@@ -3611,6 +3709,9 @@ type CreateMetricsBuildJSONRequestBody = CreateMetricsBuildInput
 
 // CreateReportJSONRequestBody defines body for CreateReport for application/json ContentType.
 type CreateReportJSONRequestBody = ReportInput
+
+// RegisterSkillJSONRequestBody defines body for RegisterSkill for application/json ContentType.
+type RegisterSkillJSONRequestBody = CreateSkillInput
 
 // CreateTestSuiteJSONRequestBody defines body for CreateTestSuite for application/json ContentType.
 type CreateTestSuiteJSONRequestBody = CreateTestSuiteInput
@@ -4284,6 +4385,14 @@ type ClientInterface interface {
 	// ListAgentMarkdownHistory request
 	ListAgentMarkdownHistory(ctx context.Context, projectID ProjectID, params *ListAgentMarkdownHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateAnalysisWithBody request with any body
+	CreateAnalysisWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateAnalysis(ctx context.Context, projectID ProjectID, body CreateAnalysisJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSkillCatalog request
+	ListSkillCatalog(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ListAssets request
 	ListAssets(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -4595,6 +4704,11 @@ type ClientInterface interface {
 	// ListExperienceCustomFields request
 	ListExperienceCustomFields(ctx context.Context, projectID ProjectID, params *ListExperienceCustomFieldsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateExperienceFromEventWithBody request with any body
+	CreateExperienceFromEventWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateExperienceFromEvent(ctx context.Context, projectID ProjectID, body CreateExperienceFromEventJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ArchiveExperience request
 	ArchiveExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -4677,6 +4791,17 @@ type ClientInterface interface {
 
 	// ListReportMetricsDataForReportMetricsDataIDs request
 	ListReportMetricsDataForReportMetricsDataIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// ListSkills request
+	ListSkills(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RegisterSkillWithBody request with any body
+	RegisterSkillWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	RegisterSkill(ctx context.Context, projectID ProjectID, body RegisterSkillJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetSkill request
+	GetSkill(ctx context.Context, projectID ProjectID, skillID SkillID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListTestSuites request
 	ListTestSuites(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5243,6 +5368,42 @@ func (c *Client) UpdateProject(ctx context.Context, projectID ProjectID, body Up
 
 func (c *Client) ListAgentMarkdownHistory(ctx context.Context, projectID ProjectID, params *ListAgentMarkdownHistoryParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListAgentMarkdownHistoryRequest(c.Server, projectID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateAnalysisWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateAnalysisRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateAnalysis(ctx context.Context, projectID ProjectID, body CreateAnalysisJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateAnalysisRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListSkillCatalog(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSkillCatalogRequest(c.Server, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -6585,6 +6746,30 @@ func (c *Client) ListExperienceCustomFields(ctx context.Context, projectID Proje
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreateExperienceFromEventWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateExperienceFromEventRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateExperienceFromEvent(ctx context.Context, projectID ProjectID, body CreateExperienceFromEventJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateExperienceFromEventRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) ArchiveExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewArchiveExperienceRequest(c.Server, projectID, experienceID)
 	if err != nil {
@@ -6923,6 +7108,54 @@ func (c *Client) ListReportMetricsData(ctx context.Context, projectID ProjectID,
 
 func (c *Client) ListReportMetricsDataForReportMetricsDataIDs(ctx context.Context, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListReportMetricsDataForReportMetricsDataIDsRequest(c.Server, projectID, reportID, metricsDataID, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) ListSkills(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListSkillsRequest(c.Server, projectID)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterSkillWithBody(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterSkillRequestWithBody(c.Server, projectID, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) RegisterSkill(ctx context.Context, projectID ProjectID, body RegisterSkillJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRegisterSkillRequest(c.Server, projectID, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetSkill(ctx context.Context, projectID ProjectID, skillID SkillID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetSkillRequest(c.Server, projectID, skillID)
 	if err != nil {
 		return nil, err
 	}
@@ -9292,6 +9525,87 @@ func NewListAgentMarkdownHistoryRequest(server string, projectID ProjectID, para
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewCreateAnalysisRequest calls the generic CreateAnalysis builder with application/json body
+func NewCreateAnalysisRequest(server string, projectID ProjectID, body CreateAnalysisJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateAnalysisRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateAnalysisRequestWithBody generates requests for CreateAnalysis with any type of body
+func NewCreateAnalysisRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/analyses", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewListSkillCatalogRequest generates requests for ListSkillCatalog
+func NewListSkillCatalogRequest(server string, projectID ProjectID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/analyses/skillCatalog", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -15180,6 +15494,22 @@ func NewListExperiencesRequest(server string, projectID ProjectID, params *ListE
 
 		}
 
+		if params.Kind != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "kind", runtime.ParamLocationQuery, *params.Kind); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
 		if params.IncludeCustomFields != nil {
 
 			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "includeCustomFields", runtime.ParamLocationQuery, *params.IncludeCustomFields); err != nil {
@@ -15401,6 +15731,53 @@ func NewListExperienceCustomFieldsRequest(server string, projectID ProjectID, pa
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewCreateExperienceFromEventRequest calls the generic CreateExperienceFromEvent builder with application/json body
+func NewCreateExperienceFromEventRequest(server string, projectID ProjectID, body CreateExperienceFromEventJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateExperienceFromEventRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewCreateExperienceFromEventRequestWithBody generates requests for CreateExperienceFromEvent with any type of body
+func NewCreateExperienceFromEventRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/experiences/fromEvent", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -17017,6 +17394,128 @@ func NewListReportMetricsDataForReportMetricsDataIDsRequest(server string, proje
 		}
 
 		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewListSkillsRequest generates requests for ListSkills
+func NewListSkillsRequest(server string, projectID ProjectID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/skills", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewRegisterSkillRequest calls the generic RegisterSkill builder with application/json body
+func NewRegisterSkillRequest(server string, projectID ProjectID, body RegisterSkillJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewRegisterSkillRequestWithBody(server, projectID, "application/json", bodyReader)
+}
+
+// NewRegisterSkillRequestWithBody generates requests for RegisterSkill with any type of body
+func NewRegisterSkillRequestWithBody(server string, projectID ProjectID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/skills", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetSkillRequest generates requests for GetSkill
+func NewGetSkillRequest(server string, projectID ProjectID, skillID SkillID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "skillID", runtime.ParamLocationPath, skillID)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/projects/%s/skills/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
 	}
 
 	req, err := http.NewRequest("GET", queryURL.String(), nil)
@@ -20160,6 +20659,14 @@ type ClientWithResponsesInterface interface {
 	// ListAgentMarkdownHistoryWithResponse request
 	ListAgentMarkdownHistoryWithResponse(ctx context.Context, projectID ProjectID, params *ListAgentMarkdownHistoryParams, reqEditors ...RequestEditorFn) (*ListAgentMarkdownHistoryResponse, error)
 
+	// CreateAnalysisWithBodyWithResponse request with any body
+	CreateAnalysisWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAnalysisResponse, error)
+
+	CreateAnalysisWithResponse(ctx context.Context, projectID ProjectID, body CreateAnalysisJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAnalysisResponse, error)
+
+	// ListSkillCatalogWithResponse request
+	ListSkillCatalogWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListSkillCatalogResponse, error)
+
 	// ListAssetsWithResponse request
 	ListAssetsWithResponse(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*ListAssetsResponse, error)
 
@@ -20471,6 +20978,11 @@ type ClientWithResponsesInterface interface {
 	// ListExperienceCustomFieldsWithResponse request
 	ListExperienceCustomFieldsWithResponse(ctx context.Context, projectID ProjectID, params *ListExperienceCustomFieldsParams, reqEditors ...RequestEditorFn) (*ListExperienceCustomFieldsResponse, error)
 
+	// CreateExperienceFromEventWithBodyWithResponse request with any body
+	CreateExperienceFromEventWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateExperienceFromEventResponse, error)
+
+	CreateExperienceFromEventWithResponse(ctx context.Context, projectID ProjectID, body CreateExperienceFromEventJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateExperienceFromEventResponse, error)
+
 	// ArchiveExperienceWithResponse request
 	ArchiveExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*ArchiveExperienceResponse, error)
 
@@ -20553,6 +21065,17 @@ type ClientWithResponsesInterface interface {
 
 	// ListReportMetricsDataForReportMetricsDataIDsWithResponse request
 	ListReportMetricsDataForReportMetricsDataIDsWithResponse(ctx context.Context, projectID ProjectID, reportID ReportID, metricsDataID []MetricsDataID, params *ListReportMetricsDataForReportMetricsDataIDsParams, reqEditors ...RequestEditorFn) (*ListReportMetricsDataForReportMetricsDataIDsResponse, error)
+
+	// ListSkillsWithResponse request
+	ListSkillsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListSkillsResponse, error)
+
+	// RegisterSkillWithBodyWithResponse request with any body
+	RegisterSkillWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterSkillResponse, error)
+
+	RegisterSkillWithResponse(ctx context.Context, projectID ProjectID, body RegisterSkillJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterSkillResponse, error)
+
+	// GetSkillWithResponse request
+	GetSkillWithResponse(ctx context.Context, projectID ProjectID, skillID SkillID, reqEditors ...RequestEditorFn) (*GetSkillResponse, error)
 
 	// ListTestSuitesWithResponse request
 	ListTestSuitesWithResponse(ctx context.Context, projectID ProjectID, params *ListTestSuitesParams, reqEditors ...RequestEditorFn) (*ListTestSuitesResponse, error)
@@ -21329,6 +21852,50 @@ func (r ListAgentMarkdownHistoryResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListAgentMarkdownHistoryResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateAnalysisResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *AnalysisRun
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateAnalysisResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateAnalysisResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListSkillCatalogResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *SkillCatalogOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSkillCatalogResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSkillCatalogResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -23277,6 +23844,28 @@ func (r ListExperienceCustomFieldsResponse) StatusCode() int {
 	return 0
 }
 
+type CreateExperienceFromEventResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Experience
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateExperienceFromEventResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateExperienceFromEventResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ArchiveExperienceResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23819,6 +24408,72 @@ func (r ListReportMetricsDataForReportMetricsDataIDsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListReportMetricsDataForReportMetricsDataIDsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListSkillsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *ListSkillsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r ListSkillsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListSkillsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type RegisterSkillResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *Skill
+}
+
+// Status returns HTTPResponse.Status
+func (r RegisterSkillResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RegisterSkillResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetSkillResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Skill
+}
+
+// Status returns HTTPResponse.Status
+func (r GetSkillResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetSkillResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -25196,6 +25851,32 @@ func (c *ClientWithResponses) ListAgentMarkdownHistoryWithResponse(ctx context.C
 	return ParseListAgentMarkdownHistoryResponse(rsp)
 }
 
+// CreateAnalysisWithBodyWithResponse request with arbitrary body returning *CreateAnalysisResponse
+func (c *ClientWithResponses) CreateAnalysisWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateAnalysisResponse, error) {
+	rsp, err := c.CreateAnalysisWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateAnalysisResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateAnalysisWithResponse(ctx context.Context, projectID ProjectID, body CreateAnalysisJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateAnalysisResponse, error) {
+	rsp, err := c.CreateAnalysis(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateAnalysisResponse(rsp)
+}
+
+// ListSkillCatalogWithResponse request returning *ListSkillCatalogResponse
+func (c *ClientWithResponses) ListSkillCatalogWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListSkillCatalogResponse, error) {
+	rsp, err := c.ListSkillCatalog(ctx, projectID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSkillCatalogResponse(rsp)
+}
+
 // ListAssetsWithResponse request returning *ListAssetsResponse
 func (c *ClientWithResponses) ListAssetsWithResponse(ctx context.Context, projectID ProjectID, params *ListAssetsParams, reqEditors ...RequestEditorFn) (*ListAssetsResponse, error) {
 	rsp, err := c.ListAssets(ctx, projectID, params, reqEditors...)
@@ -26173,6 +26854,23 @@ func (c *ClientWithResponses) ListExperienceCustomFieldsWithResponse(ctx context
 	return ParseListExperienceCustomFieldsResponse(rsp)
 }
 
+// CreateExperienceFromEventWithBodyWithResponse request with arbitrary body returning *CreateExperienceFromEventResponse
+func (c *ClientWithResponses) CreateExperienceFromEventWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateExperienceFromEventResponse, error) {
+	rsp, err := c.CreateExperienceFromEventWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateExperienceFromEventResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateExperienceFromEventWithResponse(ctx context.Context, projectID ProjectID, body CreateExperienceFromEventJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateExperienceFromEventResponse, error) {
+	rsp, err := c.CreateExperienceFromEvent(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateExperienceFromEventResponse(rsp)
+}
+
 // ArchiveExperienceWithResponse request returning *ArchiveExperienceResponse
 func (c *ClientWithResponses) ArchiveExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*ArchiveExperienceResponse, error) {
 	rsp, err := c.ArchiveExperience(ctx, projectID, experienceID, reqEditors...)
@@ -26428,6 +27126,41 @@ func (c *ClientWithResponses) ListReportMetricsDataForReportMetricsDataIDsWithRe
 		return nil, err
 	}
 	return ParseListReportMetricsDataForReportMetricsDataIDsResponse(rsp)
+}
+
+// ListSkillsWithResponse request returning *ListSkillsResponse
+func (c *ClientWithResponses) ListSkillsWithResponse(ctx context.Context, projectID ProjectID, reqEditors ...RequestEditorFn) (*ListSkillsResponse, error) {
+	rsp, err := c.ListSkills(ctx, projectID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListSkillsResponse(rsp)
+}
+
+// RegisterSkillWithBodyWithResponse request with arbitrary body returning *RegisterSkillResponse
+func (c *ClientWithResponses) RegisterSkillWithBodyWithResponse(ctx context.Context, projectID ProjectID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RegisterSkillResponse, error) {
+	rsp, err := c.RegisterSkillWithBody(ctx, projectID, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterSkillResponse(rsp)
+}
+
+func (c *ClientWithResponses) RegisterSkillWithResponse(ctx context.Context, projectID ProjectID, body RegisterSkillJSONRequestBody, reqEditors ...RequestEditorFn) (*RegisterSkillResponse, error) {
+	rsp, err := c.RegisterSkill(ctx, projectID, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRegisterSkillResponse(rsp)
+}
+
+// GetSkillWithResponse request returning *GetSkillResponse
+func (c *ClientWithResponses) GetSkillWithResponse(ctx context.Context, projectID ProjectID, skillID SkillID, reqEditors ...RequestEditorFn) (*GetSkillResponse, error) {
+	rsp, err := c.GetSkill(ctx, projectID, skillID, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetSkillResponse(rsp)
 }
 
 // ListTestSuitesWithResponse request returning *ListTestSuitesResponse
@@ -27692,6 +28425,58 @@ func ParseListAgentMarkdownHistoryResponse(rsp *http.Response) (*ListAgentMarkdo
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListAgentMarkdownHistoryOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateAnalysisResponse parses an HTTP response from a CreateAnalysisWithResponse call
+func ParseCreateAnalysisResponse(rsp *http.Response) (*CreateAnalysisResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateAnalysisResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest AnalysisRun
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListSkillCatalogResponse parses an HTTP response from a ListSkillCatalogWithResponse call
+func ParseListSkillCatalogResponse(rsp *http.Response) (*ListSkillCatalogResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSkillCatalogResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest SkillCatalogOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -29856,6 +30641,32 @@ func ParseListExperienceCustomFieldsResponse(rsp *http.Response) (*ListExperienc
 	return response, nil
 }
 
+// ParseCreateExperienceFromEventResponse parses an HTTP response from a CreateExperienceFromEventWithResponse call
+func ParseCreateExperienceFromEventResponse(rsp *http.Response) (*CreateExperienceFromEventResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateExperienceFromEventResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Experience
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseArchiveExperienceResponse parses an HTTP response from a ArchiveExperienceWithResponse call
 func ParseArchiveExperienceResponse(rsp *http.Response) (*ArchiveExperienceResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -30476,6 +31287,84 @@ func ParseListReportMetricsDataForReportMetricsDataIDsResponse(rsp *http.Respons
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest ListReportMetricsDataOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseListSkillsResponse parses an HTTP response from a ListSkillsWithResponse call
+func ParseListSkillsResponse(rsp *http.Response) (*ListSkillsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListSkillsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest ListSkillsOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRegisterSkillResponse parses an HTTP response from a RegisterSkillWithResponse call
+func ParseRegisterSkillResponse(rsp *http.Response) (*RegisterSkillResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RegisterSkillResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest Skill
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetSkillResponse parses an HTTP response from a GetSkillWithResponse call
+func ParseGetSkillResponse(rsp *http.Response) (*GetSkillResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetSkillResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Skill
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

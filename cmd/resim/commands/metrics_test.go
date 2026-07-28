@@ -4,10 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"testing"
 	"time"
 
 	"github.com/Khan/genqlient/graphql"
+	"github.com/google/uuid"
+	"github.com/resim-ai/api-client/api"
+	mockapiclient "github.com/resim-ai/api-client/api/mocks"
 	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
@@ -250,4 +254,130 @@ func TestMockGraphQLClient_SatisfiesInterface(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "abc-123", result.CreateDebugDashboard.Id)
 	mockClient.AssertExpectations(t)
+}
+
+func isPreviewTopicRemovalRequest(req *graphql.Request) bool {
+	return req.OpName == "PreviewTopicRemoval"
+}
+
+func isUpdateMetricsConfigRequest(req *graphql.Request) bool {
+	return req.OpName == "UpdateMetricsConfig"
+}
+
+func withPreviewTopicRemovalResponse(previews []bff.PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) func(args mock.Arguments) {
+	return func(args mock.Arguments) {
+		resp := args.Get(2).(*graphql.Response)
+		data := resp.Data.(*bff.PreviewTopicRemovalResponse)
+		data.PreviewTopicRemoval = previews
+	}
+}
+
+func withUpdateMetricsConfigSuccess() func(args mock.Arguments) {
+	return func(args mock.Arguments) {
+		resp := args.Get(2).(*graphql.Response)
+		data := resp.Data.(*bff.UpdateMetricsConfigResponse)
+		data.UpdateMetricsConfig = "Success"
+	}
+}
+
+// withMockClient stubs the package-level REST Client with a mock that returns a
+// named branch for any GetBranchForProjectWithResponse call — SyncMetricsConfig's
+// first call, needed before it ever touches BffClient.
+func withMockClient(t *testing.T, branchName string) *mockapiclient.ClientWithResponsesInterface {
+	t.Helper()
+	mockClient := mockapiclient.NewClientWithResponsesInterface(t)
+	mockClient.On("GetBranchForProjectWithResponse", mock.Anything, mock.Anything, mock.Anything).
+		Return(&api.GetBranchForProjectResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.Branch{Name: branchName},
+		}, nil)
+
+	origClient := Client
+	Client = mockClient
+	t.Cleanup(func() { Client = origClient })
+	return mockClient
+}
+
+func TestSyncMetricsConfig_NoTopicsRemoved_SucceedsWithoutFlag(t *testing.T) {
+	withMockClient(t, "main")
+	mockBff := new(mockGraphQLClient)
+	withMockBffClient(t, mockBff)
+
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicRemovalRequest), mock.Anything).
+		Run(withPreviewTopicRemovalResponse(nil)).
+		Return(nil).Once()
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything).
+		Run(withUpdateMetricsConfigSuccess()).
+		Return(nil).Once()
+
+	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", false, false)
+	assert.NoError(t, err)
+	mockBff.AssertExpectations(t)
+}
+
+func TestSyncMetricsConfig_TopicsWouldBeRemoved_RejectsWithoutFlag(t *testing.T) {
+	withMockClient(t, "main")
+	mockBff := new(mockGraphQLClient)
+	withMockBffClient(t, mockBff)
+
+	previews := []bff.PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview{
+		{TopicName: "old_topic", RowsToBeHidden: 42, ChartCount: 2},
+	}
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicRemovalRequest), mock.Anything).
+		Run(withPreviewTopicRemovalResponse(previews)).
+		Return(nil).Once()
+
+	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", false, false)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "old_topic")
+	assert.Contains(t, err.Error(), "--allow-topic-removal")
+	// UpdateMetricsConfig must never be called when the removal preview is rejected.
+	mockBff.AssertNotCalled(t, "MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything)
+}
+
+func TestSyncMetricsConfig_TopicsWouldBeRemoved_ProceedsWithFlag(t *testing.T) {
+	withMockClient(t, "main")
+	mockBff := new(mockGraphQLClient)
+	withMockBffClient(t, mockBff)
+
+	// With --allow-topic-removal already set, the removal is confirmed, so the preview
+	// still runs (and its impact is printed for the user) but must not block the sync —
+	// UpdateMetricsConfig is still invoked.
+	previews := []bff.PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview{
+		{TopicName: "old_topic", RowsToBeHidden: 42, ChartCount: 2},
+	}
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicRemovalRequest), mock.Anything).
+		Run(withPreviewTopicRemovalResponse(previews)).
+		Return(nil).Once()
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything).
+		Run(withUpdateMetricsConfigSuccess()).
+		Return(nil).Once()
+
+	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", true, false)
+	assert.NoError(t, err)
+	mockBff.AssertExpectations(t)
+}
+
+func TestSyncMetricsConfig_PreviewTransportErrorSoftFails(t *testing.T) {
+	withMockClient(t, "main")
+	mockBff := new(mockGraphQLClient)
+	withMockBffClient(t, mockBff)
+
+	// A non-GraphQL (transport) error on the preview must not block sync — sync proceeds
+	// and the BFF's own gate is the backstop, mirroring validateMetricsSetExists's soft-fail.
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicRemovalRequest), mock.Anything).
+		Return(fmt.Errorf("bff unavailable")).Once()
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything).
+		Run(withUpdateMetricsConfigSuccess()).
+		Return(nil).Once()
+
+	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", false, false)
+	assert.NoError(t, err)
+	mockBff.AssertExpectations(t)
+}
+
+func TestSyncMetricsCmdHasAllowTopicRemovalFlag(t *testing.T) {
+	flag := syncMetricsCmd.Flags().Lookup("allow-topic-removal")
+	assert.NotNil(t, flag, "--allow-topic-removal flag should exist on syncMetricsCmd")
+	assert.Equal(t, "false", flag.DefValue)
 }

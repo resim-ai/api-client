@@ -834,7 +834,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 		metricsConfigPaths := viper.GetStringSlice(batchMetricsConfigPath)
 		metricsTemplatesPath := viper.GetString(batchMetricsTemplatesPath)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false); err != nil {
+		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false, false); err != nil {
 			log.Fatalf("failed to sync metrics before batch: %v", err)
 		}
 	}

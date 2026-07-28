@@ -116,6 +116,61 @@ func (v *MetricsTemplate) GetName() string { return v.Name }
 // GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
 func (v *MetricsTemplate) GetContents() string { return v.Contents }
 
+// PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview includes the requested fields of the GraphQL type TopicRemovalPreview.
+type PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview struct {
+	TopicName      string                                                                                        `json:"topicName"`
+	RowsToBeHidden int                                                                                           `json:"rowsToBeHidden"`
+	ChartCount     int                                                                                           `json:"chartCount"`
+	Dashboards     []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef `json:"dashboards"`
+}
+
+// GetTopicName returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.TopicName, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetTopicName() string {
+	return v.TopicName
+}
+
+// GetRowsToBeHidden returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.RowsToBeHidden, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetRowsToBeHidden() int {
+	return v.RowsToBeHidden
+}
+
+// GetChartCount returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.ChartCount, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetChartCount() int {
+	return v.ChartCount
+}
+
+// GetDashboards returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.Dashboards, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetDashboards() []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef {
+	return v.Dashboards
+}
+
+// PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef includes the requested fields of the GraphQL type TopicRemovalDashboardRef.
+type PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
+
+// GetId returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef.Id, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef) GetId() string {
+	return v.Id
+}
+
+// GetName returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef.Name, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef) GetName() string {
+	return v.Name
+}
+
+// PreviewTopicRemovalResponse is returned by PreviewTopicRemoval on success.
+type PreviewTopicRemovalResponse struct {
+	// Previews the topics a config sync would remove: rows that would be hidden, job/batch chart count, and affected dashboards. Does not persist anything.
+	PreviewTopicRemoval []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview `json:"previewTopicRemoval"`
+}
+
+// GetPreviewTopicRemoval returns PreviewTopicRemovalResponse.PreviewTopicRemoval, and is useful for accessing the field via an interface.
+func (v *PreviewTopicRemovalResponse) GetPreviewTopicRemoval() []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview {
+	return v.PreviewTopicRemoval
+}
+
 // UpdateMetricsConfigResponse is returned by UpdateMetricsConfig on success.
 type UpdateMetricsConfigResponse struct {
 	// Update metrics config with the given configuration
@@ -209,12 +264,25 @@ type __GetDashboardInput struct {
 // GetId returns __GetDashboardInput.Id, and is useful for accessing the field via an interface.
 func (v *__GetDashboardInput) GetId() string { return v.Id }
 
+// __PreviewTopicRemovalInput is used internally by genqlient
+type __PreviewTopicRemovalInput struct {
+	BranchId string `json:"branchId"`
+	Config   string `json:"config"`
+}
+
+// GetBranchId returns __PreviewTopicRemovalInput.BranchId, and is useful for accessing the field via an interface.
+func (v *__PreviewTopicRemovalInput) GetBranchId() string { return v.BranchId }
+
+// GetConfig returns __PreviewTopicRemovalInput.Config, and is useful for accessing the field via an interface.
+func (v *__PreviewTopicRemovalInput) GetConfig() string { return v.Config }
+
 // __UpdateMetricsConfigInput is used internally by genqlient
 type __UpdateMetricsConfigInput struct {
-	ProjectId     string            `json:"projectId"`
-	Config        string            `json:"config"`
-	TemplateFiles []MetricsTemplate `json:"templateFiles"`
-	Branch        string            `json:"branch"`
+	ProjectId         string            `json:"projectId"`
+	Config            string            `json:"config"`
+	TemplateFiles     []MetricsTemplate `json:"templateFiles"`
+	Branch            string            `json:"branch"`
+	AllowTopicRemoval bool              `json:"allowTopicRemoval"`
 }
 
 // GetProjectId returns __UpdateMetricsConfigInput.ProjectId, and is useful for accessing the field via an interface.
@@ -228,6 +296,9 @@ func (v *__UpdateMetricsConfigInput) GetTemplateFiles() []MetricsTemplate { retu
 
 // GetBranch returns __UpdateMetricsConfigInput.Branch, and is useful for accessing the field via an interface.
 func (v *__UpdateMetricsConfigInput) GetBranch() string { return v.Branch }
+
+// GetAllowTopicRemoval returns __UpdateMetricsConfigInput.AllowTopicRemoval, and is useful for accessing the field via an interface.
+func (v *__UpdateMetricsConfigInput) GetAllowTopicRemoval() bool { return v.AllowTopicRemoval }
 
 // __ValidateMetricsConfigInput is used internally by genqlient
 type __ValidateMetricsConfigInput struct {
@@ -412,10 +483,52 @@ func GetDashboard(
 	return data_, err_
 }
 
+// The query executed by PreviewTopicRemoval.
+const PreviewTopicRemoval_Operation = `
+query PreviewTopicRemoval ($branchId: String!, $config: String!) {
+	previewTopicRemoval(branchId: $branchId, config: $config) {
+		topicName
+		rowsToBeHidden
+		chartCount
+		dashboards {
+			id
+			name
+		}
+	}
+}
+`
+
+func PreviewTopicRemoval(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	branchId string,
+	config string,
+) (data_ *PreviewTopicRemovalResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "PreviewTopicRemoval",
+		Query:  PreviewTopicRemoval_Operation,
+		Variables: &__PreviewTopicRemovalInput{
+			BranchId: branchId,
+			Config:   config,
+		},
+	}
+
+	data_ = &PreviewTopicRemovalResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
 // The mutation executed by UpdateMetricsConfig.
 const UpdateMetricsConfig_Operation = `
-mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String) {
-	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch)
+mutation UpdateMetricsConfig ($projectId: String!, $config: String!, $templateFiles: [MetricsTemplate!]!, $branch: String, $allowTopicRemoval: Boolean) {
+	updateMetricsConfig(projectId: $projectId, config: $config, templateFiles: $templateFiles, branch: $branch, allowTopicRemoval: $allowTopicRemoval)
 }
 `
 
@@ -426,15 +539,17 @@ func UpdateMetricsConfig(
 	config string,
 	templateFiles []MetricsTemplate,
 	branch string,
+	allowTopicRemoval bool,
 ) (data_ *UpdateMetricsConfigResponse, err_ error) {
 	req_ := &graphql.Request{
 		OpName: "UpdateMetricsConfig",
 		Query:  UpdateMetricsConfig_Operation,
 		Variables: &__UpdateMetricsConfigInput{
-			ProjectId:     projectId,
-			Config:        config,
-			TemplateFiles: templateFiles,
-			Branch:        branch,
+			ProjectId:         projectId,
+			Config:            config,
+			TemplateFiles:     templateFiles,
+			Branch:            branch,
+			AllowTopicRemoval: allowTopicRemoval,
 		},
 	}
 

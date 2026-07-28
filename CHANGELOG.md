@@ -2,7 +2,7 @@
 
 ## ReSim CLI
 
-### Unreleased
+### v0.67.0 - July 28, 2026
 
 - `resim metrics sync` now previews and confirms topic removal: if a config drop would remove a topic, sync prints the affected row count, chart count, and dashboards. Without `--allow-topic-removal` it then refuses to proceed; with the flag set it prints the same impact as a confirmation notice and proceeds.
 

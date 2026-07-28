@@ -409,7 +409,7 @@ func syncMetricsWithConfig(projectName string, branch string, configPath string,
 	return []CommandBuilder{metricsCommand, syncCommand}
 }
 
-func validateMetrics(projectName string, branch string, verbose bool, username string, password string) []CommandBuilder {
+func validateMetrics(projectName string, branch string, configPath string, verbose bool, username string, password string) []CommandBuilder {
 	metricsCommand := CommandBuilder{Command: "metrics"}
 
 	flags := []Flag{
@@ -417,6 +417,9 @@ func validateMetrics(projectName string, branch string, verbose bool, username s
 	}
 	if branch != "" {
 		flags = append(flags, Flag{Name: "--branch", Value: branch})
+	}
+	if configPath != "" {
+		flags = append(flags, Flag{Name: "--metrics-config-path", Value: configPath})
 	}
 	if verbose {
 		flags = append(flags, Flag{Name: "--verbose"})
@@ -6559,7 +6562,7 @@ func TestMetricsSync(t *testing.T) {
 		// validate runs the same validations against the branch's existing config and
 		// reports success without persisting anything. Runs after the sync subtest so
 		// the branch already has a config to validate against.
-		output := s.runCommand(ts, validateMetrics(projectIDString, "", false, username, password), false)
+		output := s.runCommand(ts, validateMetrics(projectIDString, "", "", false, username, password), false)
 		ts.Equal("", output.StdErr)
 		ts.Contains(output.StdOut, "Validation passed")
 	})
@@ -6580,6 +6583,22 @@ func TestMetricsSync(t *testing.T) {
 
 		output := s.runCommand(ts, syncMetricsWithConfig(projectIDString, "", absConfigPath, true, username, password), false)
 		ts.Equal("", output.StdErr)
+	})
+
+	t.Run("WarnsOnMetricUnusedByAnyMetricsSet", func(t *testing.T) {
+		// config_unused_metric.resim.yml defines "Max Speed" but no metrics set
+		// references it; both sync and validate should warn without failing.
+		configPath := ".resim/metrics/config_unused_metric.resim.yml"
+		const warning = "WARNING: the following metrics are not used by any metrics set: Max Speed"
+
+		syncCmd := syncMetrics(projectIDString, "", false, username, password)
+		syncCmd[1].Flags = append(syncCmd[1].Flags, Flag{Name: "--metrics-config-path", Value: configPath})
+		output := s.runCommand(ts, syncCmd, false)
+		ts.Contains(output.StdErr, warning)
+
+		output = s.runCommand(ts, validateMetrics(projectIDString, "", configPath, false, username, password), false)
+		ts.Contains(output.StdErr, warning)
+		ts.Contains(output.StdOut, "Validation passed")
 	})
 }
 

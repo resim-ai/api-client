@@ -54,6 +54,15 @@ func (v *CreateDebugDashboardResponse) GetCreateDebugDashboard() CreateDebugDash
 	return v.CreateDebugDashboard
 }
 
+// FindUnusedMetricsResponse is returned by FindUnusedMetrics on success.
+type FindUnusedMetricsResponse struct {
+	// Lists metrics defined in a config's metrics: section that are not referenced by any metrics sets: entry. A pure function of the submitted config — no branch lookup or persistence.
+	FindUnusedMetrics []string `json:"findUnusedMetrics"`
+}
+
+// GetFindUnusedMetrics returns FindUnusedMetricsResponse.FindUnusedMetrics, and is useful for accessing the field via an interface.
+func (v *FindUnusedMetricsResponse) GetFindUnusedMetrics() []string { return v.FindUnusedMetrics }
+
 // GetConfigFileSchemaResponse is returned by GetConfigFileSchema on success.
 type GetConfigFileSchemaResponse struct {
 	// Returns the JSON Schema (Draft-07) describing the metrics configuration file format.
@@ -93,28 +102,26 @@ type GetDashboardResponse struct {
 func (v *GetDashboardResponse) GetDashboard() GetDashboardDashboard { return v.Dashboard }
 
 type MediaFileInput struct {
-	Name string `json:"name"`
-	// base64 encoded media file contents
 	Contents string `json:"contents"`
+	Name     string `json:"name"`
 }
-
-// GetName returns MediaFileInput.Name, and is useful for accessing the field via an interface.
-func (v *MediaFileInput) GetName() string { return v.Name }
 
 // GetContents returns MediaFileInput.Contents, and is useful for accessing the field via an interface.
 func (v *MediaFileInput) GetContents() string { return v.Contents }
 
-type MetricsTemplate struct {
-	Name string `json:"name"`
-	// base64 encoded template contents
-	Contents string `json:"contents"`
-}
+// GetName returns MediaFileInput.Name, and is useful for accessing the field via an interface.
+func (v *MediaFileInput) GetName() string { return v.Name }
 
-// GetName returns MetricsTemplate.Name, and is useful for accessing the field via an interface.
-func (v *MetricsTemplate) GetName() string { return v.Name }
+type MetricsTemplate struct {
+	Contents string `json:"contents"`
+	Name     string `json:"name"`
+}
 
 // GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
 func (v *MetricsTemplate) GetContents() string { return v.Contents }
+
+// GetName returns MetricsTemplate.Name, and is useful for accessing the field via an interface.
+func (v *MetricsTemplate) GetName() string { return v.Name }
 
 // PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview includes the requested fields of the GraphQL type TopicRemovalPreview.
 type PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview struct {
@@ -255,6 +262,14 @@ func (v *__CreateDebugDashboardInput) GetMetricsSetName() string { return v.Metr
 
 // GetMediaFiles returns __CreateDebugDashboardInput.MediaFiles, and is useful for accessing the field via an interface.
 func (v *__CreateDebugDashboardInput) GetMediaFiles() []MediaFileInput { return v.MediaFiles }
+
+// __FindUnusedMetricsInput is used internally by genqlient
+type __FindUnusedMetricsInput struct {
+	Config string `json:"config"`
+}
+
+// GetConfig returns __FindUnusedMetricsInput.Config, and is useful for accessing the field via an interface.
+func (v *__FindUnusedMetricsInput) GetConfig() string { return v.Config }
 
 // __GetDashboardInput is used internally by genqlient
 type __GetDashboardInput struct {
@@ -407,6 +422,38 @@ func CreateDebugDashboard(
 	}
 
 	data_ = &CreateDebugDashboardResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The query executed by FindUnusedMetrics.
+const FindUnusedMetrics_Operation = `
+query FindUnusedMetrics ($config: String!) {
+	findUnusedMetrics(config: $config)
+}
+`
+
+func FindUnusedMetrics(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	config string,
+) (data_ *FindUnusedMetricsResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "FindUnusedMetrics",
+		Query:  FindUnusedMetrics_Operation,
+		Variables: &__FindUnusedMetricsInput{
+			Config: config,
+		},
+	}
+
+	data_ = &FindUnusedMetricsResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

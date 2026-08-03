@@ -460,6 +460,20 @@ func readTemplates(templatesPath string, verbose bool) ([]bff.MetricsTemplate, e
 	return templates, nil
 }
 
+// warnUnusedMetrics prints a non-blocking warning listing metrics that aren't referenced by
+// any metrics set. This is purely informational: a transport or BFF error here is logged and
+// swallowed rather than returned, so it never fails an otherwise-successful sync/validate.
+func warnUnusedMetrics(configB64 string) {
+	resp, err := bff.FindUnusedMetrics(context.Background(), BffClient, configB64)
+	if err != nil {
+		log.Printf("warning: could not check for unused metrics, continuing: %v", err)
+		return
+	}
+	if len(resp.FindUnusedMetrics) > 0 {
+		fmt.Fprintf(os.Stderr, "WARNING: the following metrics are not used by any metrics set: %s\n", strings.Join(resp.FindUnusedMetrics, ", "))
+	}
+}
+
 func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []string, templatesPath string, allowTopicRemoval bool, verbose bool) error {
 	branch, err := Client.GetBranchForProjectWithResponse(context.Background(), projectID, branchID)
 	if err != nil {
@@ -501,6 +515,8 @@ func SyncMetricsConfig(projectID uuid.UUID, branchID uuid.UUID, configPaths []st
 		return fmt.Errorf("failed to sync metrics config: %w", err)
 	}
 
+	warnUnusedMetrics(configB64)
+
 	if verbose {
 		fmt.Print("Successfully synced metrics config")
 		if len(templates) > 0 {
@@ -538,6 +554,8 @@ func ValidateMetricsConfig(branchID uuid.UUID, configPaths []string, templatesPa
 	if err != nil {
 		return fmt.Errorf("metrics config validation failed: %w", err)
 	}
+
+	warnUnusedMetrics(configB64)
 
 	fmt.Println("Validation passed — no changes applied.")
 	if verbose && len(templates) > 0 {

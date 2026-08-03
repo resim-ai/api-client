@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -187,6 +190,118 @@ func TestValidateMetricsConfig_Success(t *testing.T) {
 	mockClient.AssertExpectations(t)
 }
 
+// captureStderr runs f while capturing everything written to os.Stderr.
+func captureStderr(t *testing.T, f func()) string {
+	t.Helper()
+	orig := os.Stderr
+	r, w, err := os.Pipe()
+	assert.NoError(t, err)
+	os.Stderr = w
+	defer func() { os.Stderr = orig }()
+
+	f()
+
+	w.Close()
+	var b strings.Builder
+	buf := make([]byte, 4096)
+	for {
+		n, readErr := r.Read(buf)
+		b.Write(buf[:n])
+		if readErr != nil {
+			break
+		}
+	}
+	return b.String()
+}
+
+func writeMetricsConfigFixture(t *testing.T, unusedMetric bool) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.resim.yml")
+	config := `version: 1
+metrics:
+  Average Speed:
+    type: test
+    query_string: SELECT AVG(speed) FROM ok
+    template_type: system
+    template: scalar
+metrics sets:
+  woot:
+    metrics:
+      - Average Speed
+`
+	if unusedMetric {
+		config += `  Max Speed:
+    type: test
+    query_string: SELECT MAX(speed) FROM ok
+    template_type: system
+    template: scalar
+`
+	}
+	assert.NoError(t, os.WriteFile(path, []byte(config), 0644))
+	return path
+}
+
+func isFindUnusedMetricsRequest(req *graphql.Request) bool {
+	return req.OpName == "FindUnusedMetrics"
+}
+
+func withValidateMetricsConfigResult(valid bool) func(args mock.Arguments) {
+	return func(args mock.Arguments) {
+		resp := args.Get(2).(*graphql.Response)
+		data := resp.Data.(*bff.ValidateMetricsConfigResponse)
+		data.ValidateMetricsConfig = valid
+	}
+}
+
+func withFindUnusedMetricsResult(unusedMetrics []string) func(args mock.Arguments) {
+	return func(args mock.Arguments) {
+		resp := args.Get(2).(*graphql.Response)
+		data := resp.Data.(*bff.FindUnusedMetricsResponse)
+		data.FindUnusedMetrics = unusedMetrics
+	}
+}
+
+func TestValidateMetricsConfig_PrintsUnusedMetricsWarning(t *testing.T) {
+	mockClient := new(mockGraphQLClient)
+	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsConfigRequest), mock.Anything).
+		Run(withValidateMetricsConfigResult(true)).
+		Return(nil).Once()
+	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isFindUnusedMetricsRequest), mock.Anything).
+		Run(withFindUnusedMetricsResult([]string{"Max Speed"})).
+		Return(nil).Once()
+	withMockBffClient(t, mockClient)
+
+	configPath := writeMetricsConfigFixture(t, true)
+	stderr := captureStderr(t, func() {
+		err := ValidateMetricsConfig(uuid.New(), []string{configPath}, "templates", false)
+		assert.NoError(t, err)
+	})
+
+	assert.Contains(t, stderr, "WARNING: the following metrics are not used by any metrics set: Max Speed")
+	mockClient.AssertExpectations(t)
+}
+
+func TestValidateMetricsConfig_NoWarningWhenAllMetricsUsed(t *testing.T) {
+	mockClient := new(mockGraphQLClient)
+	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isValidateMetricsConfigRequest), mock.Anything).
+		Run(withValidateMetricsConfigResult(true)).
+		Return(nil).Once()
+	mockClient.On("MakeRequest", mock.Anything, mock.MatchedBy(isFindUnusedMetricsRequest), mock.Anything).
+		Run(withFindUnusedMetricsResult(nil)).
+		Return(nil).Once()
+	withMockBffClient(t, mockClient)
+
+	configPath := writeMetricsConfigFixture(t, false)
+	stderr := captureStderr(t, func() {
+		err := ValidateMetricsConfig(uuid.New(), []string{configPath}, "templates", false)
+		assert.NoError(t, err)
+	})
+
+	assert.Empty(t, stderr)
+	mockClient.AssertExpectations(t)
+}
+
 func TestValidateMetricsConfig_SurfacesValidationError(t *testing.T) {
 	mockClient := new(mockGraphQLClient)
 
@@ -309,6 +424,9 @@ func TestSyncMetricsConfig_NoTopicsRemoved_SucceedsWithoutFlag(t *testing.T) {
 	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything).
 		Run(withUpdateMetricsConfigSuccess()).
 		Return(nil).Once()
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isFindUnusedMetricsRequest), mock.Anything).
+		Run(withFindUnusedMetricsResult(nil)).
+		Return(nil).Once()
 
 	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", false, false)
 	assert.NoError(t, err)
@@ -352,6 +470,9 @@ func TestSyncMetricsConfig_TopicsWouldBeRemoved_ProceedsWithFlag(t *testing.T) {
 	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything).
 		Run(withUpdateMetricsConfigSuccess()).
 		Return(nil).Once()
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isFindUnusedMetricsRequest), mock.Anything).
+		Run(withFindUnusedMetricsResult(nil)).
+		Return(nil).Once()
 
 	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", true, false)
 	assert.NoError(t, err)
@@ -369,6 +490,9 @@ func TestSyncMetricsConfig_PreviewTransportErrorSoftFails(t *testing.T) {
 		Return(fmt.Errorf("bff unavailable")).Once()
 	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isUpdateMetricsConfigRequest), mock.Anything).
 		Run(withUpdateMetricsConfigSuccess()).
+		Return(nil).Once()
+	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isFindUnusedMetricsRequest), mock.Anything).
+		Run(withFindUnusedMetricsResult(nil)).
 		Return(nil).Once()
 
 	err := SyncMetricsConfig(uuid.New(), uuid.New(), []string{"testdata/config.yml"}, "testdata/templates", false, false)

@@ -751,17 +751,13 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	metricsSet := ProcessMetricsSet(batchMetricsSetKey, &poolLabels)
 
-	if HasMetricsSetName(metricsSet) {
-		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-		if err != nil {
-			log.Fatal("unable to retrieve build:", err)
-		}
-		if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
-			log.Fatal("build has no branch associated with it")
-		}
-		if err := validateMetricsSetExists(build.JSON200.BranchID, metricsSet); err != nil {
-			log.Fatal(err)
-		}
+	// Sync metrics2.0 config, then validate the metrics set against the synced branch.
+	if err := syncAndValidateMetricsSet(projectID, buildID, metricsSet, metricsConfigSync{
+		Enabled:       viper.GetBool(batchSyncMetricsConfigKey),
+		ConfigPaths:   viper.GetStringSlice(batchMetricsConfigPath),
+		TemplatesPath: viper.GetString(batchMetricsTemplatesPath),
+	}); err != nil {
+		log.Fatalf("failed to create batch: %v", err)
 	}
 
 	// Build the request body
@@ -819,24 +815,6 @@ func createBatch(ccmd *cobra.Command, args []string) {
 
 	if len(poolLabels) != 0 {
 		body.PoolLabels = &poolLabels
-	}
-
-	// Sync metrics2.0 config
-	if viper.GetBool(batchSyncMetricsConfigKey) {
-		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-		if err != nil {
-			log.Fatal("unable to retrieve build:", err)
-		}
-		branchID := build.JSON200.BranchID
-		if branchID == uuid.Nil {
-			log.Fatal("build has no branch associated with it")
-		}
-
-		metricsConfigPaths := viper.GetStringSlice(batchMetricsConfigPath)
-		metricsTemplatesPath := viper.GetString(batchMetricsTemplatesPath)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false, false); err != nil {
-			log.Fatalf("failed to sync metrics before batch: %v", err)
-		}
 	}
 
 	// Make the request

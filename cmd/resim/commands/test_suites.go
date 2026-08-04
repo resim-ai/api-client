@@ -615,20 +615,21 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 
 	poolLabels := getAndValidatePoolLabels(testSuitePoolLabelsKey)
 	effectiveMetricsSetName := NormalizeMetricsSetName(testSuite.MetricsSetName)
+	// Only an explicit override is prechecked here; a set inherited from the test suite is
+	// left to the server, as it was before this precheck existed.
+	var metricsSetToValidate *string
 	if viper.IsSet(testSuiteMetricsSetOverrideKey) {
 		effectiveMetricsSetName = NormalizeMetricsSetName(Ptr(viper.GetString(testSuiteMetricsSetOverrideKey)))
-		if HasMetricsSetName(effectiveMetricsSetName) {
-			build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-			if err != nil {
-				log.Fatal("unable to retrieve build:", err)
-			}
-			if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
-				log.Fatal("build has no branch associated with it")
-			}
-			if err := validateMetricsSetExists(build.JSON200.BranchID, effectiveMetricsSetName); err != nil {
-				log.Fatal(err)
-			}
-		}
+		metricsSetToValidate = effectiveMetricsSetName
+	}
+
+	// Sync metrics2.0 config, then validate the metrics set against the synced branch.
+	if err := syncAndValidateMetricsSet(projectID, buildID, metricsSetToValidate, metricsConfigSync{
+		Enabled:       viper.GetBool(testSuiteSyncMetricsConfigKey),
+		ConfigPaths:   viper.GetStringSlice(testSuitesMetricsConfigPathKey),
+		TemplatesPath: viper.GetString(testSuitesMetricsTemplatesPathKey),
+	}); err != nil {
+		log.Fatalf("failed to run test suite: %v", err)
 	}
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
@@ -636,23 +637,6 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 	associatedAccount := GetCIEnvironmentVariableAccount()
 	if viper.IsSet(testSuiteAccountKey) {
 		associatedAccount = viper.GetString(testSuiteAccountKey)
-	}
-
-	// Sync metrics2.0 config
-	if viper.GetBool(testSuiteSyncMetricsConfigKey) {
-		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-		if err != nil {
-			log.Fatal("unable to retrieve build:", err)
-		}
-		branchID := build.JSON200.BranchID
-		if branchID == uuid.Nil {
-			log.Fatal("build has no branch associated with it")
-		}
-		metricsConfigPaths := viper.GetStringSlice(testSuitesMetricsConfigPathKey)
-		metricsTemplatesPath := viper.GetString(testSuitesMetricsTemplatesPathKey)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false, false); err != nil {
-			log.Fatalf("failed to sync metrics before batch: %v", err)
-		}
 	}
 
 	var batch api.Batch

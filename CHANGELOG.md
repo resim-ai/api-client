@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v0.69.0 - August 4, 2026
+
+- Fixes `--sync-metrics-config` and `--metrics-set` being unusable together on a branch with no metrics config yet. The metrics-set precheck ran before the config sync, so it rejected the branch with `No metrics config exists on this branch. Sync a metrics config to the branch first.` and the sync that would have created the config never ran. This broke CI pipelines that create a build with `builds create --auto-create-branch` and then create a batch on the new branch. The sync now runs first, so a metrics set defined in the config being synced is visible to the precheck. Affects `batches create`, `sweeps create`, `suites run`, and `ingest`.
+
 ### v0.68.0 - July 28, 2026
 
 - `resim metrics sync` and `resim metrics validate` now warn (without failing) when a config defines a metric that isn't referenced by any metrics set: `WARNING: the following metrics are not used by any metrics set: <names>`.

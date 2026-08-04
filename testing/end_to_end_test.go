@@ -1803,6 +1803,26 @@ func createBatchWithMetricsSet(projectID uuid.UUID, buildID string, experiences 
 	return cmds
 }
 
+// createBatchWithSyncedMetricsSet builds a batch create command that syncs the metrics config and
+// selects a metrics set from that same config in one invocation. The set only exists on the branch
+// once the sync has run, so this is the combination that breaks if the metrics-set precheck runs
+// first (WOB-4358).
+func createBatchWithSyncedMetricsSet(projectID uuid.UUID, buildID string, experiences []string, metricsSet string, configPath string, batchName *string, username string, password string) []CommandBuilder {
+	cmds := createBatchWithMetricsSet(projectID, buildID, experiences, metricsSet, batchName)
+	cmds[1].Flags = append(cmds[1].Flags,
+		Flag{Name: "--sync-metrics-config"},
+		Flag{Name: "--metrics-config-path", Value: configPath},
+	)
+	// The sync mutation is authenticated the same way as `metrics sync`; see syncMetrics.
+	if username != "" {
+		cmds[1].Flags = append(cmds[1].Flags, Flag{Name: "--username", Value: username})
+	}
+	if password != "" {
+		cmds[1].Flags = append(cmds[1].Flags, Flag{Name: "--password", Value: password})
+	}
+	return cmds
+}
+
 func createIngestedLog(projectID uuid.UUID, system *string, branchname *string, version *string, metricsBuildID uuid.UUID, logName *string, logLocation *string, logsList []string, configFileLocation *string, experienceTags []string, buildID *uuid.UUID, batchName *string, github bool, reingest bool) []CommandBuilder {
 	ingestCommand := CommandBuilder{
 		Command: "ingest",
@@ -4220,6 +4240,33 @@ func TestBatchAndLogs(t *testing.T) {
 	bogusBatchName := fmt.Sprintf("bogus-metrics-set-batch-%s", uuid.New().String())
 	bogusMetricsSet := fmt.Sprintf("does-not-exist-%s", uuid.New().String())
 	output = s.runCommand(ts, createBatchWithMetricsSet(projectID, buildIDString, []string{experienceIDString1}, bogusMetricsSet, &bogusBatchName), ExpectError)
+	ts.Contains(output.StdErr, "not found")
+
+	// --sync-metrics-config and --metrics-set must work together in a single invocation on a branch
+	// that has no metrics config yet (WOB-4358). The set being selected is defined in the very config
+	// being synced, so the sync has to run before the precheck; otherwise the precheck rejects the
+	// branch and the sync that would have fixed it never runs. A fresh auto-created branch reproduces
+	// what CI does with `builds create --auto-create-branch`.
+	unsyncedBranchName := fmt.Sprintf("test-branch-no-config-%s", uuid.New().String())
+	output = s.runCommand(ts, createBuild(projectName, unsyncedBranchName, systemName, "description", "public.ecr.aws/resim/open-builds/log-ingest:latest", []string{}, "1.0.1", GithubTrue, AutoCreateBranchTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedBuild)
+	unsyncedBranchBuildID := output.StdOut[len(GithubCreatedBuild) : len(output.StdOut)-1]
+	uuid.MustParse(unsyncedBranchBuildID)
+
+	syncedSetBatchName := fmt.Sprintf("synced-metrics-set-batch-%s", uuid.New().String())
+	output = s.runCommand(ts, createBatchWithSyncedMetricsSet(projectID, unsyncedBranchBuildID, []string{experienceIDString1}, "woot", ".resim/metrics/config.resim.yml", &syncedSetBatchName, metricsUsername, metricsPassword), ExpectNoError)
+	ts.Contains(output.StdOut, CreatedBatch)
+
+	output = s.runCommand(ts, getBatchByName(projectID, syncedSetBatchName, ExitStatusFalse), ExpectNoError)
+	var syncedSetBatch api.Batch
+	ts.NoError(json.Unmarshal([]byte(output.StdOut), &syncedSetBatch))
+	ts.NotNil(syncedSetBatch.MetricsSetName)
+	ts.Equal("woot", *syncedSetBatch.MetricsSetName)
+
+	// A set that is absent from the synced config is still rejected, so the precheck keeps working
+	// after the sync rather than being skipped whenever --sync-metrics-config is present.
+	bogusSyncedBatchName := fmt.Sprintf("bogus-synced-metrics-set-batch-%s", uuid.New().String())
+	output = s.runCommand(ts, createBatchWithSyncedMetricsSet(projectID, unsyncedBranchBuildID, []string{experienceIDString1}, bogusMetricsSet, ".resim/metrics/config.resim.yml", &bogusSyncedBatchName, metricsUsername, metricsPassword), ExpectError)
 	ts.Contains(output.StdErr, "not found")
 
 	// Now create a batch without the github flag, but with metrics

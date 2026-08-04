@@ -218,17 +218,13 @@ func createSweep(ccmd *cobra.Command, args []string) {
 
 	metricsSet := ProcessMetricsSet(sweepMetricsSetKey, &poolLabels)
 
-	if HasMetricsSetName(metricsSet) {
-		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-		if err != nil {
-			log.Fatal("unable to retrieve build:", err)
-		}
-		if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
-			log.Fatal("build has no branch associated with it")
-		}
-		if err := validateMetricsSetExists(build.JSON200.BranchID, metricsSet); err != nil {
-			log.Fatal(err)
-		}
+	// Sync metrics2.0 config, then validate the metrics set against the synced branch.
+	if err := syncAndValidateMetricsSet(projectID, buildID, metricsSet, metricsConfigSync{
+		Enabled:       viper.GetBool(sweepSyncMetricsConfigKey),
+		ConfigPaths:   viper.GetStringSlice(sweepMetricsConfigPathKey),
+		TemplatesPath: viper.GetString(sweepMetricsTemplatesPathKey),
+	}); err != nil {
+		log.Fatal(err)
 	}
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables
@@ -272,23 +268,6 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		body.PoolLabels = &poolLabels
 	}
 
-	// Sync metrics2.0 config
-	if viper.GetBool(sweepSyncMetricsConfigKey) {
-		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-		if err != nil {
-			log.Fatal("unable to retrieve build:", err)
-		}
-		branchID := build.JSON200.BranchID
-		if branchID == uuid.Nil {
-			log.Fatal("build has no branch associated with it")
-		}
-
-		metricsConfigPaths := viper.GetStringSlice(sweepMetricsConfigPathKey)
-		metricsTemplatesPath := viper.GetString(sweepMetricsTemplatesPathKey)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false, false); err != nil {
-			log.Fatalf("failed to sync metrics before batch: %v", err)
-		}
-	}
 	// Make the request
 	response, err := Client.CreateParameterSweepWithResponse(context.Background(), projectID, body)
 	if err != nil {

@@ -256,6 +256,47 @@ func validateMetricsSetExists(branchID uuid.UUID, metricsSetName *string) error 
 	return nil
 }
 
+// metricsConfigSync describes a --sync-metrics-config request. Enabled mirrors the flag;
+// the paths are only read when it is set.
+type metricsConfigSync struct {
+	Enabled       bool
+	ConfigPaths   []string
+	TemplatesPath string
+}
+
+// syncAndValidateMetricsSet syncs the metrics config (when requested) and then validates the
+// metrics set name (when one is set), for the branch the given build belongs to.
+//
+// The order is load-bearing. A metrics set is defined by the metrics config, so a set named on
+// the command line often exists only in the config this same invocation is about to sync.
+// Validating first made --sync-metrics-config and --metrics-set mutually unusable on a branch
+// with no config yet — the precheck rejected the branch and the sync that would have fixed it
+// never ran (WOB-4358).
+//
+// Both steps need the build's branch, so it is resolved once, and only when there is work to do.
+func syncAndValidateMetricsSet(projectID uuid.UUID, buildID uuid.UUID, metricsSetName *string, sync metricsConfigSync) error {
+	if !sync.Enabled && !HasMetricsSetName(metricsSetName) {
+		return nil
+	}
+
+	build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
+	if err != nil {
+		return fmt.Errorf("unable to retrieve build: %w", err)
+	}
+	if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
+		return errors.New("build has no branch associated with it")
+	}
+	branchID := build.JSON200.BranchID
+
+	if sync.Enabled {
+		if err := SyncMetricsConfig(projectID, branchID, sync.ConfigPaths, sync.TemplatesPath, false, false); err != nil {
+			return fmt.Errorf("failed to sync metrics config: %w", err)
+		}
+	}
+
+	return validateMetricsSetExists(branchID, metricsSetName)
+}
+
 // previewTopicRemovalImpact calls the BFF's previewTopicRemoval query and, if any
 // topics would be removed by this config, prints the impact (row count, chart count,
 // dashboards) so the user sees it either way. When allowTopicRemoval is false this

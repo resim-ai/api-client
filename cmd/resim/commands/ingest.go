@@ -261,17 +261,13 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	poolLabels := getAndValidatePoolLabels(ingestPoolLabelsKey)
 	metricsSet := ProcessMetricsSet(ingestMetricsSetKey, &poolLabels)
 
-	if HasMetricsSetName(metricsSet) {
-		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-		if err != nil {
-			log.Fatal("unable to retrieve build:", err)
-		}
-		if build.JSON200 == nil || build.JSON200.BranchID == uuid.Nil {
-			log.Fatal("build has no branch associated with it")
-		}
-		if err := validateMetricsSetExists(build.JSON200.BranchID, metricsSet); err != nil {
-			log.Fatal(err)
-		}
+	// Sync metrics2.0 config, then validate the metrics set against the synced branch.
+	if err := syncAndValidateMetricsSet(projectID, buildID, metricsSet, metricsConfigSync{
+		Enabled:       viper.GetBool(ingestSyncMetricsConfigKey),
+		ConfigPaths:   viper.GetStringSlice(ingestMetricsConfigPathKey),
+		TemplatesPath: viper.GetString(ingestMetricsTemplatesPathKey),
+	}); err != nil {
+		log.Fatal(err)
 	}
 
 	// Finally, create a batch to process the log(s)
@@ -301,21 +297,6 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 	}
 	if priority := getRequestPriority(ingestPriorityKey); priority != nil {
 		batchBody.Priority = priority
-	}
-
-	// Sync metrics2.0 config
-	if viper.GetBool(ingestSyncMetricsConfigKey) {
-		build, err := Client.GetBuildWithResponse(context.Background(), projectID, buildID)
-		if err != nil {
-			log.Fatal("unable to retrieve build:", err)
-		}
-		branchID := build.JSON200.BranchID
-
-		metricsConfigPaths := viper.GetStringSlice(ingestMetricsConfigPathKey)
-		metricsTemplatesPath := viper.GetString(ingestMetricsTemplatesPathKey)
-		if err := SyncMetricsConfig(projectID, branchID, metricsConfigPaths, metricsTemplatesPath, false, false); err != nil {
-			log.Fatalf("failed to sync metrics before ingest: %v", err)
-		}
 	}
 
 	batchResponse, err := Client.CreateBatchWithResponse(context.Background(), projectID, batchBody)

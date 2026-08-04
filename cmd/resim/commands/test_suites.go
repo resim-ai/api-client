@@ -629,7 +629,7 @@ func runTestSuite(ccmd *cobra.Command, args []string) {
 		ConfigPaths:   viper.GetStringSlice(testSuitesMetricsConfigPathKey),
 		TemplatesPath: viper.GetString(testSuitesMetricsTemplatesPathKey),
 	}); err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to run test suite: %v", err)
 	}
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables

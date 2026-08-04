@@ -267,7 +267,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 		ConfigPaths:   viper.GetStringSlice(ingestMetricsConfigPathKey),
 		TemplatesPath: viper.GetString(ingestMetricsTemplatesPathKey),
 	}); err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to ingest log: %v", err)
 	}
 
 	// Finally, create a batch to process the log(s)

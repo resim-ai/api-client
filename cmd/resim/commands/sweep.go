@@ -224,7 +224,7 @@ func createSweep(ccmd *cobra.Command, args []string) {
 		ConfigPaths:   viper.GetStringSlice(sweepMetricsConfigPathKey),
 		TemplatesPath: viper.GetString(sweepMetricsTemplatesPathKey),
 	}); err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to create sweep: %v", err)
 	}
 
 	// Process the associated account: by default, we try to get from CI/CD environment variables

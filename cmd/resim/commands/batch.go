@@ -757,7 +757,7 @@ func createBatch(ccmd *cobra.Command, args []string) {
 		ConfigPaths:   viper.GetStringSlice(batchMetricsConfigPath),
 		TemplatesPath: viper.GetString(batchMetricsTemplatesPath),
 	}); err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to create batch: %v", err)
 	}
 
 	// Build the request body

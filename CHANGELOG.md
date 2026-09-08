@@ -2,6 +2,19 @@
 
 ## ReSim CLI
 
+### v0.70.0 - September 4, 2026
+
+- Adds support for referencing experience locations for files stored in a DVC repository on S3. The following command assumes that you are running the resim command from inside a local DVC repository checked out to the desired version, and that you have a remote s3 repo named `storage` configured:
+
+  ```shell
+  resim experiences create --project my-project --name cut-in \
+    --locations scenarios/highway/cut-in.sim --dvc-remote storage
+  ```
+
+  This constructs a special URL that allows ReSim to retrieve your version-pinned DVC file from the remote, and provide it to your test as its original filename.
+  Paths given must either be directly tracked by a `.dvc` file (files and directories) or files directly inside a tracked directory (no deep subdirectories).
+  The `--dvc-remote` flag also works for `resim experiences sync`.
+  
 ### v0.69.0 - August 4, 2026
 
 - Fixes `--sync-metrics-config` and `--metrics-set` being unusable together on a branch with no metrics config yet. The metrics-set precheck ran before the config sync, so it rejected the branch with `No metrics config exists on this branch. Sync a metrics config to the branch first.` and the sync that would have created the config never ran. This broke CI pipelines that create a build with `builds create --auto-create-branch` and then create a batch on the new branch. The sync now runs first, so a metrics set defined in the config being synced is visible to the precheck. Affects `batches create`, `sweeps create`, `suites run`, and `ingest`.

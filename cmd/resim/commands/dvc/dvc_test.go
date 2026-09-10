@@ -105,7 +105,7 @@ func TestTranslatesTrackedDirectory(t *testing.T) {
 
 	translated, err := resolver.TranslateLocation(filepath.Join(root, "scenarios"))
 	require.NoError(t, err)
-	assert.Equal(t, "dvc+s3://my-bucket/dvcstore//scenarios;"+dirHash+"/", translated)
+	assert.Equal(t, "dvc+s3://my-bucket/dvcstore//scenarios/;"+dirHash, translated)
 }
 
 func TestTranslatesFileInsideTrackedDirectory(t *testing.T) {

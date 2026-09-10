@@ -27,7 +27,8 @@ var schemeRegexp = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9+.-]*://`)
 const remoteRootSeparator = "//"
 
 // Directory hashes carry a ".dir" suffix in .dvc files and the DVC cache; the
-// ReSim location grammar marks directories with a trailing slash instead.
+// ReSim location grammar marks directories with a trailing slash on the
+// logical path instead ("path/;hash").
 const dirHashSuffix = ".dir"
 
 // Resolver translates local paths into dvc+s3:// locations using a single
@@ -254,7 +255,7 @@ func (repo *repository) loadManifest(dirHash string) ([]manifestEntry, error) {
 }
 
 // formatLocation renders the dvc+s3 location string. A ".dir" hash suffix is
-// converted to the trailing-slash directory marker.
+// converted to the trailing-slash directory marker on the logical path.
 func formatLocation(remoteURL *url.URL, logicalPath string, hash string) string {
 	isDirectory := strings.HasSuffix(hash, dirHashSuffix)
 	hash = strings.TrimSuffix(hash, dirHashSuffix)
@@ -267,10 +268,10 @@ func formatLocation(remoteURL *url.URL, logicalPath string, hash string) string 
 		sb.WriteString(remoteRootSeparator)
 	}
 	sb.WriteString(logicalPath)
-	sb.WriteString(";")
-	sb.WriteString(hash)
 	if isDirectory {
 		sb.WriteString("/")
 	}
+	sb.WriteString(";")
+	sb.WriteString(hash)
 	return sb.String()
 }

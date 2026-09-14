@@ -2,7 +2,7 @@
 
 ## ReSim CLI
 
-### v0.70.0 - September 4, 2026
+### v0.70.0 - September 14, 2026
 
 - Adds support for referencing experience locations for files stored in a DVC repository on S3. The following command assumes that you are running the resim command from inside a local DVC repository checked out to the desired version, and that you have a remote s3 repo named `storage` configured:
 

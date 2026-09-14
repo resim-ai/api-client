@@ -183,6 +183,7 @@ func init() {
 	updateExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	updateExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables of the form NAME=VALUE to set in the build container for this experience. To remove all environment variables, set the flag to an string.")
 	updateExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Replaces all existing custom fields.")
+	updateExperienceCmd.Flags().String(experienceDvcRemoteKey, "", dvcRemoteFlagHelp)
 	updateExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	experienceCmd.AddCommand(updateExperienceCmd)
@@ -242,6 +243,24 @@ func init() {
 	rootCmd.AddCommand(experienceCmd)
 }
 
+// maybeTranslateDvcLocations translates local-path locations into version-pinned
+// dvc+s3:// locations when --dvc-remote is set; locations that already carry a
+// URL scheme pass through. Without the flag, locations are returned untouched.
+func maybeTranslateDvcLocations(locations []string) []string {
+	if !viper.IsSet(experienceDvcRemoteKey) {
+		return locations
+	}
+	resolver := dvc.NewResolver(viper.GetString(experienceDvcRemoteKey))
+	for ii, location := range locations {
+		translated, err := resolver.TranslateLocation(location)
+		if err != nil {
+			log.Fatal("failed to translate location to DVC: ", err)
+		}
+		locations[ii] = translated
+	}
+	return locations
+}
+
 func createExperience(ccmd *cobra.Command, args []string) {
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	experienceGithub := viper.GetBool(experienceGithubKey)
@@ -272,16 +291,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 		log.Fatal("empty experience locations")
 	}
 
-	if viper.IsSet(experienceDvcRemoteKey) {
-		resolver := dvc.NewResolver(viper.GetString(experienceDvcRemoteKey))
-		for ii, location := range experienceLocations {
-			translated, err := resolver.TranslateLocation(location)
-			if err != nil {
-				log.Fatal("failed to translate location to DVC: ", err)
-			}
-			experienceLocations[ii] = translated
-		}
-	}
+	experienceLocations = maybeTranslateDvcLocations(experienceLocations)
 
 	containerTimeout := viper.GetDuration(experienceTimeoutKey)
 	containerTimeoutSeconds := int32(math.Floor(containerTimeout.Seconds()))
@@ -449,11 +459,12 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 		updateMask = append(updateMask, "description")
 	}
 	if viper.IsSet(experienceLocationsKey) {
-		locations := viper.GetStringSlice(experienceLocationsKey)
+		locations := maybeTranslateDvcLocations(viper.GetStringSlice(experienceLocationsKey))
 		updateExperienceInput.Experience.Locations = &locations
 		updateMask = append(updateMask, "locations")
 	} else if viper.IsSet(experienceLocationKey) {
-		updateExperienceInput.Experience.Location = Ptr(viper.GetString(experienceLocationKey))
+		location := maybeTranslateDvcLocations([]string{viper.GetString(experienceLocationKey)})
+		updateExperienceInput.Experience.Location = Ptr(location[0])
 		updateMask = append(updateMask, "location")
 	}
 	if viper.IsSet(experienceTimeoutKey) {

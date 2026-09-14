@@ -73,15 +73,46 @@ func (r *Resolver) TranslateLocation(location string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not translate %q: %w", location, err)
 	}
-	hash, err := repo.hashFor(absPath)
+	dataPath, hash, err := repo.resolveTarget(absPath)
 	if err != nil {
 		return "", fmt.Errorf("could not translate %q: %w", location, err)
 	}
-	logicalPath, err := repo.logicalPath(absPath)
+	logicalPath, err := repo.logicalPath(dataPath)
 	if err != nil {
 		return "", fmt.Errorf("could not translate %q: %w", location, err)
 	}
 	return formatLocation(repo.remoteURL, logicalPath, hash), nil
+}
+
+// The extension of DVC metadata files ("<data path>.dvc").
+const dvcMetadataSuffix = ".dvc"
+
+// resolveTarget resolves a local path to the DVC-tracked data it names and
+// that data's hash. A path ending in ".dvc" may name either tracked data or
+// the metadata file of the sibling data path; when it is unambiguously the
+// metadata file, the location is built for the data it tracks.
+func (repo *repository) resolveTarget(absPath string) (dataPath string, hash string, err error) {
+	dataHash, dataErr := repo.hashFor(absPath)
+	if !strings.HasSuffix(absPath, dvcMetadataSuffix) {
+		return absPath, dataHash, dataErr
+	}
+
+	tracked := strings.TrimSuffix(absPath, dvcMetadataSuffix)
+	metaHash, metaErr := hashFromDvcFile(tracked)
+	switch {
+	case metaErr == nil && metaHash != "" && dataErr == nil:
+		return "", "", fmt.Errorf(
+			"%q is DVC-tracked data itself and also the metadata file for %q: pass the data path you mean (%q for the data this metadata file tracks)",
+			absPath, tracked, tracked)
+	case metaErr == nil && metaHash != "":
+		return tracked, metaHash, nil
+	case metaErr != nil:
+		// The path names an existing but unusable metadata file; that error is
+		// more useful than "not tracked".
+		return "", "", metaErr
+	default:
+		return absPath, dataHash, dataErr
+	}
 }
 
 // repositoryFor finds the DVC repository containing path (by walking up

@@ -121,6 +121,45 @@ func TestTranslatesFileInsideTrackedDirectory(t *testing.T) {
 	assert.Equal(t, "dvc+s3://my-bucket/dvcstore//scenarios/nested/scene2.bag;"+scene2Hash, translated)
 }
 
+func TestTranslatesMetadataFileReference(t *testing.T) {
+	root := newTestRepo(t)
+	resolver := NewResolver("storage")
+
+	// Passing the .dvc metadata file resolves to the data it tracks.
+	translated, err := resolver.TranslateLocation(filepath.Join(root, "data", "file.txt.dvc"))
+	require.NoError(t, err)
+	assert.Equal(t, "dvc+s3://my-bucket/dvcstore//data/file.txt;"+fileHash, translated)
+
+	translated, err = resolver.TranslateLocation(filepath.Join(root, "scenarios.dvc"))
+	require.NoError(t, err)
+	assert.Equal(t, "dvc+s3://my-bucket/dvcstore//scenarios/;"+dirHash, translated)
+
+	// A nonexistent .dvc path still reports the data-path failure.
+	_, err = resolver.TranslateLocation(filepath.Join(root, "missing.dvc"))
+	require.ErrorContains(t, err, "not tracked by DVC")
+}
+
+func TestRejectsAmbiguousMetadataReference(t *testing.T) {
+	root := newTestRepo(t)
+	// Make data/file.txt.dvc simultaneously tracked data in its own right:
+	// data/file.txt.dvc.dvc tracks it.
+	writeFile(t, filepath.Join(root, "data", "file.txt.dvc.dvc"), `
+outs:
+- md5: `+scene2Hash+`
+  hash: md5
+  path: file.txt.dvc
+`)
+	resolver := NewResolver("storage")
+
+	_, err := resolver.TranslateLocation(filepath.Join(root, "data", "file.txt.dvc"))
+	require.ErrorContains(t, err, "also the metadata file")
+
+	// The unambiguous spellings still work.
+	translated, err := resolver.TranslateLocation(filepath.Join(root, "data", "file.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "dvc+s3://my-bucket/dvcstore//data/file.txt;"+fileHash, translated)
+}
+
 func TestRejectsSubdirectoryOfTrackedDirectory(t *testing.T) {
 	root := newTestRepo(t)
 	resolver := NewResolver("storage")

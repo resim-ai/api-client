@@ -12,7 +12,7 @@
   ```
 
   This constructs a special URL that allows ReSim to retrieve your version-pinned DVC file from the remote, and provide it to your test as its original filename.
-  Paths given must either be directly tracked by a `.dvc` file (files and directories) or files directly inside a tracked directory (no deep subdirectories).
+  Paths given must either be directly tracked by a `.dvc` file (files and directories) or files directly inside a tracked directory (no deep subdirectories). Pointing at the `.dvc` metadata file itself also works and resolves to the data it tracks (rejected as ambiguous in the unlikely case that the `.dvc` file is itself DVC-tracked data).
   The `--dvc-remote` flag also works for `resim experiences sync`.
   
 ### v0.69.0 - August 4, 2026

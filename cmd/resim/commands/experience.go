@@ -13,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/cmd/resim/commands/dvc"
 	experience_sync "github.com/resim-ai/api-client/cmd/resim/commands/sync"
 	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
@@ -118,7 +119,11 @@ const (
 	experienceProfileKey              = "profile"
 	experienceEnvironnmentVariableKey = "environment-variable"
 	experienceCustomFieldKey          = "custom-field"
+	experienceDvcRemoteKey            = "dvc-remote"
 )
+
+const dvcRemoteFlagHelp = "The name of a DVC remote. When set, experience locations that are local paths are translated into " +
+	"version-pinned dvc+s3:// locations on that remote. Requires running from within the DVC repository that tracks the files."
 
 func init() {
 	createExperienceCmd.Flags().String(experienceProjectKey, "", "The name or ID of the project to associate with the experience")
@@ -139,6 +144,7 @@ func init() {
 	createExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	createExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables to set in the build container for this experience")
 	createExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Multiple values for the same field name are allowed.")
+	createExperienceCmd.Flags().String(experienceDvcRemoteKey, "", dvcRemoteFlagHelp)
 	createExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(createExperienceCmd)
 
@@ -177,6 +183,7 @@ func init() {
 	updateExperienceCmd.Flags().String(experienceProfileKey, "", "A docker compose profile that will be used to run this experience")
 	updateExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables of the form NAME=VALUE to set in the build container for this experience. To remove all environment variables, set the flag to an string.")
 	updateExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Replaces all existing custom fields.")
+	updateExperienceCmd.Flags().String(experienceDvcRemoteKey, "", dvcRemoteFlagHelp)
 	updateExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	experienceCmd.AddCommand(updateExperienceCmd)
@@ -208,10 +215,12 @@ func init() {
 	syncExperienceCmd.MarkFlagRequired(experiencesConfigKey)
 	syncExperienceCmd.Flags().Bool(experiencesUpdateConfigKey, false, "Whether to update the passed-in config in-place")
 	syncExperienceCmd.Flags().Bool(experiencesSyncNoArchiveKey, false, "Whether to archive experiences not listed in the config file")
+	syncExperienceCmd.Flags().String(experienceDvcRemoteKey, "", dvcRemoteFlagHelp)
 
 	syncExperienceCmd.Flags().Bool(experiencesCloneKey, false, "Whether to clone the existing database state to the config file rather than the other way around")
 	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesUpdateConfigKey, experiencesCloneKey)
 	syncExperienceCmd.MarkFlagsMutuallyExclusive(experiencesSyncNoArchiveKey, experiencesCloneKey)
+	syncExperienceCmd.MarkFlagsMutuallyExclusive(experienceDvcRemoteKey, experiencesCloneKey)
 
 	experienceCmd.AddCommand(syncExperienceCmd)
 
@@ -232,6 +241,24 @@ func init() {
 	experienceCmd.AddCommand(removeSystemExperienceCmd)
 
 	rootCmd.AddCommand(experienceCmd)
+}
+
+// maybeTranslateDvcLocations translates local-path locations into version-pinned
+// dvc+s3:// locations when --dvc-remote is set; locations that already carry a
+// URL scheme pass through. Without the flag, locations are returned untouched.
+func maybeTranslateDvcLocations(locations []string) []string {
+	if !viper.IsSet(experienceDvcRemoteKey) {
+		return locations
+	}
+	resolver := dvc.NewResolver(viper.GetString(experienceDvcRemoteKey))
+	for ii, location := range locations {
+		translated, err := resolver.TranslateLocation(location)
+		if err != nil {
+			log.Fatal("failed to translate location to DVC: ", err)
+		}
+		locations[ii] = translated
+	}
+	return locations
 }
 
 func createExperience(ccmd *cobra.Command, args []string) {
@@ -263,6 +290,8 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	if len(experienceLocations) == 0 {
 		log.Fatal("empty experience locations")
 	}
+
+	experienceLocations = maybeTranslateDvcLocations(experienceLocations)
 
 	containerTimeout := viper.GetDuration(experienceTimeoutKey)
 	containerTimeoutSeconds := int32(math.Floor(containerTimeout.Seconds()))
@@ -430,11 +459,12 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 		updateMask = append(updateMask, "description")
 	}
 	if viper.IsSet(experienceLocationsKey) {
-		locations := viper.GetStringSlice(experienceLocationsKey)
+		locations := maybeTranslateDvcLocations(viper.GetStringSlice(experienceLocationsKey))
 		updateExperienceInput.Experience.Locations = &locations
 		updateMask = append(updateMask, "locations")
 	} else if viper.IsSet(experienceLocationKey) {
-		updateExperienceInput.Experience.Location = Ptr(viper.GetString(experienceLocationKey))
+		location := maybeTranslateDvcLocations([]string{viper.GetString(experienceLocationKey)})
+		updateExperienceInput.Experience.Location = Ptr(location[0])
 		updateMask = append(updateMask, "location")
 	}
 	if viper.IsSet(experienceTimeoutKey) {
@@ -721,7 +751,7 @@ func syncExperience(ccmd *cobra.Command, args []string) {
 	clone := viper.GetBool(experiencesCloneKey)
 
 	if !clone {
-		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig, shouldArchive)
+		experience_sync.SyncExperiences(Client, projectID, configPath, updateConfig, shouldArchive, viper.GetString(experienceDvcRemoteKey))
 	} else {
 		experience_sync.CloneExperiences(Client, projectID, configPath)
 	}

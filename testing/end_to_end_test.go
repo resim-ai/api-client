@@ -4416,7 +4416,7 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.Len(logs, 10)
 	for _, log := range logs {
 		ts.Equal(testID2, *log.JobID)
-		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "blah.log", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, *log.FileName)
+		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "blah.log", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl", "experience-input_manifest.resim.json", "metrics-input_manifest.resim.json"}, *log.FileName)
 	}
 
 	// Download a single test log
@@ -4434,7 +4434,7 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.NoError(err)
 	ts.Len(files, 10)
 	for _, file := range files {
-		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl"}, file.Name())
+		ts.Contains([]string{"experience-worker.log", "metrics-worker.log", "experience-container.log", "metrics-container.log", "resource_metrics.binproto", "logs", "file.name", "test_length_metric.binproto", "resource_metrics.resim.jsonl", "test_length_metric.resim.jsonl", "experience-input_manifest.resim.json", "metrics-input_manifest.resim.json"}, file.Name())
 	}
 
 	// Pass blank name / id to logs:

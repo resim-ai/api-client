@@ -12,8 +12,8 @@ const headingOptional string = "OPTIONAL"
 
 func helperTestCommand() cobra.Command {
 	var testCmd = cobra.Command{
-		Use:           "resim",
-		Short:         "resim - Command Line Interface for ReSim",
+		Use:           "signalflag",
+		Short:         "signalflag - Command Line Interface for ReSim",
 		Long:          ``,
 		SilenceErrors: true,
 		SilenceUsage:  true,

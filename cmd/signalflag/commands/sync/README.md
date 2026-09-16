@@ -9,7 +9,7 @@ docs](https://docs.resim.ai/).* <!-- TODO(mikebauer) Add a link to a specific us
 
 The contents of this package are intended to facilitate the easy updating of experiences based on a
 generated or static config file. This config file describes the experiences the user wants to have
-in their resim app, the tags and systems they want them to have, and the test suites they want with
+in their ReSim app, the tags and systems they want them to have, and the test suites they want with
 said experiences in them. Here's an example config to make things concrete:
 
 ```lang=yaml
@@ -53,7 +53,7 @@ managed_experience_tags:
 The user can then run:
 
 ```lang=bash
-resim experiences sync \
+signalflag experiences sync \
     --project <project-name> \
 	--experience-config <config/file/path.yaml>
 ```
@@ -102,7 +102,7 @@ For convenience, the `sync` command also provides the ability to fetch the curre
 database and save it to a local config file like so:
 
 ```lang=bash
-resim experiences sync \
+signalflag experiences sync \
     --project <project-name> \
 	--clone \
 	--experience-config <config/file/path.yaml>

@@ -6,7 +6,7 @@
 // It is not intended to catch edge cases or weird interactions; that's the realm of unit testing.
 
 // To run:
-// RESIM_CLIENT_ID=<> RESIM_CLIENT_SECRET=<> CONFIG=staging go test -v -tags end_to_end ./testing
+// SIGNALFLAG_CLIENT_ID=<> SIGNALFLAG_CLIENT_SECRET=<> CONFIG=staging go test -v -tags end_to_end ./testing
 //
 // See the README for more information on how to run the tests.
 
@@ -28,7 +28,7 @@ import (
 	compose_types "github.com/compose-spec/compose-go/v2/types"
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
-	"github.com/resim-ai/api-client/cmd/resim/commands"
+	"github.com/resim-ai/api-client/cmd/signalflag/commands"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -43,8 +43,8 @@ const (
 	Dev          string = "dev"
 	Staging      string = "staging"
 	Prod         string = "prod"
-	ClientID     string = "RESIM_CLIENT_ID"
-	ClientSecret string = "RESIM_CLIENT_SECRET"
+	ClientID     string = "SIGNALFLAG_CLIENT_ID"
+	ClientSecret string = "SIGNALFLAG_CLIENT_SECRET"
 	username     string = "USERNAME"
 	password     string = "PASSWORD"
 )
@@ -52,7 +52,7 @@ const (
 // CLI Constants
 const (
 	TempDirSuffix string = "cli-test"
-	CliName       string = "resim"
+	CliName       string = "signalflag"
 	ExpectNoError bool   = false
 	ExpectError   bool   = true
 )
@@ -271,7 +271,7 @@ func (s *EndToEndTestHelper) buildCLI() string {
 		os.Exit(1)
 	}
 	outputPath := filepath.Join(tmpDir, CliName)
-	buildCmd := exec.Command("go", "build", "-o", outputPath, "../cmd/resim")
+	buildCmd := exec.Command("go", "build", "-o", outputPath, "../cmd/signalflag")
 	err = buildCmd.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: failed to build CLI: %v", err)
@@ -331,13 +331,17 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	if username != "" && password != "" {
 		newEnv := []string{}
 		for _, kv := range env {
-			if strings.HasPrefix(kv, "RESIM_CLIENT_ID=") || strings.HasPrefix(kv, "RESIM_CLIENT_SECRET=") {
+			// Strip both the current and the legacy names: the CLI promotes
+			// RESIM_* to SIGNALFLAG_* at startup, and client credentials take
+			// precedence over username/password when both are set.
+			if strings.HasPrefix(kv, "SIGNALFLAG_CLIENT_ID=") || strings.HasPrefix(kv, "SIGNALFLAG_CLIENT_SECRET=") ||
+				strings.HasPrefix(kv, "RESIM_CLIENT_ID=") || strings.HasPrefix(kv, "RESIM_CLIENT_SECRET=") {
 				continue // skip these
 			}
 			newEnv = append(newEnv, kv)
 		}
-		newEnv = append(newEnv, fmt.Sprintf("RESIM_USERNAME=%s", username))
-		newEnv = append(newEnv, fmt.Sprintf("RESIM_PASSWORD=%s", password))
+		newEnv = append(newEnv, fmt.Sprintf("SIGNALFLAG_USERNAME=%s", username))
+		newEnv = append(newEnv, fmt.Sprintf("SIGNALFLAG_PASSWORD=%s", password))
 		env = newEnv
 	}
 	cmd.Env = env
@@ -1690,7 +1694,7 @@ func debugCommand(projectID uuid.UUID, buildID string, experienceName string) []
 	}
 
 	// this is used in debug.go to skip setting raw mode
-	os.Setenv("RESIM_TEST", "true")
+	os.Setenv("SIGNALFLAG_TEST", "true")
 
 	return []CommandBuilder{debugCommand}
 }

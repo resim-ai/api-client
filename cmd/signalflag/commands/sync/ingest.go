@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/resim-ai/api-client/api"
-	"github.com/resim-ai/api-client/cmd/resim/commands/utils"
+	"github.com/resim-ai/api-client/cmd/signalflag/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
 )
 

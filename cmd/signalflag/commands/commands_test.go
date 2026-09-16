@@ -21,8 +21,8 @@ var matchContext = mock.MatchedBy(func(maybeContext any) bool {
 
 func sampleCommand() cobra.Command {
 	var testCmd = cobra.Command{
-		Use:           "resim",
-		Short:         "resim - Command Line Interface for ReSim",
+		Use:           "signalflag",
+		Short:         "signalflag - Command Line Interface for ReSim",
 		Long:          ``,
 		SilenceErrors: true,
 		SilenceUsage:  true,

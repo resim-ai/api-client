@@ -57,16 +57,16 @@ jobs:
         CGO_ENABLED: 0
         TAG: ${{ steps.tag.outputs.tag }}
       run: |
-        cd cmd/resim
-        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-linux-amd64
-        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-linux-arm64
-        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-darwin-arm64
-        GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-darwin-amd64
+        cd cmd/signalflag
+        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-linux-amd64
+        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-linux-arm64
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-darwin-arm64
+        GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-darwin-amd64
 
     - uses: ncipollo/release-action@v1.12.0
       with:
         tag: ${{ steps.tag.outputs.tag }}
-        artifacts: "cmd/resim/resim-*"
+        artifacts: "cmd/signalflag/signalflag-*"
         token: ${{ secrets.GITHUB_TOKEN }}
         # If the release/tag already exists (e.g. it was created manually via
         # the GitHub UI), update it and attach the binaries instead of failing
@@ -87,9 +87,9 @@ jobs:
         TAG: ${{ steps.tag.outputs.tag }}
       run: |
         count=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
-          --jq '[.assets[] | select(.name | startswith("resim-"))] | length')
+          --jq '[.assets[] | select(.name | startswith("signalflag-"))] | length')
         echo "count=$count" >> "$GITHUB_OUTPUT"
-        echo "Found ${count}/4 resim binaries attached to ${TAG}"
+        echo "Found ${count}/4 signalflag binaries attached to ${TAG}"
         if [ "$count" -ne 4 ]; then
           echo "::error::Release ${TAG} has ${count}/4 binaries attached"
           exit 1

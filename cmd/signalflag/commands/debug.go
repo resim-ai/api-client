@@ -16,7 +16,7 @@ import (
 	"github.com/google/uuid"
 	dockerterm "github.com/moby/term"
 	"github.com/resim-ai/api-client/api"
-	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
+	. "github.com/resim-ai/api-client/cmd/signalflag/commands/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	v1 "k8s.io/api/core/v1"
@@ -220,7 +220,7 @@ func debug(ccmd *cobra.Command, args []string) {
 	}
 
 	// if we're running in the end-to-end test, we can't enable raw mode
-	if os.Getenv("RESIM_TEST") != "true" {
+	if os.Getenv("SIGNALFLAG_TEST") != "true" {
 		restore, err := enableRawMode(projectID, *debugExperience.BatchID)
 		if err != nil {
 			panic(err)

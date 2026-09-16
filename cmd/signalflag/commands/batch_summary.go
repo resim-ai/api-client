@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
+	. "github.com/resim-ai/api-client/cmd/signalflag/commands/utils"
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"

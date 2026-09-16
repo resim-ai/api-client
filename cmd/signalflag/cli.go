@@ -2,16 +2,16 @@ package main
 
 import (
 	"log"
+	"os"
 	"strings"
 
-	"github.com/resim-ai/api-client/cmd/resim/commands"
+	"github.com/resim-ai/api-client/cmd/signalflag/commands"
 	"github.com/spf13/viper"
 )
 
-const EnvPrefix = "RESIM"
-
 func main() {
-	viper.SetEnvPrefix(EnvPrefix)
+	commands.PromoteLegacyEnv(os.Stderr)
+	viper.SetEnvPrefix(commands.EnvPrefix)
 	viper.AutomaticEnv()
 	// This confusingly-named function defines the mapping from CLI parameter key to environment variable.
 	// CLI parameters use kebab-case, and env vars use CAPITAL_SNAKE_CASE.

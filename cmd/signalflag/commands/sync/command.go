@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
-	"github.com/resim-ai/api-client/cmd/resim/commands/dvc"
+	"github.com/resim-ai/api-client/cmd/signalflag/commands/dvc"
 	"gopkg.in/yaml.v3"
 )
 

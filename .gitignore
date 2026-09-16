@@ -20,7 +20,8 @@
 # Go workspace file
 go.work
 
-cmd/resim/resim
+cmd/signalflag/signalflag
+/signalflag
 /resim
 
 .env.local

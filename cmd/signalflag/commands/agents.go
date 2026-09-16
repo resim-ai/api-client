@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/resim-ai/api-client/api"
-	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
+	. "github.com/resim-ai/api-client/cmd/signalflag/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -347,7 +347,7 @@ func formatAgentResults(agentID string, items []api.AgentRecentActivity) string 
 // explicit yes aborts.
 func confirmArchiveAgent(in io.Reader, agentID string) bool {
 	fmt.Fprintf(os.Stderr,
-		"Archive agent %q? It will reappear in `resim agents list` if the host checks in again.\n[y/N]: ",
+		"Archive agent %q? It will reappear in `signalflag agents list` if the host checks in again.\n[y/N]: ",
 		agentID,
 	)
 	var resp string

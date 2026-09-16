@@ -11,7 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/resim-ai/api-client/api"
-	. "github.com/resim-ai/api-client/cmd/resim/commands/utils"
+	. "github.com/resim-ai/api-client/cmd/signalflag/commands/utils"
 	. "github.com/resim-ai/api-client/ptr"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -134,7 +134,7 @@ func createBlueprint(ccmd *cobra.Command, args []string) {
 	// accidentally spawning unwanted versions by re-running `create`. This is
 	// stricter than the API, which would happily add a version.
 	if blueprintExists(name) {
-		log.Fatalf("blueprint %q already exists; use `resim blueprints revise` to create a new version", name)
+		log.Fatalf("blueprint %q already exists; use `signalflag blueprints revise` to create a new version", name)
 	}
 
 	fmt.Println("Creating a blueprint...")
@@ -149,7 +149,7 @@ func reviseBlueprint(ccmd *cobra.Command, args []string) {
 	// `revise` only ever adds a version to an existing blueprint. Use `create` to
 	// make a brand-new one.
 	if !blueprintExists(name) {
-		log.Fatalf("blueprint %q does not exist; use `resim blueprints create` to create it", name)
+		log.Fatalf("blueprint %q does not exist; use `signalflag blueprints create` to create it", name)
 	}
 
 	fmt.Println("Revising blueprint...")

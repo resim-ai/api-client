@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
-	"os"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -39,14 +38,14 @@ func init() {
 func enableGovcloud(ccmd *cobra.Command, args []string) {
 	v := readConfigFile()
 	v.Set("govcloud", true)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
+	v.WriteConfigAs(ConfigFilePath())
 	fmt.Println("GovCloud mode enabled")
 }
 
 func disableGovcloud(ccmd *cobra.Command, args []string) {
 	v := readConfigFile()
 	v.Set("govcloud", false)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
+	v.WriteConfigAs(ConfigFilePath())
 	fmt.Println("GovCloud mode disabled")
 }
 
@@ -54,9 +53,10 @@ func readConfigFile() *viper.Viper {
 	// Open the config file as an independent Viper instance. This instance does not have all the flags set.
 	// Therefore we can safely save it again without adding any additional flags.
 	v := viper.New()
-	v.SetConfigName("resim")
+	configDir, _ := GetConfigDir()
+	v.SetConfigName(ConfigFileNameFor(configDir))
 	v.SetConfigType("yaml")
-	v.AddConfigPath(os.ExpandEnv(ConfigPath))
+	v.AddConfigPath(configDir)
 	if err := v.ReadInConfig(); err != nil {
 		switch err.(type) {
 		case viper.ConfigFileNotFoundError, *fs.PathError:

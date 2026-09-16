@@ -109,7 +109,7 @@ func DefaultConfig() Config {
 	return Config{
 		APIURL:                     ProdAPIURL,
 		AuthURL:                    ProdAuthURL,
-		CacheDir:                   os.ExpandEnv("$HOME/.resim"),
+		CacheDir:                   os.ExpandEnv("$HOME/.signalflag"),
 		DevInteractiveClientID:     DefaultDevInteractiveClientID,
 		ProdInteractiveClientID:    DefaultProdInteractiveClientID,
 		DevNonInteractiveClientID:  DefaultDevNonInteractiveClientID,
@@ -118,7 +118,7 @@ func DefaultConfig() Config {
 }
 
 // ConfigFromViper builds a Config from a viper instance. The cacheDir parameter
-// specifies where credential caches are stored (e.g., os.ExpandEnv("$HOME/.resim")).
+// specifies where credential caches are stored (e.g., os.ExpandEnv("$HOME/.signalflag")).
 // This preserves viper.IsSet() semantics for auth mode detection, so CI environments
 // with empty env vars behave correctly.
 func ConfigFromViper(v *viper.Viper, cacheDir string) Config {

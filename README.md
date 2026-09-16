@@ -1,4 +1,4 @@
-# ReSim CLI Tool
+# Signalflag CLI Tool
 
 This repository contains the ReSim API command-line interface (CLI).  It is written in Go and produced via code generation with [openapi-cli-generator](https://github.com/danielgtaylor/openapi-cli-generator) from the publicly-available [API spec](https://api.resim.ai).
 
@@ -30,6 +30,41 @@ Or you can install using `go install`:
 
     go install github.com/resim-ai/api-client/cmd/signalflag@latest
 
+## Migrating from `resim`
+
+This CLI was previously called `resim`. Everything the CLI does is unchanged; only its name and the places it looks for its own settings have moved. The old names keep working for now, with a deprecation warning printed to stderr, so existing setups are not broken. Please update them anyway, as the fallbacks will be removed in a future release.
+
+| Before | Now |
+| --- | --- |
+| `resim <command>` | `signalflag <command>` |
+| Release assets `resim-<os>-<arch>` | `signalflag-<os>-<arch>` |
+| `go install github.com/resim-ai/api-client/cmd/resim@latest` | `go install github.com/resim-ai/api-client/cmd/signalflag@latest` |
+| `RESIM_CLIENT_ID`, `RESIM_CLIENT_SECRET`, `RESIM_*` | `SIGNALFLAG_CLIENT_ID`, `SIGNALFLAG_CLIENT_SECRET`, `SIGNALFLAG_*` |
+| `~/.resim/resim.yaml` and `~/.resim/cache.json` | `~/.signalflag/signalflag.yaml` and `~/.signalflag/cache.json` |
+
+### Environment variables
+
+Any `RESIM_<NAME>` variable is used as a fallback when `SIGNALFLAG_<NAME>` is not set. If both are set, the `SIGNALFLAG_` one wins. The warning lists the variables that were read from their old names.
+
+### Config directory
+
+The CLI decides where to read and write its config file and cached login tokens as follows:
+
+1. If `~/.signalflag` exists, it is used.
+2. Otherwise, if `~/.resim` exists, it is used (including `resim.yaml` and `cache.json` inside it) and a warning is printed.
+3. If neither exists, `~/.signalflag` is created.
+
+This means that if you already had `~/.resim`, you will **not** see a `~/.signalflag` directory appear: the CLI keeps using your existing login and settings rather than starting from an empty directory. To move over, run:
+
+    mv ~/.resim ~/.signalflag
+    mv ~/.signalflag/resim.yaml ~/.signalflag/signalflag.yaml   # only if the file exists
+
+After that the warning stops. If you still use an older `resim` binary alongside this one, copy the directory instead of moving it, since the old binary only reads `~/.resim`.
+
+### Shell completion
+
+Regenerate completion scripts, as the old ones are registered for a command named `resim`. See [Autocomplete](#autocomplete) below.
+
 ## Authentication
 
 When you run any command, if you don't have a cached authentication token, the CLI will prompt you to log in using a web browser.
@@ -43,9 +78,7 @@ The username and password can be specified using the `--username` and `--passwor
 Client credentials can be specified on the commandline with the `--client-id` and `--client-secret` flags, or in the environment as
 `SIGNALFLAG_CLIENT_ID` and `SIGNALFLAG_CLIENT_SECRET`.
 
-The CLI was previously named `resim` and read `RESIM_*` environment variables. Those are still honoured as a fallback when the corresponding `SIGNALFLAG_*` variable is not set, with a deprecation warning; please rename them.
-
-If you would like to store your credentials in a config file, the CLI will load them from `~/.resim/resim.yaml`. Make sure this file is reasonably secure - only readable by the user that will run the CLI, for example. The file is formatted as follows:
+If you would like to store your credentials in a config file, the CLI will load them from `~/.signalflag/signalflag.yaml`. Make sure this file is reasonably secure - only readable by the user that will run the CLI, for example. The file is formatted as follows:
 
     ## Set ONE of the below pairs
 
@@ -59,7 +92,7 @@ If you would like to store your credentials in a config file, the CLI will load 
 
 ### Token Caching
 
-Authentication tokens will be cached in `~/.resim/cache.json` if the user running the CLI has permission to create that directory and file.
+Authentication tokens will be cached in `~/.signalflag/cache.json` if the user running the CLI has permission to create that directory and file.
 
 ## Usage
 
@@ -85,7 +118,7 @@ Other shells are supported, just replace `bash` above with e.g. [`zsh`, `fish`, 
 
 ### GovCloud
 
-If you use our GovCloud environment, you can configure the CLI to work with it by running `signalflag govcloud enable` (which will store the setting in the configuration file at `~/.resim/resim.yaml`) or by setting `SIGNALFLAG_GOVCLOUD=true` in your environment.
+If you use our GovCloud environment, you can configure the CLI to work with it by running `signalflag govcloud enable` (which will store the setting in the configuration file at `~/.signalflag/signalflag.yaml`) or by setting `SIGNALFLAG_GOVCLOUD=true` in your environment.
 
 ## Contributing
 

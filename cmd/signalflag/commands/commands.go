@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/api"
@@ -19,12 +20,22 @@ import (
 var Client api.ClientWithResponsesInterface
 var BffClient graphql.Client
 
-const ConfigPath = "$HOME/.resim"
+// ConfigPath is the directory holding the CLI's config file and credential cache.
+const ConfigPath = "$HOME/.signalflag"
+
+// LegacyConfigPath is the directory the CLI used before it was renamed. It is
+// still used, with a deprecation warning, when ConfigPath does not exist.
+const LegacyConfigPath = "$HOME/.resim"
+
+// ConfigFileName is the base name (without extension) of the YAML config file
+// inside ConfigPath. LegacyConfigFileName is the name used inside LegacyConfigPath.
+const ConfigFileName = "signalflag"
+const LegacyConfigFileName = "resim"
 
 var (
 	rootCmd = &cobra.Command{
 		Use:              "signalflag",
-		Short:            "signalflag - Command Line Interface for ReSim",
+		Short:            "Signalflag - Command Line Interface",
 		Long:             ``,
 		SilenceErrors:    true,
 		SilenceUsage:     true,
@@ -41,7 +52,7 @@ func rootCommand(cmd *cobra.Command, args []string) {
 }
 
 func Execute() error {
-	ApplyReSimStyle(rootCmd)
+	ApplyStyle(rootCmd)
 	return rootCmd.Execute()
 }
 
@@ -60,7 +71,7 @@ func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {
 func RegisterViperFlags(cmd *cobra.Command, args []string) {
 	configDir, _ := GetConfigDir()
 	viper.BindPFlags(cmd.Flags())
-	viper.SetConfigName("resim")
+	viper.SetConfigName(ConfigFileNameFor(configDir))
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath(configDir)
 	if err := viper.ReadInConfig(); err != nil {
@@ -82,7 +93,8 @@ func RegisterViperFlags(cmd *cobra.Command, args []string) {
 func SetClient(cmd *cobra.Command, args []string) {
 	ctx := context.Background()
 
-	cfg := auth.ConfigFromViper(viper.GetViper(), os.ExpandEnv(ConfigPath))
+	configDir, _ := GetConfigDir()
+	cfg := auth.ConfigFromViper(viper.GetViper(), configDir)
 	result, err := auth.Authenticate(ctx, cfg)
 	if err != nil {
 		log.Fatal(err)
@@ -105,17 +117,46 @@ func SetClient(cmd *cobra.Command, args []string) {
 	}()
 }
 
+var legacyConfigDirWarned bool
+
+// GetConfigDir returns the directory holding the config file and credential
+// cache, creating it if needed. If the current location does not exist but the
+// legacy one does, the legacy directory is used and a deprecation warning is
+// printed once so that existing installs keep working.
 func GetConfigDir() (string, error) {
 	expectedDir := os.ExpandEnv(ConfigPath)
-	// Check first if the directory exists, and if it does not, create it:
-	if _, err := os.Stat(expectedDir); os.IsNotExist(err) {
-		err := os.Mkdir(expectedDir, 0700)
-		if err != nil {
-			log.Println("error creating directory:", err)
-			return "", err
+	if _, err := os.Stat(expectedDir); err == nil {
+		return expectedDir, nil
+	}
+	legacyDir := os.ExpandEnv(LegacyConfigPath)
+	if _, err := os.Stat(legacyDir); err == nil {
+		if !legacyConfigDirWarned {
+			legacyConfigDirWarned = true
+			fmt.Fprintf(os.Stderr, "WARNING: the config directory %s is deprecated; move it to %s (and rename %s.yaml to %s.yaml)\n",
+				legacyDir, expectedDir, LegacyConfigFileName, ConfigFileName)
 		}
+		return legacyDir, nil
+	}
+	if err := os.Mkdir(expectedDir, 0700); err != nil {
+		log.Println("error creating directory:", err)
+		return "", err
 	}
 	return expectedDir, nil
+}
+
+// ConfigFileNameFor returns the config file base name to use inside configDir:
+// the legacy name when configDir is the legacy directory, the current name otherwise.
+func ConfigFileNameFor(configDir string) string {
+	if configDir == os.ExpandEnv(LegacyConfigPath) {
+		return LegacyConfigFileName
+	}
+	return ConfigFileName
+}
+
+// ConfigFilePath returns the full path of the YAML config file.
+func ConfigFilePath() string {
+	configDir, _ := GetConfigDir()
+	return filepath.Join(configDir, ConfigFileNameFor(configDir)+".yaml")
 }
 
 func AliasNormalizeFunc(f *pflag.FlagSet, name string) pflag.NormalizedName {

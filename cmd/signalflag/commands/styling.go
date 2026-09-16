@@ -1,4 +1,4 @@
-// Enables applying custom ReSim styling to help and usage text.
+// Enables applying custom styling to help and usage text.
 //
 // Cobra provides two methods for doing this:
 // 1. Using cobra.Command.SetUsageFunc() allows an arbitrary function to be
@@ -11,11 +11,11 @@
 // templates are quite powerful because they can be used to execute arbitrary
 // functions, including user defined functions. That may be added using:
 // cobra.AddTemplateFunc("key", UserFunction). Therefore we follow this approach
-// here in defining ReSim's custom styling.
+// here in defining the CLI's custom styling.
 //
-// In this file, first the ReSimUsageTemplate is defined. Below this any
+// In this file, first the UsageTemplate is defined. Below this any
 // custom template functions are defined. Finally a styling helper:
-// ApplyReSimStyle is defined. Style templates are inherited by child commands
+// ApplyStyle is defined. Style templates are inherited by child commands
 // so this function need only be applied once to the root command (rootCmd).
 
 package commands
@@ -32,7 +32,7 @@ import (
 	"github.com/spf13/pflag"
 )
 
-var ReSimUsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
+var UsageTemplate string = `{{StyleHeading "USAGE"}}{{if .Runnable}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
 
@@ -74,7 +74,7 @@ var flagTemplateFuncs = template.FuncMap{
 	"StyleHeading": styleHeading,
 }
 
-var resimTemplateFuncs = template.FuncMap{
+var templateFuncs = template.FuncMap{
 	"StyleHeading":  styleHeading,
 	"FlagSetUsages": flagSetUsages,
 }
@@ -141,7 +141,7 @@ func styleHeading(s string) string {
 	return color.New(color.Bold).SprintFunc()(s)
 }
 
-func ApplyReSimStyle(cmd *cobra.Command) {
-	cobra.AddTemplateFuncs(resimTemplateFuncs)
-	cmd.SetUsageTemplate(ReSimUsageTemplate)
+func ApplyStyle(cmd *cobra.Command) {
+	cobra.AddTemplateFuncs(templateFuncs)
+	cmd.SetUsageTemplate(UsageTemplate)
 }

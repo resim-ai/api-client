@@ -1,6 +1,6 @@
 name: build-release-binary
 
-run-name: Create Github Release for ReSim CLI
+run-name: Create Github Release for signalflag CLI
 
 on:
   push:
@@ -114,6 +114,6 @@ jobs:
           echo "RELEASE_SLACK_WEBHOOK_URL not set; skipping Slack notification."
           exit 0
         fi
-        text=":rotating_light: ReSim CLI release *${TAG:-unknown}* failed to publish binaries (${COUNT:-unknown}/4 attached). <${RUN_URL}|View workflow run>"
+        text=":rotating_light: signalflag CLI release *${TAG:-unknown}* failed to publish binaries (${COUNT:-unknown}/4 attached). <${RUN_URL}|View workflow run>"
         payload=$(jq -n --arg text "$text" '{text: $text}')
         curl -sS -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"

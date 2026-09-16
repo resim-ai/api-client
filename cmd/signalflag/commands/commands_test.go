@@ -22,7 +22,7 @@ var matchContext = mock.MatchedBy(func(maybeContext any) bool {
 func sampleCommand() cobra.Command {
 	var testCmd = cobra.Command{
 		Use:           "signalflag",
-		Short:         "signalflag - Command Line Interface for ReSim",
+		Short:         "signalflag - Command Line Interface",
 		Long:          ``,
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -33,13 +33,45 @@ func sampleCommand() cobra.Command {
 
 func writeStubConfig(params map[string]interface{}) string {
 	// Writes a viper config to a temporary directory and returns the path
-	tempDir, _ := os.MkdirTemp(os.TempDir(), "resim-")
-	os.MkdirAll(filepath.Join(tempDir, ".resim"), os.ModePerm)
+	tempDir, _ := os.MkdirTemp(os.TempDir(), "signalflag-")
+	os.MkdirAll(filepath.Join(tempDir, ".signalflag"), os.ModePerm)
 	os.Setenv("HOME", tempDir)
 	v := viper.New()
 	v.MergeConfigMap(params)
-	v.WriteConfigAs(os.ExpandEnv(ConfigPath) + "/resim.yaml")
+	v.WriteConfigAs(ConfigFilePath())
 	return tempDir
+}
+
+func TestGetConfigDir(t *testing.T) {
+	t.Run("uses current directory when it exists", func(t *testing.T) {
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		os.Mkdir(filepath.Join(home, ".signalflag"), 0700)
+		os.Mkdir(filepath.Join(home, ".resim"), 0700)
+		dir, err := GetConfigDir()
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join(home, ".signalflag"), dir)
+		assert.Equal(t, "signalflag", ConfigFileNameFor(dir))
+		assert.Equal(t, filepath.Join(home, ".signalflag", "signalflag.yaml"), ConfigFilePath())
+	})
+	t.Run("falls back to legacy directory", func(t *testing.T) {
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		os.Mkdir(filepath.Join(home, ".resim"), 0700)
+		dir, err := GetConfigDir()
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join(home, ".resim"), dir)
+		assert.Equal(t, "resim", ConfigFileNameFor(dir))
+		assert.Equal(t, filepath.Join(home, ".resim", "resim.yaml"), ConfigFilePath())
+	})
+	t.Run("creates current directory when neither exists", func(t *testing.T) {
+		home := t.TempDir()
+		t.Setenv("HOME", home)
+		dir, err := GetConfigDir()
+		assert.NoError(t, err)
+		assert.Equal(t, filepath.Join(home, ".signalflag"), dir)
+		assert.DirExists(t, dir)
+	})
 }
 
 func TestRequiredFlagNotProvided(t *testing.T) {

@@ -4083,6 +4083,10 @@ func TestExperienceUpdate(t *testing.T) {
 
 func TestBatchAndLogs(t *testing.T) {
 	ts := assert.New(t)
+	// Nil checks that guard a dereference must be fatal: a bare assert lets the
+	// next line segfault, which kills the whole binary and takes every other
+	// test's results with it.
+	req := require.New(t)
 	t.Parallel()
 	// create a project:
 	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
@@ -4236,9 +4240,9 @@ func TestBatchAndLogs(t *testing.T) {
 	var metricsSetBatch api.Batch
 	metricsErr := json.Unmarshal([]byte(output.StdOut), &metricsSetBatch)
 	ts.NoError(metricsErr)
-	ts.NotNil(metricsSetBatch.MetricsSetName)
+	req.NotNil(metricsSetBatch.MetricsSetName)
 	ts.Equal("woot", *metricsSetBatch.MetricsSetName)
-	ts.NotNil(metricsSetBatch.PoolLabels)
+	req.NotEmpty(metricsSetBatch.PoolLabels)
 	ts.Contains((*metricsSetBatch.PoolLabels)[0], "metrics2")
 
 	bogusBatchName := fmt.Sprintf("bogus-metrics-set-batch-%s", uuid.New().String())
@@ -4264,7 +4268,7 @@ func TestBatchAndLogs(t *testing.T) {
 	output = s.runCommand(ts, getBatchByName(projectID, syncedSetBatchName, ExitStatusFalse), ExpectNoError)
 	var syncedSetBatch api.Batch
 	ts.NoError(json.Unmarshal([]byte(output.StdOut), &syncedSetBatch))
-	ts.NotNil(syncedSetBatch.MetricsSetName)
+	req.NotNil(syncedSetBatch.MetricsSetName)
 	ts.Equal("woot", *syncedSetBatch.MetricsSetName)
 
 	// A set that is absent from the synced config is still rejected, so the precheck keeps working
@@ -5443,6 +5447,10 @@ func TestAliases(t *testing.T) {
 
 func TestTestSuites(t *testing.T) {
 	ts := assert.New(t)
+	// Nil checks that guard a dereference must be fatal: a bare assert lets the
+	// next line segfault, which kills the whole binary and takes every other
+	// test's results with it.
+	req := require.New(t)
 	t.Parallel()
 	fmt.Println("Testing test suites")
 
@@ -5659,9 +5667,9 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getBatchByName(projectID, metricsSetOverrideBatchName, ExitStatusFalse), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
-	ts.NotNil(batch.MetricsSetName)
+	req.NotNil(batch.MetricsSetName)
 	ts.Equal(metricsSetOverrideName, *batch.MetricsSetName)
-	ts.NotNil(batch.PoolLabels)
+	req.NotEmpty(batch.PoolLabels)
 	ts.Contains((*batch.PoolLabels)[0], "metrics2")
 
 	// A metrics-set override that does not exist on the branch is rejected client-side.
@@ -5695,7 +5703,7 @@ func TestTestSuites(t *testing.T) {
 	// Parse the output into a test suite:
 	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
 	ts.NoError(err)
-	ts.NotNil(testSuite.MetricsSetName)
+	req.NotNil(testSuite.MetricsSetName)
 	ts.Equal(metricsSetName, *testSuite.MetricsSetName)
 
 	// Now revise the test suite to clear the metrics set (set to nil), then set a new one
@@ -5714,7 +5722,7 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getBatchByName(projectID, emptyMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
-	if batch.PoolLabels != nil {
+	if batch.PoolLabels != nil && len(*batch.PoolLabels) > 0 {
 		ts.NotContains((*batch.PoolLabels)[0], "metrics2")
 	}
 
@@ -5725,7 +5733,7 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getTestSuite(projectID, metricsSetTestSuiteName, nil, false), false)
 	err = json.Unmarshal([]byte(output.StdOut), &testSuite)
 	ts.NoError(err)
-	ts.NotNil(testSuite.MetricsSetName)
+	req.NotNil(testSuite.MetricsSetName)
 	ts.Equal(newMetricsSetName, *testSuite.MetricsSetName)
 
 	defaultMetricsPoolBatchName := fmt.Sprintf("metrics-pool-batch-%s", uuid.New().String())
@@ -5734,7 +5742,7 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getBatchByName(projectID, defaultMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
-	ts.NotNil(batch.PoolLabels)
+	req.NotEmpty(batch.PoolLabels)
 	ts.Contains((*batch.PoolLabels)[0], "metrics2")
 
 	noMetricsPoolBatchName := fmt.Sprintf("no-metrics-pool-batch-%s", uuid.New().String())
@@ -5743,7 +5751,7 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, getBatchByName(projectID, noMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
-	if batch.PoolLabels != nil {
+	if batch.PoolLabels != nil && len(*batch.PoolLabels) > 0 {
 		ts.Contains((*batch.PoolLabels)[0], "metrics2")
 	}
 }
@@ -7011,6 +7019,137 @@ func TestAssetLifecycle(t *testing.T) {
 	ts.NoError(err)
 	ts.Equal(assetID, restoredAsset.AssetID)
 	ts.False(restoredAsset.Archived)
+}
+
+// runCommandWithEnv runs the built CLI with an explicit environment. runCommand
+// always inherits os.Environ(), but the pre-rename fallbacks are resolved from
+// HOME and the environment in main() before cobra parses a flag, so exercising
+// them means overriding both.
+func (s *EndToEndTestHelper) runCommandWithEnv(ts *assert.Assertions, commandBuilders []CommandBuilder, env []string, expectError bool) Output {
+	cmd := s.buildCommand(commandBuilders)
+	fmt.Println("About to run command: ", cmd.String())
+	var stdout, stderr bytes.Buffer
+	cmd.Env = env
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	stdErrString := stderr.String()
+	if expectError {
+		ts.Error(err)
+	} else {
+		ts.NoError(err, fmt.Sprintf("Unexpected error: %v", stdErrString))
+	}
+	return Output{
+		StdOut: stdout.String(),
+		StdErr: stdErrString,
+	}
+}
+
+// envWithHome returns the process environment with HOME repointed at home, so a
+// test can hand the CLI a config directory of its own.
+func envWithHome(home string) []string {
+	env := []string{fmt.Sprintf("HOME=%s", home)}
+	for _, kv := range os.Environ() {
+		if strings.HasPrefix(kv, "HOME=") {
+			continue
+		}
+		env = append(env, kv)
+	}
+	return env
+}
+
+// legacyCredentialEnv is envWithHome with the client credentials spelled the way
+// they were before the rename. It reports false when the suite is running with
+// username/password instead, in which case there is nothing to rename.
+func legacyCredentialEnv(home string) ([]string, bool) {
+	env := []string{}
+	renamed := 0
+	for _, kv := range envWithHome(home) {
+		key, value, ok := strings.Cut(kv, "=")
+		if ok && (key == ClientID || key == ClientSecret) {
+			legacyKey := commands.LegacyEnvPrefix + strings.TrimPrefix(key, commands.EnvPrefix)
+			env = append(env, fmt.Sprintf("%s=%s", legacyKey, value))
+			renamed++
+			continue
+		}
+		env = append(env, kv)
+	}
+	return env, renamed == 2
+}
+
+// requireClientCredentials skips the test unless the suite is running with
+// client credentials. The legacy-name tests point HOME at an empty directory,
+// where there is no cached token and an interactive login would hang.
+func requireClientCredentials(t *testing.T) {
+	t.Helper()
+	if os.Getenv(ClientID) == "" || os.Getenv(ClientSecret) == "" {
+		t.Skipf("set %s and %s to run this test", ClientID, ClientSecret)
+	}
+}
+
+// TestLegacyNames covers the compatibility promise made when the CLI was renamed
+// from resim to signalflag: RESIM_* environment variables and an existing
+// ~/.resim directory keep working, with a deprecation warning on stderr. Both
+// fallbacks run in main() and GetConfigDir against the real environment, so only
+// the built binary exercises them the way an upgrading user would.
+func TestLegacyNames(t *testing.T) {
+	t.Parallel()
+
+	t.Run("RESIM_ credentials still authenticate", func(t *testing.T) {
+		ts := assert.New(t)
+		requireClientCredentials(t)
+		env, ok := legacyCredentialEnv(t.TempDir())
+		ts.True(ok, "expected both credential variables to be renamed")
+
+		agentsCommand := CommandBuilder{Command: "agents"}
+		listCommand := CommandBuilder{
+			Command: "list",
+			Flags:   []Flag{{Name: "--json", Value: ""}},
+		}
+		output := s.runCommandWithEnv(ts, []CommandBuilder{agentsCommand, listCommand}, env, ExpectNoError)
+
+		// The call returned a real payload, so the promoted credentials are the
+		// ones that authenticated it.
+		var agentsOutput api.ListAgentsOutput
+		ts.NoError(json.Unmarshal([]byte(strings.TrimSpace(output.StdOut)), &agentsOutput))
+
+		// ...and the user was told to rename them.
+		ts.Contains(output.StdErr, "deprecated")
+		ts.Contains(output.StdErr, fmt.Sprintf("%s_CLIENT_ID", commands.LegacyEnvPrefix))
+		ts.Contains(output.StdErr, fmt.Sprintf("%s_CLIENT_SECRET", commands.LegacyEnvPrefix))
+	})
+
+	t.Run("existing legacy config directory is still used", func(t *testing.T) {
+		ts := assert.New(t)
+		requireClientCredentials(t)
+		home := t.TempDir()
+		legacyDir := filepath.Join(home, ".resim")
+		ts.NoError(os.Mkdir(legacyDir, 0700))
+		legacyConfig := filepath.Join(legacyDir, "resim.yaml")
+		ts.NoError(os.WriteFile(legacyConfig, []byte("sentinel: kept\n"), 0600))
+
+		// govcloud disable reads and rewrites the config file without touching
+		// anything server-side, and authenticating on the way populates the
+		// token cache beside it.
+		govcloudCommand := CommandBuilder{Command: "govcloud"}
+		disableCommand := CommandBuilder{Command: "disable"}
+		output := s.runCommandWithEnv(ts, []CommandBuilder{govcloudCommand, disableCommand}, envWithHome(home), ExpectNoError)
+		ts.Contains(output.StdOut, "GovCloud mode disabled")
+		ts.Contains(output.StdErr, "config directory")
+		ts.Contains(output.StdErr, "deprecated")
+
+		// The rewrite went back to the legacy file and kept what was already in
+		// it, rather than quietly starting a fresh config somewhere else.
+		contents, err := os.ReadFile(legacyConfig)
+		ts.NoError(err)
+		ts.Contains(string(contents), "sentinel: kept")
+		ts.Contains(string(contents), "govcloud: false")
+
+		// The token cache follows the config directory. Without this an
+		// upgrading user is silently logged out on their next command.
+		ts.FileExists(filepath.Join(legacyDir, "cache.json"))
+		ts.NoDirExists(filepath.Join(home, ".signalflag"))
+	})
 }
 
 func TestMain(m *testing.M) {

@@ -32,6 +32,10 @@ cmd/signalflag/signalflag
 !.env.*.example
 *.pem
 
+# Temp env files left behind by interrupted `go test` runs
+# (utils_test.go does os.CreateTemp(".", ".env") -> .env<digits>)
+.env[0-9]*
+
 # Claude Code machine-local settings (never commit)
 .claude/settings.local.json
 

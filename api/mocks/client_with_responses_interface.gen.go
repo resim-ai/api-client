@@ -7752,14 +7752,14 @@ func (_c *ClientWithResponsesInterface_GetJobUsageWithResponse_Call) RunAndRetur
 	return _c
 }
 
-// GetJobWithResponse provides a mock function with given fields: ctx, projectID, batchID, jobID, reqEditors
-func (_m *ClientWithResponsesInterface) GetJobWithResponse(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.GetJobResponse, error) {
+// GetJobWithResponse provides a mock function with given fields: ctx, projectID, batchID, jobID, params, reqEditors
+func (_m *ClientWithResponsesInterface) GetJobWithResponse(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, params *api.GetJobParams, reqEditors ...api.RequestEditorFn) (*api.GetJobResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
 	for _i := range reqEditors {
 		_va[_i] = reqEditors[_i]
 	}
 	var _ca []interface{}
-	_ca = append(_ca, ctx, projectID, batchID, jobID)
+	_ca = append(_ca, ctx, projectID, batchID, jobID, params)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
@@ -7769,19 +7769,19 @@ func (_m *ClientWithResponsesInterface) GetJobWithResponse(ctx context.Context, 
 
 	var r0 *api.GetJobResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetJobResponse, error)); ok {
-		return rf(ctx, projectID, batchID, jobID, reqEditors...)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.GetJobParams, ...api.RequestEditorFn) (*api.GetJobResponse, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, params, reqEditors...)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *api.GetJobResponse); ok {
-		r0 = rf(ctx, projectID, batchID, jobID, reqEditors...)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.GetJobParams, ...api.RequestEditorFn) *api.GetJobResponse); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, params, reqEditors...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*api.GetJobResponse)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, projectID, batchID, jobID, reqEditors...)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.GetJobParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, params, reqEditors...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -7799,21 +7799,22 @@ type ClientWithResponsesInterface_GetJobWithResponse_Call struct {
 //   - projectID uuid.UUID
 //   - batchID uuid.UUID
 //   - jobID uuid.UUID
+//   - params *api.GetJobParams
 //   - reqEditors ...api.RequestEditorFn
-func (_e *ClientWithResponsesInterface_Expecter) GetJobWithResponse(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_GetJobWithResponse_Call {
+func (_e *ClientWithResponsesInterface_Expecter) GetJobWithResponse(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_GetJobWithResponse_Call {
 	return &ClientWithResponsesInterface_GetJobWithResponse_Call{Call: _e.mock.On("GetJobWithResponse",
-		append([]interface{}{ctx, projectID, batchID, jobID}, reqEditors...)...)}
+		append([]interface{}{ctx, projectID, batchID, jobID, params}, reqEditors...)...)}
 }
 
-func (_c *ClientWithResponsesInterface_GetJobWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_GetJobWithResponse_Call {
+func (_c *ClientWithResponsesInterface_GetJobWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, params *api.GetJobParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_GetJobWithResponse_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
-		for i, a := range args[4:] {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
 			if a != nil {
 				variadicArgs[i] = a.(api.RequestEditorFn)
 			}
 		}
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), variadicArgs...)
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(*api.GetJobParams), variadicArgs...)
 	})
 	return _c
 }
@@ -7823,7 +7824,7 @@ func (_c *ClientWithResponsesInterface_GetJobWithResponse_Call) Return(_a0 *api.
 	return _c
 }
 
-func (_c *ClientWithResponsesInterface_GetJobWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.GetJobResponse, error)) *ClientWithResponsesInterface_GetJobWithResponse_Call {
+func (_c *ClientWithResponsesInterface_GetJobWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.GetJobParams, ...api.RequestEditorFn) (*api.GetJobResponse, error)) *ClientWithResponsesInterface_GetJobWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -10078,14 +10079,14 @@ func (_c *ClientWithResponsesInterface_ListBatchAccountsWithResponse_Call) RunAn
 	return _c
 }
 
-// ListBatchErrorsWithResponse provides a mock function with given fields: ctx, projectID, batchID, reqEditors
-func (_m *ClientWithResponsesInterface) ListBatchErrorsWithResponse(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.ListBatchErrorsResponse, error) {
+// ListBatchErrorsWithResponse provides a mock function with given fields: ctx, projectID, batchID, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListBatchErrorsWithResponse(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, params *api.ListBatchErrorsParams, reqEditors ...api.RequestEditorFn) (*api.ListBatchErrorsResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
 	for _i := range reqEditors {
 		_va[_i] = reqEditors[_i]
 	}
 	var _ca []interface{}
-	_ca = append(_ca, ctx, projectID, batchID)
+	_ca = append(_ca, ctx, projectID, batchID, params)
 	_ca = append(_ca, _va...)
 	ret := _m.Called(_ca...)
 
@@ -10095,19 +10096,19 @@ func (_m *ClientWithResponsesInterface) ListBatchErrorsWithResponse(ctx context.
 
 	var r0 *api.ListBatchErrorsResponse
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListBatchErrorsResponse, error)); ok {
-		return rf(ctx, projectID, batchID, reqEditors...)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListBatchErrorsParams, ...api.RequestEditorFn) (*api.ListBatchErrorsResponse, error)); ok {
+		return rf(ctx, projectID, batchID, params, reqEditors...)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *api.ListBatchErrorsResponse); ok {
-		r0 = rf(ctx, projectID, batchID, reqEditors...)
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListBatchErrorsParams, ...api.RequestEditorFn) *api.ListBatchErrorsResponse); ok {
+		r0 = rf(ctx, projectID, batchID, params, reqEditors...)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*api.ListBatchErrorsResponse)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, projectID, batchID, reqEditors...)
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListBatchErrorsParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, params, reqEditors...)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -10124,21 +10125,22 @@ type ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call struct {
 //   - ctx context.Context
 //   - projectID uuid.UUID
 //   - batchID uuid.UUID
+//   - params *api.ListBatchErrorsParams
 //   - reqEditors ...api.RequestEditorFn
-func (_e *ClientWithResponsesInterface_Expecter) ListBatchErrorsWithResponse(ctx interface{}, projectID interface{}, batchID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call {
+func (_e *ClientWithResponsesInterface_Expecter) ListBatchErrorsWithResponse(ctx interface{}, projectID interface{}, batchID interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call {
 	return &ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call{Call: _e.mock.On("ListBatchErrorsWithResponse",
-		append([]interface{}{ctx, projectID, batchID}, reqEditors...)...)}
+		append([]interface{}{ctx, projectID, batchID, params}, reqEditors...)...)}
 }
 
-func (_c *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call {
+func (_c *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, params *api.ListBatchErrorsParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
-		for i, a := range args[3:] {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
 			if a != nil {
 				variadicArgs[i] = a.(api.RequestEditorFn)
 			}
 		}
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.ListBatchErrorsParams), variadicArgs...)
 	})
 	return _c
 }
@@ -10148,7 +10150,7 @@ func (_c *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call) Return(
 	return _c
 }
 
-func (_c *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListBatchErrorsResponse, error)) *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call {
+func (_c *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListBatchErrorsParams, ...api.RequestEditorFn) (*api.ListBatchErrorsResponse, error)) *ClientWithResponsesInterface_ListBatchErrorsWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -10683,6 +10685,81 @@ func (_c *ClientWithResponsesInterface_ListBatchMetricsWithResponse_Call) Return
 }
 
 func (_c *ClientWithResponsesInterface_ListBatchMetricsWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListBatchMetricsParams, ...api.RequestEditorFn) (*api.ListBatchMetricsResponse, error)) *ClientWithResponsesInterface_ListBatchMetricsWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListBatchRunsWithResponse provides a mock function with given fields: ctx, projectID, batchID, reqEditors
+func (_m *ClientWithResponsesInterface) ListBatchRunsWithResponse(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.ListBatchRunsResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListBatchRunsWithResponse")
+	}
+
+	var r0 *api.ListBatchRunsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListBatchRunsResponse, error)); ok {
+		return rf(ctx, projectID, batchID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *api.ListBatchRunsResponse); ok {
+		r0 = rf(ctx, projectID, batchID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListBatchRunsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListBatchRunsWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListBatchRunsWithResponse'
+type ClientWithResponsesInterface_ListBatchRunsWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListBatchRunsWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListBatchRunsWithResponse(ctx interface{}, projectID interface{}, batchID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListBatchRunsWithResponse_Call {
+	return &ClientWithResponsesInterface_ListBatchRunsWithResponse_Call{Call: _e.mock.On("ListBatchRunsWithResponse",
+		append([]interface{}{ctx, projectID, batchID}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListBatchRunsWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListBatchRunsWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-3)
+		for i, a := range args[3:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListBatchRunsWithResponse_Call) Return(_a0 *api.ListBatchRunsResponse, _a1 error) *ClientWithResponsesInterface_ListBatchRunsWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListBatchRunsWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListBatchRunsResponse, error)) *ClientWithResponsesInterface_ListBatchRunsWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -11901,6 +11978,159 @@ func (_c *ClientWithResponsesInterface_ListExperienceCustomFieldsWithResponse_Ca
 	return _c
 }
 
+// ListExperienceInputFilesForExperienceWithResponse provides a mock function with given fields: ctx, projectID, experienceID, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListExperienceInputFilesForExperienceWithResponse(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, params *api.ListExperienceInputFilesForExperienceParams, reqEditors ...api.RequestEditorFn) (*api.ListExperienceInputFilesForExperienceResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, experienceID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListExperienceInputFilesForExperienceWithResponse")
+	}
+
+	var r0 *api.ListExperienceInputFilesForExperienceResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) (*api.ListExperienceInputFilesForExperienceResponse, error)); ok {
+		return rf(ctx, projectID, experienceID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) *api.ListExperienceInputFilesForExperienceResponse); ok {
+		r0 = rf(ctx, projectID, experienceID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListExperienceInputFilesForExperienceResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, experienceID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListExperienceInputFilesForExperienceWithResponse'
+type ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListExperienceInputFilesForExperienceWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - experienceID uuid.UUID
+//   - params *api.ListExperienceInputFilesForExperienceParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListExperienceInputFilesForExperienceWithResponse(ctx interface{}, projectID interface{}, experienceID interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call {
+	return &ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call{Call: _e.mock.On("ListExperienceInputFilesForExperienceWithResponse",
+		append([]interface{}{ctx, projectID, experienceID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, params *api.ListExperienceInputFilesForExperienceParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.ListExperienceInputFilesForExperienceParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call) Return(_a0 *api.ListExperienceInputFilesForExperienceResponse, _a1 error) *ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) (*api.ListExperienceInputFilesForExperienceResponse, error)) *ClientWithResponsesInterface_ListExperienceInputFilesForExperienceWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListExperienceInputFilesForJobWithResponse provides a mock function with given fields: ctx, projectID, batchID, jobID, params, reqEditors
+func (_m *ClientWithResponsesInterface) ListExperienceInputFilesForJobWithResponse(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, params *api.ListExperienceInputFilesForJobParams, reqEditors ...api.RequestEditorFn) (*api.ListExperienceInputFilesForJobResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, jobID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListExperienceInputFilesForJobWithResponse")
+	}
+
+	var r0 *api.ListExperienceInputFilesForJobResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) (*api.ListExperienceInputFilesForJobResponse, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) *api.ListExperienceInputFilesForJobResponse); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListExperienceInputFilesForJobResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListExperienceInputFilesForJobWithResponse'
+type ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListExperienceInputFilesForJobWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - jobID uuid.UUID
+//   - params *api.ListExperienceInputFilesForJobParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListExperienceInputFilesForJobWithResponse(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, params interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call {
+	return &ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call{Call: _e.mock.On("ListExperienceInputFilesForJobWithResponse",
+		append([]interface{}{ctx, projectID, batchID, jobID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, params *api.ListExperienceInputFilesForJobParams, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
+		for i, a := range args[5:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(*api.ListExperienceInputFilesForJobParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call) Return(_a0 *api.ListExperienceInputFilesForJobResponse, _a1 error) *ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) (*api.ListExperienceInputFilesForJobResponse, error)) *ClientWithResponsesInterface_ListExperienceInputFilesForJobWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListExperienceTagsForExperienceWithResponse provides a mock function with given fields: ctx, projectID, experienceID, params, reqEditors
 func (_m *ClientWithResponsesInterface) ListExperienceTagsForExperienceWithResponse(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, params *api.ListExperienceTagsForExperienceParams, reqEditors ...api.RequestEditorFn) (*api.ListExperienceTagsForExperienceResponse, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -12352,6 +12582,82 @@ func (_c *ClientWithResponsesInterface_ListJobLogsForJobWithResponse_Call) Retur
 }
 
 func (_c *ClientWithResponsesInterface_ListJobLogsForJobWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListJobLogsForJobParams, ...api.RequestEditorFn) (*api.ListJobLogsForJobResponse, error)) *ClientWithResponsesInterface_ListJobLogsForJobWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ListJobRunsWithResponse provides a mock function with given fields: ctx, projectID, batchID, jobID, reqEditors
+func (_m *ClientWithResponsesInterface) ListJobRunsWithResponse(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, reqEditors ...api.RequestEditorFn) (*api.ListJobRunsResponse, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, batchID, jobID)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListJobRunsWithResponse")
+	}
+
+	var r0 *api.ListJobRunsResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListJobRunsResponse, error)); ok {
+		return rf(ctx, projectID, batchID, jobID, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) *api.ListJobRunsResponse); ok {
+		r0 = rf(ctx, projectID, batchID, jobID, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*api.ListJobRunsResponse)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, batchID, jobID, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientWithResponsesInterface_ListJobRunsWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListJobRunsWithResponse'
+type ClientWithResponsesInterface_ListJobRunsWithResponse_Call struct {
+	*mock.Call
+}
+
+// ListJobRunsWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - batchID uuid.UUID
+//   - jobID uuid.UUID
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientWithResponsesInterface_Expecter) ListJobRunsWithResponse(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, reqEditors ...interface{}) *ClientWithResponsesInterface_ListJobRunsWithResponse_Call {
+	return &ClientWithResponsesInterface_ListJobRunsWithResponse_Call{Call: _e.mock.On("ListJobRunsWithResponse",
+		append([]interface{}{ctx, projectID, batchID, jobID}, reqEditors...)...)}
+}
+
+func (_c *ClientWithResponsesInterface_ListJobRunsWithResponse_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, reqEditors ...api.RequestEditorFn)) *ClientWithResponsesInterface_ListJobRunsWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListJobRunsWithResponse_Call) Return(_a0 *api.ListJobRunsResponse, _a1 error) *ClientWithResponsesInterface_ListJobRunsWithResponse_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientWithResponsesInterface_ListJobRunsWithResponse_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...api.RequestEditorFn) (*api.ListJobRunsResponse, error)) *ClientWithResponsesInterface_ListJobRunsWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }

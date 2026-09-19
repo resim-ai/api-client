@@ -20,7 +20,8 @@
 # Go workspace file
 go.work
 
-cmd/resim/resim
+cmd/signalflag/signalflag
+/signalflag
 /resim
 
 .env.local
@@ -30,6 +31,10 @@ cmd/resim/resim
 .env.*
 !.env.*.example
 *.pem
+
+# Temp env files left behind by interrupted `go test` runs
+# (utils_test.go does os.CreateTemp(".", ".env") -> .env<digits>)
+.env[0-9]*
 
 # Claude Code machine-local settings (never commit)
 .claude/settings.local.json

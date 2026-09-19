@@ -1,0 +1,1409 @@
+package commands
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/resim-ai/api-client/api"
+	. "github.com/resim-ai/api-client/cmd/signalflag/commands/utils"
+	. "github.com/resim-ai/api-client/ptr"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
+
+var (
+	batchCmd = &cobra.Command{
+		Use:     "batches",
+		Short:   "batches contains commands for creating and managing batches",
+		Long:    ``,
+		Aliases: []string{"batch"},
+	}
+	createBatchCmd = &cobra.Command{
+		Use:   "create",
+		Short: "create - Creates a new batch",
+		Long:  ``,
+		Run:   createBatch,
+	}
+	getBatchCmd = &cobra.Command{
+		Use:   "get",
+		Short: "get - Retrieves a batch",
+		Long:  ``,
+		Run:   getBatch,
+	}
+
+	cancelBatchCmd = &cobra.Command{
+		Use:   "cancel",
+		Short: "cancel - Cancel a batch",
+		Long:  ``,
+		Run:   cancelBatch,
+	}
+
+	testsBatchCmd = &cobra.Command{
+		Use:     "tests",
+		Short:   "tests - Lists the tests in a batch",
+		Long:    ``,
+		Run:     testsBatch,
+		Aliases: []string{"jobs"},
+	}
+
+	waitBatchCmd = &cobra.Command{
+		Use:   "wait",
+		Short: "wait - Wait for batch completion",
+		Long: `Awaits batch completion and returns an exit code corresponding to the batch status.
+
+By default the exit code is derived from Batch.Status: 1 = internal error, 0 = SUCCEEDED, 2 = ERROR, 5 = CANCELLED, 6 = timed out. This historical mapping is preserved bit-for-bit.
+
+Pass --fail-on-states=BLOCKER,ERROR,WARNING to derive the exit code from Batch.ConflatedStatus instead. In that mode, BLOCKER produces exit code 7 and WARNING produces exit code 8 (in addition to the existing codes). Conflated states that are not in the filter are treated as success.`,
+		Run: waitBatch,
+	}
+
+	logsBatchCmd = &cobra.Command{
+		Use:   "logs",
+		Short: "logs - Lists the logs associated with a batch",
+		Long:  ``,
+		Run:   listBatchLogs,
+	}
+
+	rerunBatchCmd = &cobra.Command{
+		Use:   "rerun",
+		Short: "rerun - Reruns a subset of tests in a batch",
+		Long:  ``,
+		Run:   rerunBatch,
+	}
+
+	superviseBatchCmd = &cobra.Command{
+		Use:   "supervise",
+		Short: "supervise - waits on batch completion and reruns failed tests",
+		Long: `Awaits batch completion with rerun capability and returns an exit code corresponding to the final batch state.
+
+After all rerun attempts are exhausted (or the failure-percent threshold is exceeded), the exit code is derived from Batch.ConflatedStatus filtered to the states passed via --rerun-on-states. So if --rerun-on-states=Error and the final batch still has unresolved ERROR jobs, supervise exits with code 2; if all those errors were resolved (and only WARNING/BLOCKER jobs remain that the user did not ask to rerun), supervise exits 0.
+
+Exit codes (in conflated-status mode):
+  0 = COMPLETE (or no jobs remain in the fail filter)
+  1 = internal CLI error
+  2 = ERROR (orchestration error, or unresolved ERROR jobs in the fail filter)
+  5 = CANCELLED
+  6 = timed out
+  7 = BLOCKER (unresolved BLOCKER jobs in the fail filter)
+  8 = WARNING (unresolved WARNING jobs in the fail filter)
+
+Pass --fail-on-states to override --rerun-on-states for exit-code purposes only (the rerun decisions still use --rerun-on-states).`,
+		Run: superviseBatch,
+	}
+)
+
+const (
+	batchProjectKey                 = "project"
+	batchBuildIDKey                 = "build-id"
+	batchExperienceIDsKey           = "experience-ids"
+	batchExperiencesKey             = "experiences"
+	batchExperienceTagIDsKey        = "experience-tag-ids"
+	batchExperienceTagNamesKey      = "experience-tag-names"
+	batchExperienceTagsKey          = "experience-tags"
+	batchParameterKey               = "parameter"
+	batchPoolLabelsKey              = "pool-labels"
+	batchIDKey                      = "batch-id"
+	batchNameKey                    = "batch-name"
+	batchAccountKey                 = "account"
+	batchGithubKey                  = "github"
+	batchMetricsBuildKey            = "metrics-build-id"
+	batchMetricsSetKey              = "metrics-set"
+	batchBlueprintKey               = "blueprint"
+	batchExitStatusKey              = "exit-status"
+	batchWaitTimeoutKey             = "wait-timeout"
+	batchWaitPollKey                = "poll-every"
+	batchSlackOutputKey             = "slack"
+	batchMarkdownOutputKey          = "markdown"
+	batchSyncWithTestSuiteKey       = "sync-with-test-suite"
+	batchAllowableFailurePercentKey = "allowable-failure-percent"
+	batchPriorityKey                = "priority"
+	batchTestIDsKey                 = "test-ids"
+	batchRerunMetricsOnlyKey        = "rerun-metrics-only"
+	batchRerunAllTestsKey           = "all-tests"
+	batchMaxRerunAttemptsKey        = "max-rerun-attempts"
+	batchRerunMaxFailurePercentKey  = "rerun-max-failure-percent"
+	batchRerunOnStatesKey           = "rerun-on-states"
+	batchSyncMetricsConfigKey       = "sync-metrics-config"
+	batchMetricsConfigPath          = "metrics-config-path"
+	batchMetricsTemplatesPath       = "metrics-templates-path"
+	batchFailOnStatesKey            = "fail-on-states"
+	batchQuietKey                   = "quiet"
+)
+
+// Exit codes used by batch wait/supervise/get and workflow runs supervise.
+// Existing codes preserved for backwards compatibility; BLOCKER (7) and WARNING (8)
+// are produced only when ConflatedStatus mode is active (a non-empty fail filter).
+const (
+	exitCodeSucceeded   = 0
+	exitCodeInternalErr = 1
+	exitCodeError       = 2
+	exitCodeSubmitted   = 3
+	exitCodeRunning     = 4
+	exitCodeCancelled   = 5
+	exitCodeTimeout     = 6
+	exitCodeBlocker     = 7
+	exitCodeWarning     = 8
+)
+
+func init() {
+	createBatchCmd.Flags().Bool(batchGithubKey, false, "Whether to output format in github action friendly format")
+	createBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to associate with the batch")
+	createBatchCmd.MarkFlagRequired(batchProjectKey)
+	createBatchCmd.Flags().String(batchBuildIDKey, "", "The ID of the build.")
+	createBatchCmd.MarkFlagRequired(batchBuildIDKey)
+	createBatchCmd.Flags().String(batchMetricsBuildKey, "", "The ID of the metrics build to use in this batch.")
+	// the separate ID and name flags for experiences and experience tags are kept for backwards compatibility
+	createBatchCmd.Flags().String(batchExperienceIDsKey, "", "Comma-separated list of experience IDs to run.")
+	createBatchCmd.Flags().String(batchExperiencesKey, "", "List of experience names or list of experience IDs to run, comma-separated")
+	createBatchCmd.Flags().String(batchExperienceTagIDsKey, "", "Comma-separated list of experience tag IDs to run.")
+	createBatchCmd.Flags().String(batchExperienceTagNamesKey, "", "Comma-separated list of experience tag names to run.")
+	createBatchCmd.Flags().String(batchExperienceTagsKey, "", "List of experience tag names or list of experience tag IDs to run, comma-separated.")
+	createBatchCmd.Flags().StringSlice(batchParameterKey, []string{}, "(Optional) Parameter overrides to pass to the build. Format: <parameter-name>=<parameter-value> or <parameter-name>:<parameter-value>. The equals sign (=) is recommended, especially if parameter names contain colons. Accepts repeated parameters or comma-separated parameters e.g. 'param1=value1,param2=value2'. If multiple = signs are used, the first one will be used to determine the key, and the rest will be part of as the value.")
+	createBatchCmd.Flags().StringSlice(batchPoolLabelsKey, []string{}, "Pool labels to determine where to run this batch. Pool labels are interpreted as a logical AND. Accepts repeated labels or comma-separated labels.")
+	createBatchCmd.MarkFlagsOneRequired(batchExperienceIDsKey, batchExperiencesKey, batchExperienceTagIDsKey, batchExperienceTagNamesKey, batchExperienceTagsKey)
+	createBatchCmd.Flags().String(batchAccountKey, "", "Specify a username for a CI/CD platform account to associate with this test batch.")
+	createBatchCmd.Flags().String(batchNameKey, "", "An optional name for the batch. If not supplied, ReSim generates a pseudo-unique name e.g rejoicing-aquamarine-starfish. This name need not be unique, but uniqueness is recommended to make it easier to identify batches.")
+	createBatchCmd.Flags().Int(batchAllowableFailurePercentKey, 0, "An optional percentage (0-100) that determines the maximum percentage of tests that can have an execution error and have aggregate metrics be computed and consider the batch successfully completed. If not supplied, ReSim defaults to 0, which means that the batch will only be considered successful if all tests complete successfully.")
+	createBatchCmd.Flags().Int(batchPriorityKey, requestPriorityDefault, requestPriorityDescription)
+	createBatchCmd.Flags().String(batchMetricsSetKey, "", "The name of the metrics set to use to generate test and batch metrics")
+	createBatchCmd.Flags().String(batchBlueprintKey, "", "(Optional) The name of a blueprint to apply to this batch. The blueprint's latest version is used.")
+	createBatchCmd.Flags().Bool(batchSyncMetricsConfigKey, false, "If set, run metrics sync before creating the batch")
+	createBatchCmd.Flags().StringSlice(batchMetricsConfigPath, []string{".resim/metrics/config.resim.yml"}, "The path(s) to the metrics config file(s). Supports glob patterns (e.g. \"metrics/*.yml\"). Can be specified multiple times or comma-separated. Files are merged in order. Only used if sync-metrics-config is set to true")
+	createBatchCmd.Flags().String(batchMetricsTemplatesPath, ".resim/metrics/templates", "The path to the metrics templates directory. Default is .resim/metrics/templates. Only used if sync-metrics-config is set to true")
+	batchCmd.AddCommand(createBatchCmd)
+
+	getBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	getBatchCmd.MarkFlagRequired(batchProjectKey)
+	getBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve.")
+	getBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this returns the most recent batch with that name.")
+	getBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	getBatchCmd.Flags().Bool(batchExitStatusKey, false, "If set, exit code corresponds to batch workflow status (1 = internal CLI error, 0 = SUCCEEDED, 2=ERROR, 3=SUBMITTED, 4=RUNNING, 5=CANCELLED). Pass --fail-on-states to derive the exit code from Batch.ConflatedStatus instead.")
+	getBatchCmd.Flags().String(batchFailOnStatesKey, "", "(Optional) Comma-separated list of conflated states that should fail the command (WARNING, ERROR, BLOCKER). Only used when --exit-status is set; switches the exit code to be derived from Batch.ConflatedStatus filtered to these states. New exit codes: 7=BLOCKER, 8=WARNING.")
+	getBatchCmd.Flags().Bool(batchSlackOutputKey, false, "If set, output batch summary as a Slack webhook payload")
+	getBatchCmd.Flags().Bool(batchMarkdownOutputKey, false, "If set, output batch summary as markdown (suitable for GitHub Actions summary)")
+	batchCmd.AddCommand(getBatchCmd)
+
+	cancelBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	cancelBatchCmd.MarkFlagRequired(batchProjectKey)
+	cancelBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to cancel.")
+	cancelBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to cancel (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this cancels the most recent batch with that name.")
+	cancelBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	batchCmd.AddCommand(cancelBatchCmd)
+
+	testsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	testsBatchCmd.MarkFlagRequired(batchProjectKey)
+	testsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to retrieve tests for.")
+	testsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to retrieve (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this returns the most recent batch with that name.")
+	testsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	testsBatchCmd.Flags().SetNormalizeFunc(aliasProjectNameFunc)
+	batchCmd.AddCommand(testsBatchCmd)
+
+	waitBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	waitBatchCmd.MarkFlagRequired(batchProjectKey)
+	waitBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to await completion.")
+	waitBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to await completion (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this waits for the most recent batch with that name.")
+	waitBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	waitBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish, expressed in Golang duration string.")
+	waitBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
+	waitBatchCmd.Flags().String(batchFailOnStatesKey, "", "(Optional) Comma-separated list of conflated states that should fail the command (WARNING, ERROR, BLOCKER). When set, the exit code is derived from Batch.ConflatedStatus filtered to these states (new codes: 7=BLOCKER, 8=WARNING). When unset, the legacy Batch.Status-based exit codes are used.")
+	waitBatchCmd.Flags().Bool(batchQuietKey, false, "Suppress informational log lines (conflated status summaries).")
+	batchCmd.AddCommand(waitBatchCmd)
+
+	logsBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	logsBatchCmd.MarkFlagRequired(batchProjectKey)
+	logsBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to list logs for.")
+	logsBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to list logs for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this lists logs for the most recent batch with that name.")
+	logsBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	logsBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
+	batchCmd.AddCommand(logsBatchCmd)
+
+	rerunBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project the batch is associated with")
+	rerunBatchCmd.MarkFlagRequired(batchProjectKey)
+	rerunBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to rerun tests for.")
+	rerunBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to rerun tests for (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this reruns the most recent batch with that name.")
+	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	rerunBatchCmd.Flags().StringSlice(batchTestIDsKey, []string{}, "Comma-separated list of test IDs to rerun. If none are provided (and neither --"+batchRerunMetricsOnlyKey+" nor --"+batchRerunAllTestsKey+" is set), only the batch-metrics phase will be rerun. When combined with --"+batchRerunMetricsOnlyKey+", only the metrics stage of these tests will be rerun.")
+	rerunBatchCmd.Flags().Bool(batchRerunMetricsOnlyKey, false, "If set, only the metrics stage of the selected tests will be rerun (the tests themselves will not be re-executed). Must be used with either --"+batchTestIDsKey+" to select a subset of tests, or --"+batchRerunAllTestsKey+" to rerun metrics for every test in the batch. Rerunning only batch-level metrics (without any test-level metrics) is triggered by invoking rerun with no flags.")
+	rerunBatchCmd.Flags().Bool(batchRerunAllTestsKey, false, "If set, reruns every test in the batch by first fetching the full list of test IDs. Typically combined with --"+batchRerunMetricsOnlyKey+" to rerun metrics for every test in the batch without re-executing them. Mutually exclusive with --"+batchTestIDsKey+".")
+	rerunBatchCmd.MarkFlagsMutuallyExclusive(batchTestIDsKey, batchRerunAllTestsKey)
+	rerunBatchCmd.Flags().Bool(batchSyncWithTestSuiteKey, false, "If set, re-runs the batch with the latest test suite revision, adding any additional experiences from the test suite to the batch.")
+	batchCmd.AddCommand(rerunBatchCmd)
+
+	superviseBatchCmd.Flags().String(batchProjectKey, "", "The name or ID of the project to supervise")
+	superviseBatchCmd.MarkFlagRequired(batchProjectKey)
+	superviseBatchCmd.Flags().String(batchIDKey, "", "The ID of the batch to supervise.")
+	superviseBatchCmd.Flags().String(batchNameKey, "", "The name of the batch to supervise (e.g. rejoicing-aquamarine-starfish). If the name is not unique, this supervises the most recent batch with that name.")
+	superviseBatchCmd.MarkFlagsMutuallyExclusive(batchIDKey, batchNameKey)
+	superviseBatchCmd.MarkFlagsOneRequired(batchIDKey, batchNameKey)
+	superviseBatchCmd.Flags().Int(batchMaxRerunAttemptsKey, 0, "Maximum number of rerun attempts for failed tests")
+	superviseBatchCmd.MarkFlagRequired(batchMaxRerunAttemptsKey)
+	superviseBatchCmd.Flags().Float64(batchRerunMaxFailurePercentKey, 50, "Maximum percentage of failed jobs before stopping (1-100)")
+	superviseBatchCmd.MarkFlagRequired(batchRerunMaxFailurePercentKey)
+	superviseBatchCmd.Flags().String(batchRerunOnStatesKey, "", "States to trigger rerun on (e.g. Warning, Error, Blocker)")
+	superviseBatchCmd.MarkFlagRequired(batchRerunOnStatesKey)
+	superviseBatchCmd.Flags().String(batchFailOnStatesKey, "", "(Optional) Comma-separated list of conflated states that should fail the command (WARNING, ERROR, BLOCKER). When unset, --rerun-on-states is used as the implicit fail filter. New exit codes: 7=BLOCKER, 8=WARNING.")
+	superviseBatchCmd.Flags().Bool(batchQuietKey, false, "Suppress informational log lines (conflated status summaries and per-attempt rerun breakdowns).")
+	superviseBatchCmd.Flags().String(batchWaitTimeoutKey, "1h", "Amount of time to wait for a batch to finish, expressed in Golang duration string.")
+	superviseBatchCmd.Flags().String(batchWaitPollKey, "30s", "Interval between checking batch status, expressed in Golang duration string.")
+	batchCmd.AddCommand(superviseBatchCmd)
+
+	rootCmd.AddCommand(batchCmd)
+}
+
+func GetCIEnvironmentVariableAccount() string {
+	account := ""
+	// We check for environment variables for common CI systems (and check the two possible options in GitHub just in case)
+	if githubActor := os.Getenv("GITHUB_ACTOR"); githubActor != "" {
+		account = githubActor
+	} else if githubTriggeringActor := os.Getenv("GITHUB_TRIGGERING_ACTOR"); githubTriggeringActor != "" {
+		account = githubTriggeringActor
+	} else if gitlabUser := os.Getenv("GITLAB_USER_LOGIN"); gitlabUser != "" {
+		account = gitlabUser
+	}
+	return account
+}
+
+func envVarSet(name string) bool {
+	_, ok := os.LookupEnv(name)
+	return ok
+}
+
+// Attempt to determine the environment we're in. i.e. are we running in Gitlab CI?
+// Github CI? or maybe just running locally on a customer's machine? This information
+// is useful downstream, for understanding where a batch was triggered from.
+func DetermineTriggerMethod() *api.TriggeredVia {
+	if envVarSet("GITHUB_ACTOR") || envVarSet("GITHUB_ACTIONS") {
+		return Ptr(api.GITHUB)
+	}
+	if envVarSet("GITLAB_USER_LOGIN") || envVarSet("GITLAB_CI") {
+		return Ptr(api.GITLAB)
+	}
+	if envVarSet("CI") {
+		// Unfortunately, we're not sure what CI system we're being executed from
+		return nil
+	}
+	return Ptr(api.LOCAL)
+}
+
+func parseRerunStates(rerunOnStates string) []api.ConflatedJobStatus {
+	if rerunOnStates == "" {
+		return []api.ConflatedJobStatus{}
+	}
+
+	states := strings.Split(rerunOnStates, ",")
+	var conflatedStates []api.ConflatedJobStatus
+
+	for _, state := range states {
+		state = strings.TrimSpace(strings.ToUpper(state))
+		switch state {
+		case "WARNING":
+			conflatedStates = append(conflatedStates, api.ConflatedJobStatusWARNING)
+		case "ERROR":
+			conflatedStates = append(conflatedStates, api.ConflatedJobStatusERROR)
+		case "BLOCKER":
+			conflatedStates = append(conflatedStates, api.ConflatedJobStatusBLOCKER)
+		default:
+			log.Fatalf("Unsupported rerun state: %s. Valid states are: WARNING, ERROR, BLOCKER", state)
+		}
+	}
+
+	return conflatedStates
+}
+
+// parseConflatedBatchStates parses a comma-separated list of fail-on-states into ConflatedBatchStatus values.
+// Accepts WARNING, ERROR, BLOCKER (case-insensitive). Returns an empty slice if the input is empty.
+func parseConflatedBatchStates(failOnStates string) []api.ConflatedBatchStatus {
+	if failOnStates == "" {
+		return nil
+	}
+
+	states := strings.Split(failOnStates, ",")
+	var result []api.ConflatedBatchStatus
+
+	for _, state := range states {
+		state = strings.TrimSpace(strings.ToUpper(state))
+		switch state {
+		case "WARNING":
+			result = append(result, api.ConflatedBatchStatusWARNING)
+		case "ERROR":
+			result = append(result, api.ConflatedBatchStatusERROR)
+		case "BLOCKER":
+			result = append(result, api.ConflatedBatchStatusBLOCKER)
+		default:
+			log.Fatalf("Unsupported fail-on-states value: %s. Valid states are: WARNING, ERROR, BLOCKER", state)
+		}
+	}
+
+	return result
+}
+
+// jobStatesToBatchStates converts a list of ConflatedJobStatus values (used by --rerun-on-states)
+// to the equivalent ConflatedBatchStatus values used for fail-on-states matching. Only WARNING,
+// ERROR, and BLOCKER have a one-to-one mapping; other job statuses are filtered out.
+func jobStatesToBatchStates(jobStates []api.ConflatedJobStatus) []api.ConflatedBatchStatus {
+	if len(jobStates) == 0 {
+		return nil
+	}
+	var result []api.ConflatedBatchStatus
+	for _, s := range jobStates {
+		switch s {
+		case api.ConflatedJobStatusBLOCKER:
+			result = append(result, api.ConflatedBatchStatusBLOCKER)
+		case api.ConflatedJobStatusERROR:
+			result = append(result, api.ConflatedBatchStatusERROR)
+		case api.ConflatedJobStatusWARNING:
+			result = append(result, api.ConflatedBatchStatusWARNING)
+		}
+	}
+	return result
+}
+
+// containsConflatedBatchStatus reports whether s appears in filter.
+func containsConflatedBatchStatus(filter []api.ConflatedBatchStatus, s api.ConflatedBatchStatus) bool {
+	for _, f := range filter {
+		if f == s {
+			return true
+		}
+	}
+	return false
+}
+
+// quietMode reports whether informational log lines should be suppressed.
+// Honors `--quiet` on either the batch or workflow commands.
+func quietMode() bool {
+	return viper.GetBool(batchQuietKey) || viper.GetBool(workflowQuietKey)
+}
+
+// infoLog logs an informational message unless --quiet is set.
+func infoLog(format string, args ...any) {
+	if quietMode() {
+		return
+	}
+	log.Printf(format, args...)
+}
+
+// infoLogln logs an informational message line unless --quiet is set.
+func infoLogln(args ...any) {
+	if quietMode() {
+		return
+	}
+	log.Println(args...)
+}
+
+// logConflatedSummary prints the per-state breakdown of a batch (default on,
+// suppressed by --quiet).
+func logConflatedSummary(batch *api.Batch) {
+	if batch == nil {
+		return
+	}
+	infoLogln(formatConflatedSummary(batch))
+}
+
+// countJobsByConflatedStatus returns counts of jobs in each conflated state of interest.
+func countJobsByConflatedStatus(jobs []api.Job) (blocker, errCount, warning int) {
+	for _, job := range jobs {
+		if job.ConflatedStatus == nil {
+			continue
+		}
+		switch *job.ConflatedStatus {
+		case api.ConflatedJobStatusBLOCKER:
+			blocker++
+		case api.ConflatedJobStatusERROR:
+			errCount++
+		case api.ConflatedJobStatusWARNING:
+			warning++
+		}
+	}
+	return
+}
+
+func getAllJobs(projectID uuid.UUID, batchID uuid.UUID) []api.Job {
+	var allJobs []api.Job
+	var pageToken *string = nil
+
+	for {
+		response, err := Client.ListJobsWithResponse(context.Background(), projectID, batchID, &api.ListJobsParams{
+			PageSize:  Ptr(100),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("unable to list jobs:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to list jobs", response.HTTPResponse, response.Body)
+		if response.JSON200.Jobs == nil {
+			log.Fatal("unable to list jobs")
+		}
+		responseJobs := *response.JSON200.Jobs
+		allJobs = append(allJobs, responseJobs...)
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+
+	return allJobs
+}
+
+func filterJobsByStatus(jobs []api.Job, conflatedStatuses []api.ConflatedJobStatus) []uuid.UUID {
+	if len(conflatedStatuses) == 0 {
+		return []uuid.UUID{}
+	}
+
+	var jobIDs []uuid.UUID
+	for _, job := range jobs {
+		for _, status := range conflatedStatuses {
+			if job.ConflatedStatus != nil && *job.ConflatedStatus == status {
+				if job.JobID != nil {
+					jobIDs = append(jobIDs, *job.JobID)
+				}
+				break // Found a match, no need to check other statuses
+			}
+		}
+	}
+
+	return jobIDs
+}
+
+// SuperviseResult contains the result information from actualSuperviseBatch
+type SuperviseResult struct {
+	Batch *api.Batch
+	Error error
+}
+
+// SuperviseParams contains the parameters needed for actualSuperviseBatch
+type SuperviseParams struct {
+	ProjectID                uuid.UUID
+	MaxRerunAttempts         int
+	RerunMaxFailurePercent   float64
+	UndesiredConflatedStates []api.ConflatedJobStatus
+	Timeout                  time.Duration
+	PollInterval             time.Duration
+	BatchID                  string
+	BatchName                string
+}
+
+func getSuperviseParams(ccmd *cobra.Command, args []string) (*SuperviseParams, error) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	maxRerunAttempts := viper.GetInt(batchMaxRerunAttemptsKey)
+	rerunMaxFailurePercent := viper.GetFloat64(batchRerunMaxFailurePercentKey)
+	rerunOnStates := viper.GetString(batchRerunOnStatesKey)
+
+	// Validate rerun-max-failure-percent <= 0.0 or > 100.0
+	if rerunMaxFailurePercent <= 0.0 || rerunMaxFailurePercent > 100 {
+		return nil, fmt.Errorf("rerun-max-failure-percent must be greater than 0 and less than 100, got: %f", rerunMaxFailurePercent)
+	}
+
+	if maxRerunAttempts < 0 {
+		return nil, fmt.Errorf("max-rerun-attempts must be at least 0, got: %d", maxRerunAttempts)
+	}
+
+	// Parse rerun states
+	conflatedStates := parseRerunStates(rerunOnStates)
+
+	// Parse timeout and poll interval
+	pollInterval, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
+	timeout, _ := time.ParseDuration(viper.GetString(batchWaitTimeoutKey))
+
+	return &SuperviseParams{
+		ProjectID:                projectID,
+		MaxRerunAttempts:         maxRerunAttempts,
+		RerunMaxFailurePercent:   rerunMaxFailurePercent,
+		UndesiredConflatedStates: conflatedStates,
+		Timeout:                  timeout,
+		PollInterval:             pollInterval,
+		BatchID:                  viper.GetString(batchIDKey),   // validated in waitForBatchCompletion
+		BatchName:                viper.GetString(batchNameKey), // validated in waitForBatchCompletion
+	}, nil
+}
+
+func getMatchingJobIDs(batch *api.Batch, params *SuperviseParams, attempt int) []uuid.UUID {
+	// Check if we've reached max attempts first (before any API calls)
+	if attempt >= params.MaxRerunAttempts {
+		infoLog("Reached max rerun attempts (%d); no more reruns will be triggered\n", params.MaxRerunAttempts)
+		return nil
+	}
+
+	// If batch is cancelled, do not rerun
+	if *batch.Status == api.BatchStatusCANCELLED {
+		infoLogln("Batch was cancelled; no rerun")
+		return nil
+	}
+
+	// Get all jobs and filter by status
+	allJobs := getAllJobs(params.ProjectID, *batch.BatchID)
+	matchingJobIDs := filterJobsByStatus(allJobs, params.UndesiredConflatedStates)
+
+	blocker, errCount, warning := countJobsByConflatedStatus(allJobs)
+	infoLog(
+		"Attempt %d/%d: %d jobs in undesired states (BLOCKER: %d, ERROR: %d, WARNING: %d)\n",
+		attempt+1, params.MaxRerunAttempts, len(matchingJobIDs), blocker, errCount, warning,
+	)
+
+	// Check threshold before rerunning
+	totalJobs := len(allJobs)
+	failedJobs := len(matchingJobIDs)
+	if totalJobs > 0 {
+		failedPercentage := float64(failedJobs*100) / float64(totalJobs)
+		infoLog("Failed job percentage: %.1f%% (%d/%d jobs)\n", failedPercentage, failedJobs, totalJobs)
+		if failedPercentage > params.RerunMaxFailurePercent {
+			infoLog(
+				"Failed job percentage %.1f%% exceeds threshold %.1f%%; skipping rerun\n",
+				failedPercentage, params.RerunMaxFailurePercent,
+			)
+			return nil
+		}
+	}
+
+	return matchingJobIDs
+}
+
+func actualSuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
+
+	// Get parameters
+	params, err := getSuperviseParams(ccmd, args)
+	if err != nil {
+		return &SuperviseResult{
+			Error: err,
+		}
+	}
+
+	// Unified loop for initial batch and reruns
+	var batch *api.Batch
+
+	for attempt := 0; attempt <= params.MaxRerunAttempts; attempt++ {
+		var err error
+
+		batch, err = waitForBatchCompletion(params.ProjectID, params.BatchID, params.BatchName, params.Timeout, params.PollInterval)
+
+		// Check timeout
+		if err != nil {
+			if timeoutErr, ok := err.(*TimeoutError); ok {
+				return &SuperviseResult{
+					Error: timeoutErr,
+				}
+			} else {
+				return &SuperviseResult{
+					Error: fmt.Errorf("Error retrieving batch: %v", err),
+				}
+			}
+		}
+
+		infoLog("Batch completed with status: %s\n", *batch.Status)
+		logConflatedSummary(batch)
+
+		// Check if rerun is required (includes max attempts check)
+		matchingJobIDs := getMatchingJobIDs(batch, params, attempt)
+		if len(matchingJobIDs) == 0 {
+			return &SuperviseResult{
+				Batch: batch,
+			}
+		}
+
+		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second, false, false)
+		if err != nil {
+			return &SuperviseResult{
+				Error: err,
+			}
+		}
+		newBatchID := response.JSON200.BatchID
+		infoLog("Submitted rerun batch: %s\n", newBatchID.String())
+
+		// Update batch ID for next iteration
+		params.BatchID = newBatchID.String()
+		params.BatchName = "" // Clear batch name since we're using ID now
+	}
+
+	// This should never happen, but we'll return the batch if we get here
+	log.Fatal("Control should never reach here. Returning batch.")
+	return &SuperviseResult{
+		Batch: batch,
+	}
+}
+
+func superviseBatch(ccmd *cobra.Command, args []string) {
+
+	result := actualSuperviseBatch(ccmd, args)
+
+	// Set the batch ID for future reference
+	if result.Batch != nil && result.Batch.BatchID != nil {
+		viper.Set(batchIDKey, result.Batch.BatchID.String())
+	}
+
+	// Exit with appropriate code based on final status. Supervise uses ConflatedStatus mode:
+	// the fail filter defaults to --rerun-on-states (i.e. "if a state is worth rerunning, an
+	// unresolved instance of it should fail the command"). --fail-on-states overrides.
+	failFilter := supervisorFailFilter(batchFailOnStatesKey, batchRerunOnStatesKey)
+	results := []*SuperviseResult{result}
+	exitWithBatchStatus(results, exitCodeOptions{failOnStates: failFilter}, true)
+}
+
+// supervisorFailFilter returns the fail filter to use for a supervise-style command's exit
+// code computation. If --fail-on-states resolves to a non-empty list it takes precedence;
+// otherwise --rerun-on-states is used as the implicit fail filter (so "if a state is worth
+// rerunning, an unresolved instance of it should fail the command"). Shared between
+// `batch supervise` and `workflow runs supervise` so they can't drift.
+//
+// We parse first and length-check rather than using viper.IsSet because viper.IsSet
+// returns true for an explicit empty value (e.g. --fail-on-states=""), which would
+// silently drop us into legacy mode and bypass the implicit --rerun-on-states filter.
+func supervisorFailFilter(failOnStatesKey, rerunOnStatesKey string) []api.ConflatedBatchStatus {
+	if explicit := parseConflatedBatchStates(viper.GetString(failOnStatesKey)); len(explicit) > 0 {
+		return explicit
+	}
+	return jobStatesToBatchStates(parseRerunStates(viper.GetString(rerunOnStatesKey)))
+}
+
+func createBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batchGithub := viper.GetBool(batchGithubKey)
+	if !batchGithub {
+		fmt.Println("Creating a batch...")
+	}
+
+	// Parse the build ID
+	buildID, err := uuid.Parse(viper.GetString(batchBuildIDKey))
+	if err != nil || buildID == uuid.Nil {
+		log.Fatal("failed to parse build ID: ", err)
+	}
+
+	var allExperienceIDs []uuid.UUID
+	var allExperienceNames []string
+
+	// Parse --experience-ids
+	if viper.IsSet(batchExperienceIDsKey) {
+		experienceIDs := parseUUIDs(viper.GetString(batchExperienceIDsKey))
+		allExperienceIDs = append(allExperienceIDs, experienceIDs...)
+	}
+
+	// Parse --experiences into either IDs or names
+	if viper.IsSet(batchExperiencesKey) {
+		experienceIDs, experienceNames := parseUUIDsAndNames(viper.GetString(batchExperiencesKey))
+		allExperienceIDs = append(allExperienceIDs, experienceIDs...)
+		allExperienceNames = append(allExperienceNames, experienceNames...)
+	}
+
+	metricsBuildID := uuid.Nil
+	if viper.IsSet(batchMetricsBuildKey) {
+		metricsBuildID, err = uuid.Parse(viper.GetString(batchMetricsBuildKey))
+		if err != nil {
+			log.Fatal("failed to parse metrics-build ID: ", err)
+		}
+	}
+
+	if viper.IsSet(batchExperienceTagIDsKey) && viper.IsSet(batchExperienceTagNamesKey) {
+		log.Fatalf("failed to create batch: %v and %v are mutually exclusive parameters", batchExperienceTagNamesKey, batchExperienceTagIDsKey)
+	}
+
+	var allExperienceTagIDs []uuid.UUID
+	var allExperienceTagNames []string
+
+	// Parse --experience-tag-ids
+	if viper.IsSet(batchExperienceTagIDsKey) {
+		experienceTagIDs := parseUUIDs(viper.GetString(batchExperienceTagIDsKey))
+		allExperienceTagIDs = append(allExperienceTagIDs, experienceTagIDs...)
+	}
+
+	// Parse --experience-tag-names:
+	if viper.IsSet(batchExperienceTagNamesKey) {
+		experienceTagNames := strings.Split(viper.GetString(batchExperienceTagNamesKey), ",")
+		for i := range experienceTagNames {
+			experienceTagNames[i] = strings.TrimSpace(experienceTagNames[i])
+		}
+		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
+	}
+
+	// Parse --experience-tags
+	if viper.IsSet(batchExperienceTagsKey) {
+		experienceTagIDs, experienceTagNames := parseUUIDsAndNames(viper.GetString(batchExperienceTagsKey))
+		allExperienceTagIDs = append(allExperienceTagIDs, experienceTagIDs...)
+		allExperienceTagNames = append(allExperienceTagNames, experienceTagNames...)
+	}
+
+	// Parse --parameter (if any provided)
+	parameters := api.BatchParameters{}
+	if viper.IsSet(batchParameterKey) {
+		parameterStrings := viper.GetStringSlice(batchParameterKey)
+		for _, parameterString := range parameterStrings {
+			key, value, err := ParseParameterString(parameterString)
+			if err != nil {
+				log.Fatal(err)
+			}
+			parameters[key] = value
+		}
+	}
+
+	poolLabels := getAndValidatePoolLabels(batchPoolLabelsKey)
+
+	// Process the associated account: by default, we try to get from CI/CD environment variables
+	// Otherwise, we use the account flag. The default is "".
+	associatedAccount := GetCIEnvironmentVariableAccount()
+	if viper.IsSet(batchAccountKey) {
+		associatedAccount = viper.GetString(batchAccountKey)
+	}
+
+	metricsSet := ProcessMetricsSet(batchMetricsSetKey, &poolLabels)
+
+	// Sync metrics2.0 config, then validate the metrics set against the synced branch.
+	if err := syncAndValidateMetricsSet(projectID, buildID, metricsSet, metricsConfigSync{
+		Enabled:       viper.GetBool(batchSyncMetricsConfigKey),
+		ConfigPaths:   viper.GetStringSlice(batchMetricsConfigPath),
+		TemplatesPath: viper.GetString(batchMetricsTemplatesPath),
+	}); err != nil {
+		log.Fatalf("failed to create batch: %v", err)
+	}
+
+	// Build the request body
+	body := api.BatchInput{
+		BuildID:           &buildID,
+		Parameters:        &parameters,
+		AssociatedAccount: &associatedAccount,
+		TriggeredVia:      DetermineTriggerMethod(),
+		MetricsSetName:    metricsSet,
+	}
+
+	// Parse --batch-name (if any provided)
+	if viper.IsSet(batchNameKey) {
+		body.BatchName = Ptr(viper.GetString(batchNameKey))
+	}
+
+	// Parse --blueprint (if any provided). The API resolves the name to its
+	// latest version.
+	if viper.IsSet(batchBlueprintKey) {
+		body.BlueprintName = Ptr(viper.GetString(batchBlueprintKey))
+	}
+
+	// Parse --allowable-failure-percent (if any provided)
+	if viper.IsSet(batchAllowableFailurePercentKey) {
+		allowableFailurePercent := viper.GetInt(batchAllowableFailurePercentKey)
+		if allowableFailurePercent < 0 || allowableFailurePercent > 100 {
+			log.Fatal("allowable failure percent must be between 0 and 100")
+		}
+		body.AllowableFailurePercent = &allowableFailurePercent
+	}
+
+	if priority := getRequestPriority(batchPriorityKey); priority != nil {
+		body.Priority = priority
+	}
+
+	if allExperienceIDs != nil {
+		body.ExperienceIDs = &allExperienceIDs
+	}
+
+	if allExperienceNames != nil {
+		body.ExperienceNames = &allExperienceNames
+	}
+
+	if allExperienceTagIDs != nil {
+		body.ExperienceTagIDs = &allExperienceTagIDs
+	}
+
+	if allExperienceTagNames != nil {
+		body.ExperienceTagNames = &allExperienceTagNames
+	}
+
+	if metricsBuildID != uuid.Nil {
+		body.MetricsBuildID = &metricsBuildID
+	}
+
+	if len(poolLabels) != 0 {
+		body.PoolLabels = &poolLabels
+	}
+
+	// Make the request
+	response, err := Client.CreateBatchWithResponse(context.Background(), projectID, body)
+	if err != nil {
+		log.Fatal("failed to create batch:", err)
+	}
+	ValidateResponse(http.StatusCreated, "failed to create batch", response.HTTPResponse, response.Body)
+
+	if response.JSON201 == nil {
+		log.Fatal("empty response")
+	}
+	batch := *response.JSON201
+
+	if !batchGithub {
+		// Report the results back to the user
+		fmt.Println("Created batch successfully!")
+	}
+	if batch.BatchID == nil {
+		log.Fatal("empty ID")
+	}
+	if !batchGithub {
+		fmt.Println("Batch ID:", batch.BatchID.String())
+	} else {
+		fmt.Printf("batch_id=%s\n", batch.BatchID.String())
+	}
+	if batch.FriendlyName == nil {
+		log.Fatal("empty name")
+	}
+	if !batchGithub {
+		fmt.Println("Batch name:", *batch.FriendlyName)
+	}
+	if batch.Status == nil {
+		log.Fatal("empty status")
+	}
+	if !batchGithub {
+		fmt.Println("Status:", *batch.Status)
+	}
+}
+
+func actualGetBatch(projectID uuid.UUID, batchIDRaw string, batchName string) *api.Batch {
+	var batch *api.Batch
+	if batchIDRaw != "" {
+		batchID, err := uuid.Parse(batchIDRaw)
+		if err != nil {
+			log.Fatal("unable to parse batch ID: ", err)
+		}
+		response, err := Client.GetBatchWithResponse(context.Background(), projectID, batchID)
+		if err != nil {
+			log.Fatal("unable to retrieve batch:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to retrieve batch", response.HTTPResponse, response.Body)
+		batch = response.JSON200
+		return batch
+	} else if batchName != "" {
+		var pageToken *string = nil
+		for {
+			response, err := Client.ListBatchesWithResponse(context.Background(), projectID, &api.ListBatchesParams{
+				PageToken: pageToken,
+				OrderBy:   Ptr("timestamp"),
+			})
+			if err != nil {
+				log.Fatal("unable to list batches:", err)
+			}
+			ValidateResponse(http.StatusOK, "unable to list batches", response.HTTPResponse, response.Body)
+			if response.JSON200.Batches == nil {
+				log.Fatal("unable to find batch: ", batchName)
+			}
+			batches := *response.JSON200.Batches
+
+			for _, b := range batches {
+				if b.FriendlyName != nil && *b.FriendlyName == batchName {
+					batch = &b
+					return batch
+				}
+			}
+
+			if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+				pageToken = response.JSON200.NextPageToken
+			} else {
+				log.Fatal("unable to find batch: ", batchName)
+			}
+		}
+	} else {
+		log.Fatal("must specify either the batch ID or the batch name")
+	}
+	return batch
+}
+
+func getBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+
+	if viper.GetBool(batchExitStatusKey) {
+		// By default, exit code is derived from Batch.Status (preserving the historical
+		// contract of `get --exit-status`). When --fail-on-states is set, switch to
+		// ConflatedStatus mode with the user-supplied filter.
+		opts := exitCodeOptions{
+			failOnStates:    parseConflatedBatchStates(viper.GetString(batchFailOnStatesKey)),
+			includeExtended: true,
+		}
+		exitWithSingleBatchStatus(batch, nil, opts, false)
+	}
+	if viper.GetBool(batchMarkdownOutputKey) {
+		fmt.Print(batchToMarkdown(batch))
+	} else if viper.GetBool(batchSlackOutputKey) {
+		OutputJson(batchToSlackWebhookPayload(batch))
+	} else {
+		OutputJson(batch)
+	}
+}
+
+// TimeoutError represents a timeout condition
+type TimeoutError struct {
+	message string
+}
+
+func (e *TimeoutError) Error() string {
+	return e.message
+}
+
+func (e *TimeoutError) IsTimeout() bool {
+	return true
+}
+
+// exitCodeOptions configures how computeExitCode interprets a set of supervise results.
+type exitCodeOptions struct {
+	// failOnStates is the set of ConflatedBatchStatus values that should fail the command.
+	// When empty, computeExitCode runs in "legacy" mode and derives the exit code from
+	// Batch.Status alone (preserving the historical contract of `wait` and `get --exit-status`).
+	// When non-empty, computeExitCode runs in "conflated" mode: orchestration overrides
+	// (Batch.Status == ERROR/CANCELLED) still apply, but otherwise the exit code is derived
+	// from Batch.ConflatedStatus filtered to these states.
+	failOnStates []api.ConflatedBatchStatus
+	// includeExtended controls whether SUBMITTED (3) and RUNNING (4) exit codes are produced.
+	// Used by `get --exit-status`, which may run on a non-terminal batch.
+	includeExtended bool
+}
+
+// internalError is a sentinel returned by computeExitCode when an internal error was
+// encountered. The caller is expected to log.Fatal the original error rather than os.Exit
+// with this code; the value is purely informational.
+const internalError = -1
+
+// computeExitCode returns the exit code that should be used for the given supervise results
+// under the supplied options. It is pure: it does not log, write to stderr, or call os.Exit.
+//
+// Priority (highest first):
+//
+//	internalError(-1) > timeout(6) > BLOCKER(7) > ERROR(2) > WARNING(8) > CANCELLED(5) > SUBMITTED(3) > RUNNING(4) > SUCCEEDED(0)
+//
+// Legacy mode (failOnStates empty): preserves the historical Batch.Status-based mapping
+// 0=SUCCEEDED, 2=ERROR, 5=CANCELLED, with extended 3=SUBMITTED, 4=RUNNING when
+// includeExtended is true.
+//
+// Conflated mode (failOnStates non-empty): orchestration overrides take precedence
+// (Batch.Status==ERROR -> 2, Batch.Status==CANCELLED -> 5). Otherwise the exit code is
+// derived from Batch.ConflatedStatus, but only states present in failOnStates produce a
+// non-zero result. ConflatedStatus values not in the filter are treated as success.
+func computeExitCode(results []*SuperviseResult, opts exitCodeOptions) int {
+	useConflated := len(opts.failOnStates) > 0
+
+	hasTimeout := false
+	hasError := false
+	hasBlocker := false
+	hasWarning := false
+	hasCancelled := false
+	hasSubmitted := false
+	hasRunning := false
+	allSucceeded := true
+
+	for _, res := range results {
+		if res == nil {
+			allSucceeded = false
+			continue
+		}
+		if res.Error != nil {
+			if _, ok := res.Error.(*TimeoutError); ok {
+				hasTimeout = true
+				allSucceeded = false
+				continue
+			}
+			return internalError
+		}
+		if res.Batch == nil {
+			allSucceeded = false
+			continue
+		}
+
+		// Orchestration overrides: applied in both legacy and conflated modes so users
+		// of --fail-on-states still see exit 2/5 for orchestration-level ERROR/CANCELLED.
+		if res.Batch.Status != nil {
+			switch *res.Batch.Status {
+			case api.BatchStatusERROR:
+				hasError = true
+				allSucceeded = false
+				continue
+			case api.BatchStatusCANCELLED:
+				hasCancelled = true
+				allSucceeded = false
+				continue
+			}
+		}
+
+		if useConflated && res.Batch.ConflatedStatus != nil {
+			switch *res.Batch.ConflatedStatus {
+			case api.ConflatedBatchStatusCOMPLETE:
+				// success - leave allSucceeded as-is
+			case api.ConflatedBatchStatusBLOCKER:
+				if containsConflatedBatchStatus(opts.failOnStates, api.ConflatedBatchStatusBLOCKER) {
+					hasBlocker = true
+					allSucceeded = false
+				}
+			case api.ConflatedBatchStatusERROR:
+				if containsConflatedBatchStatus(opts.failOnStates, api.ConflatedBatchStatusERROR) {
+					hasError = true
+					allSucceeded = false
+				}
+			case api.ConflatedBatchStatusWARNING:
+				if containsConflatedBatchStatus(opts.failOnStates, api.ConflatedBatchStatusWARNING) {
+					hasWarning = true
+					allSucceeded = false
+				}
+			case api.ConflatedBatchStatusCANCELLED:
+				hasCancelled = true
+				allSucceeded = false
+			case api.ConflatedBatchStatusSUBMITTED:
+				if opts.includeExtended {
+					hasSubmitted = true
+				}
+				allSucceeded = false
+			case api.ConflatedBatchStatusRUNNING:
+				if opts.includeExtended {
+					hasRunning = true
+				}
+				allSucceeded = false
+			default:
+				allSucceeded = false
+			}
+			continue
+		}
+
+		// Legacy mode (or conflated mode with nil ConflatedStatus): fall back to Batch.Status.
+		if res.Batch.Status == nil {
+			allSucceeded = false
+			continue
+		}
+		switch *res.Batch.Status {
+		case api.BatchStatusSUCCEEDED:
+			// success
+		case api.BatchStatusSUBMITTED:
+			if opts.includeExtended {
+				hasSubmitted = true
+			}
+			allSucceeded = false
+		case api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
+			if opts.includeExtended {
+				hasRunning = true
+			}
+			allSucceeded = false
+		default:
+			allSucceeded = false
+		}
+	}
+
+	switch {
+	case hasTimeout:
+		return exitCodeTimeout
+	case hasBlocker:
+		return exitCodeBlocker
+	case hasError:
+		return exitCodeError
+	case hasWarning:
+		return exitCodeWarning
+	case hasCancelled:
+		return exitCodeCancelled
+	case opts.includeExtended && hasSubmitted:
+		return exitCodeSubmitted
+	case opts.includeExtended && hasRunning:
+		return exitCodeRunning
+	case allSucceeded:
+		return exitCodeSucceeded
+	}
+	// Unknown state: behave like the previous fallback (treated as internal error so the
+	// caller log.Fatals with a useful message).
+	return internalError
+}
+
+// exitWithBatchStatus determines and executes the appropriate exit code based on batch status(es)
+// using computeExitCode under the hood. It handles both single batch and multiple batch scenarios.
+func exitWithBatchStatus(results []*SuperviseResult, opts exitCodeOptions, shouldLog bool) {
+	// Surface internal errors via log.Fatal (preserving the prior contract).
+	for _, res := range results {
+		if res != nil && res.Error != nil {
+			if _, ok := res.Error.(*TimeoutError); !ok {
+				log.Fatal(res.Error)
+			}
+		}
+	}
+
+	code := computeExitCode(results, opts)
+	isMultiple := len(results) > 1
+
+	if shouldLog {
+		switch code {
+		case exitCodeTimeout:
+			for _, res := range results {
+				if res == nil || res.Error == nil {
+					continue
+				}
+				if timeoutErr, ok := res.Error.(*TimeoutError); ok {
+					log.Printf("Batch timed out: %v\n", timeoutErr.message)
+				}
+			}
+			if isMultiple {
+				log.Println("One or more batches timed out")
+			} else {
+				log.Println("Batch timed out")
+			}
+		case exitCodeSucceeded:
+			if isMultiple {
+				log.Println("All batches completed successfully")
+				for _, res := range results {
+					if res != nil && res.Batch != nil {
+						infoLogln(formatConflatedSummary(res.Batch))
+					}
+				}
+			} else {
+				log.Println("Batch Completed Successfully")
+				if len(results) == 1 && results[0] != nil && results[0].Batch != nil {
+					infoLogln(formatConflatedSummary(results[0].Batch))
+				}
+			}
+		}
+	}
+
+	if code == internalError {
+		log.Fatal("unknown batch status")
+	}
+	os.Exit(code)
+}
+
+// exitWithSingleBatchStatus is a convenience function for single batch exit code determination
+func exitWithSingleBatchStatus(batch *api.Batch, err error, opts exitCodeOptions, shouldLog bool) {
+	if err != nil {
+		if timeoutErr, ok := err.(*TimeoutError); ok {
+			log.Println("Batch timed out:", timeoutErr.message)
+			os.Exit(exitCodeTimeout)
+		}
+		// Other errors get exit code 1
+		log.Fatal(err)
+	}
+
+	if batch == nil || batch.Status == nil {
+		log.Fatal("no batch status returned")
+	}
+
+	results := []*SuperviseResult{
+		{Batch: batch, Error: nil},
+	}
+	exitWithBatchStatus(results, opts, shouldLog)
+}
+
+func waitForBatchCompletion(projectID uuid.UUID, batchID string, batchName string, timeout time.Duration, pollInterval time.Duration) (*api.Batch, error) {
+	startTime := time.Now()
+
+	for {
+		batch := actualGetBatch(projectID, batchID, batchName)
+		if batch.Status == nil {
+			return nil, fmt.Errorf("no status returned")
+		}
+
+		// Check if batch is in final state
+		switch *batch.Status {
+		case api.BatchStatusSUCCEEDED:
+			return batch, nil
+		case api.BatchStatusERROR:
+			return batch, nil
+		case api.BatchStatusCANCELLED:
+			return batch, nil
+		case api.BatchStatusSUBMITTED, api.BatchStatusEXPERIENCESRUNNING, api.BatchStatusBATCHMETRICSQUEUED, api.BatchStatusBATCHMETRICSRUNNING:
+			// Continue waiting
+		default:
+			return nil, fmt.Errorf("unknown batch status: %s", *batch.Status)
+		}
+
+		// Check timeout
+		if time.Now().After(startTime.Add(timeout)) {
+			return batch, &TimeoutError{message: fmt.Sprintf("timeout after %v, last state %s", timeout, *batch.Status)}
+		}
+
+		time.Sleep(pollInterval)
+	}
+}
+
+func waitBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	timeout, _ := time.ParseDuration(viper.GetString(batchWaitTimeoutKey))
+	pollWait, _ := time.ParseDuration(viper.GetString(batchWaitPollKey))
+
+	batch, err := waitForBatchCompletion(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey), timeout, pollWait)
+
+	// Set the batch ID for future reference
+	if batch != nil && batch.BatchID != nil {
+		viper.Set(batchIDKey, batch.BatchID.String())
+	}
+
+	// Exit code: by default driven by Batch.Status (preserves historical contract).
+	// When --fail-on-states is set, switch to ConflatedStatus mode with that filter.
+	opts := exitCodeOptions{
+		failOnStates: parseConflatedBatchStates(viper.GetString(batchFailOnStatesKey)),
+	}
+	exitWithSingleBatchStatus(batch, err, opts, true)
+}
+
+func testsBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	var batchID uuid.UUID
+	var err error
+	if viper.IsSet(batchIDKey) {
+		batchID, err = uuid.Parse(viper.GetString(batchIDKey))
+		if err != nil {
+			log.Fatal("unable to parse batch ID: ", err)
+		}
+	} else if viper.IsSet(batchNameKey) {
+		batch := actualGetBatch(projectID, "", viper.GetString(batchNameKey))
+		batchID = *batch.BatchID
+	} else {
+		log.Fatal("must specify either the batch ID or the batch name")
+	}
+
+	// Now list the tests
+	tests := []api.Job{}
+	var pageToken *string = nil
+	for {
+		response, err := Client.ListJobsWithResponse(context.Background(), projectID, batchID, &api.ListJobsParams{
+			PageSize:  Ptr(100),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("unable to list tests:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to list tests", response.HTTPResponse, response.Body)
+		if response.JSON200.Jobs == nil {
+			log.Fatal("unable to list tests")
+		}
+		responseJobs := *response.JSON200.Jobs
+		tests = append(tests, responseJobs...)
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+	OutputJson(tests)
+}
+
+func listBatchLogs(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	var batchID uuid.UUID
+	var err error
+	if viper.IsSet(batchIDKey) {
+		batchID, err = uuid.Parse(viper.GetString(batchIDKey))
+		if err != nil {
+			log.Fatal("unable to parse batch ID: ", err)
+		}
+	} else {
+		batch := actualGetBatch(projectID, "", viper.GetString(batchNameKey))
+		batchID = *batch.BatchID
+	}
+	logs := []api.BatchLog{}
+	var pageToken *string = nil
+	for {
+		response, err := Client.ListBatchLogsForBatchWithResponse(context.Background(), projectID, batchID, &api.ListBatchLogsForBatchParams{
+			PageSize:  Ptr(100),
+			PageToken: pageToken,
+		})
+		if err != nil {
+			log.Fatal("unable to list logs:", err)
+		}
+		ValidateResponse(http.StatusOK, "unable to list logs", response.HTTPResponse, response.Body)
+		if response.JSON200.Logs == nil {
+			log.Fatal("unable to list logs")
+		}
+		responseLogs := *response.JSON200.Logs
+		logs = append(logs, responseLogs...)
+
+		if response.JSON200.NextPageToken != nil && *response.JSON200.NextPageToken != "" {
+			pageToken = response.JSON200.NextPageToken
+		} else {
+			break
+		}
+	}
+	OutputJson(logs)
+}
+
+func cancelBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+
+	response, err := Client.CancelBatchWithResponse(context.Background(), projectID, *batch.BatchID)
+	if err != nil {
+		log.Fatal("failed to cancel batch:", err)
+	}
+	ValidateResponse(http.StatusOK, "failed to cancel batch", response.HTTPResponse, response.Body)
+	fmt.Println("Batch cancelled successfully!")
+}
+
+func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration, syncWithTestSuite bool, rerunMetricsOnly bool) (*api.RerunBatchResponse, error) {
+	// Start with an empty list of job IDs
+	rerunInput := api.RerunBatchInput{
+		JobIDs:    &[]uuid.UUID{},
+		SyncBatch: syncWithTestSuite,
+	}
+	if len(jobIDs) > 0 {
+		rerunInput.JobIDs = &jobIDs
+	}
+	if rerunMetricsOnly {
+		rerunInput.RerunMetricsOnly = Ptr(true)
+	}
+
+	maxRetries := 3
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		log.Printf("Attempting to rerun batch (%d/%d)...", attempt, maxRetries)
+		response, err := Client.RerunBatchWithResponse(context.Background(), projectID, batchID, rerunInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to rerun batch: %v", err)
+		}
+		if response != nil && response.StatusCode() == http.StatusConflict {
+			if attempt == maxRetries {
+				return nil, fmt.Errorf("failed to rerun batch: max retries reached (%d/%d)", attempt, maxRetries)
+			}
+			log.Println("Existing batch run is cleaning up. Retrying...")
+			time.Sleep(conflictRetryDelay)
+			continue
+		}
+		err = ValidateResponseSafe(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return response, nil
+	}
+	return nil, fmt.Errorf("failed to rerun batch: unknown error")
+}
+
+func rerunBatch(ccmd *cobra.Command, args []string) {
+	projectID := getProjectID(Client, viper.GetString(batchProjectKey))
+	batch := actualGetBatch(projectID, viper.GetString(batchIDKey), viper.GetString(batchNameKey))
+
+	rerunMetricsOnly := viper.GetBool(batchRerunMetricsOnlyKey)
+	allTests := viper.GetBool(batchRerunAllTestsKey)
+	testIDs := viper.GetStringSlice(batchTestIDsKey)
+
+	// --rerun-metrics-only requires a non-empty set of tests. Reruns of the batch-metrics phase
+	// only (without any test-level metrics) are triggered by invoking rerun with no flags.
+	if rerunMetricsOnly && !allTests && len(testIDs) == 0 {
+		log.Fatalf("--%s requires either --%s or --%s. To rerun only the batch-metrics phase, invoke rerun with no flags.", batchRerunMetricsOnlyKey, batchTestIDsKey, batchRerunAllTestsKey)
+	}
+
+	jobIDs := []uuid.UUID{}
+	if allTests {
+		jobs := getAllJobs(projectID, *batch.BatchID)
+		for _, job := range jobs {
+			if job.JobID != nil {
+				jobIDs = append(jobIDs, *job.JobID)
+			}
+		}
+		if len(jobIDs) == 0 {
+			log.Fatalf("--%s was set but the batch contains no tests to rerun", batchRerunAllTestsKey)
+		}
+		log.Printf("Found %d tests in batch to rerun\n", len(jobIDs))
+	} else {
+		for _, jobID := range testIDs {
+			parsed, err := uuid.Parse(jobID)
+			if err != nil {
+				log.Fatal("unable to parse job ID: ", err)
+			}
+			jobIDs = append(jobIDs, parsed)
+		}
+	}
+
+	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, 30*time.Second, viper.GetBool(batchSyncWithTestSuiteKey), rerunMetricsOnly)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if rerunMetricsOnly {
+		fmt.Printf("Metrics rerun submitted successfully for %d test(s)!\n", len(jobIDs))
+	} else {
+		fmt.Println("Batch rerun successfully!")
+	}
+}

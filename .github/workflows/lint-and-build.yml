@@ -41,8 +41,8 @@ jobs:
       - name: End-to-end test
         env:
           CONFIG: staging
-          RESIM_CLIENT_ID: ${{ secrets.RESIM_CLIENT_ID }}
-          RESIM_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
+          SIGNALFLAG_CLIENT_ID: ${{ secrets.RESIM_CLIENT_ID }}
+          SIGNALFLAG_CLIENT_SECRET: ${{ secrets.RESIM_CLIENT_SECRET }}
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
 

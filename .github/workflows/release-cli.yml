@@ -1,6 +1,6 @@
 name: build-release-binary
 
-run-name: Create Github Release for ReSim CLI
+run-name: Create Github Release for signalflag CLI
 
 on:
   push:
@@ -57,16 +57,32 @@ jobs:
         CGO_ENABLED: 0
         TAG: ${{ steps.tag.outputs.tag }}
       run: |
-        cd cmd/resim
-        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-linux-amd64
-        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-linux-arm64
-        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-darwin-arm64
-        GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o resim-darwin-amd64
+        cd cmd/signalflag
+        GOOS=linux GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-linux-amd64
+        GOOS=linux GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-linux-arm64
+        GOOS=darwin GOARCH=arm64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-darwin-arm64
+        GOOS=darwin GOARCH=amd64 go build -ldflags "-X main.Version=${TAG} -X main.BuiltBy=github-actions" -o signalflag-darwin-amd64
+
+    # Deprecation shim for the CLI rename. The documented install command curls
+    # releases/latest/download/resim-<os>-<arch>, and that URL always follows
+    # whatever the newest release is -- so publishing only signalflag-* names
+    # would 404 every existing install script the instant this release becomes
+    # "latest", without anyone having upgraded. Attach both names for a
+    # deprecation window; the binaries are byte-identical copies, and one run
+    # under the old name still prints the rename warnings from the CLI itself.
+    # REMOVE once the window closes (see README "Migrating from `resim`").
+    - name: Add legacy resim-* aliases
+      run: |
+        cd cmd/signalflag
+        for f in signalflag-*; do
+          cp "$f" "resim-${f#signalflag-}"
+        done
+        ls -l resim-* signalflag-*
 
     - uses: ncipollo/release-action@v1.12.0
       with:
         tag: ${{ steps.tag.outputs.tag }}
-        artifacts: "cmd/resim/resim-*"
+        artifacts: "cmd/signalflag/signalflag-*,cmd/signalflag/resim-*"
         token: ${{ secrets.GITHUB_TOKEN }}
         # If the release/tag already exists (e.g. it was created manually via
         # the GitHub UI), update it and attach the binaries instead of failing
@@ -86,12 +102,14 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG: ${{ steps.tag.outputs.tag }}
       run: |
-        count=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets \
-          --jq '[.assets[] | select(.name | startswith("resim-"))] | length')
+        assets=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets)
+        count=$(printf '%s' "$assets" | jq '[.assets[] | select(.name | startswith("signalflag-"))] | length')
+        legacy=$(printf '%s' "$assets" | jq '[.assets[] | select(.name | startswith("resim-"))] | length')
         echo "count=$count" >> "$GITHUB_OUTPUT"
-        echo "Found ${count}/4 resim binaries attached to ${TAG}"
-        if [ "$count" -ne 4 ]; then
-          echo "::error::Release ${TAG} has ${count}/4 binaries attached"
+        echo "legacy=$legacy" >> "$GITHUB_OUTPUT"
+        echo "Found ${count}/4 signalflag binaries and ${legacy}/4 legacy resim aliases attached to ${TAG}"
+        if [ "$count" -ne 4 ] || [ "$legacy" -ne 4 ]; then
+          echo "::error::Release ${TAG} has ${count}/4 signalflag binaries and ${legacy}/4 resim aliases attached"
           exit 1
         fi
 
@@ -108,12 +126,13 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.RELEASE_SLACK_WEBHOOK_URL }}
         TAG: ${{ steps.tag.outputs.tag }}
         COUNT: ${{ steps.verify.outputs.count }}
+        LEGACY: ${{ steps.verify.outputs.legacy }}
         RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       run: |
         if [ -z "$SLACK_WEBHOOK_URL" ]; then
           echo "RELEASE_SLACK_WEBHOOK_URL not set; skipping Slack notification."
           exit 0
         fi
-        text=":rotating_light: ReSim CLI release *${TAG:-unknown}* failed to publish binaries (${COUNT:-unknown}/4 attached). <${RUN_URL}|View workflow run>"
+        text=":rotating_light: signalflag CLI release *${TAG:-unknown}* failed to publish binaries (${COUNT:-unknown}/4 signalflag, ${LEGACY:-unknown}/4 legacy resim). <${RUN_URL}|View workflow run>"
         payload=$(jq -n --arg text "$text" '{text: $text}')
         curl -sS -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK_URL"

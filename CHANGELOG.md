@@ -2,7 +2,7 @@
 
 ## ReSim CLI
 
-### Unreleased
+### v1.1.0 - October 14, 2026
 
 - Adds `--cache-method NONE|EBS|EFS` to experience creation/update and asset creation/revision, and `cacheMethod` to experience sync configs. Omitting it preserves server defaults or the existing method. `assets create --cache-exempt` is deprecated but remains supported.
 - Adds generated Go client models for cache methods and cache metadata. Ingestion now disables caching with `cacheMethod: NONE`.

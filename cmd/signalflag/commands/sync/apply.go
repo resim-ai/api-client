@@ -130,6 +130,7 @@ func updateSingleExperience(
 			ContainerTimeoutSeconds: update.New.ContainerTimeoutSeconds,
 			Profile:                 update.New.Profile,
 			EnvironmentVariables:    update.New.EnvironmentVariables,
+			CacheMethod:             update.New.CacheMethod,
 			CacheExempt:             update.New.CacheExempt,
 			CustomFields:            update.New.CustomFields,
 		}
@@ -183,6 +184,9 @@ func updateSingleExperience(
 	if update.New.EnvironmentVariables != nil {
 		updateMask = append(updateMask, "environmentVariables")
 	}
+	if update.New.CacheMethod != nil {
+		updateMask = append(updateMask, "cacheMethod")
+	}
 	if update.New.CacheExempt != nil {
 		updateMask = append(updateMask, "cacheExempt")
 	}
@@ -201,6 +205,7 @@ func updateSingleExperience(
 			ContainerTimeoutSeconds: update.New.ContainerTimeoutSeconds,
 			Profile:                 update.New.Profile,
 			EnvironmentVariables:    update.New.EnvironmentVariables,
+			CacheMethod:             update.New.CacheMethod,
 			CacheExempt:             update.New.CacheExempt,
 			CustomFields:            update.New.CustomFields,
 		},

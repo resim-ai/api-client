@@ -45,6 +45,16 @@ func normalizeExperience(experience *Experience) error {
 	if len(experience.Locations) == 0 {
 		return fmt.Errorf("No locations provided for experience: %s", experience.Name)
 	}
+	if experience.CacheMethod != nil {
+		switch *experience.CacheMethod {
+		case api.NONE, api.EBS, api.EFS:
+		default:
+			return fmt.Errorf("invalid cacheMethod %q for experience %s: expected NONE, EBS, or EFS", *experience.CacheMethod, experience.Name)
+		}
+		if experience.CacheExempt != nil && *experience.CacheExempt != (*experience.CacheMethod == api.NONE) {
+			return fmt.Errorf("cacheExempt conflicts with cacheMethod for experience %s", experience.Name)
+		}
+	}
 	return nil
 }
 

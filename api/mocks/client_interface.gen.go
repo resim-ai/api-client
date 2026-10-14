@@ -7526,6 +7526,82 @@ func (_c *ClientInterface_GetExperience_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
+// GetExperienceFileUrl provides a mock function with given fields: ctx, projectID, experienceID, params, reqEditors
+func (_m *ClientInterface) GetExperienceFileUrl(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, params *api.GetExperienceFileUrlParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
+	_va := make([]interface{}, len(reqEditors))
+	for _i := range reqEditors {
+		_va[_i] = reqEditors[_i]
+	}
+	var _ca []interface{}
+	_ca = append(_ca, ctx, projectID, experienceID, params)
+	_ca = append(_ca, _va...)
+	ret := _m.Called(_ca...)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetExperienceFileUrl")
+	}
+
+	var r0 *http.Response
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.GetExperienceFileUrlParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
+		return rf(ctx, projectID, experienceID, params, reqEditors...)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.GetExperienceFileUrlParams, ...api.RequestEditorFn) *http.Response); ok {
+		r0 = rf(ctx, projectID, experienceID, params, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*http.Response)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.GetExperienceFileUrlParams, ...api.RequestEditorFn) error); ok {
+		r1 = rf(ctx, projectID, experienceID, params, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// ClientInterface_GetExperienceFileUrl_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetExperienceFileUrl'
+type ClientInterface_GetExperienceFileUrl_Call struct {
+	*mock.Call
+}
+
+// GetExperienceFileUrl is a helper method to define mock.On call
+//   - ctx context.Context
+//   - projectID uuid.UUID
+//   - experienceID uuid.UUID
+//   - params *api.GetExperienceFileUrlParams
+//   - reqEditors ...api.RequestEditorFn
+func (_e *ClientInterface_Expecter) GetExperienceFileUrl(ctx interface{}, projectID interface{}, experienceID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_GetExperienceFileUrl_Call {
+	return &ClientInterface_GetExperienceFileUrl_Call{Call: _e.mock.On("GetExperienceFileUrl",
+		append([]interface{}{ctx, projectID, experienceID, params}, reqEditors...)...)}
+}
+
+func (_c *ClientInterface_GetExperienceFileUrl_Call) Run(run func(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, params *api.GetExperienceFileUrlParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_GetExperienceFileUrl_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
+		for i, a := range args[4:] {
+			if a != nil {
+				variadicArgs[i] = a.(api.RequestEditorFn)
+			}
+		}
+		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.GetExperienceFileUrlParams), variadicArgs...)
+	})
+	return _c
+}
+
+func (_c *ClientInterface_GetExperienceFileUrl_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_GetExperienceFileUrl_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *ClientInterface_GetExperienceFileUrl_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.GetExperienceFileUrlParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_GetExperienceFileUrl_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetExperienceTag provides a mock function with given fields: ctx, projectID, experienceTagID, reqEditors
 func (_m *ClientInterface) GetExperienceTag(ctx context.Context, projectID uuid.UUID, experienceTagID uuid.UUID, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
 	_va := make([]interface{}, len(reqEditors))
@@ -11976,159 +12052,6 @@ func (_c *ClientInterface_ListExperienceCustomFields_Call) Return(_a0 *http.Resp
 }
 
 func (_c *ClientInterface_ListExperienceCustomFields_Call) RunAndReturn(run func(context.Context, uuid.UUID, *api.ListExperienceCustomFieldsParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListExperienceCustomFields_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ListExperienceInputFilesForExperience provides a mock function with given fields: ctx, projectID, experienceID, params, reqEditors
-func (_m *ClientInterface) ListExperienceInputFilesForExperience(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, params *api.ListExperienceInputFilesForExperienceParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
-	_va := make([]interface{}, len(reqEditors))
-	for _i := range reqEditors {
-		_va[_i] = reqEditors[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, projectID, experienceID, params)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ListExperienceInputFilesForExperience")
-	}
-
-	var r0 *http.Response
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
-		return rf(ctx, projectID, experienceID, params, reqEditors...)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) *http.Response); ok {
-		r0 = rf(ctx, projectID, experienceID, params, reqEditors...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*http.Response)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, projectID, experienceID, params, reqEditors...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ClientInterface_ListExperienceInputFilesForExperience_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListExperienceInputFilesForExperience'
-type ClientInterface_ListExperienceInputFilesForExperience_Call struct {
-	*mock.Call
-}
-
-// ListExperienceInputFilesForExperience is a helper method to define mock.On call
-//   - ctx context.Context
-//   - projectID uuid.UUID
-//   - experienceID uuid.UUID
-//   - params *api.ListExperienceInputFilesForExperienceParams
-//   - reqEditors ...api.RequestEditorFn
-func (_e *ClientInterface_Expecter) ListExperienceInputFilesForExperience(ctx interface{}, projectID interface{}, experienceID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListExperienceInputFilesForExperience_Call {
-	return &ClientInterface_ListExperienceInputFilesForExperience_Call{Call: _e.mock.On("ListExperienceInputFilesForExperience",
-		append([]interface{}{ctx, projectID, experienceID, params}, reqEditors...)...)}
-}
-
-func (_c *ClientInterface_ListExperienceInputFilesForExperience_Call) Run(run func(ctx context.Context, projectID uuid.UUID, experienceID uuid.UUID, params *api.ListExperienceInputFilesForExperienceParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListExperienceInputFilesForExperience_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-4)
-		for i, a := range args[4:] {
-			if a != nil {
-				variadicArgs[i] = a.(api.RequestEditorFn)
-			}
-		}
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(*api.ListExperienceInputFilesForExperienceParams), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *ClientInterface_ListExperienceInputFilesForExperience_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListExperienceInputFilesForExperience_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *ClientInterface_ListExperienceInputFilesForExperience_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForExperienceParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListExperienceInputFilesForExperience_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ListExperienceInputFilesForJob provides a mock function with given fields: ctx, projectID, batchID, jobID, params, reqEditors
-func (_m *ClientInterface) ListExperienceInputFilesForJob(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, params *api.ListExperienceInputFilesForJobParams, reqEditors ...api.RequestEditorFn) (*http.Response, error) {
-	_va := make([]interface{}, len(reqEditors))
-	for _i := range reqEditors {
-		_va[_i] = reqEditors[_i]
-	}
-	var _ca []interface{}
-	_ca = append(_ca, ctx, projectID, batchID, jobID, params)
-	_ca = append(_ca, _va...)
-	ret := _m.Called(_ca...)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ListExperienceInputFilesForJob")
-	}
-
-	var r0 *http.Response
-	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) (*http.Response, error)); ok {
-		return rf(ctx, projectID, batchID, jobID, params, reqEditors...)
-	}
-	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) *http.Response); ok {
-		r0 = rf(ctx, projectID, batchID, jobID, params, reqEditors...)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*http.Response)
-		}
-	}
-
-	if rf, ok := ret.Get(1).(func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) error); ok {
-		r1 = rf(ctx, projectID, batchID, jobID, params, reqEditors...)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// ClientInterface_ListExperienceInputFilesForJob_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListExperienceInputFilesForJob'
-type ClientInterface_ListExperienceInputFilesForJob_Call struct {
-	*mock.Call
-}
-
-// ListExperienceInputFilesForJob is a helper method to define mock.On call
-//   - ctx context.Context
-//   - projectID uuid.UUID
-//   - batchID uuid.UUID
-//   - jobID uuid.UUID
-//   - params *api.ListExperienceInputFilesForJobParams
-//   - reqEditors ...api.RequestEditorFn
-func (_e *ClientInterface_Expecter) ListExperienceInputFilesForJob(ctx interface{}, projectID interface{}, batchID interface{}, jobID interface{}, params interface{}, reqEditors ...interface{}) *ClientInterface_ListExperienceInputFilesForJob_Call {
-	return &ClientInterface_ListExperienceInputFilesForJob_Call{Call: _e.mock.On("ListExperienceInputFilesForJob",
-		append([]interface{}{ctx, projectID, batchID, jobID, params}, reqEditors...)...)}
-}
-
-func (_c *ClientInterface_ListExperienceInputFilesForJob_Call) Run(run func(ctx context.Context, projectID uuid.UUID, batchID uuid.UUID, jobID uuid.UUID, params *api.ListExperienceInputFilesForJobParams, reqEditors ...api.RequestEditorFn)) *ClientInterface_ListExperienceInputFilesForJob_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		variadicArgs := make([]api.RequestEditorFn, len(args)-5)
-		for i, a := range args[5:] {
-			if a != nil {
-				variadicArgs[i] = a.(api.RequestEditorFn)
-			}
-		}
-		run(args[0].(context.Context), args[1].(uuid.UUID), args[2].(uuid.UUID), args[3].(uuid.UUID), args[4].(*api.ListExperienceInputFilesForJobParams), variadicArgs...)
-	})
-	return _c
-}
-
-func (_c *ClientInterface_ListExperienceInputFilesForJob_Call) Return(_a0 *http.Response, _a1 error) *ClientInterface_ListExperienceInputFilesForJob_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *ClientInterface_ListExperienceInputFilesForJob_Call) RunAndReturn(run func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, *api.ListExperienceInputFilesForJobParams, ...api.RequestEditorFn) (*http.Response, error)) *ClientInterface_ListExperienceInputFilesForJob_Call {
 	_c.Call.Return(run)
 	return _c
 }

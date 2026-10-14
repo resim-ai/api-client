@@ -227,7 +227,7 @@ func ingestLog(ccmd *cobra.Command, args []string) {
 			Name:        logConfig.Name,
 			Locations:   &[]string{logConfig.Location},
 			Description: "Ingested into ReSim via the CLI",
-			CacheExempt: Ptr(true),
+			CacheMethod: Ptr(api.NONE),
 		}
 		experienceResponse, err := Client.CreateExperienceWithResponse(context.Background(), projectID, experienceBody)
 		if err != nil {

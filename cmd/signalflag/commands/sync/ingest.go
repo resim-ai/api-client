@@ -261,6 +261,10 @@ func addApiExperienceToExperienceMap(experience api.Experience,
 		Archived:                experience.Archived,
 		CustomFields:            &experience.CustomFields,
 	}
+	if experience.CacheMethod != "" {
+		currentExperiences[experience.Name].CacheMethod = &experience.CacheMethod
+		currentExperiences[experience.Name].CacheExempt = nil
+	}
 }
 
 func fetchAllExperiences(client api.ClientWithResponsesInterface,

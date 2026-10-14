@@ -109,7 +109,9 @@ func init() {
 	createAssetCmd.MarkFlagRequired(assetMountFolderKey)
 	createAssetCmd.Flags().String(assetVersionKey, "", "The version of the asset.")
 	createAssetCmd.MarkFlagRequired(assetVersionKey)
+	createAssetCmd.Flags().String(cacheMethodKey, "", cacheMethodHelp)
 	createAssetCmd.Flags().Bool(assetCacheExemptKey, false, "If true, the asset will not be cached.")
+	createAssetCmd.Flags().MarkDeprecated(assetCacheExemptKey, "use --cache-method NONE to disable caching")
 	assetCmd.AddCommand(createAssetCmd)
 
 	// List Assets
@@ -147,6 +149,7 @@ func init() {
 	reviseAssetCmd.Flags().String(assetVersionKey, "", "The new version for the asset revision.")
 	reviseAssetCmd.MarkFlagRequired(assetVersionKey)
 	reviseAssetCmd.Flags().String(assetMountFolderKey, "", "A new mount folder for the asset revision (optional, overrides existing).")
+	reviseAssetCmd.Flags().String(cacheMethodKey, "", "Caching method for the new revision: NONE, EBS, or EFS. Omit to inherit the current revision's method.")
 	assetCmd.AddCommand(reviseAssetCmd)
 
 	// Archive Asset
@@ -175,6 +178,10 @@ func init() {
 }
 
 func createAsset(ccmd *cobra.Command, args []string) {
+	cacheMethod, err := cacheMethodFromFlags(true)
+	if err != nil {
+		log.Fatal(err)
+	}
 	projectID := getProjectID(Client, viper.GetString(assetProjectKey))
 	fmt.Println("Creating an asset...")
 
@@ -205,6 +212,7 @@ func createAsset(ccmd *cobra.Command, args []string) {
 	}
 
 	body := api.CreateAssetInput{
+		CacheMethod: cacheMethod,
 		Name:        name,
 		Description: description,
 		Locations:   locations,
@@ -405,6 +413,10 @@ func updateAsset(ccmd *cobra.Command, args []string) {
 }
 
 func reviseAsset(ccmd *cobra.Command, args []string) {
+	cacheMethod, err := cacheMethodFromFlags(false)
+	if err != nil {
+		log.Fatal(err)
+	}
 	projectID := getProjectID(Client, viper.GetString(assetProjectKey))
 	fmt.Println("Revising an asset...")
 
@@ -425,8 +437,9 @@ func reviseAsset(ccmd *cobra.Command, args []string) {
 	}
 
 	reviseRequest := api.ReviseAssetInput{
-		Locations: locations,
-		Version:   version,
+		CacheMethod: cacheMethod,
+		Locations:   locations,
+		Version:     version,
 	}
 
 	if viper.IsSet(assetMountFolderKey) {

@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### Unreleased
+
+- Adds `--cache-method NONE|EBS|EFS` to experience creation/update and asset creation/revision, and `cacheMethod` to experience sync configs. Omitting it preserves server defaults or the existing method. `assets create --cache-exempt` is deprecated but remains supported.
+- Adds generated Go client models for cache methods and cache metadata. Ingestion now disables caching with `cacheMethod: NONE`.
+
 ### v0.70.0 - September 14, 2026
 
 - Adds support for referencing experience locations for files stored in a DVC repository on S3. The following command assumes that you are running the resim command from inside a local DVC repository checked out to the desired version, and that you have a remote s3 repo named `storage` configured:

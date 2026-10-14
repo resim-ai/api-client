@@ -116,6 +116,20 @@ Then place the generated file in the appropriate location on your system to enab
 
 Other shells are supported, just replace `bash` above with e.g. [`zsh`, `fish`, `powershell`].
 
+### Data caching
+
+Use `--cache-method NONE|EBS|EFS` with `experiences create`, `experiences update`,
+`assets create`, or `assets revise`. `NONE` disables caching; `EBS` and `EFS`
+select the storage tier. Omitting the flag uses the organization default on
+creation and preserves the existing method on update or revision.
+
+    signalflag experiences update --project my-project --experience my-experience --cache-method EFS
+
+Experience sync configurations also accept `cacheMethod: EFS`. The legacy
+`cacheExempt` field and `assets create --cache-exempt` remain supported but are
+deprecated; use `cacheMethod: NONE` or `--cache-method NONE` to disable caching.
+`S3_MOUNTPOINT` is reserved by the API and is not yet supported.
+
 ### GovCloud
 
 If you use our GovCloud environment, you can configure the CLI to work with it by running `signalflag govcloud enable` (which will store the setting in the configuration file at `~/.signalflag/signalflag.yaml`) or by setting `SIGNALFLAG_GOVCLOUD=true` in your environment.

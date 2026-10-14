@@ -145,6 +145,7 @@ func init() {
 	createExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables to set in the build container for this experience")
 	createExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Multiple values for the same field name are allowed.")
 	createExperienceCmd.Flags().String(experienceDvcRemoteKey, "", dvcRemoteFlagHelp)
+	createExperienceCmd.Flags().String(cacheMethodKey, "", cacheMethodHelp)
 	createExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 	experienceCmd.AddCommand(createExperienceCmd)
 
@@ -184,6 +185,7 @@ func init() {
 	updateExperienceCmd.Flags().StringSlice(experienceEnvironnmentVariableKey, []string{}, "A list of environment variables of the form NAME=VALUE to set in the build container for this experience. To remove all environment variables, set the flag to an string.")
 	updateExperienceCmd.Flags().StringArray(experienceCustomFieldKey, []string{}, "Custom fields in format 'name=value' or 'name:type=value' where type is text|number|timestamp|json. Can be specified multiple times. Replaces all existing custom fields.")
 	updateExperienceCmd.Flags().String(experienceDvcRemoteKey, "", dvcRemoteFlagHelp)
+	updateExperienceCmd.Flags().String(cacheMethodKey, "", cacheMethodHelp)
 	updateExperienceCmd.Flags().SetNormalizeFunc(AliasNormalizeFunc)
 
 	experienceCmd.AddCommand(updateExperienceCmd)
@@ -262,6 +264,10 @@ func maybeTranslateDvcLocations(locations []string) []string {
 }
 
 func createExperience(ccmd *cobra.Command, args []string) {
+	cacheMethod, err := cacheMethodFromFlags(false)
+	if err != nil {
+		log.Fatal(err)
+	}
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	experienceGithub := viper.GetBool(experienceGithubKey)
 	if !experienceGithub {
@@ -297,6 +303,7 @@ func createExperience(ccmd *cobra.Command, args []string) {
 	containerTimeoutSeconds := int32(math.Floor(containerTimeout.Seconds()))
 
 	body := api.CreateExperienceInput{
+		CacheMethod:             cacheMethod,
 		Name:                    experienceName,
 		Description:             experienceDescription,
 		Locations:               &experienceLocations,
@@ -443,6 +450,10 @@ func restoreExperience(ccmd *cobra.Command, args []string) {
 }
 
 func updateExperience(ccmd *cobra.Command, args []string) {
+	cacheMethod, err := cacheMethodFromFlags(false)
+	if err != nil {
+		log.Fatal(err)
+	}
 	projectID := getProjectID(Client, viper.GetString(experienceProjectKey))
 	experienceID := getExperienceID(Client, projectID, viper.GetString(experienceKey), true, false)
 	updateExperienceInput := api.UpdateExperienceInput{
@@ -450,6 +461,10 @@ func updateExperience(ccmd *cobra.Command, args []string) {
 	}
 
 	updateMask := []string{}
+	if cacheMethod != nil {
+		updateExperienceInput.Experience.CacheMethod = cacheMethod
+		updateMask = append(updateMask, "cacheMethod")
+	}
 	if viper.IsSet(experienceNameKey) {
 		updateExperienceInput.Experience.Name = Ptr(viper.GetString(experienceNameKey))
 		updateMask = append(updateMask, "name")

@@ -65,6 +65,14 @@ const (
 	RELEASE       BranchType = "RELEASE"
 )
 
+// Defines values for CacheMethod.
+const (
+	EBS          CacheMethod = "EBS"
+	EFS          CacheMethod = "EFS"
+	NONE         CacheMethod = "NONE"
+	S3MOUNTPOINT CacheMethod = "S3_MOUNTPOINT"
+)
+
 // Defines values for CompareBatchesStatusFilter.
 const (
 	BOTHFAILING CompareBatchesStatusFilter = "BOTH_FAILING"
@@ -106,6 +114,15 @@ const (
 const (
 	ABSOLUTE EventTimestampType = "ABSOLUTE"
 	RELATIVE EventTimestampType = "RELATIVE"
+)
+
+// Defines values for GetExperienceFileUrlOutputUnavailableReason.
+const (
+	FILENOTREADABLE        GetExperienceFileUrlOutputUnavailableReason = "FILE_NOT_READABLE"
+	LISTINGTRUNCATED       GetExperienceFileUrlOutputUnavailableReason = "LISTING_TRUNCATED"
+	MULTIPLESUPPORTEDFILES GetExperienceFileUrlOutputUnavailableReason = "MULTIPLE_SUPPORTED_FILES"
+	NOSUPPORTEDFILE        GetExperienceFileUrlOutputUnavailableReason = "NO_SUPPORTED_FILE"
+	UNSUPPORTEDLOCATION    GetExperienceFileUrlOutputUnavailableReason = "UNSUPPORTED_LOCATION"
 )
 
 // Defines values for JobStatus.
@@ -486,18 +503,31 @@ type Asset struct {
 	AssetID       AssetID       `json:"assetID" yaml:"assetID"`
 	AssetRevision AssetRevision `json:"assetRevision" yaml:"assetRevision"`
 
-	// CacheExempt If true, the asset will not be cached.
-	CacheExempt       bool      `json:"cacheExempt" yaml:"cacheExempt"`
-	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
-	Description       string    `json:"description" yaml:"description"`
-	Locations         []string  `json:"locations" yaml:"locations"`
-	MountFolder       string    `json:"mountFolder" yaml:"mountFolder"`
-	Name              string    `json:"name" yaml:"name"`
+	// CacheExempt Deprecated; use cacheMethod. True when cacheMethod is NONE.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CacheExempt bool `json:"cacheExempt" yaml:"cacheExempt"`
+
+	// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+	CacheMethod       CacheMethod `json:"cacheMethod" yaml:"cacheMethod"`
+	CreationTimestamp Timestamp   `json:"creationTimestamp" yaml:"creationTimestamp"`
+	Description       string      `json:"description" yaml:"description"`
+
+	// ItemCount Number of objects in the asset revision's source data, populated once the data has been probed.
+	ItemCount *int `json:"itemCount" yaml:"itemCount"`
+
+	// LastCachedTimestamp When the asset revision's cache tier was last populated. Null if never cached (always null for cacheMethod NONE).
+	LastCachedTimestamp *time.Time `json:"lastCachedTimestamp" yaml:"lastCachedTimestamp"`
+	Locations           []string   `json:"locations" yaml:"locations"`
+	MountFolder         string     `json:"mountFolder" yaml:"mountFolder"`
+	Name                string     `json:"name" yaml:"name"`
 
 	// NumBuilds Number of builds this asset revision is linked to.
-	NumBuilds       int       `json:"numBuilds" yaml:"numBuilds"`
-	OrgID           OrgID     `json:"orgID" yaml:"orgID"`
-	ProjectID       ProjectID `json:"projectID" yaml:"projectID"`
+	NumBuilds int       `json:"numBuilds" yaml:"numBuilds"`
+	OrgID     OrgID     `json:"orgID" yaml:"orgID"`
+	ProjectID ProjectID `json:"projectID" yaml:"projectID"`
+
+	// SizeBytes Total size of the asset revision's source data in bytes, populated once the data has been probed.
+	SizeBytes       *int64    `json:"sizeBytes" yaml:"sizeBytes"`
 	UpdateTimestamp Timestamp `json:"updateTimestamp" yaml:"updateTimestamp"`
 	UpdateUserID    UserID    `json:"updateUserID" yaml:"updateUserID"`
 	UserID          UserID    `json:"userID" yaml:"userID"`
@@ -846,6 +876,9 @@ type BulkArchiveExperiencesInput struct {
 	Filters        *ExperienceFilterInput `json:"filters,omitempty" yaml:"filters,omitempty"`
 }
 
+// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+type CacheMethod string
+
 // Checksum defines model for checksum.
 type Checksum = string
 
@@ -905,13 +938,17 @@ type ContainerStatusLine struct {
 
 // CreateAssetInput defines model for createAssetInput.
 type CreateAssetInput struct {
-	// CacheExempt If true, the asset will not be cached.
-	CacheExempt *bool    `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
-	Description string   `json:"description" yaml:"description"`
-	Locations   []string `json:"locations" yaml:"locations"`
-	MountFolder string   `json:"mountFolder" yaml:"mountFolder"`
-	Name        string   `json:"name" yaml:"name"`
-	Version     string   `json:"version" yaml:"version"`
+	// CacheExempt Deprecated; use cacheMethod. true is the same as cacheMethod NONE.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CacheExempt *bool `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+
+	// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+	CacheMethod *CacheMethod `json:"cacheMethod,omitempty" yaml:"cacheMethod,omitempty"`
+	Description string       `json:"description" yaml:"description"`
+	Locations   []string     `json:"locations" yaml:"locations"`
+	MountFolder string       `json:"mountFolder" yaml:"mountFolder"`
+	Name        string       `json:"name" yaml:"name"`
+	Version     string       `json:"version" yaml:"version"`
 }
 
 // CreateBlueprintInput defines model for createBlueprintInput.
@@ -984,9 +1021,13 @@ type CreateBuildForSystemInput2 = interface{}
 
 // CreateExperienceInput defines model for createExperienceInput.
 type CreateExperienceInput struct {
-	// CacheExempt If true, the experience will not be cached.
-	CacheExempt             *bool  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
-	ContainerTimeoutSeconds *int32 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
+	// CacheExempt Deprecated; use cacheMethod. true is the same as cacheMethod NONE.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CacheExempt *bool `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+
+	// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+	CacheMethod             *CacheMethod `json:"cacheMethod,omitempty" yaml:"cacheMethod,omitempty"`
+	ContainerTimeoutSeconds *int32       `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
 
 	// CustomFields Custom field key/value pairs to associate with the experience. Field names are case-insensitive. Each field can have multiple values.
 	CustomFields         *[]CustomFieldDefinition `json:"customFields,omitempty" yaml:"customFields,omitempty"`
@@ -1296,10 +1337,16 @@ type ExecutionStep = string
 
 // Experience defines model for experience.
 type Experience struct {
-	Archived                bool      `json:"archived" yaml:"archived"`
-	CacheExempt             bool      `json:"cacheExempt" yaml:"cacheExempt"`
-	ContainerTimeoutSeconds int32     `json:"containerTimeoutSeconds" yaml:"containerTimeoutSeconds"`
-	CreationTimestamp       Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
+	Archived bool `json:"archived" yaml:"archived"`
+
+	// CacheExempt Deprecated; use cacheMethod. True when cacheMethod is NONE.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CacheExempt bool `json:"cacheExempt" yaml:"cacheExempt"`
+
+	// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+	CacheMethod             CacheMethod `json:"cacheMethod" yaml:"cacheMethod"`
+	ContainerTimeoutSeconds int32       `json:"containerTimeoutSeconds" yaml:"containerTimeoutSeconds"`
+	CreationTimestamp       Timestamp   `json:"creationTimestamp" yaml:"creationTimestamp"`
 
 	// CustomFields Custom field key/value pairs associated with the experience.
 	CustomFields         []CustomFieldDefinition `json:"customFields" yaml:"customFields"`
@@ -1307,17 +1354,26 @@ type Experience struct {
 	EnvironmentVariables []EnvironmentVariable   `json:"environmentVariables" yaml:"environmentVariables"`
 	ExperienceID         ExperienceID            `json:"experienceID" yaml:"experienceID"`
 
+	// ItemCount Number of objects in the experience's source data, populated once the data has been probed.
+	ItemCount *int `json:"itemCount" yaml:"itemCount"`
+
+	// LastCachedTimestamp When the experience's cache tier was last populated. Null if never cached (always null for cacheMethod NONE).
+	LastCachedTimestamp *time.Time `json:"lastCachedTimestamp" yaml:"lastCachedTimestamp"`
+
 	// Location [DEPRECATED] This field was previously used to report an experience's location. Experiences can now be defined with multiple locations, this field will display the first location; this field will be removed in a future version.
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
-	Location        string         `json:"location" yaml:"location"`
-	Locations       []string       `json:"locations" yaml:"locations"`
-	Name            ExperienceName `json:"name" yaml:"name"`
-	OrgID           OrgID          `json:"orgID" yaml:"orgID"`
-	Profile         Profile        `json:"profile" yaml:"profile"`
-	ProjectID       ProjectID      `json:"projectID" yaml:"projectID"`
-	UpdateTimestamp Timestamp      `json:"updateTimestamp" yaml:"updateTimestamp"`
-	UpdateUserID    UserID         `json:"updateUserID" yaml:"updateUserID"`
-	UserID          UserID         `json:"userID" yaml:"userID"`
+	Location  string         `json:"location" yaml:"location"`
+	Locations []string       `json:"locations" yaml:"locations"`
+	Name      ExperienceName `json:"name" yaml:"name"`
+	OrgID     OrgID          `json:"orgID" yaml:"orgID"`
+	Profile   Profile        `json:"profile" yaml:"profile"`
+	ProjectID ProjectID      `json:"projectID" yaml:"projectID"`
+
+	// SizeBytes Total size of the experience's source data in bytes, populated once the data has been probed. Null for unprobeable (e.g. local-only) locations.
+	SizeBytes       *int64    `json:"sizeBytes" yaml:"sizeBytes"`
+	UpdateTimestamp Timestamp `json:"updateTimestamp" yaml:"updateTimestamp"`
+	UpdateUserID    UserID    `json:"updateUserID" yaml:"updateUserID"`
+	UserID          UserID    `json:"userID" yaml:"userID"`
 }
 
 // ExperienceFilterInput defines model for experienceFilterInput.
@@ -1334,19 +1390,6 @@ type ExperienceFilterInput struct {
 
 // ExperienceID defines model for experienceID.
 type ExperienceID = openapi_types.UUID
-
-// ExperienceInputFile defines model for experienceInputFile.
-type ExperienceInputFile struct {
-	FileName FileName `json:"fileName" yaml:"fileName"`
-
-	// FilePath The path of the input file relative to the cached input root.
-	FilePath            string    `json:"filePath" yaml:"filePath"`
-	FileSize            FileSize  `json:"fileSize" yaml:"fileSize"`
-	LastCachedTimestamp Timestamp `json:"lastCachedTimestamp" yaml:"lastCachedTimestamp"`
-
-	// SourceLocation The experience location URI this file was cached from, when known; empty when unknown.
-	SourceLocation string `json:"sourceLocation" yaml:"sourceLocation"`
-}
 
 // ExperienceLocation defines model for experienceLocation.
 type ExperienceLocation struct {
@@ -1385,8 +1428,14 @@ type ExperienceSyncConfig struct {
 
 // ExperienceSyncExperience defines model for experienceSyncExperience.
 type ExperienceSyncExperience struct {
-	Archived                bool                     `json:"archived" yaml:"archived"`
-	CacheExempt             *bool                    `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+	Archived bool `json:"archived" yaml:"archived"`
+
+	// CacheExempt Deprecated; use cacheMethod. true is the same as cacheMethod NONE.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CacheExempt *bool `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+
+	// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+	CacheMethod             *CacheMethod             `json:"cacheMethod,omitempty" yaml:"cacheMethod,omitempty"`
 	ContainerTimeoutSeconds *int32                   `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
 	CustomFields            *[]CustomFieldDefinition `json:"customFields,omitempty" yaml:"customFields,omitempty"`
 	Description             string                   `json:"description" yaml:"description"`
@@ -1443,6 +1492,26 @@ type GetContainerStatusOutput struct {
 	ContainerStatuses []ContainerStatusLine `json:"containerStatuses" yaml:"containerStatuses"`
 }
 
+// GetExperienceFileUrlOutput defines model for getExperienceFileUrlOutput.
+type GetExperienceFileUrlOutput struct {
+	ExpiresAt *Timestamp `json:"expiresAt,omitempty" yaml:"expiresAt,omitempty"`
+
+	// FileName The object's key relative to the location that holds it. Omitted with fileUrl.
+	FileName *string `json:"fileName,omitempty" yaml:"fileName,omitempty"`
+
+	// FileUrl Time-limited HTTPS GET URL for the file; expiresAt says when it stops working. Omitted when no single readable `.mcap` object resolves.
+	FileUrl *string `json:"fileUrl,omitempty" yaml:"fileUrl,omitempty"`
+
+	// Location The `s3://` URI of the object. Omitted with fileUrl.
+	Location *string `json:"location,omitempty" yaml:"location,omitempty"`
+
+	// UnavailableReason Why no URL could be produced. Present only when fileUrl is omitted.
+	UnavailableReason *GetExperienceFileUrlOutputUnavailableReason `json:"unavailableReason,omitempty" yaml:"unavailableReason,omitempty"`
+}
+
+// GetExperienceFileUrlOutputUnavailableReason Why no URL could be produced. Present only when fileUrl is omitted.
+type GetExperienceFileUrlOutputUnavailableReason string
+
 // GetQuotaOutput defines model for getQuotaOutput.
 type GetQuotaOutput struct {
 	AvailableTokens     *int32 `json:"availableTokens,omitempty" yaml:"availableTokens,omitempty"`
@@ -1486,20 +1555,6 @@ type Job struct {
 	SystemID                       *SystemID              `json:"systemID,omitempty" yaml:"systemID,omitempty"`
 	UserID                         *UserID                `json:"userID,omitempty" yaml:"userID,omitempty"`
 	WorkerID                       *string                `json:"workerID,omitempty" yaml:"workerID,omitempty"`
-}
-
-// JobExperienceInputFile defines model for jobExperienceInputFile.
-type JobExperienceInputFile struct {
-	CreationTimestamp Timestamp `json:"creationTimestamp" yaml:"creationTimestamp"`
-	FileName          FileName  `json:"fileName" yaml:"fileName"`
-
-	// FilePath The path of the input file relative to the staged input directory root.
-	FilePath   string     `json:"filePath" yaml:"filePath"`
-	FileSize   FileSize   `json:"fileSize" yaml:"fileSize"`
-	RunCounter RunCounter `json:"runCounter" yaml:"runCounter"`
-
-	// SourceLocation The experience location URI this file was staged from, when known; empty when unknown.
-	SourceLocation string `json:"sourceLocation" yaml:"sourceLocation"`
 }
 
 // JobID defines model for jobID.
@@ -1834,13 +1889,6 @@ type ListExperienceCustomFieldsOutput struct {
 	CustomFields []CustomFieldDefinition `json:"customFields" yaml:"customFields"`
 }
 
-// ListExperienceInputFilesOutput defines model for listExperienceInputFilesOutput.
-type ListExperienceInputFilesOutput struct {
-	InputFiles    []ExperienceInputFile `json:"inputFiles" yaml:"inputFiles"`
-	NextPageToken string                `json:"nextPageToken" yaml:"nextPageToken"`
-	Total         int                   `json:"total" yaml:"total"`
-}
-
 // ListExperienceTagsOutput defines model for listExperienceTagsOutput.
 type ListExperienceTagsOutput struct {
 	ExperienceTags *[]ExperienceTag `json:"experienceTags,omitempty" yaml:"experienceTags,omitempty"`
@@ -1864,13 +1912,6 @@ type ListJobEventTagsOutput struct {
 type ListJobEventsOutput struct {
 	Events        *[]Event `json:"events,omitempty" yaml:"events,omitempty"`
 	NextPageToken *string  `json:"nextPageToken,omitempty" yaml:"nextPageToken,omitempty"`
-}
-
-// ListJobExperienceInputFilesOutput defines model for listJobExperienceInputFilesOutput.
-type ListJobExperienceInputFilesOutput struct {
-	InputFiles    []JobExperienceInputFile `json:"inputFiles" yaml:"inputFiles"`
-	NextPageToken string                   `json:"nextPageToken" yaml:"nextPageToken"`
-	Total         int                      `json:"total" yaml:"total"`
 }
 
 // ListJobLogsOutput defines model for listJobLogsOutput.
@@ -2507,9 +2548,11 @@ type RespectRevisionBoundary = bool
 
 // ReviseAssetInput defines model for reviseAssetInput.
 type ReviseAssetInput struct {
-	Locations   []string `json:"locations" yaml:"locations"`
-	MountFolder *string  `json:"mountFolder,omitempty" yaml:"mountFolder,omitempty"`
-	Version     string   `json:"version" yaml:"version"`
+	// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+	CacheMethod *CacheMethod `json:"cacheMethod,omitempty" yaml:"cacheMethod,omitempty"`
+	Locations   []string     `json:"locations" yaml:"locations"`
+	MountFolder *string      `json:"mountFolder,omitempty" yaml:"mountFolder,omitempty"`
+	Version     string       `json:"version" yaml:"version"`
 }
 
 // ReviseTestSuiteInput defines model for reviseTestSuiteInput.
@@ -2721,9 +2764,13 @@ type UpdateEventInput struct {
 
 // UpdateExperienceFields defines model for updateExperienceFields.
 type UpdateExperienceFields struct {
-	// CacheExempt If true, the experience will not be cached.
-	CacheExempt             *bool  `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
-	ContainerTimeoutSeconds *int32 `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
+	// CacheExempt Deprecated; use cacheMethod. true is the same as cacheMethod NONE.
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	CacheExempt *bool `json:"cacheExempt,omitempty" yaml:"cacheExempt,omitempty"`
+
+	// CacheMethod Which caching tier serves this data to jobs. NONE disables caching entirely. S3_MOUNTPOINT is reserved and not yet accepted.
+	CacheMethod             *CacheMethod `json:"cacheMethod,omitempty" yaml:"cacheMethod,omitempty"`
+	ContainerTimeoutSeconds *int32       `json:"containerTimeoutSeconds,omitempty" yaml:"containerTimeoutSeconds,omitempty"`
 
 	// CustomFields Custom field key/value pairs to associate with the experience. Field names are case-insensitive. Each field can have multiple values. When updating, this replaces all existing custom fields.
 	CustomFields         *[]CustomFieldDefinition `json:"customFields,omitempty" yaml:"customFields,omitempty"`
@@ -3257,14 +3304,6 @@ type ListEventsForJobParams struct {
 	RunCounter *RunCounterQuery `form:"runCounter,omitempty" json:"runCounter,omitempty" yaml:"runCounter,omitempty"`
 }
 
-// ListExperienceInputFilesForJobParams defines parameters for ListExperienceInputFilesForJob.
-type ListExperienceInputFilesForJobParams struct {
-	// RunCounter Return the input files for this run of the job. Defaults to the job's current run.
-	RunCounter *RunCounter `form:"runCounter,omitempty" json:"runCounter,omitempty" yaml:"runCounter,omitempty"`
-	PageSize   *PageSize   `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken  *PageToken  `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
-}
-
 // ListJobLogsForJobParams defines parameters for ListJobLogsForJob.
 type ListJobLogsForJobParams struct {
 	Type *[]LogType `form:"type,omitempty" json:"type,omitempty" yaml:"type,omitempty"`
@@ -3457,10 +3496,10 @@ type ListExperienceTagsForExperienceParams struct {
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 }
 
-// ListExperienceInputFilesForExperienceParams defines parameters for ListExperienceInputFilesForExperience.
-type ListExperienceInputFilesForExperienceParams struct {
-	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
-	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
+// GetExperienceFileUrlParams defines parameters for GetExperienceFileUrl.
+type GetExperienceFileUrlParams struct {
+	// RecordingKey Exact MCAP key relative to the registered experience folder, decoded once by HTTP query parsing.
+	RecordingKey *string `form:"recordingKey,omitempty" json:"recordingKey,omitempty" yaml:"recordingKey,omitempty"`
 }
 
 // GetSystemsForExperienceParams defines parameters for GetSystemsForExperience.
@@ -4530,9 +4569,6 @@ type ClientInterface interface {
 
 	UpdateEvent(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, eventID EventID, body UpdateEventJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListExperienceInputFilesForJob request
-	ListExperienceInputFilesForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListExperienceInputFilesForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// GetLogStream request
 	GetLogStream(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -4747,8 +4783,8 @@ type ClientInterface interface {
 	// ListExperienceTagsForExperience request
 	ListExperienceTagsForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceTagsForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ListExperienceInputFilesForExperience request
-	ListExperienceInputFilesForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceInputFilesForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// GetExperienceFileUrl request
+	GetExperienceFileUrl(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetExperienceFileUrlParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// RestoreExperience request
 	RestoreExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -5917,18 +5953,6 @@ func (c *Client) UpdateEvent(ctx context.Context, projectID ProjectID, batchID B
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListExperienceInputFilesForJob(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListExperienceInputFilesForJobParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListExperienceInputFilesForJobRequest(c.Server, projectID, batchID, jobID, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 func (c *Client) GetLogStream(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetLogStreamRequest(c.Server, projectID, batchID, jobID, logName)
 	if err != nil {
@@ -6841,8 +6865,8 @@ func (c *Client) ListExperienceTagsForExperience(ctx context.Context, projectID 
 	return c.Client.Do(req)
 }
 
-func (c *Client) ListExperienceInputFilesForExperience(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceInputFilesForExperienceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListExperienceInputFilesForExperienceRequest(c.Server, projectID, experienceID, params)
+func (c *Client) GetExperienceFileUrl(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetExperienceFileUrlParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetExperienceFileUrlRequest(c.Server, projectID, experienceID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -11927,108 +11951,6 @@ func NewUpdateEventRequestWithBody(server string, projectID ProjectID, batchID B
 	return req, nil
 }
 
-// NewListExperienceInputFilesForJobRequest generates requests for ListExperienceInputFilesForJob
-func NewListExperienceInputFilesForJobRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, params *ListExperienceInputFilesForJobParams) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "projectID", runtime.ParamLocationPath, projectID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam1 string
-
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "batchID", runtime.ParamLocationPath, batchID)
-	if err != nil {
-		return nil, err
-	}
-
-	var pathParam2 string
-
-	pathParam2, err = runtime.StyleParamWithLocation("simple", false, "jobID", runtime.ParamLocationPath, jobID)
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s/batches/%s/jobs/%s/experienceinputfiles", pathParam0, pathParam1, pathParam2)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	if params != nil {
-		queryValues := queryURL.Query()
-
-		if params.RunCounter != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "runCounter", runtime.ParamLocationQuery, *params.RunCounter); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageSize != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageToken != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		queryURL.RawQuery = queryValues.Encode()
-	}
-
-	req, err := http.NewRequest("GET", queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewGetLogStreamRequest generates requests for GetLogStream
 func NewGetLogStreamRequest(server string, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName) (*http.Request, error) {
 	var err error
@@ -16125,8 +16047,8 @@ func NewListExperienceTagsForExperienceRequest(server string, projectID ProjectI
 	return req, nil
 }
 
-// NewListExperienceInputFilesForExperienceRequest generates requests for ListExperienceInputFilesForExperience
-func NewListExperienceInputFilesForExperienceRequest(server string, projectID ProjectID, experienceID ExperienceID, params *ListExperienceInputFilesForExperienceParams) (*http.Request, error) {
+// NewGetExperienceFileUrlRequest generates requests for GetExperienceFileUrl
+func NewGetExperienceFileUrlRequest(server string, projectID ProjectID, experienceID ExperienceID, params *GetExperienceFileUrlParams) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -16148,7 +16070,7 @@ func NewListExperienceInputFilesForExperienceRequest(server string, projectID Pr
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/projects/%s/experiences/%s/inputfiles", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/projects/%s/experiences/%s/fileUrl", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -16161,25 +16083,9 @@ func NewListExperienceInputFilesForExperienceRequest(server string, projectID Pr
 	if params != nil {
 		queryValues := queryURL.Query()
 
-		if params.PageSize != nil {
+		if params.RecordingKey != nil {
 
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageSize", runtime.ParamLocationQuery, *params.PageSize); err != nil {
-				return nil, err
-			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
-				return nil, err
-			} else {
-				for k, v := range parsed {
-					for _, v2 := range v {
-						queryValues.Add(k, v2)
-					}
-				}
-			}
-
-		}
-
-		if params.PageToken != nil {
-
-			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "pageToken", runtime.ParamLocationQuery, *params.PageToken); err != nil {
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "recordingKey", runtime.ParamLocationQuery, *params.RecordingKey); err != nil {
 				return nil, err
 			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
 				return nil, err
@@ -20812,9 +20718,6 @@ type ClientWithResponsesInterface interface {
 
 	UpdateEventWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, eventID EventID, body UpdateEventJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateEventResponse, error)
 
-	// ListExperienceInputFilesForJobWithResponse request
-	ListExperienceInputFilesForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListExperienceInputFilesForJobParams, reqEditors ...RequestEditorFn) (*ListExperienceInputFilesForJobResponse, error)
-
 	// GetLogStreamWithResponse request
 	GetLogStreamWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*GetLogStreamResponse, error)
 
@@ -21029,8 +20932,8 @@ type ClientWithResponsesInterface interface {
 	// ListExperienceTagsForExperienceWithResponse request
 	ListExperienceTagsForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceTagsForExperienceParams, reqEditors ...RequestEditorFn) (*ListExperienceTagsForExperienceResponse, error)
 
-	// ListExperienceInputFilesForExperienceWithResponse request
-	ListExperienceInputFilesForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceInputFilesForExperienceParams, reqEditors ...RequestEditorFn) (*ListExperienceInputFilesForExperienceResponse, error)
+	// GetExperienceFileUrlWithResponse request
+	GetExperienceFileUrlWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetExperienceFileUrlParams, reqEditors ...RequestEditorFn) (*GetExperienceFileUrlResponse, error)
 
 	// RestoreExperienceWithResponse request
 	RestoreExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, reqEditors ...RequestEditorFn) (*RestoreExperienceResponse, error)
@@ -22620,28 +22523,6 @@ func (r UpdateEventResponse) StatusCode() int {
 	return 0
 }
 
-type ListExperienceInputFilesForJobResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	JSON200      *ListJobExperienceInputFilesOutput
-}
-
-// Status returns HTTPResponse.Status
-func (r ListExperienceInputFilesForJobResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListExperienceInputFilesForJobResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
 type GetLogStreamResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -23994,14 +23875,14 @@ func (r ListExperienceTagsForExperienceResponse) StatusCode() int {
 	return 0
 }
 
-type ListExperienceInputFilesForExperienceResponse struct {
+type GetExperienceFileUrlResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *ListExperienceInputFilesOutput
+	JSON200      *GetExperienceFileUrlOutput
 }
 
 // Status returns HTTPResponse.Status
-func (r ListExperienceInputFilesForExperienceResponse) Status() string {
+func (r GetExperienceFileUrlResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -24009,7 +23890,7 @@ func (r ListExperienceInputFilesForExperienceResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r ListExperienceInputFilesForExperienceResponse) StatusCode() int {
+func (r GetExperienceFileUrlResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -26212,15 +26093,6 @@ func (c *ClientWithResponses) UpdateEventWithResponse(ctx context.Context, proje
 	return ParseUpdateEventResponse(rsp)
 }
 
-// ListExperienceInputFilesForJobWithResponse request returning *ListExperienceInputFilesForJobResponse
-func (c *ClientWithResponses) ListExperienceInputFilesForJobWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, params *ListExperienceInputFilesForJobParams, reqEditors ...RequestEditorFn) (*ListExperienceInputFilesForJobResponse, error) {
-	rsp, err := c.ListExperienceInputFilesForJob(ctx, projectID, batchID, jobID, params, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListExperienceInputFilesForJobResponse(rsp)
-}
-
 // GetLogStreamWithResponse request returning *GetLogStreamResponse
 func (c *ClientWithResponses) GetLogStreamWithResponse(ctx context.Context, projectID ProjectID, batchID BatchID, jobID JobID, logName FileName, reqEditors ...RequestEditorFn) (*GetLogStreamResponse, error) {
 	rsp, err := c.GetLogStream(ctx, projectID, batchID, jobID, logName, reqEditors...)
@@ -26891,13 +26763,13 @@ func (c *ClientWithResponses) ListExperienceTagsForExperienceWithResponse(ctx co
 	return ParseListExperienceTagsForExperienceResponse(rsp)
 }
 
-// ListExperienceInputFilesForExperienceWithResponse request returning *ListExperienceInputFilesForExperienceResponse
-func (c *ClientWithResponses) ListExperienceInputFilesForExperienceWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *ListExperienceInputFilesForExperienceParams, reqEditors ...RequestEditorFn) (*ListExperienceInputFilesForExperienceResponse, error) {
-	rsp, err := c.ListExperienceInputFilesForExperience(ctx, projectID, experienceID, params, reqEditors...)
+// GetExperienceFileUrlWithResponse request returning *GetExperienceFileUrlResponse
+func (c *ClientWithResponses) GetExperienceFileUrlWithResponse(ctx context.Context, projectID ProjectID, experienceID ExperienceID, params *GetExperienceFileUrlParams, reqEditors ...RequestEditorFn) (*GetExperienceFileUrlResponse, error) {
+	rsp, err := c.GetExperienceFileUrl(ctx, projectID, experienceID, params, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParseListExperienceInputFilesForExperienceResponse(rsp)
+	return ParseGetExperienceFileUrlResponse(rsp)
 }
 
 // RestoreExperienceWithResponse request returning *RestoreExperienceResponse
@@ -29202,32 +29074,6 @@ func ParseUpdateEventResponse(rsp *http.Response) (*UpdateEventResponse, error) 
 	return response, nil
 }
 
-// ParseListExperienceInputFilesForJobResponse parses an HTTP response from a ListExperienceInputFilesForJobWithResponse call
-func ParseListExperienceInputFilesForJobResponse(rsp *http.Response) (*ListExperienceInputFilesForJobResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListExperienceInputFilesForJobResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListJobExperienceInputFilesOutput
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParseGetLogStreamResponse parses an HTTP response from a GetLogStreamWithResponse call
 func ParseGetLogStreamResponse(rsp *http.Response) (*GetLogStreamResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -30720,22 +30566,22 @@ func ParseListExperienceTagsForExperienceResponse(rsp *http.Response) (*ListExpe
 	return response, nil
 }
 
-// ParseListExperienceInputFilesForExperienceResponse parses an HTTP response from a ListExperienceInputFilesForExperienceWithResponse call
-func ParseListExperienceInputFilesForExperienceResponse(rsp *http.Response) (*ListExperienceInputFilesForExperienceResponse, error) {
+// ParseGetExperienceFileUrlResponse parses an HTTP response from a GetExperienceFileUrlWithResponse call
+func ParseGetExperienceFileUrlResponse(rsp *http.Response) (*GetExperienceFileUrlResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &ListExperienceInputFilesForExperienceResponse{
+	response := &GetExperienceFileUrlResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ListExperienceInputFilesOutput
+		var dest GetExperienceFileUrlOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

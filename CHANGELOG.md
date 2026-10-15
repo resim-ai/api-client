@@ -4,7 +4,7 @@
 
 ### v1.1.1 - October 15, 2026
 
-- `metrics sync` no longer reports how many emissions a topic removal would hide. The topic-removal preview now lists only the charts and dashboards that reference each removed topic. Counting the emissions could take longer than the request allows, which made the preview fail with `502 Bad Gateway` (resim-ai/rerun#4324).
+- `metrics sync` no longer reports how many emissions a topic removal would hide. The topic-removal preview now lists only the charts and dashboards that reference each removed topic.
 
 ### v1.1.0 - October 14, 2026
 

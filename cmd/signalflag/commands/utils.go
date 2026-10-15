@@ -298,8 +298,8 @@ func syncAndValidateMetricsSet(projectID uuid.UUID, buildID uuid.UUID, metricsSe
 }
 
 // previewTopicRemovalImpact calls the BFF's previewTopicRemoval query and, if any
-// topics would be removed by this config, prints the impact (row count, chart count,
-// dashboards) so the user sees it either way. When allowTopicRemoval is false this
+// topics would be removed by this config, prints the impact (chart count, dashboards)
+// so the user sees it either way. When allowTopicRemoval is false this
 // blocks the sync with a descriptive error requiring --allow-topic-removal; when it's
 // true the sync has already been confirmed, so the notice is printed but sync proceeds.
 // A transport (non-GraphQL) error is logged and swallowed — the BFF's own
@@ -327,7 +327,7 @@ func previewTopicRemovalImpact(branchID uuid.UUID, configB64 string, allowTopicR
 	}
 	topicNames := make([]string, 0, len(resp.PreviewTopicRemoval))
 	for _, p := range resp.PreviewTopicRemoval {
-		fmt.Printf("  - %s: %d emission(s) would be removed, %d batch/job metric chart(s) reference it\n", p.TopicName, p.RowsToBeHidden, p.ChartCount)
+		fmt.Printf("  - %s: %d batch/job metric chart(s) reference it\n", p.TopicName, p.ChartCount)
 		if len(p.Dashboards) > 0 {
 			dashboards := make([]string, 0, len(p.Dashboards))
 			for _, d := range p.Dashboards {

@@ -9,53 +9,7 @@ permissions: {}
 
 jobs:
   configure:
-    if: >-
-      github.event.pull_request.user.login == 'tembo[bot]' &&
-      github.event.pull_request.user.type == 'Bot' &&
-      github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate repository-scoped Deployment Bot token
-        id: app-token
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
-        with:
-          app-id: ${{ secrets.DEPLOYMENT_BOT_APP_ID }}
-          private-key: ${{ secrets.DEPLOYMENT_BOT_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-          permission-contents: write
-          permission-pull-requests: write
-
-      - name: Configure PR metadata
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
-        with:
-          github-token: ${{ steps.app-token.outputs.token }}
-          script: |
-            const { owner, repo } = context.repo;
-            const pull_number = context.payload.number;
-            const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number });
-            if (pr.state !== 'open' ||
-                pr.user.login !== 'tembo[bot]' || pr.user.type !== 'Bot' ||
-                pr.head.repo?.full_name !== `${owner}/${repo}` || pr.base.ref !== 'main') {
-              return;
-            }
-
-            if (repo === 'rerun' && !pr.labels.some(label => label.name === 'ready')) {
-              await github.rest.issues.addLabels({ owner, repo, issue_number: pull_number, labels: ['ready'] });
-            }
-
-            if (!pr.draft && !pr.auto_merge) {
-              await github.graphql(`
-                mutation($input: EnablePullRequestAutoMergeInput!) {
-                  enablePullRequestAutoMerge(input: $input) {
-                    pullRequest { number }
-                  }
-                }
-              `, {
-                input: {
-                  pullRequestId: pr.node_id,
-                  mergeMethod: 'SQUASH',
-                  expectedHeadOid: pr.head.sha,
-                },
-              });
-            }
+    uses: resim-ai/workspace/.github/workflows/tembo-pr-setup.yml@7ee010804f931b84dabc85e5e1ee3620910de948
+    secrets:
+      app-id: ${{ secrets.DEPLOYMENT_BOT_APP_ID }}
+      private-key: ${{ secrets.DEPLOYMENT_BOT_PRIVATE_KEY }}

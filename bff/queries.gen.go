@@ -4,9 +4,219 @@ package bff
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/Khan/genqlient/graphql"
 )
+
+type ApiKeyAccess string
+
+const (
+	ApiKeyAccessReadOnly  ApiKeyAccess = "READ_ONLY"
+	ApiKeyAccessReadWrite ApiKeyAccess = "READ_WRITE"
+)
+
+var AllApiKeyAccess = []ApiKeyAccess{
+	ApiKeyAccessReadOnly,
+	ApiKeyAccessReadWrite,
+}
+
+// ApiKeyMetadata includes the GraphQL fields of ApiKey requested by the fragment ApiKeyMetadata.
+type ApiKeyMetadata struct {
+	Id             string       `json:"id"`
+	Name           string       `json:"name"`
+	Prefix         string       `json:"prefix"`
+	Access         ApiKeyAccess `json:"access"`
+	CreatedByEmail string       `json:"createdByEmail"`
+	CreatedAt      string       `json:"createdAt"`
+	ExpiresAt      *string      `json:"expiresAt"`
+	RevokedAt      *string      `json:"revokedAt"`
+	Status         ApiKeyStatus `json:"status"`
+}
+
+// GetId returns ApiKeyMetadata.Id, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetId() string { return v.Id }
+
+// GetName returns ApiKeyMetadata.Name, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetName() string { return v.Name }
+
+// GetPrefix returns ApiKeyMetadata.Prefix, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetPrefix() string { return v.Prefix }
+
+// GetAccess returns ApiKeyMetadata.Access, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetAccess() ApiKeyAccess { return v.Access }
+
+// GetCreatedByEmail returns ApiKeyMetadata.CreatedByEmail, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetCreatedByEmail() string { return v.CreatedByEmail }
+
+// GetCreatedAt returns ApiKeyMetadata.CreatedAt, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetCreatedAt() string { return v.CreatedAt }
+
+// GetExpiresAt returns ApiKeyMetadata.ExpiresAt, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetExpiresAt() *string { return v.ExpiresAt }
+
+// GetRevokedAt returns ApiKeyMetadata.RevokedAt, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetRevokedAt() *string { return v.RevokedAt }
+
+// GetStatus returns ApiKeyMetadata.Status, and is useful for accessing the field via an interface.
+func (v *ApiKeyMetadata) GetStatus() ApiKeyStatus { return v.Status }
+
+type ApiKeyStatus string
+
+const (
+	ApiKeyStatusActive   ApiKeyStatus = "ACTIVE"
+	ApiKeyStatusRevoking ApiKeyStatus = "REVOKING"
+	ApiKeyStatusExpired  ApiKeyStatus = "EXPIRED"
+	ApiKeyStatusRevoked  ApiKeyStatus = "REVOKED"
+)
+
+var AllApiKeyStatus = []ApiKeyStatus{
+	ApiKeyStatusActive,
+	ApiKeyStatusRevoking,
+	ApiKeyStatusExpired,
+	ApiKeyStatusRevoked,
+}
+
+// CreateApiKeyCreateApiKeyCreatedApiKey includes the requested fields of the GraphQL type CreatedApiKey.
+type CreateApiKeyCreateApiKeyCreatedApiKey struct {
+	ApiKey CreateApiKeyCreateApiKeyCreatedApiKeyApiKey `json:"apiKey"`
+	// The key itself. It is returned only here and cannot be shown again.
+	Key string `json:"key"`
+}
+
+// GetApiKey returns CreateApiKeyCreateApiKeyCreatedApiKey.ApiKey, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKey) GetApiKey() CreateApiKeyCreateApiKeyCreatedApiKeyApiKey {
+	return v.ApiKey
+}
+
+// GetKey returns CreateApiKeyCreateApiKeyCreatedApiKey.Key, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKey) GetKey() string { return v.Key }
+
+// CreateApiKeyCreateApiKeyCreatedApiKeyApiKey includes the requested fields of the GraphQL type ApiKey.
+type CreateApiKeyCreateApiKeyCreatedApiKeyApiKey struct {
+	ApiKeyMetadata `json:"-"`
+}
+
+// GetId returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.Id, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetId() string { return v.ApiKeyMetadata.Id }
+
+// GetName returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.Name, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetName() string { return v.ApiKeyMetadata.Name }
+
+// GetPrefix returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.Prefix, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetPrefix() string {
+	return v.ApiKeyMetadata.Prefix
+}
+
+// GetAccess returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.Access, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetAccess() ApiKeyAccess {
+	return v.ApiKeyMetadata.Access
+}
+
+// GetCreatedByEmail returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.CreatedByEmail, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetCreatedByEmail() string {
+	return v.ApiKeyMetadata.CreatedByEmail
+}
+
+// GetCreatedAt returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.CreatedAt, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetCreatedAt() string {
+	return v.ApiKeyMetadata.CreatedAt
+}
+
+// GetExpiresAt returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.ExpiresAt, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetExpiresAt() *string {
+	return v.ApiKeyMetadata.ExpiresAt
+}
+
+// GetRevokedAt returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.RevokedAt, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetRevokedAt() *string {
+	return v.ApiKeyMetadata.RevokedAt
+}
+
+// GetStatus returns CreateApiKeyCreateApiKeyCreatedApiKeyApiKey.Status, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) GetStatus() ApiKeyStatus {
+	return v.ApiKeyMetadata.Status
+}
+
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*CreateApiKeyCreateApiKeyCreatedApiKeyApiKey
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.CreateApiKeyCreateApiKeyCreatedApiKeyApiKey = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.ApiKeyMetadata)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalCreateApiKeyCreateApiKeyCreatedApiKeyApiKey struct {
+	Id string `json:"id"`
+
+	Name string `json:"name"`
+
+	Prefix string `json:"prefix"`
+
+	Access ApiKeyAccess `json:"access"`
+
+	CreatedByEmail string `json:"createdByEmail"`
+
+	CreatedAt string `json:"createdAt"`
+
+	ExpiresAt *string `json:"expiresAt"`
+
+	RevokedAt *string `json:"revokedAt"`
+
+	Status ApiKeyStatus `json:"status"`
+}
+
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *CreateApiKeyCreateApiKeyCreatedApiKeyApiKey) __premarshalJSON() (*__premarshalCreateApiKeyCreateApiKeyCreatedApiKeyApiKey, error) {
+	var retval __premarshalCreateApiKeyCreateApiKeyCreatedApiKeyApiKey
+
+	retval.Id = v.ApiKeyMetadata.Id
+	retval.Name = v.ApiKeyMetadata.Name
+	retval.Prefix = v.ApiKeyMetadata.Prefix
+	retval.Access = v.ApiKeyMetadata.Access
+	retval.CreatedByEmail = v.ApiKeyMetadata.CreatedByEmail
+	retval.CreatedAt = v.ApiKeyMetadata.CreatedAt
+	retval.ExpiresAt = v.ApiKeyMetadata.ExpiresAt
+	retval.RevokedAt = v.ApiKeyMetadata.RevokedAt
+	retval.Status = v.ApiKeyMetadata.Status
+	return &retval, nil
+}
+
+// CreateApiKeyResponse is returned by CreateApiKey on success.
+type CreateApiKeyResponse struct {
+	// Create an API key. The key is returned once. Admin-only. expiresInDays is
+	// 30, 90 or 365, or 0 for no expiry; it defaults to 90.
+	CreateApiKey CreateApiKeyCreateApiKeyCreatedApiKey `json:"createApiKey"`
+}
+
+// GetCreateApiKey returns CreateApiKeyResponse.CreateApiKey, and is useful for accessing the field via an interface.
+func (v *CreateApiKeyResponse) GetCreateApiKey() CreateApiKeyCreateApiKeyCreatedApiKey {
+	return v.CreateApiKey
+}
 
 // CreateDashboardCreateDashboard includes the requested fields of the GraphQL type Dashboard.
 type CreateDashboardCreateDashboard struct {
@@ -101,27 +311,138 @@ type GetDashboardResponse struct {
 // GetDashboard returns GetDashboardResponse.Dashboard, and is useful for accessing the field via an interface.
 func (v *GetDashboardResponse) GetDashboard() GetDashboardDashboard { return v.Dashboard }
 
-type MediaFileInput struct {
-	Contents string `json:"contents"`
-	Name     string `json:"name"`
+// ListApiKeysApiKeysApiKey includes the requested fields of the GraphQL type ApiKey.
+type ListApiKeysApiKeysApiKey struct {
+	ApiKeyMetadata `json:"-"`
 }
 
-// GetContents returns MediaFileInput.Contents, and is useful for accessing the field via an interface.
-func (v *MediaFileInput) GetContents() string { return v.Contents }
+// GetId returns ListApiKeysApiKeysApiKey.Id, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetId() string { return v.ApiKeyMetadata.Id }
+
+// GetName returns ListApiKeysApiKeysApiKey.Name, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetName() string { return v.ApiKeyMetadata.Name }
+
+// GetPrefix returns ListApiKeysApiKeysApiKey.Prefix, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetPrefix() string { return v.ApiKeyMetadata.Prefix }
+
+// GetAccess returns ListApiKeysApiKeysApiKey.Access, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetAccess() ApiKeyAccess { return v.ApiKeyMetadata.Access }
+
+// GetCreatedByEmail returns ListApiKeysApiKeysApiKey.CreatedByEmail, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetCreatedByEmail() string { return v.ApiKeyMetadata.CreatedByEmail }
+
+// GetCreatedAt returns ListApiKeysApiKeysApiKey.CreatedAt, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetCreatedAt() string { return v.ApiKeyMetadata.CreatedAt }
+
+// GetExpiresAt returns ListApiKeysApiKeysApiKey.ExpiresAt, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetExpiresAt() *string { return v.ApiKeyMetadata.ExpiresAt }
+
+// GetRevokedAt returns ListApiKeysApiKeysApiKey.RevokedAt, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetRevokedAt() *string { return v.ApiKeyMetadata.RevokedAt }
+
+// GetStatus returns ListApiKeysApiKeysApiKey.Status, and is useful for accessing the field via an interface.
+func (v *ListApiKeysApiKeysApiKey) GetStatus() ApiKeyStatus { return v.ApiKeyMetadata.Status }
+
+func (v *ListApiKeysApiKeysApiKey) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*ListApiKeysApiKeysApiKey
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.ListApiKeysApiKeysApiKey = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.ApiKeyMetadata)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalListApiKeysApiKeysApiKey struct {
+	Id string `json:"id"`
+
+	Name string `json:"name"`
+
+	Prefix string `json:"prefix"`
+
+	Access ApiKeyAccess `json:"access"`
+
+	CreatedByEmail string `json:"createdByEmail"`
+
+	CreatedAt string `json:"createdAt"`
+
+	ExpiresAt *string `json:"expiresAt"`
+
+	RevokedAt *string `json:"revokedAt"`
+
+	Status ApiKeyStatus `json:"status"`
+}
+
+func (v *ListApiKeysApiKeysApiKey) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *ListApiKeysApiKeysApiKey) __premarshalJSON() (*__premarshalListApiKeysApiKeysApiKey, error) {
+	var retval __premarshalListApiKeysApiKeysApiKey
+
+	retval.Id = v.ApiKeyMetadata.Id
+	retval.Name = v.ApiKeyMetadata.Name
+	retval.Prefix = v.ApiKeyMetadata.Prefix
+	retval.Access = v.ApiKeyMetadata.Access
+	retval.CreatedByEmail = v.ApiKeyMetadata.CreatedByEmail
+	retval.CreatedAt = v.ApiKeyMetadata.CreatedAt
+	retval.ExpiresAt = v.ApiKeyMetadata.ExpiresAt
+	retval.RevokedAt = v.ApiKeyMetadata.RevokedAt
+	retval.Status = v.ApiKeyMetadata.Status
+	return &retval, nil
+}
+
+// ListApiKeysResponse is returned by ListApiKeys on success.
+type ListApiKeysResponse struct {
+	// The organization's API keys. Signed-in people only.
+	ApiKeys []ListApiKeysApiKeysApiKey `json:"apiKeys"`
+}
+
+// GetApiKeys returns ListApiKeysResponse.ApiKeys, and is useful for accessing the field via an interface.
+func (v *ListApiKeysResponse) GetApiKeys() []ListApiKeysApiKeysApiKey { return v.ApiKeys }
+
+type MediaFileInput struct {
+	Name string `json:"name"`
+	// base64 encoded media file contents
+	Contents string `json:"contents"`
+}
 
 // GetName returns MediaFileInput.Name, and is useful for accessing the field via an interface.
 func (v *MediaFileInput) GetName() string { return v.Name }
 
-type MetricsTemplate struct {
-	Contents string `json:"contents"`
-	Name     string `json:"name"`
-}
+// GetContents returns MediaFileInput.Contents, and is useful for accessing the field via an interface.
+func (v *MediaFileInput) GetContents() string { return v.Contents }
 
-// GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
-func (v *MetricsTemplate) GetContents() string { return v.Contents }
+type MetricsTemplate struct {
+	Name string `json:"name"`
+	// base64 encoded template contents
+	Contents string `json:"contents"`
+}
 
 // GetName returns MetricsTemplate.Name, and is useful for accessing the field via an interface.
 func (v *MetricsTemplate) GetName() string { return v.Name }
+
+// GetContents returns MetricsTemplate.Contents, and is useful for accessing the field via an interface.
+func (v *MetricsTemplate) GetContents() string { return v.Contents }
 
 // PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview includes the requested fields of the GraphQL type TopicRemovalPreview.
 type PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview struct {
@@ -172,6 +493,115 @@ func (v *PreviewTopicRemovalResponse) GetPreviewTopicRemoval() []PreviewTopicRem
 	return v.PreviewTopicRemoval
 }
 
+// RevokeApiKeyResponse is returned by RevokeApiKey on success.
+type RevokeApiKeyResponse struct {
+	// Revoke an API key. Revoking a key shown as revoking finishes it. Admin-only.
+	RevokeApiKey RevokeApiKeyRevokeApiKey `json:"revokeApiKey"`
+}
+
+// GetRevokeApiKey returns RevokeApiKeyResponse.RevokeApiKey, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyResponse) GetRevokeApiKey() RevokeApiKeyRevokeApiKey { return v.RevokeApiKey }
+
+// RevokeApiKeyRevokeApiKey includes the requested fields of the GraphQL type ApiKey.
+type RevokeApiKeyRevokeApiKey struct {
+	ApiKeyMetadata `json:"-"`
+}
+
+// GetId returns RevokeApiKeyRevokeApiKey.Id, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetId() string { return v.ApiKeyMetadata.Id }
+
+// GetName returns RevokeApiKeyRevokeApiKey.Name, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetName() string { return v.ApiKeyMetadata.Name }
+
+// GetPrefix returns RevokeApiKeyRevokeApiKey.Prefix, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetPrefix() string { return v.ApiKeyMetadata.Prefix }
+
+// GetAccess returns RevokeApiKeyRevokeApiKey.Access, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetAccess() ApiKeyAccess { return v.ApiKeyMetadata.Access }
+
+// GetCreatedByEmail returns RevokeApiKeyRevokeApiKey.CreatedByEmail, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetCreatedByEmail() string { return v.ApiKeyMetadata.CreatedByEmail }
+
+// GetCreatedAt returns RevokeApiKeyRevokeApiKey.CreatedAt, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetCreatedAt() string { return v.ApiKeyMetadata.CreatedAt }
+
+// GetExpiresAt returns RevokeApiKeyRevokeApiKey.ExpiresAt, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetExpiresAt() *string { return v.ApiKeyMetadata.ExpiresAt }
+
+// GetRevokedAt returns RevokeApiKeyRevokeApiKey.RevokedAt, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetRevokedAt() *string { return v.ApiKeyMetadata.RevokedAt }
+
+// GetStatus returns RevokeApiKeyRevokeApiKey.Status, and is useful for accessing the field via an interface.
+func (v *RevokeApiKeyRevokeApiKey) GetStatus() ApiKeyStatus { return v.ApiKeyMetadata.Status }
+
+func (v *RevokeApiKeyRevokeApiKey) UnmarshalJSON(b []byte) error {
+
+	if string(b) == "null" {
+		return nil
+	}
+
+	var firstPass struct {
+		*RevokeApiKeyRevokeApiKey
+		graphql.NoUnmarshalJSON
+	}
+	firstPass.RevokeApiKeyRevokeApiKey = v
+
+	err := json.Unmarshal(b, &firstPass)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(
+		b, &v.ApiKeyMetadata)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+type __premarshalRevokeApiKeyRevokeApiKey struct {
+	Id string `json:"id"`
+
+	Name string `json:"name"`
+
+	Prefix string `json:"prefix"`
+
+	Access ApiKeyAccess `json:"access"`
+
+	CreatedByEmail string `json:"createdByEmail"`
+
+	CreatedAt string `json:"createdAt"`
+
+	ExpiresAt *string `json:"expiresAt"`
+
+	RevokedAt *string `json:"revokedAt"`
+
+	Status ApiKeyStatus `json:"status"`
+}
+
+func (v *RevokeApiKeyRevokeApiKey) MarshalJSON() ([]byte, error) {
+	premarshaled, err := v.__premarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(premarshaled)
+}
+
+func (v *RevokeApiKeyRevokeApiKey) __premarshalJSON() (*__premarshalRevokeApiKeyRevokeApiKey, error) {
+	var retval __premarshalRevokeApiKeyRevokeApiKey
+
+	retval.Id = v.ApiKeyMetadata.Id
+	retval.Name = v.ApiKeyMetadata.Name
+	retval.Prefix = v.ApiKeyMetadata.Prefix
+	retval.Access = v.ApiKeyMetadata.Access
+	retval.CreatedByEmail = v.ApiKeyMetadata.CreatedByEmail
+	retval.CreatedAt = v.ApiKeyMetadata.CreatedAt
+	retval.ExpiresAt = v.ApiKeyMetadata.ExpiresAt
+	retval.RevokedAt = v.ApiKeyMetadata.RevokedAt
+	retval.Status = v.ApiKeyMetadata.Status
+	return &retval, nil
+}
+
 // UpdateMetricsConfigResponse is returned by UpdateMetricsConfig on success.
 type UpdateMetricsConfigResponse struct {
 	// Update metrics config with the given configuration
@@ -200,6 +630,22 @@ type ValidateMetricsSetResponse struct {
 
 // GetValidateMetricsSet returns ValidateMetricsSetResponse.ValidateMetricsSet, and is useful for accessing the field via an interface.
 func (v *ValidateMetricsSetResponse) GetValidateMetricsSet() bool { return v.ValidateMetricsSet }
+
+// __CreateApiKeyInput is used internally by genqlient
+type __CreateApiKeyInput struct {
+	Name          string       `json:"name"`
+	Access        ApiKeyAccess `json:"access"`
+	ExpiresInDays *int         `json:"expiresInDays"`
+}
+
+// GetName returns __CreateApiKeyInput.Name, and is useful for accessing the field via an interface.
+func (v *__CreateApiKeyInput) GetName() string { return v.Name }
+
+// GetAccess returns __CreateApiKeyInput.Access, and is useful for accessing the field via an interface.
+func (v *__CreateApiKeyInput) GetAccess() ApiKeyAccess { return v.Access }
+
+// GetExpiresInDays returns __CreateApiKeyInput.ExpiresInDays, and is useful for accessing the field via an interface.
+func (v *__CreateApiKeyInput) GetExpiresInDays() *int { return v.ExpiresInDays }
 
 // __CreateDashboardInput is used internally by genqlient
 type __CreateDashboardInput struct {
@@ -285,6 +731,14 @@ func (v *__PreviewTopicRemovalInput) GetBranchId() string { return v.BranchId }
 // GetConfig returns __PreviewTopicRemovalInput.Config, and is useful for accessing the field via an interface.
 func (v *__PreviewTopicRemovalInput) GetConfig() string { return v.Config }
 
+// __RevokeApiKeyInput is used internally by genqlient
+type __RevokeApiKeyInput struct {
+	Id string `json:"id"`
+}
+
+// GetId returns __RevokeApiKeyInput.Id, and is useful for accessing the field via an interface.
+func (v *__RevokeApiKeyInput) GetId() string { return v.Id }
+
 // __UpdateMetricsConfigInput is used internally by genqlient
 type __UpdateMetricsConfigInput struct {
 	ProjectId         string            `json:"projectId"`
@@ -336,6 +790,58 @@ func (v *__ValidateMetricsSetInput) GetBranchId() string { return v.BranchId }
 
 // GetMetricsSetName returns __ValidateMetricsSetInput.MetricsSetName, and is useful for accessing the field via an interface.
 func (v *__ValidateMetricsSetInput) GetMetricsSetName() string { return v.MetricsSetName }
+
+// The mutation executed by CreateApiKey.
+const CreateApiKey_Operation = `
+mutation CreateApiKey ($name: String!, $access: ApiKeyAccess!, $expiresInDays: Int) {
+	createApiKey(name: $name, access: $access, expiresInDays: $expiresInDays) {
+		apiKey {
+			... ApiKeyMetadata
+		}
+		key
+	}
+}
+fragment ApiKeyMetadata on ApiKey {
+	id
+	name
+	prefix
+	access
+	createdByEmail
+	createdAt
+	expiresAt
+	revokedAt
+	status
+}
+`
+
+func CreateApiKey(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	name string,
+	access ApiKeyAccess,
+	expiresInDays *int,
+) (data_ *CreateApiKeyResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "CreateApiKey",
+		Query:  CreateApiKey_Operation,
+		Variables: &__CreateApiKeyInput{
+			Name:          name,
+			Access:        access,
+			ExpiresInDays: expiresInDays,
+		},
+	}
+
+	data_ = &CreateApiKeyResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
 
 // The mutation executed by CreateDashboard.
 const CreateDashboard_Operation = `
@@ -524,6 +1030,47 @@ func GetDashboard(
 	return data_, err_
 }
 
+// The query executed by ListApiKeys.
+const ListApiKeys_Operation = `
+query ListApiKeys {
+	apiKeys {
+		... ApiKeyMetadata
+	}
+}
+fragment ApiKeyMetadata on ApiKey {
+	id
+	name
+	prefix
+	access
+	createdByEmail
+	createdAt
+	expiresAt
+	revokedAt
+	status
+}
+`
+
+func ListApiKeys(
+	ctx_ context.Context,
+	client_ graphql.Client,
+) (data_ *ListApiKeysResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "ListApiKeys",
+		Query:  ListApiKeys_Operation,
+	}
+
+	data_ = &ListApiKeysResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
 // The query executed by PreviewTopicRemoval.
 const PreviewTopicRemoval_Operation = `
 query PreviewTopicRemoval ($branchId: String!, $config: String!) {
@@ -554,6 +1101,51 @@ func PreviewTopicRemoval(
 	}
 
 	data_ = &PreviewTopicRemovalResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
+// The mutation executed by RevokeApiKey.
+const RevokeApiKey_Operation = `
+mutation RevokeApiKey ($id: ID!) {
+	revokeApiKey(id: $id) {
+		... ApiKeyMetadata
+	}
+}
+fragment ApiKeyMetadata on ApiKey {
+	id
+	name
+	prefix
+	access
+	createdByEmail
+	createdAt
+	expiresAt
+	revokedAt
+	status
+}
+`
+
+func RevokeApiKey(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	id string,
+) (data_ *RevokeApiKeyResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "RevokeApiKey",
+		Query:  RevokeApiKey_Operation,
+		Variables: &__RevokeApiKeyInput{
+			Id: id,
+		},
+	}
+
+	data_ = &RevokeApiKeyResponse{}
 	resp_ := &graphql.Response{Data: data_}
 
 	err_ = client_.MakeRequest(

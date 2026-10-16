@@ -26,7 +26,7 @@ func sampleCommand() cobra.Command {
 		Long:          ``,
 		SilenceErrors: true,
 		SilenceUsage:  true,
-		PreRun:        RegisterViperFlagsAndSetClient,
+		PreRunE:       RegisterViperFlagsAndSetClient,
 	}
 	return testCmd
 }

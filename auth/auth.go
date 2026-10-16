@@ -40,6 +40,7 @@ const (
 	DefaultProdNonInteractiveClientID = "0Ip56H1LLAo6Dc6IfePaNzgpUxbJGyVI"
 
 	// Viper/flag key names used for config binding.
+	KeyAPIKey                   = "api-key"
 	KeyURL                      = "url"
 	KeyAuthURL                  = "auth-url"
 	KeyClientID                 = "client-id"
@@ -55,12 +56,14 @@ const (
 type AuthMode string
 
 const (
+	ModeAPIKey            AuthMode = "apikey"
 	ModeClientCredentials AuthMode = "clientcredentials"
 	ModeDeviceCode        AuthMode = "devicecode"
 	ModePassword          AuthMode = "password"
 )
 
 type Config struct {
+	APIKey       string
 	APIURL       string
 	AuthURL      string
 	ClientID     string
@@ -92,6 +95,7 @@ type AuthResult struct {
 }
 
 type CredentialCache struct {
+	ephemeral   bool
 	Tokens      map[string]oauth2.Token `json:"tokens"`
 	TokenSource oauth2.TokenSource
 	ClientID    string
@@ -117,12 +121,9 @@ func DefaultConfig() Config {
 	}
 }
 
-// ConfigFromViper builds a Config from a viper instance. The cacheDir parameter
-// specifies where credential caches are stored (e.g., os.ExpandEnv("$HOME/.signalflag")).
-// This preserves viper.IsSet() semantics for auth mode detection, so CI environments
-// with empty env vars behave correctly.
 func ConfigFromViper(v *viper.Viper, cacheDir string) Config {
 	cfg := Config{
+		APIKey:                     strings.TrimSpace(v.GetString(KeyAPIKey)),
 		APIURL:                     v.GetString(KeyURL),
 		AuthURL:                    v.GetString(KeyAuthURL),
 		ClientID:                   v.GetString(KeyClientID),
@@ -137,8 +138,6 @@ func ConfigFromViper(v *viper.Viper, cacheDir string) Config {
 		ProdNonInteractiveClientID: v.GetString(KeyProdNonInteractiveClient),
 	}
 
-	// Preserve viper.IsSet() semantics: set explicit AuthMode when env vars
-	// are present (even if empty) to avoid behavior change in CI environments.
 	if v.IsSet(KeyUsername) && v.IsSet(KeyPassword) {
 		cfg.AuthMode = ModePassword
 	}
@@ -146,22 +145,15 @@ func ConfigFromViper(v *viper.Viper, cacheDir string) Config {
 		cfg.AuthMode = ModeClientCredentials
 	}
 
+	if v.IsSet(KeyAPIKey) {
+		cfg.AuthMode = ModeAPIKey
+	}
+
 	return cfg
 }
 
-// Authenticate performs OAuth2 authentication using the provided config.
-// It returns an AuthResult containing the credential cache and the resolved API URL
-// (which may differ from Config.APIURL if govcloud mode is enabled).
 func Authenticate(ctx context.Context, cfg Config) (*AuthResult, error) {
-	var cache CredentialCache
-	cache.Load(cfg.CacheDir)
-
-	authMode, err := determineAuthMode(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	authURL, tokenURL, err := getAuthURL(cfg)
+	authMode, err := cfg.Mode()
 	if err != nil {
 		return nil, err
 	}
@@ -178,6 +170,26 @@ func Authenticate(ctx context.Context, cfg Config) (*AuthResult, error) {
 			resolvedAPIURL = ProdGovcloudURL
 		}
 	}
+
+	if authMode == ModeAPIKey {
+		return &AuthResult{
+			Cache: &CredentialCache{
+				ephemeral: true,
+				TokenSource: oauth2.StaticTokenSource(&oauth2.Token{
+					AccessToken: strings.TrimSpace(cfg.APIKey),
+					TokenType:   "Bearer",
+				}),
+			},
+			APIURL: resolvedAPIURL,
+		}, nil
+	}
+
+	authURL, tokenURL, err := getAuthURL(cfg)
+	if err != nil {
+		return nil, err
+	}
+	var cache CredentialCache
+	cache.Load(cfg.CacheDir)
 
 	var clientID string
 	var clientSecret string
@@ -254,7 +266,16 @@ func doAuth(ctx context.Context, mode AuthMode, authURL, tokenURL, clientID, cli
 	}
 }
 
-func determineAuthMode(cfg Config) (AuthMode, error) {
+func (cfg Config) Mode() (AuthMode, error) {
+	if cfg.APIKey != "" || cfg.AuthMode == ModeAPIKey {
+		if cfg.ClientID != "" || cfg.ClientSecret != "" || cfg.Username != "" || cfg.Password != "" || (cfg.AuthMode != "" && cfg.AuthMode != ModeAPIKey) {
+			return "", fmt.Errorf("ambiguous authentication arguments: use an API key without client or password credentials")
+		}
+		if strings.TrimSpace(cfg.APIKey) == "" {
+			return "", fmt.Errorf("API key must not be empty")
+		}
+		return ModeAPIKey, nil
+	}
 	if cfg.AuthMode != "" {
 		return cfg.AuthMode, nil
 	}
@@ -432,6 +453,9 @@ func (c *CredentialCache) Load(cacheDir string) error {
 
 // Save writes the credential cache to disk. Creates the cache directory if needed.
 func (c *CredentialCache) Save(cacheDir string) error {
+	if c.ephemeral {
+		return nil
+	}
 	token, err := c.TokenSource.Token()
 	if err != nil {
 		return fmt.Errorf("error getting token: %w", err)

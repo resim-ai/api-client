@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -23,24 +22,21 @@ var BffClient graphql.Client
 // ConfigPath is the directory holding the CLI's config file and credential cache.
 const ConfigPath = "$HOME/.signalflag"
 
-// LegacyConfigPath is the directory the CLI used before it was renamed. It is
-// still used, with a deprecation warning, when ConfigPath does not exist.
+// Existing installations keep using the legacy directory until migrated.
 const LegacyConfigPath = "$HOME/.resim"
 
-// ConfigFileName is the base name (without extension) of the YAML config file
-// inside ConfigPath. LegacyConfigFileName is the name used inside LegacyConfigPath.
 const ConfigFileName = "signalflag"
 const LegacyConfigFileName = "resim"
 
 var (
 	rootCmd = &cobra.Command{
-		Use:              "signalflag",
-		Short:            "Signalflag - Command Line Interface",
-		Long:             ``,
-		SilenceErrors:    true,
-		SilenceUsage:     true,
-		Run:              rootCommand,
-		PersistentPreRun: RegisterViperFlagsAndSetClient,
+		Use:               "signalflag",
+		Short:             "Signalflag - Command Line Interface",
+		Long:              ``,
+		SilenceErrors:     true,
+		SilenceUsage:      true,
+		Run:               rootCommand,
+		PersistentPreRunE: RegisterViperFlagsAndSetClient,
 	}
 )
 
@@ -63,9 +59,9 @@ func OutputJson(data interface{}) {
 	enc.Encode(data)
 }
 
-func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) {
+func RegisterViperFlagsAndSetClient(cmd *cobra.Command, args []string) error {
 	RegisterViperFlags(cmd, args)
-	SetClient(cmd, args)
+	return SetClient(cmd, args)
 }
 
 func RegisterViperFlags(cmd *cobra.Command, args []string) {
@@ -83,31 +79,30 @@ func RegisterViperFlags(cmd *cobra.Command, args []string) {
 	}
 	cmd.Flags().VisitAll(func(f *pflag.Flag) {
 		if viper.IsSet(f.Name) {
-			// For any flag that we receive via external methods (config file, environment variable)
-			// we can consider it as "not required" for further processing
 			cmd.Flags().SetAnnotation(f.Name, cobra.BashCompOneRequiredFlag, []string{"false"})
 		}
 	})
 }
 
-func SetClient(cmd *cobra.Command, args []string) {
-	ctx := context.Background()
+func SetClient(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
 
 	configDir, _ := GetConfigDir()
 	cfg := auth.ConfigFromViper(viper.GetViper(), configDir)
+	cfg.DeviceCodeOutput = cmd.ErrOrStderr()
 	result, err := auth.Authenticate(ctx, cfg)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	Client, err = auth.NewAPIClient(ctx, *result.Cache, result.APIURL)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	BffClient, err = auth.NewBFFClient(ctx, *result.Cache, result.APIURL)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	defer func() {
@@ -115,14 +110,11 @@ func SetClient(cmd *cobra.Command, args []string) {
 			log.Println("error saving credential cache:", err)
 		}
 	}()
+	return nil
 }
 
 var legacyConfigDirWarned bool
 
-// GetConfigDir returns the directory holding the config file and credential
-// cache, creating it if needed. If the current location does not exist but the
-// legacy one does, the legacy directory is used and a deprecation warning is
-// printed once so that existing installs keep working.
 func GetConfigDir() (string, error) {
 	expectedDir := os.ExpandEnv(ConfigPath)
 	if _, err := os.Stat(expectedDir); err == nil {
@@ -144,8 +136,6 @@ func GetConfigDir() (string, error) {
 	return expectedDir, nil
 }
 
-// ConfigFileNameFor returns the config file base name to use inside configDir:
-// the legacy name when configDir is the legacy directory, the current name otherwise.
 func ConfigFileNameFor(configDir string) string {
 	if configDir == os.ExpandEnv(LegacyConfigPath) {
 		return LegacyConfigFileName

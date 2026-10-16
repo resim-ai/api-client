@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### Unreleased
+
+- Adds organization API-key authentication through `--api-key` or `SIGNALFLAG_API_KEY` for REST and GraphQL commands, without caching the key or contacting Auth0.
+- Adds `api-keys create`, `list`, `revoke` and `rotate` for human sign-ins. Rotation creates a replacement and keeps the old key active until explicit revocation. Pending revocation and lost one-time output are reported with recovery instructions.
+
 ### v1.1.1 - October 15, 2026
 
 - `metrics sync` no longer reports how many emissions a topic removal would hide. The topic-removal preview now lists only the charts and dashboards that reference each removed topic.

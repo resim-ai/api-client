@@ -36,10 +36,12 @@ Uses **Graphite**: `gt track` (before the first push on a new branch), then `gt 
 
 ## Directory map
 
-- `cmd/signalflag/`         — CLI entrypoint (`main`); `cmd/signalflag/commands/` holds the cobra commands (agents, batch, build, experience, metrics, project, sweep, test_suites, …) with adjacent `_test.go` files.
+- `AGENTS.md`          — tool-agnostic entrypoint and service-credential source index.
+
+- `cmd/signalflag/`         — CLI entrypoint (`main`); `cmd/signalflag/commands/` holds the cobra commands (agents, api-keys, batch, build, experience, metrics, project, sweep, test_suites, …) with adjacent `_test.go` files. `api_keys.go` manages organization credentials through a human sign-in.
 - `api/`               — generated REST client (`client.gen.go`), `generate.go` (oapi-codegen + mockery directives), `client.cfg.yml`, `.mockery.yaml`, and `mocks/`.
-- `bff/`               — GraphQL BFF client: `queries/` (source `.graphql`), `queries.gen.go` (genqlient output), `genqlient.yaml`, `cmd/` (the generator).
-- `auth/`              — authentication (token caching, client-credentials / username-password flows).
+- `bff/`               — GraphQL BFF client: `queries/` (source `.graphql`, including `api_keys.graphql` lifecycle operations), `queries.gen.go` (genqlient output), `genqlient.yaml`, `cmd/` (the generator and schema-loading tests). Set `GRAPHQL_SCHEMA_FILE` to generate from a local complete SDL; the default still fetches the production schema.
+- `auth/`              — authentication (OAuth token caching and client/password/device flows; organization API keys use a static bearer without cache access).
 - `ptr/`               — pointer helper utilities (dot-imported).
 - `testing/`           — end-to-end test (`end_to_end` tag) and `data/` fixtures.
 - `docs/plans/`        — per-repo plan documents, including `2026-10-16-001-feat-service-credential-management-plan.md` for service credentials.

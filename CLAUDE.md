@@ -42,7 +42,7 @@ Uses **Graphite**: `gt track` (before the first push on a new branch), then `gt 
 - `auth/`              — authentication (token caching, client-credentials / username-password flows).
 - `ptr/`               — pointer helper utilities (dot-imported).
 - `testing/`           — end-to-end test (`end_to_end` tag) and `data/` fixtures.
-- `docs/plans/`        — per-repo plan documents.
+- `docs/plans/`        — per-repo plan documents, including `2026-10-16-001-feat-service-credential-management-plan.md` for service credentials.
 - `.github/workflows/` — CI: lint-and-build, build-image, release-cli.
 - `.devcontainer/`     — dev container config.
 

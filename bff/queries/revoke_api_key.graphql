@@ -1,0 +1,5 @@
+mutation RevokeApiKey($id: ID!) {
+    revokeApiKey(id: $id) {
+        ...ApiKeyFields
+    }
+}

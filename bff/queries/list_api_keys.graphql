@@ -1,0 +1,17 @@
+query ListApiKeys {
+    apiKeys {
+        ...ApiKeyFields
+    }
+}
+
+fragment ApiKeyFields on ApiKey {
+    id
+    name
+    prefix
+    access
+    createdByEmail
+    createdAt
+    expiresAt
+    revokedAt
+    status
+}

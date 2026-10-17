@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -533,4 +534,172 @@ func TestNewBFFClient_InvalidURL(t *testing.T) {
 	_, err := NewBFFClient(context.Background(), cache, "://bad-url")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "error parsing API url")
+}
+
+// --- API key mode ---
+
+func TestConfigFromViper_SetsAPIKeyMode(t *testing.T) {
+	v := viper.New()
+	v.Set(KeyAPIKey, "sf_live_abc")
+
+	cfg := ConfigFromViper(v, "/tmp/cache")
+	assert.Equal(t, "sf_live_abc", cfg.APIKey)
+	assert.Equal(t, ModeAPIKey, cfg.AuthMode)
+}
+
+func TestConfigFromViper_EmptyAPIKeyIsIgnored(t *testing.T) {
+	v := viper.New()
+	v.Set(KeyAPIKey, "")
+
+	cfg := ConfigFromViper(v, "/tmp/cache")
+	assert.Empty(t, cfg.AuthMode)
+}
+
+func TestConfigFromViper_APIKeyWithEmptyClientCredentialsSelectsAPIKey(t *testing.T) {
+	v := viper.New()
+	v.Set(KeyAPIKey, "sf_live_abc")
+	v.Set(KeyClientID, "")
+	v.Set(KeyClientSecret, "")
+
+	cfg := ConfigFromViper(v, "/tmp/cache")
+	mode, err := DetermineAuthMode(cfg)
+	require.NoError(t, err)
+	assert.Equal(t, ModeAPIKey, mode)
+}
+
+func TestDetermineAuthMode_APIKey(t *testing.T) {
+	mode, err := determineAuthMode(Config{APIKey: "sf_live_abc"})
+	require.NoError(t, err)
+	assert.Equal(t, ModeAPIKey, mode)
+}
+
+func TestDetermineAuthMode_APIKeyWithClientCredentialsIsAmbiguous(t *testing.T) {
+	cfg := Config{APIKey: "sf_live_abc", ClientID: "id", ClientSecret: "secret"}
+	_, err := determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+
+	cfg.AuthMode = ModeAPIKey
+	_, err = determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+}
+
+func TestDetermineAuthMode_APIKeyWithPasswordIsAmbiguous(t *testing.T) {
+	cfg := Config{APIKey: "sf_live_abc", Username: "user", Password: "pass"}
+	_, err := determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+
+	cfg.AuthMode = ModeAPIKey
+	_, err = determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+}
+
+func TestDetermineAuthMode_APIKeyModeWithoutKey(t *testing.T) {
+	_, err := determineAuthMode(Config{AuthMode: ModeAPIKey})
+	assert.Error(t, err)
+}
+
+func TestAuthenticate_APIKey_NoAuthCallAndNoCacheWrite(t *testing.T) {
+	authCalls := 0
+	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authCalls++
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer authServer.Close()
+
+	dir := t.TempDir()
+	cfg := Config{
+		APIURL:   ProdAPIURL,
+		AuthURL:  authServer.URL,
+		APIKey:   "sf_live_abc",
+		CacheDir: dir,
+	}
+
+	result, err := Authenticate(context.Background(), cfg)
+	require.NoError(t, err)
+	assert.Equal(t, ProdAPIURL, result.APIURL)
+	assert.Equal(t, 0, authCalls)
+
+	token, err := result.Cache.TokenSource.Token()
+	require.NoError(t, err)
+	assert.Equal(t, "sf_live_abc", token.AccessToken)
+	assert.Equal(t, "Bearer", token.TokenType)
+
+	require.NoError(t, result.Cache.Save(dir))
+	assert.NoFileExists(t, filepath.Join(dir, CredentialCacheFilename))
+}
+
+func TestAuthenticate_APIKey_LeavesExistingCacheUntouched(t *testing.T) {
+	dir := t.TempDir()
+	cached := map[string]oauth2.Token{
+		DefaultProdInteractiveClientID: {AccessToken: "person-token", Expiry: time.Now().Add(time.Hour)},
+	}
+	data, err := json.Marshal(cached)
+	require.NoError(t, err)
+	path := filepath.Join(dir, CredentialCacheFilename)
+	require.NoError(t, os.WriteFile(path, data, 0600))
+
+	cfg := DefaultConfig()
+	cfg.CacheDir = dir
+	cfg.APIKey = "sf_live_abc"
+
+	result, err := Authenticate(context.Background(), cfg)
+	require.NoError(t, err)
+	require.NoError(t, result.Cache.Save(dir))
+
+	after, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, data, after)
+}
+
+func TestAuthenticate_APIKey_Govcloud(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.CacheDir = t.TempDir()
+	cfg.APIKey = "sf_live_abc"
+	cfg.Govcloud = true
+
+	result, err := Authenticate(context.Background(), cfg)
+	require.NoError(t, err)
+	assert.Equal(t, ProdGovcloudURL, result.APIURL)
+}
+
+func TestAPIKey_ClientsSendKeyAsBearer(t *testing.T) {
+	var gotAuth []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = append(gotAuth, r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/graphql" {
+			w.Write([]byte(`{"data":{}}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	cfg := Config{
+		APIURL:   server.URL + "/v1/",
+		AuthURL:  server.URL,
+		APIKey:   "sf_live_abc",
+		CacheDir: t.TempDir(),
+	}
+	result, err := Authenticate(context.Background(), cfg)
+	require.NoError(t, err)
+
+	apiClient, err := NewAPIClient(context.Background(), *result.Cache, result.APIURL)
+	require.NoError(t, err)
+	_, err = apiClient.ListProjectsWithResponse(context.Background(), nil)
+	require.NoError(t, err)
+
+	bffClient, err := NewBFFClient(context.Background(), *result.Cache, result.APIURL)
+	require.NoError(t, err)
+	var resp graphql.Response
+	require.NoError(t, bffClient.MakeRequest(context.Background(), &graphql.Request{Query: "query { __typename }"}, &resp))
+
+	require.Len(t, gotAuth, 2)
+	for _, h := range gotAuth {
+		assert.Equal(t, "Bearer sf_live_abc", h)
+	}
 }

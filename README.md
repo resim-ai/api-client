@@ -71,7 +71,9 @@ When you run any command, if you don't have a cached authentication token, the C
 
 ### Non-Interactive Auth
 
-If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using a username and password or client credentials (a client ID and a client secret). These credentials are obtained by contacting ReSim. We will provide the most appropriate type for your environment.
+If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using an API key, a username and password, or client credentials (a client ID and a client secret). Org admins create API keys themselves (see [API Keys](#api-keys)); the other credentials are obtained by contacting ReSim.
+
+An API key can be specified with the `--api-key` flag, or in the environment as `SIGNALFLAG_API_KEY`. The key is sent as-is on every request; it is never exchanged for a token or written to the token cache. Providing an API key together with client credentials or a username and password is rejected as ambiguous.
 
 The username and password can be specified using the `--username` and `--password` flags, or in the environment as `SIGNALFLAG_USERNAME` and `SIGNALFLAG_PASSWORD`.
 
@@ -80,7 +82,10 @@ Client credentials can be specified on the commandline with the `--client-id` an
 
 If you would like to store your credentials in a config file, the CLI will load them from `~/.signalflag/signalflag.yaml`. Make sure this file is reasonably secure - only readable by the user that will run the CLI, for example. The file is formatted as follows:
 
-    ## Set ONE of the below pairs
+    ## Set ONE of the below
+
+    # API key
+    api-key: <API key>
 
     # Client Credentials
     client-id: <client ID>
@@ -89,6 +94,16 @@ If you would like to store your credentials in a config file, the CLI will load 
     # Password
     username: <username>
     password: <password>
+
+### API Keys
+
+Org admins can manage their organization's API keys with `signalflag api-keys`. These commands need a person signed in (browser login, or `--username` and `--password`); they are refused when the CLI is using an API key or client credentials.
+
+    signalflag api-keys create --name ci-runner --access read-only [--expires-in-days 30|90|365|0]
+    signalflag api-keys list
+    signalflag api-keys revoke --name ci-runner     # or --id <key ID>
+
+`--expires-in-days` defaults to 90; `0` means the key never expires. The key is printed once, when it is created, and cannot be shown again. If `list` shows a key as `revoking`, run `api-keys revoke` for it again to finish revoking it.
 
 ### Token Caching
 

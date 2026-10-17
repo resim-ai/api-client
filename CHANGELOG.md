@@ -2,6 +2,11 @@
 
 ## ReSim CLI
 
+### Unreleased
+
+- Adds `signalflag api-keys create|list|revoke` for org admins to manage their organization's API keys. `create --name <name> --access read-only|read-write [--expires-in-days 30|90|365|0]` prints the key once (default expiry 90 days, `0` for none); `revoke` takes `--name` (the active key with that name) or `--id`. These commands need a person signed in and are refused when the CLI is using an API key or client credentials.
+- Adds API key authentication with `--api-key` or `SIGNALFLAG_API_KEY`. The key is sent as the bearer token on every request, with no Auth0 exchange and nothing written to the token cache. Combining it with client credentials or a username and password is rejected as ambiguous.
+
 ### v1.1.1 - October 15, 2026
 
 - `metrics sync` no longer reports how many emissions a topic removal would hide. The topic-removal preview now lists only the charts and dashboards that reference each removed topic.

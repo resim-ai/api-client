@@ -46,6 +46,7 @@ const (
 	KeyClientSecret             = "client-secret"
 	KeyUsername                 = "username"
 	KeyPassword                 = "password"
+	KeyAPIKey                   = "api-key"
 	KeyDevInteractiveClient     = "dev-interactive-client"
 	KeyProdInteractiveClient    = "prod-interactive-client"
 	KeyDevNonInteractiveClient  = "dev-non-interactive-client"
@@ -58,6 +59,7 @@ const (
 	ModeClientCredentials AuthMode = "clientcredentials"
 	ModeDeviceCode        AuthMode = "devicecode"
 	ModePassword          AuthMode = "password"
+	ModeAPIKey            AuthMode = "apikey"
 )
 
 type Config struct {
@@ -67,6 +69,7 @@ type Config struct {
 	ClientSecret string
 	Username     string
 	Password     string
+	APIKey       string
 	Govcloud     bool
 	CacheDir     string
 
@@ -95,6 +98,8 @@ type CredentialCache struct {
 	Tokens      map[string]oauth2.Token `json:"tokens"`
 	TokenSource oauth2.TokenSource
 	ClientID    string
+
+	skipSave bool
 }
 
 type tokenJSON struct {
@@ -129,6 +134,7 @@ func ConfigFromViper(v *viper.Viper, cacheDir string) Config {
 		ClientSecret:               v.GetString(KeyClientSecret),
 		Username:                   v.GetString(KeyUsername),
 		Password:                   v.GetString(KeyPassword),
+		APIKey:                     v.GetString(KeyAPIKey),
 		Govcloud:                   v.GetBool("govcloud"),
 		CacheDir:                   cacheDir,
 		DevInteractiveClientID:     v.GetString(KeyDevInteractiveClient),
@@ -145,6 +151,9 @@ func ConfigFromViper(v *viper.Viper, cacheDir string) Config {
 	if v.IsSet(KeyClientID) && v.IsSet(KeyClientSecret) {
 		cfg.AuthMode = ModeClientCredentials
 	}
+	if cfg.APIKey != "" {
+		cfg.AuthMode = ModeAPIKey
+	}
 
 	return cfg
 }
@@ -153,15 +162,7 @@ func ConfigFromViper(v *viper.Viper, cacheDir string) Config {
 // It returns an AuthResult containing the credential cache and the resolved API URL
 // (which may differ from Config.APIURL if govcloud mode is enabled).
 func Authenticate(ctx context.Context, cfg Config) (*AuthResult, error) {
-	var cache CredentialCache
-	cache.Load(cfg.CacheDir)
-
 	authMode, err := determineAuthMode(cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	authURL, tokenURL, err := getAuthURL(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -177,6 +178,24 @@ func Authenticate(ctx context.Context, cfg Config) (*AuthResult, error) {
 		case ProdAuthURL:
 			resolvedAPIURL = ProdGovcloudURL
 		}
+	}
+
+	if authMode == ModeAPIKey {
+		return &AuthResult{
+			Cache: &CredentialCache{
+				TokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.APIKey, TokenType: "Bearer"}),
+				skipSave:    true,
+			},
+			APIURL: resolvedAPIURL,
+		}, nil
+	}
+
+	var cache CredentialCache
+	cache.Load(cfg.CacheDir)
+
+	authURL, tokenURL, err := getAuthURL(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	var clientID string
@@ -254,13 +273,34 @@ func doAuth(ctx context.Context, mode AuthMode, authURL, tokenURL, clientID, cli
 	}
 }
 
+// DetermineAuthMode returns the auth mode the config selects, or an error if
+// the credentials provided are ambiguous.
+func DetermineAuthMode(cfg Config) (AuthMode, error) {
+	return determineAuthMode(cfg)
+}
+
 func determineAuthMode(cfg Config) (AuthMode, error) {
+	hasPassword := cfg.Username != "" && cfg.Password != ""
+	hasClientCreds := cfg.ClientID != "" && cfg.ClientSecret != ""
+	hasAPIKey := cfg.APIKey != ""
+
+	if hasAPIKey && hasClientCreds {
+		return "", fmt.Errorf("ambiguous authentication arguments provided - please provide an API key OR client ID and client secret")
+	}
+	if hasAPIKey && hasPassword {
+		return "", fmt.Errorf("ambiguous authentication arguments provided - please provide an API key OR username and password")
+	}
+
+	if cfg.AuthMode == ModeAPIKey && !hasAPIKey {
+		return "", fmt.Errorf("API key authentication requires an API key")
+	}
 	if cfg.AuthMode != "" {
 		return cfg.AuthMode, nil
 	}
 
-	hasPassword := cfg.Username != "" && cfg.Password != ""
-	hasClientCreds := cfg.ClientID != "" && cfg.ClientSecret != ""
+	if hasAPIKey {
+		return ModeAPIKey, nil
+	}
 
 	if hasPassword && hasClientCreds {
 		return "", fmt.Errorf("ambiguous authentication arguments provided - please provide username and password OR client ID and client secret")
@@ -431,7 +471,11 @@ func (c *CredentialCache) Load(cacheDir string) error {
 }
 
 // Save writes the credential cache to disk. Creates the cache directory if needed.
+// It does nothing for an API key session, so the key is never written to disk.
 func (c *CredentialCache) Save(cacheDir string) error {
+	if c.skipSave {
+		return nil
+	}
 	token, err := c.TokenSource.Token()
 	if err != nil {
 		return fmt.Errorf("error getting token: %w", err)

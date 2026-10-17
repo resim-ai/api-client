@@ -116,6 +116,11 @@ const (
 	ExitStatusFalse       bool = false
 )
 
+const (
+	APIKeysNeedPerson   string = "Managing API keys needs a person signed in as an org admin."
+	APIKeyNotShownAgain string = "It won't be shown again."
+)
+
 // CLI Output Messages. Perhaps overkill, but we validate that successful actions
 // from the CLI (i.e. exit code 0) have an expected output that contains a given substring.
 const (
@@ -305,7 +310,17 @@ func (s *EndToEndTestHelper) buildCommand(commandBuilders []CommandBuilder) *exe
 }
 
 func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders []CommandBuilder, expectError bool) Output {
-	var stdout, stderr bytes.Buffer
+	output, err := s.tryCommand(commandBuilders)
+	if expectError {
+		ts.Error(err)
+	} else {
+		ts.NoError(err, fmt.Sprintf("Unexpected error: %v", output.StdErr))
+	}
+	return output
+}
+
+// tryCommand runs the commands like runCommand but leaves checking the result to the caller.
+func (s *EndToEndTestHelper) tryCommand(commandBuilders []CommandBuilder) (Output, error) {
 	// Remove username/password flags inline before building the command and use env instead
 	var username, password string
 	for i := range commandBuilders {
@@ -329,35 +344,62 @@ func (s *EndToEndTestHelper) runCommand(ts *assert.Assertions, commandBuilders [
 	env := os.Environ()
 	// If username/password are set, strip out client creds
 	if username != "" && password != "" {
-		newEnv := []string{}
-		for _, kv := range env {
-			// Strip both the current and the legacy names: the CLI promotes
-			// RESIM_* to SIGNALFLAG_* at startup, and client credentials take
-			// precedence over username/password when both are set.
-			if strings.HasPrefix(kv, "SIGNALFLAG_CLIENT_ID=") || strings.HasPrefix(kv, "SIGNALFLAG_CLIENT_SECRET=") ||
-				strings.HasPrefix(kv, "RESIM_CLIENT_ID=") || strings.HasPrefix(kv, "RESIM_CLIENT_SECRET=") {
-				continue // skip these
-			}
-			newEnv = append(newEnv, kv)
-		}
-		newEnv = append(newEnv, fmt.Sprintf("SIGNALFLAG_USERNAME=%s", username))
-		newEnv = append(newEnv, fmt.Sprintf("SIGNALFLAG_PASSWORD=%s", password))
-		env = newEnv
+		// Strip both the current and the legacy names: the CLI promotes
+		// RESIM_* to SIGNALFLAG_* at startup, and client credentials take
+		// precedence over username/password when both are set.
+		env = envWithout(env, "CLIENT_ID", "CLIENT_SECRET")
+		env = append(env, fmt.Sprintf("SIGNALFLAG_USERNAME=%s", username))
+		env = append(env, fmt.Sprintf("SIGNALFLAG_PASSWORD=%s", password))
 	}
+	return execCommand(cmd, env)
+}
+
+// runCommandWithAPIKey runs the commands signed in with only the given API key:
+// every other credential, under either env prefix, is removed from the environment.
+func (s *EndToEndTestHelper) runCommandWithAPIKey(ts *assert.Assertions, commandBuilders []CommandBuilder, apiKey string, expectError bool) Output {
+	cmd := s.buildCommand(commandBuilders)
+	fmt.Println("About to run command with an API key: ", cmd.String())
+
+	env := envWithout(os.Environ(), "CLIENT_ID", "CLIENT_SECRET", "USERNAME", "PASSWORD", "API_KEY")
+	env = append(env, fmt.Sprintf("SIGNALFLAG_API_KEY=%s", apiKey))
+	output, err := execCommand(cmd, env)
+	if expectError {
+		ts.Error(err)
+	} else {
+		ts.NoError(err, fmt.Sprintf("Unexpected error: %v", output.StdErr))
+	}
+	return output
+}
+
+func execCommand(cmd *exec.Cmd, env []string) (Output, error) {
+	var stdout, stderr bytes.Buffer
 	cmd.Env = env
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
-	stdErrString := stderr.String()
-	if expectError {
-		ts.Error(err)
-	} else {
-		ts.NoError(err, fmt.Sprintf("Unexpected error: %v", stdErrString))
-	}
 	return Output{
 		StdOut: stdout.String(),
-		StdErr: stdErrString,
+		StdErr: stderr.String(),
+	}, err
+}
+
+// envWithout drops SIGNALFLAG_<name> and RESIM_<name> for each name.
+func envWithout(env []string, names ...string) []string {
+	filtered := []string{}
+	for _, kv := range env {
+		key, _, _ := strings.Cut(kv, "=")
+		drop := false
+		for _, name := range names {
+			if key == "SIGNALFLAG_"+name || key == "RESIM_"+name {
+				drop = true
+				break
+			}
+		}
+		if !drop {
+			filtered = append(filtered, kv)
+		}
 	}
+	return filtered
 }
 
 func syncMetrics(projectName string, branch string, verbose bool, username string, password string) []CommandBuilder {
@@ -541,6 +583,32 @@ func archiveProject(projectName string) []CommandBuilder {
 		},
 	}
 	return []CommandBuilder{projectCommand, archiveCommand}
+}
+
+func apiKeysCommand(subcommand string, flags []Flag, username string, password string) []CommandBuilder {
+	if username != "" {
+		flags = append(flags, Flag{Name: "--username", Value: username})
+	}
+	if password != "" {
+		flags = append(flags, Flag{Name: "--password", Value: password})
+	}
+	return []CommandBuilder{{Command: "api-keys"}, {Command: subcommand, Flags: flags}}
+}
+
+func createAPIKey(name string, access string, expiresInDays int, username string, password string) []CommandBuilder {
+	return apiKeysCommand("create", []Flag{
+		{Name: "--name", Value: name},
+		{Name: "--access", Value: access},
+		{Name: "--expires-in-days", Value: fmt.Sprintf("%d", expiresInDays)},
+	}, username, password)
+}
+
+func listAPIKeys(username string, password string) []CommandBuilder {
+	return apiKeysCommand("list", []Flag{}, username, password)
+}
+
+func revokeAPIKeyByName(name string, username string, password string) []CommandBuilder {
+	return apiKeysCommand("revoke", []Flag{{Name: "--name", Value: name}}, username, password)
 }
 
 func createBranch(projectID uuid.UUID, name string, branchType string, github bool) []CommandBuilder {
@@ -7150,6 +7218,100 @@ func TestLegacyNames(t *testing.T) {
 		ts.FileExists(filepath.Join(legacyDir, "cache.json"))
 		ts.NoDirExists(filepath.Join(home, ".signalflag"))
 	})
+}
+
+// parseCreatedAPIKey returns the key from `api-keys create` output, which prints
+// a summary line, the key on its own line, and a reminder line.
+func parseCreatedAPIKey(req *require.Assertions, stdout string) string {
+	lines := []string{}
+	for _, line := range strings.Split(stdout, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	req.Len(lines, 3, "unexpected api-keys create output: %q", stdout)
+	req.Contains(lines[0], "Created API key")
+	req.Contains(lines[2], APIKeyNotShownAgain)
+	return lines[1]
+}
+
+func TestAPIKeys(t *testing.T) {
+	ts := assert.New(t)
+	req := require.New(t)
+	t.Parallel()
+
+	username := os.Getenv(username)
+	password := os.Getenv(password)
+	if username == "" || password == "" {
+		t.Skipf("%s and %s must be set to manage API keys", "USERNAME", "PASSWORD")
+	}
+
+	// An environment whose BFF predates API keys rejects the query itself; skip there instead of failing.
+	probeOutput, probeErr := s.tryCommand(listAPIKeys(username, password))
+	if probeErr != nil {
+		if strings.Contains(probeOutput.StdErr, `Cannot query field "apiKeys"`) {
+			t.Skipf("the target environment does not have the API key API yet")
+		}
+		req.FailNow("api-keys list failed", probeOutput.StdErr)
+	}
+
+	suffix := uuid.New().String()[:8]
+	readOnlyName := fmt.Sprintf("e2e-ro-%s", suffix)
+	readWriteName := fmt.Sprintf("e2e-rw-%s", suffix)
+
+	output := s.runCommand(ts, createAPIKey(readOnlyName, "read-only", 30, username, password), ExpectNoError)
+	t.Cleanup(func() { s.tryCommand(revokeAPIKeyByName(readOnlyName, username, password)) })
+	readOnlyKey := parseCreatedAPIKey(req, output.StdOut)
+
+	output = s.runCommand(ts, createAPIKey(readWriteName, "read-write", 30, username, password), ExpectNoError)
+	t.Cleanup(func() { s.tryCommand(revokeAPIKeyByName(readWriteName, username, password)) })
+	readWriteKey := parseCreatedAPIKey(req, output.StdOut)
+
+	t.Run("ReadOnlyKey", func(t *testing.T) {
+		ts := assert.New(t)
+		s.runCommandWithAPIKey(ts, listProjects(), readOnlyKey, ExpectNoError)
+
+		projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+		s.runCommandWithAPIKey(ts, createProject(projectName, "description", GithubFalse), readOnlyKey, ExpectError)
+
+		output := s.runCommandWithAPIKey(ts, listAPIKeys("", ""), readOnlyKey, ExpectError)
+		ts.Contains(output.StdErr, APIKeysNeedPerson)
+	})
+
+	t.Run("ReadWriteKey", func(t *testing.T) {
+		ts := assert.New(t)
+		projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+		output := s.runCommandWithAPIKey(ts, createProject(projectName, "description", GithubFalse), readWriteKey, ExpectNoError)
+		ts.Contains(output.StdOut, CreatedProject)
+
+		output = s.runCommandWithAPIKey(ts, archiveProject(projectName), readWriteKey, ExpectNoError)
+		ts.Contains(output.StdOut, ArchivedProject)
+	})
+
+	t.Run("ListAndRevoke", func(t *testing.T) {
+		ts := assert.New(t)
+		output := s.runCommand(ts, listAPIKeys(username, password), ExpectNoError)
+		ts.Contains(output.StdOut, readOnlyName)
+		ts.Contains(output.StdOut, readWriteName)
+
+		output = s.runCommand(ts, revokeAPIKeyByName(readOnlyName, username, password), ExpectNoError)
+		ts.Contains(output.StdOut, fmt.Sprintf("Revoked API key %q", readOnlyName))
+
+		s.runCommandWithAPIKey(ts, listProjects(), readOnlyKey, ExpectError)
+	})
+}
+
+func TestAPIKeysRefusedWithClientCredentials(t *testing.T) {
+	ts := assert.New(t)
+	t.Parallel()
+
+	// The refusal happens before any sign-in, so placeholder credentials are enough when the suite has none.
+	flags := []Flag{}
+	if os.Getenv(ClientID) == "" || os.Getenv(ClientSecret) == "" {
+		flags = append(flags, Flag{Name: "--client-id", Value: "e2e-placeholder"}, Flag{Name: "--client-secret", Value: "e2e-placeholder"})
+	}
+	output := s.runCommand(ts, apiKeysCommand("list", flags, "", ""), ExpectError)
+	ts.Contains(output.StdErr, APIKeysNeedPerson)
 }
 
 func TestMain(m *testing.M) {

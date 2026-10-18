@@ -223,14 +223,15 @@ func TestListApiKeys(t *testing.T) {
 	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).
 		Run(withListApiKeys(
 			apiKeyFields("k1", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusActive, "2027-01-14T12:00:00Z"),
-			apiKeyFields("k2", "deploy", bff.ApiKeyAccessReadWrite, bff.ApiKeyStatusRevoking, ""),
+			apiKeyFields("k2", "deploy", bff.ApiKeyAccessReadWrite, bff.ApiKeyStatusRevoked, ""),
+			apiKeyFields("k3", "laptop", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusExpired, "2026-09-30T12:00:00Z"),
 		)).Return(nil).Once()
 
 	var out bytes.Buffer
 	require.NoError(t, actualListApiKeys(context.Background(), mockBff, &out))
 
 	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
-	require.Len(t, lines, 3)
+	require.Len(t, lines, 4)
 	for _, col := range []string{"NAME", "PREFIX", "ACCESS", "CREATED BY", "EXPIRES", "STATUS"} {
 		assert.Contains(t, lines[0], col)
 	}
@@ -239,13 +240,14 @@ func TestListApiKeys(t *testing.T) {
 	assert.Contains(t, lines[1], "read-only")
 	assert.Contains(t, lines[1], "admin@example.com")
 	assert.Contains(t, lines[1], "2027-01-14")
-	assert.Contains(t, lines[1], "active")
-	assert.NotContains(t, lines[1], "api-keys revoke")
+	assert.True(t, strings.HasSuffix(lines[1], "active"))
 
 	assert.Contains(t, lines[2], "deploy")
 	assert.Contains(t, lines[2], "never")
-	assert.Contains(t, lines[2], "revoking")
-	assert.Contains(t, lines[2], "api-keys revoke --id k2")
+	assert.True(t, strings.HasSuffix(lines[2], "revoked"))
+
+	assert.Contains(t, lines[3], "2026-09-30")
+	assert.True(t, strings.HasSuffix(lines[3], "expired"))
 	mockBff.AssertExpectations(t)
 }
 
@@ -296,47 +298,18 @@ func TestRevokeApiKey_ByNameFindsActiveKey(t *testing.T) {
 	mockBff.AssertExpectations(t)
 }
 
-func TestRevokeApiKey_ByNameFinishesRevokingKey(t *testing.T) {
-	mockBff := new(mockGraphQLClient)
-	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).
-		Run(withListApiKeys(
-			apiKeyFields("half", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoking, ""),
-		)).Return(nil).Once()
-	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
-		return req.OpName == "RevokeApiKey" && requestVars(req)["id"] == "half"
-	}), mock.Anything).Run(func(args mock.Arguments) {
-		data := args.Get(2).(*graphql.Response).Data.(*bff.RevokeApiKeyResponse)
-		data.RevokeApiKey.ApiKeyFields = apiKeyFields("half", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, "")
-	}).Return(nil).Once()
-
-	require.NoError(t, actualRevokeApiKey(context.Background(), mockBff, &bytes.Buffer{}, "ci-runner", ""))
-	mockBff.AssertExpectations(t)
-}
-
-func TestRevokeApiKey_ByNameNotFound(t *testing.T) {
+func TestRevokeApiKey_ByNameOnlyMatchesActiveKey(t *testing.T) {
 	mockBff := new(mockGraphQLClient)
 	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).
 		Run(withListApiKeys(
 			apiKeyFields("old", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, ""),
+			apiKeyFields("lapsed", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusExpired, ""),
 		)).Return(nil).Once()
 
 	err := actualRevokeApiKey(context.Background(), mockBff, &bytes.Buffer{}, "ci-runner", "")
 	require.Error(t, err)
 	assert.Equal(t, `no active API key named "ci-runner"`, err.Error())
 	mockBff.AssertExpectations(t)
-}
-
-func TestRevokeApiKey_StillRevokingSaysRunAgain(t *testing.T) {
-	mockBff := new(mockGraphQLClient)
-	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("RevokeApiKey")), mock.Anything).
-		Run(func(args mock.Arguments) {
-			data := args.Get(2).(*graphql.Response).Data.(*bff.RevokeApiKeyResponse)
-			data.RevokeApiKey.ApiKeyFields = apiKeyFields("k1", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoking, "")
-		}).Return(nil).Once()
-
-	var out bytes.Buffer
-	require.NoError(t, actualRevokeApiKey(context.Background(), mockBff, &out, "", "k1"))
-	assert.Contains(t, out.String(), "api-keys revoke --id k1")
 }
 
 func TestRevokeApiKey_BFFErrorsPassThroughUnchanged(t *testing.T) {

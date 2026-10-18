@@ -103,7 +103,7 @@ Org admins can manage their organization's API keys with `signalflag api-keys`. 
     signalflag api-keys list
     signalflag api-keys revoke --name ci-runner     # or --id <key ID>
 
-`--expires-in-days` defaults to 90; `0` means the key never expires. The key is printed once, when it is created, and cannot be shown again. If `list` shows a key as `revoking`, run `api-keys revoke` for it again to finish revoking it.
+`--expires-in-days` defaults to 90; `0` means the key never expires. The key is printed once, when it is created, and cannot be shown again.
 
 ### Token Caching
 

@@ -64,17 +64,15 @@ func (v *ApiKeyFields) GetStatus() ApiKeyStatus { return v.Status }
 type ApiKeyStatus string
 
 const (
-	ApiKeyStatusActive   ApiKeyStatus = "ACTIVE"
-	ApiKeyStatusExpired  ApiKeyStatus = "EXPIRED"
-	ApiKeyStatusRevoked  ApiKeyStatus = "REVOKED"
-	ApiKeyStatusRevoking ApiKeyStatus = "REVOKING"
+	ApiKeyStatusActive  ApiKeyStatus = "ACTIVE"
+	ApiKeyStatusExpired ApiKeyStatus = "EXPIRED"
+	ApiKeyStatusRevoked ApiKeyStatus = "REVOKED"
 )
 
 var AllApiKeyStatus = []ApiKeyStatus{
 	ApiKeyStatusActive,
 	ApiKeyStatusExpired,
 	ApiKeyStatusRevoked,
-	ApiKeyStatusRevoking,
 }
 
 // CreateApiKeyCreateApiKeyCreatedApiKey includes the requested fields of the GraphQL type CreatedApiKey.
@@ -493,7 +491,7 @@ func (v *PreviewTopicRemovalResponse) GetPreviewTopicRemoval() []PreviewTopicRem
 
 // RevokeApiKeyResponse is returned by RevokeApiKey on success.
 type RevokeApiKeyResponse struct {
-	// Revoke an API key. Revoking a key shown as revoking finishes it. Admin-only.
+	// Revoke an API key. Admin-only.
 	RevokeApiKey RevokeApiKeyRevokeApiKey `json:"revokeApiKey"`
 }
 

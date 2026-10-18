@@ -150,7 +150,7 @@ func actualListApiKeys(ctx context.Context, client graphql.Client, w io.Writer) 
 	fmt.Fprint(tw, apiKeyListHeader)
 	for _, k := range resp.ApiKeys {
 		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\n",
-			k.Name, k.Prefix, formatApiKeyAccess(k.Access), k.CreatedByEmail, formatApiKeyDate(k.ExpiresAt), formatApiKeyStatus(k.ApiKeyFields))
+			k.Name, k.Prefix, formatApiKeyAccess(k.Access), k.CreatedByEmail, formatApiKeyDate(k.ExpiresAt), strings.ToLower(string(k.Status)))
 	}
 	return tw.Flush()
 }
@@ -164,7 +164,7 @@ func revokeApiKey(cmd *cobra.Command, args []string) {
 
 func actualRevokeApiKey(ctx context.Context, client graphql.Client, w io.Writer, name, id string) error {
 	if id == "" {
-		found, err := findRevocableApiKey(ctx, client, name)
+		found, err := findActiveApiKey(ctx, client, name)
 		if err != nil {
 			return err
 		}
@@ -177,34 +177,19 @@ func actualRevokeApiKey(ctx context.Context, client graphql.Client, w io.Writer,
 	}
 
 	key := resp.RevokeApiKey.ApiKeyFields
-	if key.Status == bff.ApiKeyStatusRevoking {
-		fmt.Fprintf(w, "API key %q is still being revoked. Run `%s` again to finish.\n", key.Name, revokeAgainCommand(key.Id))
-		return nil
-	}
 	fmt.Fprintf(w, "Revoked API key %q (%s).\n", key.Name, key.Prefix)
 	return nil
 }
 
-// A key left in REVOKING is still the one a name refers to until revoking it again finishes the change.
-func findRevocableApiKey(ctx context.Context, client graphql.Client, name string) (string, error) {
+func findActiveApiKey(ctx context.Context, client graphql.Client, name string) (string, error) {
 	resp, err := bff.ListApiKeys(ctx, client)
 	if err != nil {
 		return "", bffError(err)
 	}
-	var revoking string
 	for _, k := range resp.ApiKeys {
-		if k.Name != name {
-			continue
-		}
-		switch k.Status {
-		case bff.ApiKeyStatusActive:
+		if k.Name == name && k.Status == bff.ApiKeyStatusActive {
 			return k.Id, nil
-		case bff.ApiKeyStatusRevoking:
-			revoking = k.Id
 		}
-	}
-	if revoking != "" {
-		return revoking, nil
 	}
 	return "", fmt.Errorf("no active API key named %q", name)
 }
@@ -234,18 +219,6 @@ func formatApiKeyAccess(access bff.ApiKeyAccess) string {
 		}
 	}
 	return strings.ToLower(string(access))
-}
-
-func formatApiKeyStatus(k bff.ApiKeyFields) string {
-	status := strings.ToLower(string(k.Status))
-	if k.Status == bff.ApiKeyStatusRevoking {
-		return fmt.Sprintf("%s (run `%s` again to finish)", status, revokeAgainCommand(k.Id))
-	}
-	return status
-}
-
-func revokeAgainCommand(id string) string {
-	return fmt.Sprintf("%s api-keys revoke --id %s", rootCmd.Name(), id)
 }
 
 func formatApiKeyDate(value string) string {

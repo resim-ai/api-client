@@ -18,7 +18,7 @@ There is no Justfile or Makefile — drive everything with the `go` toolchain di
 
 ## PRs
 
-Uses **Graphite**: `gt track` (before the first push on a new branch), then `gt submit`. Never `git push` + `gh pr create` here.
+Uses **gh** — `git push -u origin <branch>` then `gh pr create`; a large change goes up as a GitHub stacked-PR chain (`gh stack`).
 
 ## Testing conventions
 

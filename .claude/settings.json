@@ -21,8 +21,8 @@
       "Bash(go vet:*)",
       "Bash(gofmt:*)",
       "Bash(golangci-lint:*)",
-      "Bash(gt track:*)",
-      "Bash(gt submit:*)"
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [
       "Read(**/.env*)",
@@ -33,8 +33,6 @@
       "Read(**/.resim/**)",
       "Bash(rm -rf:*)",
       "Bash(git push --force:*)",
-      "Bash(git push:*)",
-      "Bash(gh pr create:*)",
       "Bash(git reset --hard:*)",
       "Bash(terraform apply:*)",
       "Bash(terraform destroy:*)",

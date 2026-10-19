@@ -1,6 +1,6 @@
-# Signalflag CLI Tool
+# SignalFlag CLI Tool
 
-This repository contains the ReSim API command-line interface (CLI).  It is written in Go and produced via code generation with [openapi-cli-generator](https://github.com/danielgtaylor/openapi-cli-generator) from the publicly-available [API spec](https://api.resim.ai).
+This repository contains the SignalFlag API command-line interface (CLI).  It is written in Go and produced via code generation with [openapi-cli-generator](https://github.com/danielgtaylor/openapi-cli-generator) from the publicly-available [API spec](https://api.resim.ai).
 
 ## Installation
 
@@ -71,7 +71,7 @@ When you run any command, if you don't have a cached authentication token, the C
 
 ### Non-Interactive Auth
 
-If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using an API key, a username and password, or client credentials (a client ID and a client secret). Org admins create API keys themselves (see [API Keys](#api-keys)); the other credentials are obtained by contacting ReSim.
+If you would like to use the CLI in a non-interactive setting (e.g. CI), it can also be configured to authenticate using an API key, a username and password, or client credentials (a client ID and a client secret). Org admins create API keys themselves (see [API Keys](#api-keys)); the other credentials are obtained by contacting SignalFlag.
 
 An API key can be specified with the `--api-key` flag, or in the environment as `SIGNALFLAG_API_KEY`. The key is trimmed of surrounding whitespace and sent on every request; it is never exchanged for a token or written to the token cache. Providing an API key together with client credentials or a username and password is rejected as ambiguous.
 
@@ -101,12 +101,13 @@ Org admins can manage their organization's API keys with `signalflag api-keys`. 
 
     signalflag api-keys create --name ci-runner [--access read-only|read-write] [--expires-in-days 30|90|365|0]
     signalflag api-keys list
-    signalflag api-keys rotate --id <key ID> --new-name ci-runner-next
     signalflag api-keys revoke --name ci-runner     # or --id <key ID>
 
 `create` defaults to read-only access; use `--access read-write` when needed. `--expires-in-days` defaults to 90; `0` means the key never expires. The key is printed once, when it is created, and cannot be shown again.
 
-`rotate` creates a replacement and leaves the old key active. Install and test the replacement before explicitly revoking the old key. If creation or output fails, inspect `api-keys list` and revoke any unusable new key before trying again; never automatically replay creation. A pending revocation can be retried with `api-keys revoke --id <key ID>`.
+To replace a key, run `api-keys create` with a new name and the access your application needs. Switch your application to the new key and test it before explicitly revoking the old key with `api-keys revoke --id <old key ID>`. Use the same endpoint settings throughout.
+
+If creation or output fails, inspect `api-keys list` and revoke any unusable new key before trying again; never automatically replay creation. The list includes key IDs and marks pending revocations as `revoking`. Retry a pending revocation with `api-keys revoke --id <key ID>`.
 
 ### Token Caching
 

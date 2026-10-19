@@ -1,11 +1,11 @@
 # Changelog
 
-## ReSim CLI
+## SignalFlag CLI
 
 ### Unreleased
 
 - New API keys default to read-only access; `--access read-write` remains available. (#234)
-- Adds `api-keys rotate` to create a replacement while leaving the old key active, recovery guidance after uncertain creation, secret redaction in failures, and explicit pending-revocation reporting. (#234)
+- Adds recovery guidance after uncertain API-key creation, secret redaction in failures, key IDs in listings, and retry guidance for pending revocations. Replace a key by creating a new one, switching consumers, then explicitly revoking the old key. (#234)
 
 ### v1.2.0 - October 16, 2026
 

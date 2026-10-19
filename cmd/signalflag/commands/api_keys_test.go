@@ -413,37 +413,6 @@ func TestCreateApiKey_OutputFailureDoesNotReplay(t *testing.T) {
 	client.AssertExpectations(t)
 }
 
-func TestRotateApiKey_CreatesReplacementWithoutRevoking(t *testing.T) {
-	client := new(mockGraphQLClient)
-	client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).Run(withListApiKeys(apiKeyFields("old", "old-key", bff.ApiKeyAccessReadWrite, bff.ApiKeyStatusActive, ""))).Return(nil).Once()
-	client.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
-		vars := requestVars(req)
-		return req.OpName == "CreateApiKey" && vars["name"] == "replacement" && vars["access"] == "READ_WRITE"
-	}), mock.Anything).Run(func(args mock.Arguments) {
-		args.Get(2).(*graphql.Response).Data.(*bff.CreateApiKeyResponse).CreateApiKey.Key = "sfk_new_secret"
-	}).Return(nil).Once()
-	var out bytes.Buffer
-	require.NoError(t, actualRotateApiKey(context.Background(), client, &out, "", "old", "replacement", "", 90))
-	assert.Equal(t, 1, strings.Count(out.String(), "sfk_new_secret"))
-	assert.Contains(t, out.String(), "old key was not changed")
-	assert.Contains(t, out.String(), "same endpoint settings")
-	client.AssertExpectations(t)
-	client.AssertNumberOfCalls(t, "MakeRequest", 2)
-}
-
-func TestRotateApiKey_RejectsInactiveOrSameNameWithoutCreating(t *testing.T) {
-	for _, tc := range []struct {
-		status  bff.ApiKeyStatus
-		newName string
-	}{{bff.ApiKeyStatusRevoked, "new"}, {bff.ApiKeyStatusExpired, "new"}, {bff.ApiKeyStatusActive, "old-key"}} {
-		client := new(mockGraphQLClient)
-		client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).Run(withListApiKeys(apiKeyFields("old", "old-key", bff.ApiKeyAccessReadOnly, tc.status, ""))).Return(nil).Once()
-		require.Error(t, actualRotateApiKey(context.Background(), client, &bytes.Buffer{}, "", "old", tc.newName, "", 90))
-		client.AssertExpectations(t)
-		client.AssertNumberOfCalls(t, "MakeRequest", 1)
-	}
-}
-
 func TestRevokeApiKey_PendingRemainsRetryable(t *testing.T) {
 	client := new(mockGraphQLClient)
 	pending := apiKeyFields("k1", "ci", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, "")

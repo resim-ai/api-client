@@ -87,18 +87,6 @@ func init() {
 	revokeApiKeyCmd.MarkFlagsMutuallyExclusive(apiKeyNameKey, apiKeyIDKey)
 	apiKeysCmd.AddCommand(revokeApiKeyCmd)
 
-	rotate := &cobra.Command{Use: "rotate", Short: "Create a replacement without changing the old key", RunE: func(cmd *cobra.Command, _ []string) error {
-		return actualRotateApiKey(cmd.Context(), BffClient, cmd.OutOrStdout(), viper.GetString(apiKeyNameKey), viper.GetString(apiKeyIDKey), viper.GetString("new-name"), viper.GetString(apiKeyAccessKey), viper.GetInt(apiKeyExpiresInDaysKey))
-	}}
-	rotate.Flags().String(apiKeyNameKey, "", "The active key to replace")
-	rotate.Flags().String(apiKeyIDKey, "", "The ID of the active key to replace")
-	rotate.MarkFlagsOneRequired(apiKeyNameKey, apiKeyIDKey)
-	rotate.MarkFlagsMutuallyExclusive(apiKeyNameKey, apiKeyIDKey)
-	rotate.Flags().String("new-name", "", "A different, unique replacement name")
-	rotate.MarkFlagRequired("new-name")
-	rotate.Flags().String(apiKeyAccessKey, "", "Access: read-only or read-write (defaults to the old key)")
-	rotate.Flags().Int(apiKeyExpiresInDaysKey, 90, "Expiry in days: 30, 90, 365, or 0 for no expiry")
-	apiKeysCmd.AddCommand(rotate)
 	rootCmd.AddCommand(apiKeysCmd)
 }
 
@@ -224,36 +212,6 @@ func findActiveApiKey(ctx context.Context, client graphql.Client, name string) (
 		return id, nil
 	}
 	return "", fmt.Errorf("no active API key named %q", name)
-}
-
-func actualRotateApiKey(ctx context.Context, client graphql.Client, w io.Writer, name, id, newName, access string, expiresInDays int) error {
-	newName = strings.TrimSpace(newName)
-	if newName == "" {
-		return errors.New("--new-name must not be empty")
-	}
-	resp, err := bff.ListApiKeys(ctx, client)
-	if err != nil {
-		return bffError(err)
-	}
-	for _, key := range resp.ApiKeys {
-		if (id != "" && key.Id == id) || (id == "" && key.Name == name && key.Status == bff.ApiKeyStatusActive) {
-			if key.Status != bff.ApiKeyStatusActive || key.RevocationPending {
-				return errors.New("only an active key can be replaced")
-			}
-			if newName == key.Name {
-				return errors.New("--new-name must differ from the old key name")
-			}
-			if access == "" {
-				access = formatApiKeyAccess(key.Access)
-			}
-			if err := actualCreateApiKey(ctx, client, w, newName, access, expiresInDays); err != nil {
-				return fmt.Errorf("%w; the old key was not changed", err)
-			}
-			_, err := fmt.Fprintf(w, "The old key was not changed. Install and test the replacement, then use the same endpoint settings to run: signalflag api-keys revoke --id %s\n", key.Id)
-			return err
-		}
-	}
-	return errors.New("no matching active key; use api-keys list to inspect metadata")
 }
 
 var apiKeySecretPattern = regexp.MustCompile(`(?:sfk_|sf_live_)[A-Za-z0-9_-]+`)

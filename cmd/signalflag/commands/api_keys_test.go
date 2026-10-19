@@ -130,6 +130,47 @@ func TestRootHasAPIKeyFlag(t *testing.T) {
 
 // --- create ---
 
+func TestCreateApiKey_AccessFlags(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+		want bff.ApiKeyAccess
+	}{
+		{name: "omitted access defaults to read-only", want: bff.ApiKeyAccessReadOnly},
+		{name: "explicit read-write", args: []string{"--access", "read-write"}, want: bff.ApiKeyAccessReadWrite},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, key := range []string{apiKeyNameKey, apiKeyAccessKey} {
+				flag := createApiKeyCmd.Flags().Lookup(key)
+				value, changed := flag.Value.String(), flag.Changed
+				t.Cleanup(func() {
+					require.NoError(t, flag.Value.Set(value))
+					flag.Changed = changed
+				})
+				require.NoError(t, flag.Value.Set(flag.DefValue))
+				flag.Changed = false
+			}
+			require.NoError(t, createApiKeyCmd.ParseFlags(append([]string{"--name", "ci-runner"}, tc.args...)))
+			require.NoError(t, createApiKeyCmd.ValidateRequiredFlags())
+			v := viper.New()
+			require.NoError(t, v.BindPFlags(createApiKeyCmd.Flags()))
+
+			client := new(mockGraphQLClient)
+			client.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
+				vars := requestVars(req)
+				return req.OpName == "CreateApiKey" && vars["name"] == "ci-runner" && vars["access"] == string(tc.want) && vars["expiresInDays"] == float64(90)
+			}), mock.Anything).Run(func(args mock.Arguments) {
+				data := args.Get(2).(*graphql.Response).Data.(*bff.CreateApiKeyResponse)
+				data.CreateApiKey.Key = "sf_live_fixture"
+				data.CreateApiKey.ApiKey.ApiKeyFields = apiKeyFields("k1", "ci-runner", tc.want, bff.ApiKeyStatusActive, "2027-01-14T12:00:00Z")
+			}).Return(nil).Once()
+
+			require.NoError(t, actualCreateApiKey(context.Background(), client, &bytes.Buffer{}, v.GetString(apiKeyNameKey), v.GetString(apiKeyAccessKey), v.GetInt(apiKeyExpiresInDaysKey)))
+			client.AssertExpectations(t)
+		})
+	}
+}
+
 func TestCreateApiKey_PrintsKeyOnce(t *testing.T) {
 	mockBff := new(mockGraphQLClient)
 	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {

@@ -75,8 +75,7 @@ var apiKeyExpiryValues = map[int]bool{0: true, 30: true, 90: true, 365: true}
 func init() {
 	createApiKeyCmd.Flags().String(apiKeyNameKey, "", "The name of the API key. Must be unique among your organization's active keys.")
 	createApiKeyCmd.MarkFlagRequired(apiKeyNameKey)
-	createApiKeyCmd.Flags().String(apiKeyAccessKey, "", "The key's access: read-only or read-write.")
-	createApiKeyCmd.MarkFlagRequired(apiKeyAccessKey)
+	createApiKeyCmd.Flags().String(apiKeyAccessKey, "read-only", "The key's access: read-only or read-write.")
 	createApiKeyCmd.Flags().Int(apiKeyExpiresInDaysKey, 90, "Days until the key expires: 30, 90 or 365, or 0 for no expiry.")
 	apiKeysCmd.AddCommand(createApiKeyCmd)
 

@@ -4,6 +4,7 @@
 
 ### Unreleased
 
+- New API keys default to read-only access; `--access read-write` remains available. (#234)
 - Adds `api-keys rotate` to create a replacement while leaving the old key active, recovery guidance after uncertain creation, secret redaction in failures, and explicit pending-revocation reporting. (#234)
 
 ### v1.2.0 - October 16, 2026

@@ -99,12 +99,12 @@ If you would like to store your credentials in a config file, the CLI will load 
 
 Org admins can manage their organization's API keys with `signalflag api-keys`. These commands need a person signed in (browser login, or `--username` and `--password`); they are refused when the CLI is using an API key or client credentials.
 
-    signalflag api-keys create --name ci-runner --access read-only [--expires-in-days 30|90|365|0]
+    signalflag api-keys create --name ci-runner [--access read-only|read-write] [--expires-in-days 30|90|365|0]
     signalflag api-keys list
     signalflag api-keys rotate --id <key ID> --new-name ci-runner-next
     signalflag api-keys revoke --name ci-runner     # or --id <key ID>
 
-`--expires-in-days` defaults to 90; `0` means the key never expires. The key is printed once, when it is created, and cannot be shown again.
+`create` defaults to read-only access; use `--access read-write` when needed. `--expires-in-days` defaults to 90; `0` means the key never expires. The key is printed once, when it is created, and cannot be shown again.
 
 `rotate` creates a replacement and leaves the old key active. Install and test the replacement before explicitly revoking the old key. If creation or output fails, inspect `api-keys list` and revoke any unusable new key before trying again; never automatically replay creation. A pending revocation can be retried with `api-keys revoke --id <key ID>`.
 

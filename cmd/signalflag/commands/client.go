@@ -8,7 +8,6 @@ import (
 const verboseKey = "verbose"
 
 func init() {
-	rootCmd.PersistentFlags().String(auth.KeyAPIKey, "", "Organization API key (or SIGNALFLAG_API_KEY)")
 	rootCmd.PersistentFlags().String(auth.KeyURL, "", "The URL of the API.")
 	viper.SetDefault(auth.KeyURL, auth.ProdAPIURL)
 	rootCmd.PersistentFlags().String(auth.KeyAuthURL, "", "The URL of the authentication endpoint.")
@@ -25,5 +24,6 @@ func init() {
 	viper.SetDefault(auth.KeyProdNonInteractiveClient, auth.DefaultProdNonInteractiveClientID)
 	rootCmd.PersistentFlags().String(auth.KeyUsername, "", "username for non-interactive login")
 	rootCmd.PersistentFlags().String(auth.KeyPassword, "", "password for non-interactive login")
+	rootCmd.PersistentFlags().String(auth.KeyAPIKey, "", "API key for non-interactive access")
 	rootCmd.PersistentFlags().Bool(verboseKey, false, "Verbose mode")
 }

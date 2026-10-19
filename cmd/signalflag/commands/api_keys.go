@@ -1,11 +1,16 @@
 package commands
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"os"
 	"regexp"
 	"strings"
+	"text/tabwriter"
+	"time"
 
 	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/auth"
@@ -15,209 +20,291 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func init() {
-	rootCmd.AddCommand(newAPIKeysCommand())
-}
-
-func newAPIKeysCommand() *cobra.Command {
-	command := &cobra.Command{
-		Use:   "api-keys",
-		Short: "Manage organization API keys using a human sign-in",
+var (
+	apiKeysCmd = &cobra.Command{
+		Use:     "api-keys",
+		Short:   "api-keys contains commands for managing your organization's API keys",
+		Long:    `api-keys contains commands for managing your organization's API keys. Managing keys needs an org admin signed in with their own account (browser login, or --username and --password); it is refused when the CLI is using an API key or client credentials.`,
+		Aliases: []string{"api-key"},
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			RegisterViperFlags(cmd, args)
-			mode, err := auth.ConfigFromViper(viper.GetViper(), "").Mode()
-			if err != nil {
+			if err := requirePersonSignIn(viper.GetViper()); err != nil {
 				return err
 			}
-			if mode != auth.ModeDeviceCode && mode != auth.ModePassword {
-				return fmt.Errorf("API-key management requires a human sign-in; remove API-key and client-credential settings")
-			}
-			return SetClient(cmd, args)
-		},
-	}
-	list := &cobra.Command{
-		Use: "list", Short: "List key metadata and status", Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			response, err := bff.ListApiKeys(cmd.Context(), BffClient)
-			if err != nil {
-				return safeAPIKeyError(err)
-			}
-			return writeAPIKeyJSON(cmd, response.ApiKeys)
-		},
-	}
-	var createName, createAccess string
-	var createExpiry int
-	create := &cobra.Command{
-		Use: "create", Short: "Create a key and print its secret once", Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			access, expiry, err := apiKeyCreateOptions(createAccess, createExpiry)
-			if err != nil {
-				return err
-			}
-			name := strings.TrimSpace(createName)
-			if name == "" {
-				return fmt.Errorf("--name must not be empty")
-			}
-			return createAndPrintAPIKey(cmd, name, access, expiry)
-		},
-	}
-	create.Flags().StringVar(&createName, "name", "", "Unique key name")
-	create.Flags().StringVar(&createAccess, "access", "READ_ONLY", "Access: READ_ONLY or READ_WRITE")
-	create.Flags().IntVar(&createExpiry, "expires-in-days", 90, "Expiry: 30, 90, 365, or 0 for no expiry")
-	create.MarkFlagRequired("name")
-
-	var revokeID, revokeName string
-	revoke := &cobra.Command{
-		Use: "revoke", Short: "Revoke a key or retry a pending revocation", Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			id, name, err := apiKeySelector(revokeID, revokeName)
-			if err != nil {
-				return err
-			}
-			if id == "" {
-				key, err := findAPIKey(cmd, id, name)
-				if err != nil {
-					return err
-				}
-				id = key.Id
-			}
-			response, err := bff.RevokeApiKey(cmd.Context(), BffClient, id)
-			if err != nil {
-				return safeAPIKeyError(err)
-			}
-			if err := writeAPIKeyJSON(cmd, &response.RevokeApiKey); err != nil {
-				return err
-			}
-			if response.RevokeApiKey.Status == bff.ApiKeyStatusRevoking {
-				fmt.Fprintf(cmd.ErrOrStderr(), "Revocation is pending synchronization. Retry api-keys revoke --id %s to finish.\n", id)
-			}
+			SetClient(cmd, args)
 			return nil
 		},
 	}
-	revoke.Flags().StringVar(&revokeID, "id", "", "Key ID (also accepts revoked keys for safe retries)")
-	revoke.Flags().StringVar(&revokeName, "name", "", "Unique non-revoked key name")
-
-	var rotateID, rotateName, newName, rotateAccess string
-	var rotateExpiry int
-	rotate := &cobra.Command{
-		Use: "rotate", Short: "Create a replacement without changing the old key", Args: cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, _ []string) error {
-			id, name, err := apiKeySelector(rotateID, rotateName)
-			if err != nil {
-				return err
-			}
-			replacementName := strings.TrimSpace(newName)
-			if replacementName == "" {
-				return fmt.Errorf("--new-name must not be empty")
-			}
-			old, err := findAPIKey(cmd, id, name)
-			if err != nil {
-				return err
-			}
-			if replacementName == old.Name {
-				return fmt.Errorf("--new-name must differ from the old key name")
-			}
-			accessName := rotateAccess
-			if accessName == "" {
-				accessName = string(old.Access)
-			}
-			access, expiry, err := apiKeyCreateOptions(accessName, rotateExpiry)
-			if err != nil {
-				return err
-			}
-			err = createAndPrintAPIKey(cmd, replacementName, access, expiry)
-			if err != nil {
-				return fmt.Errorf("%w; the old key was not changed", err)
-			}
-			fmt.Fprintf(cmd.ErrOrStderr(), "The old key was not changed. Install and test the replacement, then use the same endpoint settings to run: signalflag api-keys revoke --id %s\n", old.Id)
-			return nil
-		},
+	createApiKeyCmd = &cobra.Command{
+		Use:   "create",
+		Short: "create - Creates an API key and prints it once",
+		Long:  ``,
+		Run:   createApiKey,
 	}
-	rotate.Flags().StringVar(&rotateID, "id", "", "Existing key ID")
-	rotate.Flags().StringVar(&rotateName, "name", "", "Existing unique non-revoked key name")
-	rotate.Flags().StringVar(&newName, "new-name", "", "Unique replacement key name")
-	rotate.Flags().StringVar(&rotateAccess, "access", "", "Access: READ_ONLY or READ_WRITE (defaults to the old key)")
-	rotate.Flags().IntVar(&rotateExpiry, "expires-in-days", 90, "Expiry: 30, 90, 365, or 0 for no expiry")
+	listApiKeysCmd = &cobra.Command{
+		Use:   "list",
+		Short: "list - Lists your organization's API keys",
+		Long:  ``,
+		Run:   listApiKeys,
+	}
+	revokeApiKeyCmd = &cobra.Command{
+		Use:   "revoke",
+		Short: "revoke - Revokes an API key by name or ID",
+		Long:  ``,
+		Run:   revokeApiKey,
+	}
+)
+
+const (
+	apiKeyNameKey          = "name"
+	apiKeyIDKey            = "id"
+	apiKeyAccessKey        = "access"
+	apiKeyExpiresInDaysKey = "expires-in-days"
+
+	apiKeysNeedPersonMessage = "Managing API keys needs a person signed in as an org admin."
+	apiKeyListHeader         = "ID\tNAME\tPREFIX\tACCESS\tCREATED BY\tEXPIRES\tSTATUS\n"
+)
+
+var apiKeyAccessValues = map[string]bff.ApiKeyAccess{
+	"read-only":  bff.ApiKeyAccessReadOnly,
+	"read-write": bff.ApiKeyAccessReadWrite,
+}
+
+var apiKeyExpiryValues = map[int]bool{0: true, 30: true, 90: true, 365: true}
+
+func init() {
+	createApiKeyCmd.Flags().String(apiKeyNameKey, "", "The name of the API key. Must be unique among your organization's active keys.")
+	createApiKeyCmd.MarkFlagRequired(apiKeyNameKey)
+	createApiKeyCmd.Flags().String(apiKeyAccessKey, "", "The key's access: read-only or read-write.")
+	createApiKeyCmd.MarkFlagRequired(apiKeyAccessKey)
+	createApiKeyCmd.Flags().Int(apiKeyExpiresInDaysKey, 90, "Days until the key expires: 30, 90 or 365, or 0 for no expiry.")
+	apiKeysCmd.AddCommand(createApiKeyCmd)
+
+	apiKeysCmd.AddCommand(listApiKeysCmd)
+
+	revokeApiKeyCmd.Flags().String(apiKeyNameKey, "", "The name of the active API key to revoke.")
+	revokeApiKeyCmd.Flags().String(apiKeyIDKey, "", "The ID of the API key to revoke.")
+	revokeApiKeyCmd.MarkFlagsOneRequired(apiKeyNameKey, apiKeyIDKey)
+	revokeApiKeyCmd.MarkFlagsMutuallyExclusive(apiKeyNameKey, apiKeyIDKey)
+	apiKeysCmd.AddCommand(revokeApiKeyCmd)
+
+	rotate := &cobra.Command{Use: "rotate", Short: "Create a replacement without changing the old key", RunE: func(cmd *cobra.Command, _ []string) error {
+		return actualRotateApiKey(cmd.Context(), BffClient, cmd.OutOrStdout(), viper.GetString(apiKeyNameKey), viper.GetString(apiKeyIDKey), viper.GetString("new-name"), viper.GetString(apiKeyAccessKey), viper.GetInt(apiKeyExpiresInDaysKey))
+	}}
+	rotate.Flags().String(apiKeyNameKey, "", "The active key to replace")
+	rotate.Flags().String(apiKeyIDKey, "", "The ID of the active key to replace")
+	rotate.MarkFlagsOneRequired(apiKeyNameKey, apiKeyIDKey)
+	rotate.MarkFlagsMutuallyExclusive(apiKeyNameKey, apiKeyIDKey)
+	rotate.Flags().String("new-name", "", "A different, unique replacement name")
 	rotate.MarkFlagRequired("new-name")
-	command.AddCommand(list, create, revoke, rotate)
-	return command
+	rotate.Flags().String(apiKeyAccessKey, "", "Access: read-only or read-write (defaults to the old key)")
+	rotate.Flags().Int(apiKeyExpiresInDaysKey, 90, "Expiry in days: 30, 90, 365, or 0 for no expiry")
+	apiKeysCmd.AddCommand(rotate)
+	rootCmd.AddCommand(apiKeysCmd)
 }
 
-func apiKeyCreateOptions(access string, days int) (bff.ApiKeyAccess, *int, error) {
-	preset := bff.ApiKeyAccess(strings.ToUpper(access))
-	if preset != bff.ApiKeyAccessReadOnly && preset != bff.ApiKeyAccessReadWrite {
-		return "", nil, fmt.Errorf("--access must be READ_ONLY or READ_WRITE")
-	}
-	switch days {
-	case 0, 30, 90, 365:
-		return preset, &days, nil
-	default:
-		return "", nil, fmt.Errorf("--expires-in-days must be 30, 90, 365, or 0 for no expiry")
-	}
-}
-
-func apiKeySelector(id, name string) (string, string, error) {
-	id, name = strings.TrimSpace(id), strings.TrimSpace(name)
-	if (id == "") == (name == "") {
-		return "", "", fmt.Errorf("provide exactly one of --id or --name")
-	}
-	return id, name, nil
-}
-
-func findAPIKey(cmd *cobra.Command, id, name string) (bff.ApiKeyMetadata, error) {
-	response, err := bff.ListApiKeys(cmd.Context(), BffClient)
+func requirePersonSignIn(v *viper.Viper) error {
+	mode, err := auth.DetermineAuthMode(auth.ConfigFromViper(v, ""))
 	if err != nil {
-		return bff.ApiKeyMetadata{}, safeAPIKeyError(err)
+		return err
 	}
-	var matches []bff.ApiKeyMetadata
-	for _, key := range response.ApiKeys {
-		if (id != "" && key.Id == id) || (name != "" && key.Name == name && key.Status != bff.ApiKeyStatusRevoked) {
-			matches = append(matches, key.ApiKeyMetadata)
-		}
+	if mode != auth.ModeDeviceCode && mode != auth.ModePassword {
+		return errors.New(apiKeysNeedPersonMessage)
 	}
-	if len(matches) == 0 {
-		return bff.ApiKeyMetadata{}, fmt.Errorf("no matching key; use api-keys list to inspect metadata")
+	return nil
+}
+
+func createApiKey(cmd *cobra.Command, args []string) {
+	err := actualCreateApiKey(context.Background(), BffClient, os.Stdout,
+		viper.GetString(apiKeyNameKey), viper.GetString(apiKeyAccessKey), viper.GetInt(apiKeyExpiresInDaysKey))
+	if err != nil {
+		log.Fatal(err)
 	}
-	if len(matches) > 1 {
-		return bff.ApiKeyMetadata{}, fmt.Errorf("key name is ambiguous; select it with --id")
-	}
-	return matches[0], nil
 }
 
 const apiKeyCreateRecovery = "Do not automatically retry creation. Run api-keys list; if the new key exists but its secret was not received, explicitly revoke that key before creating a replacement."
 
-func createAndPrintAPIKey(cmd *cobra.Command, name string, access bff.ApiKeyAccess, expiry *int) error {
-	response, err := bff.CreateApiKey(cmd.Context(), BffClient, name, access, expiry)
-	if err != nil {
-		return fmt.Errorf("%w. %s", safeAPIKeyError(err), apiKeyCreateRecovery)
+func actualCreateApiKey(ctx context.Context, client graphql.Client, w io.Writer, name, access string, expiresInDays int) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return errors.New("--name must not be empty")
 	}
-	if err := writeAPIKeyJSON(cmd, &response.CreateApiKey); err != nil {
+	accessValue, ok := apiKeyAccessValues[access]
+	if !ok {
+		return fmt.Errorf("--access must be read-only or read-write, got %q", access)
+	}
+	if !apiKeyExpiryValues[expiresInDays] {
+		return fmt.Errorf("--expires-in-days must be 30, 90, 365, or 0 for no expiry, got %d", expiresInDays)
+	}
+
+	resp, err := bff.CreateApiKey(ctx, client, name, accessValue, expiresInDays)
+	if err != nil {
+		return fmt.Errorf("%w. %s", bffError(err), apiKeyCreateRecovery)
+	}
+	created := resp.CreateApiKey
+	if created.Key == "" {
+		return fmt.Errorf("the created key was not received. %s", apiKeyCreateRecovery)
+	}
+	_, err = fmt.Fprintf(w, "Created API key %q (%s, %s).\n\n%s\n\nCopy this key now. It won't be shown again.\n", created.ApiKey.Name, formatApiKeyAccess(created.ApiKey.Access), describeApiKeyExpiry(created.ApiKey.ExpiresAt), created.Key)
+	if err != nil {
 		return fmt.Errorf("could not write the created key. %s", apiKeyCreateRecovery)
 	}
-	fmt.Fprintln(cmd.ErrOrStderr(), "Save this key securely; its secret cannot be shown again.")
 	return nil
 }
 
-func writeAPIKeyJSON(cmd *cobra.Command, value any) error {
-	encoder := json.NewEncoder(cmd.OutOrStdout())
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(value)
+func listApiKeys(cmd *cobra.Command, args []string) {
+	if err := actualListApiKeys(context.Background(), BffClient, os.Stdout); err != nil {
+		log.Fatal(err)
+	}
 }
 
-var apiKeySecretPattern = regexp.MustCompile(`sfk_[A-Za-z0-9_-]+`)
+func actualListApiKeys(ctx context.Context, client graphql.Client, w io.Writer) error {
+	resp, err := bff.ListApiKeys(ctx, client)
+	if err != nil {
+		return bffError(err)
+	}
+	if len(resp.ApiKeys) == 0 {
+		fmt.Fprintln(w, "no API keys")
+		return nil
+	}
 
-func safeAPIKeyError(err error) error {
-	var httpError *graphql.HTTPError
-	if errors.As(err, &httpError) {
-		return fmt.Errorf("API-key request failed (HTTP %d)", httpError.StatusCode)
+	tw := tabwriter.NewWriter(w, 0, 0, 4, ' ', 0)
+	fmt.Fprint(tw, apiKeyListHeader)
+	for _, k := range resp.ApiKeys {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+			k.Id, k.Name, k.Prefix, formatApiKeyAccess(k.Access), k.CreatedByEmail, formatApiKeyDate(k.ExpiresAt), formatApiKeyStatus(k.ApiKeyFields))
 	}
-	var graphQLErrors gqlerror.List
-	if errors.As(err, &graphQLErrors) {
-		messages := make([]string, len(graphQLErrors))
-		for i, item := range graphQLErrors {
-			messages[i] = apiKeySecretPattern.ReplaceAllString(item.Message, "[redacted]")
+	return tw.Flush()
+}
+
+func revokeApiKey(cmd *cobra.Command, args []string) {
+	err := actualRevokeApiKey(context.Background(), BffClient, os.Stdout, viper.GetString(apiKeyNameKey), viper.GetString(apiKeyIDKey))
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func actualRevokeApiKey(ctx context.Context, client graphql.Client, w io.Writer, name, id string) error {
+	if id == "" {
+		found, err := findActiveApiKey(ctx, client, name)
+		if err != nil {
+			return err
 		}
-		return errors.New(strings.Join(messages, "; "))
+		id = found
 	}
-	return fmt.Errorf("API-key request failed; check the endpoint and connection")
+
+	resp, err := bff.RevokeApiKey(ctx, client, id)
+	if err != nil {
+		return bffError(err)
+	}
+
+	key := resp.RevokeApiKey.ApiKeyFields
+	if key.RevocationPending {
+		_, err = fmt.Fprintf(w, "Revocation is pending synchronization for API key %q (%s). Retry api-keys revoke --id %s to finish.\n", key.Name, key.Prefix, key.Id)
+		return err
+	}
+	_, err = fmt.Fprintf(w, "Revoked API key %q (%s).\n", key.Name, key.Prefix)
+	return err
+}
+
+func findActiveApiKey(ctx context.Context, client graphql.Client, name string) (string, error) {
+	resp, err := bff.ListApiKeys(ctx, client)
+	if err != nil {
+		return "", bffError(err)
+	}
+	var id string
+	for _, k := range resp.ApiKeys {
+		if k.Name == name && (k.Status == bff.ApiKeyStatusActive || k.RevocationPending) {
+			if id != "" {
+				return "", errors.New("key name is ambiguous; select it with --id")
+			}
+			id = k.Id
+		}
+	}
+	if id != "" {
+		return id, nil
+	}
+	return "", fmt.Errorf("no active API key named %q", name)
+}
+
+func actualRotateApiKey(ctx context.Context, client graphql.Client, w io.Writer, name, id, newName, access string, expiresInDays int) error {
+	newName = strings.TrimSpace(newName)
+	if newName == "" {
+		return errors.New("--new-name must not be empty")
+	}
+	resp, err := bff.ListApiKeys(ctx, client)
+	if err != nil {
+		return bffError(err)
+	}
+	for _, key := range resp.ApiKeys {
+		if (id != "" && key.Id == id) || (id == "" && key.Name == name && key.Status == bff.ApiKeyStatusActive) {
+			if key.Status != bff.ApiKeyStatusActive || key.RevocationPending {
+				return errors.New("only an active key can be replaced")
+			}
+			if newName == key.Name {
+				return errors.New("--new-name must differ from the old key name")
+			}
+			if access == "" {
+				access = formatApiKeyAccess(key.Access)
+			}
+			if err := actualCreateApiKey(ctx, client, w, newName, access, expiresInDays); err != nil {
+				return fmt.Errorf("%w; the old key was not changed", err)
+			}
+			_, err := fmt.Fprintf(w, "The old key was not changed. Install and test the replacement, then use the same endpoint settings to run: signalflag api-keys revoke --id %s\n", key.Id)
+			return err
+		}
+	}
+	return errors.New("no matching active key; use api-keys list to inspect metadata")
+}
+
+var apiKeySecretPattern = regexp.MustCompile(`(?:sfk_|sf_live_)[A-Za-z0-9_-]+`)
+
+func bffError(err error) error {
+	var list gqlerror.List
+	var httpErr *graphql.HTTPError
+	if errors.As(err, &httpErr) {
+		return fmt.Errorf("API-key request failed (HTTP %d)", httpErr.StatusCode)
+	}
+	if !errors.As(err, &list) {
+		return errors.New("API-key request failed; check the endpoint and connection")
+	}
+	messages := make([]string, 0, len(list))
+	for _, e := range list {
+		messages = append(messages, apiKeySecretPattern.ReplaceAllString(e.Message, "[redacted]"))
+	}
+	return errors.New(strings.Join(messages, "\n"))
+}
+
+func formatApiKeyStatus(key bff.ApiKeyFields) string {
+	if key.RevocationPending {
+		return "revoking"
+	}
+	return strings.ToLower(string(key.Status))
+}
+
+func formatApiKeyAccess(access bff.ApiKeyAccess) string {
+	for flagValue, a := range apiKeyAccessValues {
+		if a == access {
+			return flagValue
+		}
+	}
+	return strings.ToLower(string(access))
+}
+
+func formatApiKeyDate(value string) string {
+	if value == "" {
+		return "never"
+	}
+	t, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return value
+	}
+	return t.Format("2006-01-02")
+}
+
+func describeApiKeyExpiry(expiresAt string) string {
+	if expiresAt == "" {
+		return "never expires"
+	}
+	return "expires " + formatApiKeyDate(expiresAt)
 }

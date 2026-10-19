@@ -4,8 +4,12 @@
 
 ### Unreleased
 
-- Adds organization API-key authentication through `--api-key` or `SIGNALFLAG_API_KEY` for REST and GraphQL commands, without caching the key or contacting Auth0. [#234](https://github.com/resim-ai/api-client/pull/234)
-- Adds `api-keys create`, `list`, `revoke` and `rotate` for human sign-ins. Rotation creates a replacement and keeps the old key active until explicit revocation. Pending revocation and lost one-time output are reported with recovery instructions. [#234](https://github.com/resim-ai/api-client/pull/234)
+- Adds `api-keys rotate` to create a replacement while leaving the old key active, recovery guidance after uncertain creation, secret redaction in failures, and explicit pending-revocation reporting. (#234)
+
+### v1.2.0 - October 16, 2026
+
+- Adds `signalflag api-keys create|list|revoke` for org admins to manage their organization's API keys. `create --name <name> --access read-only|read-write [--expires-in-days 30|90|365|0]` prints the key once (default expiry 90 days, `0` for none); `revoke` takes `--name` (the active key with that name) or `--id`. These commands need a person signed in and are refused when the CLI is using an API key or client credentials. (#235)
+- Adds API key authentication with `--api-key` or `SIGNALFLAG_API_KEY`. The key is sent as the bearer token on every request, with no Auth0 exchange and nothing written to the token cache. Combining it with client credentials or a username and password is rejected as ambiguous. (#235)
 
 ### v1.1.1 - October 15, 2026
 

@@ -4,10 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"strings"
-
-	"github.com/Khan/genqlient/graphql"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -102,55 +99,55 @@ func TestConfigFromViper_NoCredsLeavesAuthModeEmpty(t *testing.T) {
 	assert.Empty(t, cfg.AuthMode)
 }
 
-// --- Config.Mode ---
+// --- determineAuthMode ---
 
 func TestDetermineAuthMode_ClientCredentials(t *testing.T) {
-	mode, err := (Config{
+	mode, err := determineAuthMode(Config{
 		ClientID:     "id",
 		ClientSecret: "secret",
-	}).Mode()
+	})
 	require.NoError(t, err)
 	assert.Equal(t, ModeClientCredentials, mode)
 }
 
 func TestDetermineAuthMode_Password(t *testing.T) {
-	mode, err := (Config{
+	mode, err := determineAuthMode(Config{
 		Username: "user",
 		Password: "pass",
-	}).Mode()
+	})
 	require.NoError(t, err)
 	assert.Equal(t, ModePassword, mode)
 }
 
 func TestDetermineAuthMode_DeviceCode(t *testing.T) {
-	mode, err := (Config{}).Mode()
+	mode, err := determineAuthMode(Config{})
 	require.NoError(t, err)
 	assert.Equal(t, ModeDeviceCode, mode)
 }
 
 func TestDetermineAuthMode_Ambiguous(t *testing.T) {
-	_, err := (Config{
+	_, err := determineAuthMode(Config{
 		Username:     "user",
 		Password:     "pass",
 		ClientID:     "id",
 		ClientSecret: "secret",
-	}).Mode()
+	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "ambiguous")
 }
 
 func TestDetermineAuthMode_ExplicitOverride(t *testing.T) {
-	mode, err := (Config{
+	mode, err := determineAuthMode(Config{
 		AuthMode: ModePassword,
-	}).Mode()
+	})
 	require.NoError(t, err)
 	assert.Equal(t, ModePassword, mode)
 }
 
 func TestDetermineAuthMode_OnlyUsernameNoPassword(t *testing.T) {
-	mode, err := (Config{
+	mode, err := determineAuthMode(Config{
 		Username: "user",
-	}).Mode()
+	})
 	require.NoError(t, err)
 	assert.Equal(t, ModeDeviceCode, mode)
 }
@@ -539,25 +536,172 @@ func TestNewBFFClient_InvalidURL(t *testing.T) {
 	assert.Contains(t, err.Error(), "error parsing API url")
 }
 
-func TestAuthenticate_APIKeyBypassesOAuthAndCache(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, CredentialCacheFilename)
-	original := []byte("not a credential cache")
-	require.NoError(t, os.WriteFile(path, original, 0600))
+// --- API key mode ---
+
+func TestConfigFromViper_SetsAPIKeyMode(t *testing.T) {
 	v := viper.New()
-	v.Set("api-key", "  sfk_test_only  ")
-	v.Set(KeyURL, StagingAPIURL)
-	v.Set(KeyAuthURL, "://invalid-auth-url")
-	cfg := ConfigFromViper(v, dir)
+	v.Set(KeyAPIKey, "sf_live_abc")
+
+	cfg := ConfigFromViper(v, "/tmp/cache")
+	assert.Equal(t, "sf_live_abc", cfg.APIKey)
+	assert.Equal(t, ModeAPIKey, cfg.AuthMode)
+}
+
+func TestConfigFromViper_EmptyAPIKeyIsIgnored(t *testing.T) {
+	v := viper.New()
+	v.Set(KeyAPIKey, "")
+
+	cfg := ConfigFromViper(v, "/tmp/cache")
+	assert.Empty(t, cfg.AuthMode)
+}
+
+func TestConfigFromViper_APIKeyWithEmptyClientCredentialsSelectsAPIKey(t *testing.T) {
+	v := viper.New()
+	v.Set(KeyAPIKey, "sf_live_abc")
+	v.Set(KeyClientID, "")
+	v.Set(KeyClientSecret, "")
+
+	cfg := ConfigFromViper(v, "/tmp/cache")
+	mode, err := DetermineAuthMode(cfg)
+	require.NoError(t, err)
+	assert.Equal(t, ModeAPIKey, mode)
+}
+
+func TestDetermineAuthMode_APIKey(t *testing.T) {
+	mode, err := determineAuthMode(Config{APIKey: "sf_live_abc"})
+	require.NoError(t, err)
+	assert.Equal(t, ModeAPIKey, mode)
+}
+
+func TestDetermineAuthMode_APIKeyWithClientCredentialsIsAmbiguous(t *testing.T) {
+	cfg := Config{APIKey: "sf_live_abc", ClientID: "id", ClientSecret: "secret"}
+	_, err := determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+
+	cfg.AuthMode = ModeAPIKey
+	_, err = determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+}
+
+func TestDetermineAuthMode_APIKeyWithPasswordIsAmbiguous(t *testing.T) {
+	cfg := Config{APIKey: "sf_live_abc", Username: "user", Password: "pass"}
+	_, err := determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+
+	cfg.AuthMode = ModeAPIKey
+	_, err = determineAuthMode(cfg)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "ambiguous")
+}
+
+func TestDetermineAuthMode_APIKeyModeWithoutKey(t *testing.T) {
+	_, err := determineAuthMode(Config{AuthMode: ModeAPIKey})
+	assert.Error(t, err)
+}
+
+func TestAuthenticate_APIKey_NoAuthCallAndNoCacheWrite(t *testing.T) {
+	authCalls := 0
+	authServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authCalls++
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer authServer.Close()
+
+	dir := t.TempDir()
+	cfg := Config{
+		APIURL:   ProdAPIURL,
+		AuthURL:  authServer.URL,
+		APIKey:   "sf_live_abc",
+		CacheDir: dir,
+	}
+
 	result, err := Authenticate(context.Background(), cfg)
 	require.NoError(t, err)
+	assert.Equal(t, ProdAPIURL, result.APIURL)
+	assert.Equal(t, 0, authCalls)
+
 	token, err := result.Cache.TokenSource.Token()
 	require.NoError(t, err)
-	assert.Equal(t, "sfk_test_only", token.AccessToken)
+	assert.Equal(t, "sf_live_abc", token.AccessToken)
+	assert.Equal(t, "Bearer", token.TokenType)
+
 	require.NoError(t, result.Cache.Save(dir))
-	actual, err := os.ReadFile(path)
+	assert.NoFileExists(t, filepath.Join(dir, CredentialCacheFilename))
+}
+
+func TestAuthenticate_APIKey_LeavesExistingCacheUntouched(t *testing.T) {
+	dir := t.TempDir()
+	cached := map[string]oauth2.Token{
+		DefaultProdInteractiveClientID: {AccessToken: "person-token", Expiry: time.Now().Add(time.Hour)},
+	}
+	data, err := json.Marshal(cached)
 	require.NoError(t, err)
-	assert.Equal(t, original, actual)
+	path := filepath.Join(dir, CredentialCacheFilename)
+	require.NoError(t, os.WriteFile(path, data, 0600))
+
+	cfg := DefaultConfig()
+	cfg.CacheDir = dir
+	cfg.APIKey = "sf_live_abc"
+
+	result, err := Authenticate(context.Background(), cfg)
+	require.NoError(t, err)
+	require.NoError(t, result.Cache.Save(dir))
+
+	after, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, data, after)
+}
+
+func TestAuthenticate_APIKey_Govcloud(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.CacheDir = t.TempDir()
+	cfg.APIKey = "sf_live_abc"
+	cfg.Govcloud = true
+
+	result, err := Authenticate(context.Background(), cfg)
+	require.NoError(t, err)
+	assert.Equal(t, ProdGovcloudURL, result.APIURL)
+}
+
+func TestAPIKey_ClientsSendKeyAsBearer(t *testing.T) {
+	var gotAuth []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = append(gotAuth, r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/graphql" {
+			w.Write([]byte(`{"data":{}}`))
+			return
+		}
+		w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	cfg := Config{
+		APIURL:   server.URL + "/v1/",
+		AuthURL:  server.URL,
+		APIKey:   "sf_live_abc",
+		CacheDir: t.TempDir(),
+	}
+	result, err := Authenticate(context.Background(), cfg)
+	require.NoError(t, err)
+
+	apiClient, err := NewAPIClient(context.Background(), *result.Cache, result.APIURL)
+	require.NoError(t, err)
+	_, err = apiClient.ListProjectsWithResponse(context.Background(), nil)
+	require.NoError(t, err)
+
+	bffClient, err := NewBFFClient(context.Background(), *result.Cache, result.APIURL)
+	require.NoError(t, err)
+	var resp graphql.Response
+	require.NoError(t, bffClient.MakeRequest(context.Background(), &graphql.Request{Query: "query { __typename }"}, &resp))
+
+	require.Len(t, gotAuth, 2)
+	for _, h := range gotAuth {
+		assert.Equal(t, "Bearer sf_live_abc", h)
+	}
 }
 
 func TestAuthenticate_APIKeyRejectsOtherCredentials(t *testing.T) {
@@ -570,67 +714,6 @@ func TestAuthenticate_APIKeyRejectsOtherCredentials(t *testing.T) {
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "ambiguous")
 			assert.NotContains(t, err.Error(), "sfk_test_only")
-		})
-	}
-}
-
-type apiKeyTransport struct {
-	t    *testing.T
-	urls []string
-}
-
-func (transport *apiKeyTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	transport.urls = append(transport.urls, req.URL.String())
-	assert.Equal(transport.t, "Bearer sfk_transport_test", req.Header.Get("Authorization"))
-	return &http.Response{StatusCode: http.StatusOK, Header: http.Header{"Content-Type": {"application/json"}}, Body: io.NopCloser(strings.NewReader(`{"data":{},"projects":[]}`))}, nil
-}
-
-func TestAuthenticate_APIKeyBothClients(t *testing.T) {
-	transport := &apiKeyTransport{t: t}
-	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, &http.Client{Transport: transport})
-	cfg := DefaultConfig()
-	cfg.APIKey = "  sfk_transport_test  "
-	cfg.APIURL = "https://api.example.test/v1/"
-	cfg.AuthURL = "://unused"
-	cfg.CacheDir = filepath.Join(t.TempDir(), "unused")
-	result, err := Authenticate(ctx, cfg)
-	require.NoError(t, err)
-	client, err := NewAPIClient(ctx, *result.Cache, result.APIURL)
-	require.NoError(t, err)
-	_, err = client.ListProjectsWithResponse(ctx, nil)
-	require.NoError(t, err)
-	bffClient, err := NewBFFClient(ctx, *result.Cache, result.APIURL)
-	require.NoError(t, err)
-	err = bffClient.MakeRequest(ctx, &graphql.Request{Query: "query { __typename }"}, &graphql.Response{})
-	require.NoError(t, err)
-	assert.Equal(t, []string{"https://api.example.test/v1/projects", "https://bff.example.test/graphql"}, transport.urls)
-	require.NoError(t, result.Cache.Save(cfg.CacheDir))
-	assert.NoDirExists(t, cfg.CacheDir)
-}
-
-func TestAPIKeyConfigAndGovcloud(t *testing.T) {
-	t.Setenv("SIGNALFLAG_API_KEY", "sfk_environment_test")
-	v := viper.New()
-	v.SetEnvPrefix("SIGNALFLAG")
-	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
-	v.AutomaticEnv()
-	assert.Equal(t, "sfk_environment_test", ConfigFromViper(v, "").APIKey)
-	for _, tc := range []struct {
-		name, authURL, apiURL, want string
-		fails                       bool
-	}{
-		{"production", ProdAuthURL, ProdAPIURL, ProdGovcloudURL, false},
-		{"development explicit", DevAuthURL, StagingAPIURL, StagingAPIURL, false},
-		{"development missing target", DevAuthURL, ProdAPIURL, "", true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			result, err := Authenticate(context.Background(), Config{APIKey: "sfk_test", AuthURL: tc.authURL, APIURL: tc.apiURL, Govcloud: true})
-			if tc.fails {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-			assert.Equal(t, tc.want, result.APIURL)
 		})
 	}
 }

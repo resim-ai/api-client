@@ -4,390 +4,428 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"github.com/stretchr/testify/require"
-	"log"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"path/filepath"
+	"errors"
 	"strings"
-	"sync"
 	"testing"
-	"time"
 
+	"github.com/Khan/genqlient/graphql"
 	"github.com/resim-ai/api-client/auth"
-	"github.com/spf13/cobra"
+	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/oauth2"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
-func TestAPIKeyCommandsRegistered(t *testing.T) {
-	for _, name := range []string{"create", "list", "revoke", "rotate"} {
-		command, _, err := rootCmd.Find([]string{"api-keys", name})
-		require.NoError(t, err)
-		require.Equal(t, name, command.Name())
+const retryMessage = "Could not finish the change on every service. Nothing was changed; try again."
+
+func apiKeyFields(id, name string, access bff.ApiKeyAccess, status bff.ApiKeyStatus, expiresAt string) bff.ApiKeyFields {
+	return bff.ApiKeyFields{
+		Id:             id,
+		Name:           name,
+		Prefix:         "sf_" + id,
+		Access:         access,
+		CreatedByEmail: "admin@example.com",
+		CreatedAt:      "2026-10-01T12:00:00Z",
+		ExpiresAt:      expiresAt,
+		Status:         status,
 	}
 }
 
-type apiKeyRequest struct {
-	Operation string         `json:"operationName"`
-	Query     string         `json:"query"`
-	Variables map[string]any `json:"variables"`
+func isOp(name string) func(*graphql.Request) bool {
+	return func(req *graphql.Request) bool { return req.OpName == name }
 }
 
-type apiKeyFixture struct {
-	t                    *testing.T
-	mu                   sync.Mutex
-	requests             []apiKeyRequest
-	cachePath            string
-	stdout, stderr, logs bytes.Buffer
+func requestVars(req *graphql.Request) map[string]any {
+	vars := map[string]any{}
+	data, _ := json.Marshal(req.Variables)
+	json.Unmarshal(data, &vars)
+	return vars
 }
 
-func newAPIKeyFixture(t *testing.T, respond func(http.ResponseWriter, apiKeyRequest)) *apiKeyFixture {
-	t.Helper()
-	fixture := &apiKeyFixture{t: t}
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/graphql", r.URL.Path)
-		assert.Equal(t, "Bearer human-test-token", r.Header.Get("Authorization"))
-		var request apiKeyRequest
-		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-			t.Error(err)
-			w.WriteHeader(400)
-			return
+func withListApiKeys(keys ...bff.ApiKeyFields) func(mock.Arguments) {
+	return func(args mock.Arguments) {
+		data := args.Get(2).(*graphql.Response).Data.(*bff.ListApiKeysResponse)
+		for _, k := range keys {
+			data.ApiKeys = append(data.ApiKeys, bff.ListApiKeysApiKeysApiKey{ApiKeyFields: k})
 		}
-		fixture.mu.Lock()
-		fixture.requests = append(fixture.requests, request)
-		fixture.mu.Unlock()
-		w.Header().Set("Content-Type", "application/json")
-		respond(w, request)
-	}))
-	t.Cleanup(server.Close)
-	viper.Reset()
-	t.Cleanup(viper.Reset)
-	t.Setenv("HOME", t.TempDir())
-	dir, err := GetConfigDir()
-	require.NoError(t, err)
-	fixture.cachePath = filepath.Join(dir, auth.CredentialCacheFilename)
-	tokens, err := json.Marshal(map[string]oauth2.Token{
-		auth.DefaultProdInteractiveClientID: {AccessToken: "human-test-token", TokenType: "Bearer", Expiry: time.Now().Add(time.Hour)},
-	})
-	require.NoError(t, err)
-	require.NoError(t, os.WriteFile(fixture.cachePath, tokens, 0600))
-	viper.Set(auth.KeyURL, server.URL+"/v1/")
-	viper.Set(auth.KeyAuthURL, auth.ProdAuthURL)
-	viper.Set(auth.KeyProdInteractiveClient, auth.DefaultProdInteractiveClientID)
-	oldClient, oldBFF, oldLog := Client, BffClient, log.Writer()
-	log.SetOutput(&fixture.logs)
-	t.Cleanup(func() { Client, BffClient = oldClient, oldBFF; log.SetOutput(oldLog) })
-	return fixture
-}
-
-func (fixture *apiKeyFixture) run(args ...string) error {
-	fixture.t.Helper()
-	command := newAPIKeysCommand()
-	command.SilenceErrors, command.SilenceUsage = true, true
-	command.SetOut(&fixture.stdout)
-	command.SetErr(&fixture.stderr)
-	command.SetArgs(args)
-	return command.Execute()
-}
-
-func (fixture *apiKeyFixture) recorded() []apiKeyRequest {
-	fixture.mu.Lock()
-	defer fixture.mu.Unlock()
-	return append([]apiKeyRequest(nil), fixture.requests...)
-}
-
-func keyMetadata(id, name, access, status string) map[string]any {
-	return map[string]any{"id": id, "name": name, "access": access, "status": status, "prefix": "sfk_public", "createdByEmail": "admin@example.test", "createdAt": "2026-10-16T00:00:00Z", "expiresAt": nil, "revokedAt": nil}
-}
-
-func TestAPIKeyCreateDefaultsAndOutput(t *testing.T) {
-	const secret = "sfk_once_only_test"
-	fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, request apiKeyRequest) {
-		assert.Equal(t, "CreateApiKey", request.Operation)
-		assert.Equal(t, map[string]any{"name": "automation", "access": "READ_ONLY", "expiresInDays": float64(90)}, request.Variables)
-		json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"createApiKey": map[string]any{"apiKey": keyMetadata("new-id", "automation", "READ_ONLY", "ACTIVE"), "key": secret}}})
-	})
-	require.NoError(t, fixture.run("create", "--name", "automation"))
-	assert.Equal(t, 1, strings.Count(fixture.stdout.String(), secret))
-	var output struct {
-		ApiKey struct {
-			ID string `json:"id"`
-		} `json:"apiKey"`
-	}
-	require.NoError(t, json.Unmarshal(fixture.stdout.Bytes(), &output))
-	assert.Equal(t, "new-id", output.ApiKey.ID)
-	assert.NotContains(t, fixture.stderr.String(), secret)
-	assert.Contains(t, fixture.stderr.String(), "cannot be shown again")
-	assert.NotContains(t, fixture.logs.String(), secret)
-	cached, err := os.ReadFile(fixture.cachePath)
-	require.NoError(t, err)
-	assert.NotContains(t, string(cached), secret)
-	assert.Len(t, fixture.recorded(), 1)
-}
-
-func TestAPIKeyCreateExplicitAccessAndExpiry(t *testing.T) {
-	for _, days := range []int{0, 30, 365} {
-		t.Run(fmt.Sprint(days), func(t *testing.T) {
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, request apiKeyRequest) {
-				assert.Equal(t, "READ_WRITE", request.Variables["access"])
-				if days == 0 {
-					assert.Equal(t, float64(0), request.Variables["expiresInDays"])
-				} else {
-					assert.Equal(t, float64(days), request.Variables["expiresInDays"])
-				}
-				fmt.Fprint(w, `{"data":{"createApiKey":{"apiKey":{"id":"new","status":"ACTIVE"},"key":"sfk_once"}}}`)
-			})
-			require.NoError(t, fixture.run("create", "--name", "automation", "--access", "READ_WRITE", "--expires-in-days", fmt.Sprint(days)))
-		})
 	}
 }
 
-func TestAPIKeyCreateValidationBeforeMutation(t *testing.T) {
-	for _, args := range [][]string{
-		{"create", "--name", " "},
-		{"create", "--name", "automation", "--access", "ADMIN"},
-		{"create", "--name", "automation", "--expires-in-days", "2"},
-	} {
-		t.Run(strings.Join(args, " "), func(t *testing.T) {
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, _ apiKeyRequest) { t.Error("unexpected request") })
-			require.Error(t, fixture.run(args...))
-			assert.Empty(t, fixture.recorded())
-		})
+func bffErrors(messages ...string) error {
+	var list gqlerror.List
+	for _, m := range messages {
+		list = append(list, &gqlerror.Error{Message: m, Path: ast.Path{ast.PathName("createApiKey")}})
 	}
+	return list
 }
 
-func TestAPIKeyCreateErrorsDoNotExposeSecretOrReplay(t *testing.T) {
-	for _, tc := range []struct {
-		name       string
-		status     int
-		body, want string
-	}{
-		{"duplicate", 200, `{"errors":[{"message":"name has already been taken"}]}`, "name has already been taken"},
-		{"member", 200, `{"errors":[{"message":"admin required"}]}`, "admin required"},
-		{"uncertain HTTP result", 502, `{"data":{"createApiKey":{"key":"sfk_lost_secret"}}}`, "HTTP 502"},
-		{"truncated response", 200, `{"data":{"createApiKey":{"key":"sfk_lost_secret`, "API-key request failed"},
-		{"partial error", 200, `{"data":{"createApiKey":{"key":"sfk_lost_secret"}},"errors":[{"message":"failed sfk_lost_secret"}]}`, "[redacted]"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, _ apiKeyRequest) { w.WriteHeader(tc.status); fmt.Fprint(w, tc.body) })
-			err := fixture.run("create", "--name", "automation")
-			require.Error(t, err)
-			assert.Contains(t, err.Error(), tc.want)
-			assert.Contains(t, err.Error(), "Do not automatically retry")
-			assert.NotContains(t, err.Error(), "sfk_lost_secret")
-			assert.Empty(t, fixture.stdout.String())
-			assert.NotContains(t, fixture.stderr.String()+fixture.logs.String(), "sfk_lost_secret")
-			assert.Len(t, fixture.recorded(), 1)
-		})
-	}
-}
+// --- auth guard ---
 
-func TestAPIKeyListMetadataOnly(t *testing.T) {
-	fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, request apiKeyRequest) {
-		assert.Equal(t, "ListApiKeys", request.Operation)
-		json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"apiKeys": []any{keyMetadata("old-id", "automation", "READ_ONLY", "REVOKING")}}})
-	})
-	require.NoError(t, fixture.run("list"))
-	var keys []map[string]any
-	require.NoError(t, json.Unmarshal(fixture.stdout.Bytes(), &keys))
-	require.Len(t, keys, 1)
-	assert.Equal(t, "old-id", keys[0]["id"])
-	assert.Equal(t, "REVOKING", keys[0]["status"])
-	assert.NotContains(t, keys[0], "key")
-	assert.NotContains(t, fixture.recorded()[0].Query, "createApiKey")
-}
-
-func TestAPIKeyManagementRefusesMachineModesBeforeRequests(t *testing.T) {
-	for _, mode := range []string{"key", "client"} {
-		t.Run(mode, func(t *testing.T) {
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, _ apiKeyRequest) { t.Error("unexpected request") })
-			if mode == "key" {
-				viper.Set(auth.KeyAPIKey, "sfk_machine")
-			} else {
-				viper.Set(auth.KeyClientID, "client")
-				viper.Set(auth.KeyClientSecret, "secret")
-			}
-			for _, args := range [][]string{{"list"}, {"create", "--name", "key"}, {"revoke", "--id", "old"}, {"rotate", "--id", "old", "--new-name", "replacement"}} {
-				err := fixture.run(args...)
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), "human sign-in")
-			}
-			assert.Empty(t, fixture.recorded())
-		})
-	}
-}
-
-func TestAPIKeyRevokeIDRetriesPending(t *testing.T) {
-	fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, request apiKeyRequest) {
-		assert.Equal(t, "RevokeApiKey", request.Operation)
-		assert.Equal(t, "old-id", request.Variables["id"])
-		status := "REVOKING"
-		fmt.Fprintf(w, `{"data":{"revokeApiKey":{"id":"old-id","status":%q}}}`, status)
-	})
-	require.NoError(t, fixture.run("revoke", "--id", "old-id"))
-	assert.Contains(t, fixture.stdout.String(), "REVOKING")
-	assert.Contains(t, fixture.stderr.String(), "pending synchronization")
-	assert.Contains(t, fixture.stderr.String(), "revoke --id old-id")
-	require.NoError(t, fixture.run("revoke", "--id", "old-id"))
-	assert.Len(t, fixture.recorded(), 2)
-}
-
-func TestAPIKeyRevokeByNameSelection(t *testing.T) {
-	for _, tc := range []struct {
+func TestApiKeysAuthGuard(t *testing.T) {
+	cases := []struct {
 		name    string
-		keys    []any
-		wantErr string
-		wantID  string
+		set     map[string]string
+		allowed bool
 	}{
-		{"unique live", []any{keyMetadata("revoked", "key", "READ_ONLY", "REVOKED"), keyMetadata("live", "key", "READ_ONLY", "ACTIVE")}, "", "live"},
-		{"missing", []any{}, "no matching key", ""},
-		{"ambiguous", []any{keyMetadata("a", "key", "READ_ONLY", "ACTIVE"), keyMetadata("b", "key", "READ_ONLY", "REVOKING")}, "ambiguous", ""},
-	} {
+		{name: "device code", set: map[string]string{}, allowed: true},
+		{name: "password", set: map[string]string{auth.KeyUsername: "u", auth.KeyPassword: "p"}, allowed: true},
+		{name: "client credentials", set: map[string]string{auth.KeyClientID: "id", auth.KeyClientSecret: "secret"}},
+		{name: "api key", set: map[string]string{auth.KeyAPIKey: "sf_live_abc"}},
+	}
+	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, request apiKeyRequest) {
-				if request.Operation == "ListApiKeys" {
-					json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"apiKeys": tc.keys}})
-					return
-				}
-				assert.Equal(t, "RevokeApiKey", request.Operation)
-				assert.Equal(t, tc.wantID, request.Variables["id"])
-				fmt.Fprintf(w, `{"data":{"revokeApiKey":{"id":%q,"status":"REVOKED"}}}`, tc.wantID)
-			})
-			err := fixture.run("revoke", "--name", "key")
-			if tc.wantErr != "" {
-				require.ErrorContains(t, err, tc.wantErr)
-				assert.Len(t, fixture.recorded(), 1)
-			} else {
-				require.NoError(t, err)
-				assert.Len(t, fixture.recorded(), 2)
-				assert.NotContains(t, fixture.stderr.String(), "pending")
+			v := viper.New()
+			for k, val := range tc.set {
+				v.Set(k, val)
 			}
-		})
-	}
-}
-
-func TestAPIKeySelectorRequiresExactlyOne(t *testing.T) {
-	for _, args := range [][]string{{"revoke"}, {"revoke", "--id", "id", "--name", "name"}, {"rotate", "--new-name", "replacement"}} {
-		t.Run(strings.Join(args, " "), func(t *testing.T) {
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, _ apiKeyRequest) { t.Error("unexpected request") })
-			require.ErrorContains(t, fixture.run(args...), "exactly one")
-			assert.Empty(t, fixture.recorded())
-		})
-	}
-}
-
-func TestAPIKeyRotateCreatesReplacementWithoutRevoking(t *testing.T) {
-	for _, tc := range []struct {
-		status string
-		fail   bool
-	}{{"ACTIVE", false}, {"ACTIVE", true}, {"EXPIRED", false}} {
-		t.Run(fmt.Sprint(tc.status, tc.fail), func(t *testing.T) {
-			fail := tc.fail
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, request apiKeyRequest) {
-				switch request.Operation {
-				case "ListApiKeys":
-					json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"apiKeys": []any{keyMetadata("old-id", "old", "READ_WRITE", tc.status)}}})
-				case "CreateApiKey":
-					assert.Equal(t, map[string]any{"name": "replacement", "access": "READ_WRITE", "expiresInDays": float64(90)}, request.Variables)
-					if fail {
-						w.WriteHeader(502)
-						fmt.Fprint(w, "lost response")
-						return
-					}
-					fmt.Fprint(w, `{"data":{"createApiKey":{"apiKey":{"id":"new-id","status":"ACTIVE"},"key":"sfk_replacement"}}}`)
-				default:
-					t.Errorf("unexpected operation %s", request.Operation)
-				}
-			})
-			err := fixture.run("rotate", "--id", "old-id", "--new-name", "replacement")
-			if fail {
-				require.ErrorContains(t, err, "old key was not changed")
-				assert.Empty(t, fixture.stdout.String())
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, 1, strings.Count(fixture.stdout.String(), "sfk_replacement"))
-				assert.Contains(t, fixture.stderr.String(), "old key was not changed")
-				assert.Contains(t, fixture.stderr.String(), "revoke --id old-id")
+			err := requirePersonSignIn(v)
+			if tc.allowed {
+				assert.NoError(t, err)
+				return
 			}
-			require.Len(t, fixture.recorded(), 2)
-			assert.Equal(t, "CreateApiKey", fixture.recorded()[1].Operation)
+			require.Error(t, err)
+			assert.Equal(t, "Managing API keys needs a person signed in as an org admin.", err.Error())
 		})
 	}
 }
 
-func TestAPIKeyRotateInvalidSourceDoesNotCreate(t *testing.T) {
-	for _, tc := range []struct {
-		name, status, newName string
-		keys                  bool
-		want                  string
-	}{
-		{"missing", "ACTIVE", "new", false, "no matching key"},
-		{"same name", "ACTIVE", "old", true, "must differ"},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, request apiKeyRequest) {
-				assert.Equal(t, "ListApiKeys", request.Operation)
-				keys := []any{}
-				if tc.keys {
-					keys = append(keys, keyMetadata("old-id", "old", "READ_ONLY", tc.status))
-				}
-				json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"apiKeys": keys}})
-			})
-			require.ErrorContains(t, fixture.run("rotate", "--id", "old-id", "--new-name", tc.newName), tc.want)
-			assert.Len(t, fixture.recorded(), 1)
-		})
-	}
+func TestApiKeysPreRunRefusesAPIKeyBeforeAnyRequest(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	viper.Reset()
+	defer viper.Reset()
+	viper.Set(auth.KeyAPIKey, "sf_live_abc")
+
+	origClient, origBff := Client, BffClient
+	defer func() { Client, BffClient = origClient, origBff }()
+	mockBff := new(mockGraphQLClient)
+	BffClient = mockBff
+	Client = nil
+
+	err := apiKeysCmd.PersistentPreRunE(listApiKeysCmd, nil)
+	require.Error(t, err)
+	assert.Equal(t, "Managing API keys needs a person signed in as an org admin.", err.Error())
+	assert.Same(t, mockBff, BffClient)
+	assert.Nil(t, Client)
+	mockBff.AssertNotCalled(t, "MakeRequest", mock.Anything, mock.Anything, mock.Anything)
 }
 
-func TestAPIKeySetupNeverWritesCredentialCache(t *testing.T) {
-	fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, _ apiKeyRequest) { t.Error("unexpected request") })
-	const original = "invalid existing cache"
-	require.NoError(t, os.WriteFile(fixture.cachePath, []byte(original), 0600))
-	viper.Set(auth.KeyAPIKey, "sfk_machine")
-	viper.Set(auth.KeyAuthURL, "://unused")
-	command := newAPIKeysCommand()
-	command.SetContext(context.Background())
-	command.SetErr(&fixture.stderr)
-	require.NoError(t, SetClient(command, nil))
-	cached, err := os.ReadFile(fixture.cachePath)
+func TestAPIKeyFromEnvironment(t *testing.T) {
+	t.Setenv(EnvPrefix+"_API_KEY", "sf_live_env")
+	v := viper.New()
+	v.SetEnvPrefix(EnvPrefix)
+	v.AutomaticEnv()
+	v.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
+
+	cfg := auth.ConfigFromViper(v, t.TempDir())
+	assert.Equal(t, "sf_live_env", cfg.APIKey)
+	assert.Equal(t, auth.ModeAPIKey, cfg.AuthMode)
+}
+
+func TestRootHasAPIKeyFlag(t *testing.T) {
+	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(auth.KeyAPIKey))
+}
+
+// --- create ---
+
+func TestCreateApiKey_PrintsKeyOnce(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
+		vars := requestVars(req)
+		return req.OpName == "CreateApiKey" && vars["name"] == "ci-runner" && vars["access"] == "READ_ONLY" && vars["expiresInDays"] == float64(90)
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		data := args.Get(2).(*graphql.Response).Data.(*bff.CreateApiKeyResponse)
+		data.CreateApiKey.Key = "sf_live_secretvalue"
+		data.CreateApiKey.ApiKey.ApiKeyFields = apiKeyFields("k1", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusActive, "2027-01-14T12:00:00Z")
+	}).Return(nil).Once()
+
+	var out bytes.Buffer
+	err := actualCreateApiKey(context.Background(), mockBff, &out, "ci-runner", "read-only", 90)
 	require.NoError(t, err)
-	assert.Equal(t, original, string(cached))
-	assert.Empty(t, fixture.logs.String())
-	assert.Empty(t, fixture.recorded())
+
+	text := out.String()
+	assert.Equal(t, 1, strings.Count(text, "sf_live_secretvalue"))
+	assert.Contains(t, text, "won't be shown again")
+	assert.Contains(t, text, "ci-runner")
+	mockBff.AssertExpectations(t)
 }
 
-type failedAPIKeyOutput struct{}
+func TestCreateApiKey_NoExpiryAndReadWrite(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
+		vars := requestVars(req)
+		return req.OpName == "CreateApiKey" && vars["access"] == "READ_WRITE" && vars["expiresInDays"] == float64(0)
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		data := args.Get(2).(*graphql.Response).Data.(*bff.CreateApiKeyResponse)
+		data.CreateApiKey.Key = "sf_live_other"
+		data.CreateApiKey.ApiKey.ApiKeyFields = apiKeyFields("k2", "deploy", bff.ApiKeyAccessReadWrite, bff.ApiKeyStatusActive, "")
+	}).Return(nil).Once()
 
-func (failedAPIKeyOutput) Write(_ []byte) (int, error) { return 0, fmt.Errorf("output unavailable") }
+	var out bytes.Buffer
+	require.NoError(t, actualCreateApiKey(context.Background(), mockBff, &out, "deploy", "read-write", 0))
+	assert.Contains(t, out.String(), "never expires")
+	mockBff.AssertExpectations(t)
+}
 
-func TestAPIKeyLostOutputDoesNotReplayCreation(t *testing.T) {
-	fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, _ apiKeyRequest) {
-		fmt.Fprint(w, `{"data":{"createApiKey":{"apiKey":{"id":"new-id"},"key":"sfk_output_lost"}}}`)
-	})
-	command := newAPIKeysCommand()
-	command.SilenceErrors, command.SilenceUsage = true, true
-	command.SetOut(failedAPIKeyOutput{})
-	command.SetErr(&fixture.stderr)
-	command.SetArgs([]string{"create", "--name", "automation"})
-	err := command.Execute()
-	require.ErrorContains(t, err, "could not write the created key")
+func TestCreateApiKey_RejectsBadInputWithoutRequest(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	var out bytes.Buffer
+
+	err := actualCreateApiKey(context.Background(), mockBff, &out, "x", "admin", 90)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--access")
+
+	err = actualCreateApiKey(context.Background(), mockBff, &out, "x", "read-only", 7)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--expires-in-days")
+
+	mockBff.AssertNotCalled(t, "MakeRequest", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestCreateApiKey_BFFErrorsIncludeRecovery(t *testing.T) {
+	messages := []string{
+		"An active API key named ci-runner already exists.",
+		"Only org admins can manage API keys.",
+		retryMessage,
+	}
+	for _, msg := range messages {
+		t.Run(msg, func(t *testing.T) {
+			mockBff := new(mockGraphQLClient)
+			mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("CreateApiKey")), mock.Anything).
+				Return(bffErrors(msg)).Once()
+
+			var out bytes.Buffer
+			err := actualCreateApiKey(context.Background(), mockBff, &out, "ci-runner", "read-only", 90)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), msg)
+			assert.Empty(t, out.String())
+		})
+	}
+}
+
+func TestCreateApiKey_HTTPErrorOmitsBody(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.Anything, mock.Anything).Return(&graphql.HTTPError{
+		StatusCode: 403,
+		Response:   graphql.Response{Errors: gqlerror.List{{Message: "Only org admins can manage API keys."}}},
+	}).Once()
+
+	err := actualCreateApiKey(context.Background(), mockBff, &bytes.Buffer{}, "ci-runner", "read-only", 90)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "HTTP 403")
+	assert.NotContains(t, err.Error(), "Only org admins")
+}
+
+// --- list ---
+
+func TestListApiKeys(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).
+		Run(withListApiKeys(
+			apiKeyFields("k1", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusActive, "2027-01-14T12:00:00Z"),
+			apiKeyFields("k2", "deploy", bff.ApiKeyAccessReadWrite, bff.ApiKeyStatusRevoked, ""),
+			apiKeyFields("k3", "laptop", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusExpired, "2026-09-30T12:00:00Z"),
+		)).Return(nil).Once()
+
+	var out bytes.Buffer
+	require.NoError(t, actualListApiKeys(context.Background(), mockBff, &out))
+
+	lines := strings.Split(strings.TrimSpace(out.String()), "\n")
+	require.Len(t, lines, 4)
+	for _, col := range []string{"ID", "NAME", "PREFIX", "ACCESS", "CREATED BY", "EXPIRES", "STATUS"} {
+		assert.Contains(t, lines[0], col)
+	}
+	assert.True(t, strings.HasPrefix(lines[1], "k1 "))
+	assert.Contains(t, lines[1], "ci-runner")
+	assert.Contains(t, lines[1], "sf_k1")
+	assert.Contains(t, lines[1], "read-only")
+	assert.Contains(t, lines[1], "admin@example.com")
+	assert.Contains(t, lines[1], "2027-01-14")
+	assert.True(t, strings.HasSuffix(lines[1], "active"))
+
+	assert.Contains(t, lines[2], "deploy")
+	assert.Contains(t, lines[2], "never")
+	assert.True(t, strings.HasSuffix(lines[2], "revoked"))
+
+	assert.Contains(t, lines[3], "2026-09-30")
+	assert.True(t, strings.HasSuffix(lines[3], "expired"))
+	mockBff.AssertExpectations(t)
+}
+
+func TestListApiKeys_Empty(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).
+		Return(nil).Once()
+
+	var out bytes.Buffer
+	require.NoError(t, actualListApiKeys(context.Background(), mockBff, &out))
+	assert.Equal(t, "no API keys\n", out.String())
+}
+
+// --- revoke ---
+
+func TestRevokeApiKey_ByID(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
+		return req.OpName == "RevokeApiKey" && requestVars(req)["id"] == "k1"
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		data := args.Get(2).(*graphql.Response).Data.(*bff.RevokeApiKeyResponse)
+		data.RevokeApiKey.ApiKeyFields = apiKeyFields("k1", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, "")
+	}).Return(nil).Once()
+
+	var out bytes.Buffer
+	require.NoError(t, actualRevokeApiKey(context.Background(), mockBff, &out, "", "k1"))
+	assert.Contains(t, out.String(), `Revoked API key "ci-runner"`)
+	mockBff.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_ByNameFindsActiveKey(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).
+		Run(withListApiKeys(
+			apiKeyFields("old", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, ""),
+			apiKeyFields("other", "deploy", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusActive, ""),
+			apiKeyFields("current", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusActive, ""),
+		)).Return(nil).Once()
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
+		return req.OpName == "RevokeApiKey" && requestVars(req)["id"] == "current"
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		data := args.Get(2).(*graphql.Response).Data.(*bff.RevokeApiKeyResponse)
+		data.RevokeApiKey.ApiKeyFields = apiKeyFields("current", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, "")
+	}).Return(nil).Once()
+
+	var out bytes.Buffer
+	require.NoError(t, actualRevokeApiKey(context.Background(), mockBff, &out, "ci-runner", ""))
+	mockBff.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_ByNameOnlyMatchesActiveKey(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).
+		Run(withListApiKeys(
+			apiKeyFields("old", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, ""),
+			apiKeyFields("lapsed", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusExpired, ""),
+		)).Return(nil).Once()
+
+	err := actualRevokeApiKey(context.Background(), mockBff, &bytes.Buffer{}, "ci-runner", "")
+	require.Error(t, err)
+	assert.Equal(t, `no active API key named "ci-runner"`, err.Error())
+	mockBff.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_BFFErrorsPassThroughUnchanged(t *testing.T) {
+	for _, msg := range []string{"Only org admins can manage API keys.", retryMessage} {
+		t.Run(msg, func(t *testing.T) {
+			mockBff := new(mockGraphQLClient)
+			mockBff.On("MakeRequest", matchContext, mock.MatchedBy(isOp("RevokeApiKey")), mock.Anything).
+				Return(bffErrors(msg)).Once()
+
+			var out bytes.Buffer
+			err := actualRevokeApiKey(context.Background(), mockBff, &out, "", "k1")
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), msg)
+			assert.Empty(t, out.String())
+		})
+	}
+}
+
+func TestApiKeysCmdFlags(t *testing.T) {
+	for _, name := range []string{apiKeyNameKey, apiKeyAccessKey, apiKeyExpiresInDaysKey} {
+		assert.NotNil(t, createApiKeyCmd.Flags().Lookup(name), "--%s should exist on create", name)
+	}
+	expires := createApiKeyCmd.Flags().Lookup(apiKeyExpiresInDaysKey)
+	assert.Equal(t, "90", expires.DefValue)
+	for _, name := range []string{apiKeyNameKey, apiKeyIDKey} {
+		assert.NotNil(t, revokeApiKeyCmd.Flags().Lookup(name), "--%s should exist on revoke", name)
+	}
+}
+
+func TestCreateApiKey_RedactsSecretAndDoesNotReplay(t *testing.T) {
+	for _, failure := range []error{bffErrors("failed sfk_do_not_disclose"), &graphql.HTTPError{StatusCode: 502, Response: graphql.Response{Errors: gqlerror.List{{Message: "sfk_do_not_disclose"}}}}} {
+		client := new(mockGraphQLClient)
+		client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("CreateApiKey")), mock.Anything).Return(failure).Once()
+		var out bytes.Buffer
+		err := actualCreateApiKey(context.Background(), client, &out, "new-key", "read-only", 90)
+		require.Error(t, err)
+		assert.NotContains(t, err.Error(), "sfk_do_not_disclose")
+		assert.Contains(t, err.Error(), "Do not automatically retry")
+		assert.Empty(t, out.String())
+		client.AssertExpectations(t)
+	}
+}
+
+type failingKeyWriter struct{}
+
+func (failingKeyWriter) Write([]byte) (int, error) { return 0, errors.New("sfk_writer_failure") }
+
+func TestCreateApiKey_OutputFailureDoesNotReplay(t *testing.T) {
+	client := new(mockGraphQLClient)
+	client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("CreateApiKey")), mock.Anything).Run(func(args mock.Arguments) {
+		args.Get(2).(*graphql.Response).Data.(*bff.CreateApiKeyResponse).CreateApiKey.Key = "sfk_output_secret"
+	}).Return(nil).Once()
+	err := actualCreateApiKey(context.Background(), client, failingKeyWriter{}, "new-key", "read-only", 90)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Do not automatically retry")
-	assert.NotContains(t, err.Error(), "sfk_output_lost")
-	assert.Len(t, fixture.recorded(), 1)
+	assert.NotContains(t, err.Error(), "sfk_")
+	client.AssertExpectations(t)
 }
 
-func TestAPIKeyGlobalFlagRefusesManagementBeforeRequests(t *testing.T) {
-	fixture := newAPIKeyFixture(t, func(w http.ResponseWriter, _ apiKeyRequest) { t.Error("unexpected request") })
-	command := &cobra.Command{Use: "signalflag", SilenceErrors: true, SilenceUsage: true}
-	command.PersistentFlags().String(auth.KeyAPIKey, "", "Organization API key")
-	command.AddCommand(newAPIKeysCommand())
-	command.SetOut(&fixture.stdout)
-	command.SetErr(&fixture.stderr)
-	command.SetArgs([]string{"--api-key", "sfk_machine", "api-keys", "list"})
-	require.ErrorContains(t, command.Execute(), "human sign-in")
-	assert.Empty(t, fixture.recorded())
+func TestRotateApiKey_CreatesReplacementWithoutRevoking(t *testing.T) {
+	client := new(mockGraphQLClient)
+	client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).Run(withListApiKeys(apiKeyFields("old", "old-key", bff.ApiKeyAccessReadWrite, bff.ApiKeyStatusActive, ""))).Return(nil).Once()
+	client.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
+		vars := requestVars(req)
+		return req.OpName == "CreateApiKey" && vars["name"] == "replacement" && vars["access"] == "READ_WRITE"
+	}), mock.Anything).Run(func(args mock.Arguments) {
+		args.Get(2).(*graphql.Response).Data.(*bff.CreateApiKeyResponse).CreateApiKey.Key = "sfk_new_secret"
+	}).Return(nil).Once()
+	var out bytes.Buffer
+	require.NoError(t, actualRotateApiKey(context.Background(), client, &out, "", "old", "replacement", "", 90))
+	assert.Equal(t, 1, strings.Count(out.String(), "sfk_new_secret"))
+	assert.Contains(t, out.String(), "old key was not changed")
+	assert.Contains(t, out.String(), "same endpoint settings")
+	client.AssertExpectations(t)
+	client.AssertNumberOfCalls(t, "MakeRequest", 2)
+}
+
+func TestRotateApiKey_RejectsInactiveOrSameNameWithoutCreating(t *testing.T) {
+	for _, tc := range []struct {
+		status  bff.ApiKeyStatus
+		newName string
+	}{{bff.ApiKeyStatusRevoked, "new"}, {bff.ApiKeyStatusExpired, "new"}, {bff.ApiKeyStatusActive, "old-key"}} {
+		client := new(mockGraphQLClient)
+		client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).Run(withListApiKeys(apiKeyFields("old", "old-key", bff.ApiKeyAccessReadOnly, tc.status, ""))).Return(nil).Once()
+		require.Error(t, actualRotateApiKey(context.Background(), client, &bytes.Buffer{}, "", "old", tc.newName, "", 90))
+		client.AssertExpectations(t)
+		client.AssertNumberOfCalls(t, "MakeRequest", 1)
+	}
+}
+
+func TestRevokeApiKey_PendingRemainsRetryable(t *testing.T) {
+	client := new(mockGraphQLClient)
+	pending := apiKeyFields("k1", "ci", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, "")
+	pending.RevocationPending = true
+	client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).Run(withListApiKeys(pending)).Return(nil).Once()
+	client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("RevokeApiKey")), mock.Anything).Run(func(args mock.Arguments) {
+		args.Get(2).(*graphql.Response).Data.(*bff.RevokeApiKeyResponse).RevokeApiKey.ApiKeyFields = pending
+	}).Return(nil).Once()
+	var out bytes.Buffer
+	require.NoError(t, actualRevokeApiKey(context.Background(), client, &out, "ci", ""))
+	assert.Contains(t, out.String(), "pending synchronization")
+	assert.Contains(t, out.String(), "revoke --id k1")
+	assert.NotContains(t, out.String(), "Revoked API key")
+	client.AssertExpectations(t)
+}
+
+func TestRevokeApiKey_RequiresIDForReusedPendingName(t *testing.T) {
+	client := new(mockGraphQLClient)
+	pending := apiKeyFields("old", "ci", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusRevoked, "")
+	pending.RevocationPending = true
+	client.On("MakeRequest", matchContext, mock.MatchedBy(isOp("ListApiKeys")), mock.Anything).Run(withListApiKeys(pending, apiKeyFields("new", "ci", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusActive, ""))).Return(nil).Once()
+	err := actualRevokeApiKey(context.Background(), client, &bytes.Buffer{}, "ci", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "--id")
+	client.AssertNumberOfCalls(t, "MakeRequest", 1)
 }

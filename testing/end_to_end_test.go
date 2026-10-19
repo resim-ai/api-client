@@ -7220,8 +7220,6 @@ func TestLegacyNames(t *testing.T) {
 	})
 }
 
-// parseCreatedAPIKey returns the key from `api-keys create` output, which prints
-// a summary line, the key on its own line, and a reminder line.
 func parseCreatedAPIKey(req *require.Assertions, stdout string) string {
 	lines := []string{}
 	for _, line := range strings.Split(stdout, "\n") {
@@ -7229,10 +7227,62 @@ func parseCreatedAPIKey(req *require.Assertions, stdout string) string {
 			lines = append(lines, line)
 		}
 	}
-	req.Len(lines, 3, "unexpected api-keys create output: %q", stdout)
-	req.Contains(lines[0], "Created API key")
-	req.Contains(lines[2], APIKeyNotShownAgain)
+	req.Equal(3, len(lines), "unexpected api-keys create line count")
+	req.True(strings.Contains(lines[0], "Created API key"), "missing API-key creation summary")
+	req.True(strings.Contains(lines[2], APIKeyNotShownAgain), "missing API-key one-time reminder")
 	return lines[1]
+}
+
+type apiKeyAssertionRecorder struct {
+	messages []string
+}
+
+func (r *apiKeyAssertionRecorder) Errorf(format string, args ...interface{}) {
+	r.messages = append(r.messages, fmt.Sprintf(format, args...))
+}
+
+func (r *apiKeyAssertionRecorder) FailNow() {
+	panic(r)
+}
+
+func captureCreatedAPIKey(stdout string) (key string, recorder *apiKeyAssertionRecorder) {
+	recorder = &apiKeyAssertionRecorder{}
+	defer func() {
+		if recovered := recover(); recovered != nil && recovered != recorder {
+			panic(recovered)
+		}
+	}()
+	key = parseCreatedAPIKey(require.New(recorder), stdout)
+	return
+}
+
+func TestParseCreatedAPIKey(t *testing.T) {
+	const dummySecret = "dummy-one-time-api-key-never-log"
+	for _, tc := range []struct {
+		name   string
+		stdout string
+	}{
+		{name: "empty output"},
+		{name: "missing line", stdout: "Created API key\n" + dummySecret},
+		{name: "extra line", stdout: "Created API key\n" + dummySecret + "\n" + APIKeyNotShownAgain + "\nextra"},
+		{name: "invalid summary", stdout: dummySecret + "\n" + dummySecret + "\n" + APIKeyNotShownAgain},
+		{name: "invalid reminder", stdout: "Created API key\n" + dummySecret + "\n" + dummySecret},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			key, recorder := captureCreatedAPIKey(tc.stdout)
+			require.Equal(t, 1, len(recorder.messages), "malformed output must fail exactly one assertion")
+			require.True(t, key == "", "malformed output must not return a key")
+			if strings.Contains(recorder.messages[0], dummySecret) {
+				t.Fatal("assertion diagnostics exposed key material")
+			}
+		})
+	}
+
+	t.Run("valid output", func(t *testing.T) {
+		key, recorder := captureCreatedAPIKey("\n Created API key \n " + dummySecret + " \n " + APIKeyNotShownAgain + " \n")
+		require.Equal(t, 0, len(recorder.messages), "valid output must not fail an assertion")
+		require.True(t, key == dummySecret, "valid output must return the trimmed key")
+	})
 }
 
 func TestAPIKeys(t *testing.T) {

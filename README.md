@@ -99,11 +99,11 @@ If you would like to store your credentials in a config file, the CLI will load 
 
 Org admins can manage their organization's API keys with `signalflag api-keys`. These commands need a person signed in (browser login, or `--username` and `--password`); they are refused when the CLI is using an API key or client credentials.
 
-    signalflag api-keys create --name ci-runner --access read-only [--expires-in-days 30|90|365|0]
+    signalflag api-keys create --name ci-runner --access read-only [--expires-in-days 30|90|365|0] [--output-file ci-runner.key]
     signalflag api-keys list
     signalflag api-keys revoke --name ci-runner     # or --id <key ID>
 
-`--expires-in-days` defaults to 90; `0` means the key never expires. The key is printed once, when it is created, and cannot be shown again.
+`--expires-in-days` defaults to 90; `0` means the key never expires. The key is never printed: `create` saves it to `--output-file`, by default `<name>.key` in the current directory, readable only by you, and refuses to overwrite an existing file. It cannot be shown again, so move it into your secret store and delete the file.
 
 ### Token Caching
 

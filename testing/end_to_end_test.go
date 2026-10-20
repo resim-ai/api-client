@@ -595,11 +595,12 @@ func apiKeysCommand(subcommand string, flags []Flag, username string, password s
 	return []CommandBuilder{{Command: "api-keys"}, {Command: subcommand, Flags: flags}}
 }
 
-func createAPIKey(name string, access string, expiresInDays int, username string, password string) []CommandBuilder {
+func createAPIKey(name string, access string, expiresInDays int, outputFile string, username string, password string) []CommandBuilder {
 	return apiKeysCommand("create", []Flag{
 		{Name: "--name", Value: name},
 		{Name: "--access", Value: access},
 		{Name: "--expires-in-days", Value: fmt.Sprintf("%d", expiresInDays)},
+		{Name: "--output-file", Value: outputFile},
 	}, username, password)
 }
 
@@ -7220,19 +7221,17 @@ func TestLegacyNames(t *testing.T) {
 	})
 }
 
-// parseCreatedAPIKey returns the key from `api-keys create` output, which prints
-// a summary line, the key on its own line, and a reminder line.
-func parseCreatedAPIKey(req *require.Assertions, stdout string) string {
-	lines := []string{}
-	for _, line := range strings.Split(stdout, "\n") {
-		if line = strings.TrimSpace(line); line != "" {
-			lines = append(lines, line)
-		}
-	}
-	req.Len(lines, 3, "unexpected api-keys create output: %q", stdout)
-	req.Contains(lines[0], "Created API key")
-	req.Contains(lines[2], APIKeyNotShownAgain)
-	return lines[1]
+// readCreatedAPIKey checks that `api-keys create` reported saving the key
+// without printing it, and returns the key from the file it was saved to.
+func readCreatedAPIKey(req *require.Assertions, stdout string, outputFile string) string {
+	req.Contains(stdout, "Created API key")
+	req.Contains(stdout, APIKeyNotShownAgain)
+	contents, err := os.ReadFile(outputFile)
+	req.NoError(err)
+	key := strings.TrimSpace(string(contents))
+	req.True(strings.HasPrefix(key, "sfk_"), "unexpected key file contents")
+	req.NotContains(stdout, key)
+	return key
 }
 
 func TestAPIKeys(t *testing.T) {
@@ -7259,13 +7258,16 @@ func TestAPIKeys(t *testing.T) {
 	readOnlyName := fmt.Sprintf("e2e-ro-%s", suffix)
 	readWriteName := fmt.Sprintf("e2e-rw-%s", suffix)
 
-	output := s.runCommand(ts, createAPIKey(readOnlyName, "read-only", 30, username, password), ExpectNoError)
+	keyDir := t.TempDir()
+	readOnlyFile := filepath.Join(keyDir, readOnlyName+".key")
+	output := s.runCommand(ts, createAPIKey(readOnlyName, "read-only", 30, readOnlyFile, username, password), ExpectNoError)
 	t.Cleanup(func() { s.tryCommand(revokeAPIKeyByName(readOnlyName, username, password)) })
-	readOnlyKey := parseCreatedAPIKey(req, output.StdOut)
+	readOnlyKey := readCreatedAPIKey(req, output.StdOut, readOnlyFile)
 
-	output = s.runCommand(ts, createAPIKey(readWriteName, "read-write", 30, username, password), ExpectNoError)
+	readWriteFile := filepath.Join(keyDir, readWriteName+".key")
+	output = s.runCommand(ts, createAPIKey(readWriteName, "read-write", 30, readWriteFile, username, password), ExpectNoError)
 	t.Cleanup(func() { s.tryCommand(revokeAPIKeyByName(readWriteName, username, password)) })
-	readWriteKey := parseCreatedAPIKey(req, output.StdOut)
+	readWriteKey := readCreatedAPIKey(req, output.StdOut, readWriteFile)
 
 	t.Run("ReadOnlyKey", func(t *testing.T) {
 		ts := assert.New(t)

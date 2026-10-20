@@ -4,7 +4,7 @@
 
 ### v1.2.0 - October 16, 2026
 
-- Adds `signalflag api-keys create|list|revoke` for org admins to manage their organization's API keys. `create --name <name> --access read-only|read-write [--expires-in-days 30|90|365|0]` prints the key once (default expiry 90 days, `0` for none); `revoke` takes `--name` (the active key with that name) or `--id`. These commands need a person signed in and are refused when the CLI is using an API key or client credentials. (#235)
+- Adds `signalflag api-keys create|list|revoke` for org admins to manage their organization's API keys. `create --name <name> --access read-only|read-write [--expires-in-days 30|90|365|0] [--output-file <path>]` saves the key to a file readable only by you, `<name>.key` in the current directory by default, and never prints it (default expiry 90 days, `0` for none). It refuses to overwrite an existing file; `revoke` takes `--name` (the active key with that name) or `--id`. These commands need a person signed in and are refused when the CLI is using an API key or client credentials. (#235)
 - Adds API key authentication with `--api-key` or `SIGNALFLAG_API_KEY`. The key is sent as the bearer token on every request, with no Auth0 exchange and nothing written to the token cache. Combining it with client credentials or a username and password is rejected as ambiguous. (#235)
 
 ### v1.1.1 - October 15, 2026

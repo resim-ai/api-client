@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -36,7 +37,7 @@ var (
 	}
 	createApiKeyCmd = &cobra.Command{
 		Use:   "create",
-		Short: "create - Creates an API key and prints it once",
+		Short: "create - Creates an API key and saves it to a file",
 		Long:  ``,
 		Run:   createApiKey,
 	}
@@ -59,6 +60,7 @@ const (
 	apiKeyIDKey            = "id"
 	apiKeyAccessKey        = "access"
 	apiKeyExpiresInDaysKey = "expires-in-days"
+	apiKeyOutputFileKey    = "output-file"
 
 	apiKeysNeedPersonMessage = "Managing API keys needs a person signed in as an org admin."
 	apiKeyListHeader         = "NAME\tPREFIX\tACCESS\tCREATED BY\tEXPIRES\tSTATUS\n"
@@ -77,6 +79,7 @@ func init() {
 	createApiKeyCmd.Flags().String(apiKeyAccessKey, "", "The key's access: read-only or read-write.")
 	createApiKeyCmd.MarkFlagRequired(apiKeyAccessKey)
 	createApiKeyCmd.Flags().Int(apiKeyExpiresInDaysKey, 90, "Days until the key expires: 30, 90 or 365, or 0 for no expiry.")
+	createApiKeyCmd.Flags().String(apiKeyOutputFileKey, "", "Where to save the key, readable only by you. Defaults to <name>.key in the current directory. The key is never printed.")
 	apiKeysCmd.AddCommand(createApiKeyCmd)
 
 	apiKeysCmd.AddCommand(listApiKeysCmd)
@@ -102,20 +105,41 @@ func requirePersonSignIn(v *viper.Viper) error {
 }
 
 func createApiKey(cmd *cobra.Command, args []string) {
+	name := viper.GetString(apiKeyNameKey)
+	outputFile := viper.GetString(apiKeyOutputFileKey)
+	if outputFile == "" {
+		outputFile = apiKeyFileName(name)
+	}
 	err := actualCreateApiKey(context.Background(), BffClient, os.Stdout,
-		viper.GetString(apiKeyNameKey), viper.GetString(apiKeyAccessKey), viper.GetInt(apiKeyExpiresInDaysKey))
+		name, viper.GetString(apiKeyAccessKey), viper.GetInt(apiKeyExpiresInDaysKey), outputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 }
 
-func actualCreateApiKey(ctx context.Context, client graphql.Client, w io.Writer, name, access string, expiresInDays int) error {
+var unsafeFileNameChars = regexp.MustCompile(`[^A-Za-z0-9._-]+`)
+
+// apiKeyFileName turns a key name into a file name in the current directory.
+func apiKeyFileName(name string) string {
+	base := strings.Trim(unsafeFileNameChars.ReplaceAllString(name, "-"), "-.")
+	if base == "" {
+		base = "api-key"
+	}
+	return base + ".key"
+}
+
+// The key is written to a file rather than printed so it stays out of terminal
+// scrollback and CI logs.
+func actualCreateApiKey(ctx context.Context, client graphql.Client, w io.Writer, name, access string, expiresInDays int, outputFile string) error {
 	accessValue, ok := apiKeyAccessValues[access]
 	if !ok {
 		return fmt.Errorf("--access must be read-only or read-write, got %q", access)
 	}
 	if !apiKeyExpiryValues[expiresInDays] {
 		return fmt.Errorf("--expires-in-days must be 30, 90, 365, or 0 for no expiry, got %d", expiresInDays)
+	}
+	if _, err := os.Lstat(outputFile); err == nil {
+		return fmt.Errorf("%s already exists; choose another --output-file", outputFile)
 	}
 
 	resp, err := bff.CreateApiKey(ctx, client, name, accessValue, expiresInDays)
@@ -124,10 +148,25 @@ func actualCreateApiKey(ctx context.Context, client graphql.Client, w io.Writer,
 	}
 
 	created := resp.CreateApiKey
-	fmt.Fprintf(w, "Created API key %q (%s, %s).\n\n", created.ApiKey.Name, formatApiKeyAccess(created.ApiKey.Access), describeApiKeyExpiry(created.ApiKey.ExpiresAt))
-	fmt.Fprintf(w, "%s\n\n", created.Key)
-	fmt.Fprintln(w, "Copy this key now. It won't be shown again.")
+	if err := writeApiKeyFile(outputFile, created.Key); err != nil {
+		return fmt.Errorf("created API key %q but could not save it to %s: %w; revoke it with `signalflag api-keys revoke --name %q` and try again", created.ApiKey.Name, outputFile, err, created.ApiKey.Name)
+	}
+
+	fmt.Fprintf(w, "Created API key %q (%s, %s).\n", created.ApiKey.Name, formatApiKeyAccess(created.ApiKey.Access), describeApiKeyExpiry(created.ApiKey.ExpiresAt))
+	fmt.Fprintf(w, "Saved the key to %s, readable only by you. It won't be shown again.\n", outputFile)
 	return nil
+}
+
+func writeApiKeyFile(path, key string) error {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString(key + "\n"); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 func listApiKeys(cmd *cobra.Command, args []string) {

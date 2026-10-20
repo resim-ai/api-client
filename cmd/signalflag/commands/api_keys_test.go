@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -129,7 +131,7 @@ func TestRootHasAPIKeyFlag(t *testing.T) {
 
 // --- create ---
 
-func TestCreateApiKey_PrintsKeyOnce(t *testing.T) {
+func TestCreateApiKey_SavesKeyToFileWithoutPrintingIt(t *testing.T) {
 	mockBff := new(mockGraphQLClient)
 	mockBff.On("MakeRequest", matchContext, mock.MatchedBy(func(req *graphql.Request) bool {
 		vars := requestVars(req)
@@ -140,15 +142,43 @@ func TestCreateApiKey_PrintsKeyOnce(t *testing.T) {
 		data.CreateApiKey.ApiKey.ApiKeyFields = apiKeyFields("k1", "ci-runner", bff.ApiKeyAccessReadOnly, bff.ApiKeyStatusActive, "2027-01-14T12:00:00Z")
 	}).Return(nil).Once()
 
+	path := filepath.Join(t.TempDir(), "ci-runner.key")
 	var out bytes.Buffer
-	err := actualCreateApiKey(context.Background(), mockBff, &out, "ci-runner", "read-only", 90)
+	err := actualCreateApiKey(context.Background(), mockBff, &out, "ci-runner", "read-only", 90, path)
 	require.NoError(t, err)
 
 	text := out.String()
-	assert.Equal(t, 1, strings.Count(text, "sf_live_secretvalue"))
+	assert.NotContains(t, text, "sf_live_secretvalue")
+	assert.Contains(t, text, path)
 	assert.Contains(t, text, "won't be shown again")
-	assert.Contains(t, text, "ci-runner")
+
+	contents, err := os.ReadFile(path)
+	require.NoError(t, err)
+	assert.Equal(t, "sf_live_secretvalue\n", string(contents))
+	info, err := os.Stat(path)
+	require.NoError(t, err)
+	assert.Equal(t, os.FileMode(0o600), info.Mode().Perm())
 	mockBff.AssertExpectations(t)
+}
+
+func TestCreateApiKey_RefusesExistingFileBeforeCreating(t *testing.T) {
+	mockBff := new(mockGraphQLClient)
+	path := filepath.Join(t.TempDir(), "ci-runner.key")
+	require.NoError(t, os.WriteFile(path, []byte("keep me"), 0o600))
+
+	err := actualCreateApiKey(context.Background(), mockBff, &bytes.Buffer{}, "ci-runner", "read-only", 90, path)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "already exists")
+
+	contents, _ := os.ReadFile(path)
+	assert.Equal(t, "keep me", string(contents))
+	mockBff.AssertNotCalled(t, "MakeRequest", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestApiKeyFileName(t *testing.T) {
+	assert.Equal(t, "ci-runner.key", apiKeyFileName("ci-runner"))
+	assert.Equal(t, "Nightly-CI-prod.key", apiKeyFileName("Nightly CI/prod"))
+	assert.Equal(t, "api-key.key", apiKeyFileName("../"))
 }
 
 func TestCreateApiKey_NoExpiryAndReadWrite(t *testing.T) {
@@ -163,7 +193,7 @@ func TestCreateApiKey_NoExpiryAndReadWrite(t *testing.T) {
 	}).Return(nil).Once()
 
 	var out bytes.Buffer
-	require.NoError(t, actualCreateApiKey(context.Background(), mockBff, &out, "deploy", "read-write", 0))
+	require.NoError(t, actualCreateApiKey(context.Background(), mockBff, &out, "deploy", "read-write", 0, filepath.Join(t.TempDir(), "deploy.key")))
 	assert.Contains(t, out.String(), "never expires")
 	mockBff.AssertExpectations(t)
 }
@@ -172,11 +202,11 @@ func TestCreateApiKey_RejectsBadInputWithoutRequest(t *testing.T) {
 	mockBff := new(mockGraphQLClient)
 	var out bytes.Buffer
 
-	err := actualCreateApiKey(context.Background(), mockBff, &out, "x", "admin", 90)
+	err := actualCreateApiKey(context.Background(), mockBff, &out, "x", "admin", 90, filepath.Join(t.TempDir(), "x.key"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--access")
 
-	err = actualCreateApiKey(context.Background(), mockBff, &out, "x", "read-only", 7)
+	err = actualCreateApiKey(context.Background(), mockBff, &out, "x", "read-only", 7, filepath.Join(t.TempDir(), "x.key"))
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "--expires-in-days")
 
@@ -196,7 +226,7 @@ func TestCreateApiKey_BFFErrorsPassThroughUnchanged(t *testing.T) {
 				Return(bffErrors(msg)).Once()
 
 			var out bytes.Buffer
-			err := actualCreateApiKey(context.Background(), mockBff, &out, "ci-runner", "read-only", 90)
+			err := actualCreateApiKey(context.Background(), mockBff, &out, "ci-runner", "read-only", 90, filepath.Join(t.TempDir(), "ci-runner.key"))
 			require.Error(t, err)
 			assert.Equal(t, msg, err.Error())
 			assert.Empty(t, out.String())
@@ -211,7 +241,7 @@ func TestCreateApiKey_HTTPErrorMessagePassesThrough(t *testing.T) {
 		Response:   graphql.Response{Errors: gqlerror.List{{Message: "Only org admins can manage API keys."}}},
 	}).Once()
 
-	err := actualCreateApiKey(context.Background(), mockBff, &bytes.Buffer{}, "ci-runner", "read-only", 90)
+	err := actualCreateApiKey(context.Background(), mockBff, &bytes.Buffer{}, "ci-runner", "read-only", 90, filepath.Join(t.TempDir(), "ci-runner.key"))
 	require.Error(t, err)
 	assert.Equal(t, "Only org admins can manage API keys.", err.Error())
 }

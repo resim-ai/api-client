@@ -21,8 +21,8 @@
       "Bash(go vet:*)",
       "Bash(gofmt:*)",
       "Bash(golangci-lint:*)",
-      "Bash(gt track:*)",
-      "Bash(gt submit:*)"
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)"
     ],
     "deny": [
       "Read(**/.env*)",
@@ -33,12 +33,40 @@
       "Read(**/.resim/**)",
       "Bash(rm -rf:*)",
       "Bash(git push --force:*)",
-      "Bash(git push:*)",
-      "Bash(gh pr create:*)"
+      "Bash(git reset --hard:*)",
+      "Bash(terraform apply:*)",
+      "Bash(terraform destroy:*)",
+      "Bash(terraform import:*)",
+      "Bash(kubectl apply:*)",
+      "Bash(kubectl delete:*)",
+      "Bash(kubectl exec:*)",
+      "Bash(helm install:*)",
+      "Bash(helm upgrade:*)",
+      "Bash(helm uninstall:*)",
+      "Bash(docker push:*)",
+      "Bash(docker buildx bake --push:*)",
+      "Bash(npm publish:*)",
+      "Bash(packer build:*)"
     ]
   },
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true
+  },
+  "env": {
+    "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1"
+  },
+  "extraKnownMarketplaces": {
+    "resim-tools": {
+      "source": {
+        "source": "github",
+        "repo": "resim-ai/workspace"
+      },
+      "autoUpdate": true
+    }
+  },
+  "enabledPlugins": {
+    "resim-shared@resim-tools": true,
+    "signal-flag@resim-tools": true
   }
 }

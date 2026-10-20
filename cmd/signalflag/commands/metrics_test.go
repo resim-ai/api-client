@@ -439,7 +439,7 @@ func TestSyncMetricsConfig_TopicsWouldBeRemoved_RejectsWithoutFlag(t *testing.T)
 	withMockBffClient(t, mockBff)
 
 	previews := []bff.PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview{
-		{TopicName: "old_topic", RowsToBeHidden: 42, ChartCount: 2},
+		{TopicName: "old_topic", ChartCount: 2},
 	}
 	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicRemovalRequest), mock.Anything).
 		Run(withPreviewTopicRemovalResponse(previews)).
@@ -462,7 +462,7 @@ func TestSyncMetricsConfig_TopicsWouldBeRemoved_ProceedsWithFlag(t *testing.T) {
 	// still runs (and its impact is printed for the user) but must not block the sync —
 	// UpdateMetricsConfig is still invoked.
 	previews := []bff.PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview{
-		{TopicName: "old_topic", RowsToBeHidden: 42, ChartCount: 2},
+		{TopicName: "old_topic", ChartCount: 2},
 	}
 	mockBff.On("MakeRequest", mock.Anything, mock.MatchedBy(isPreviewTopicRemovalRequest), mock.Anything).
 		Run(withPreviewTopicRemovalResponse(previews)).

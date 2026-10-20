@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v1.1.1 - October 15, 2026
+
+- `metrics sync` no longer reports how many emissions a topic removal would hide. The topic-removal preview now lists only the charts and dashboards that reference each removed topic.
+
 ### v1.1.0 - October 14, 2026
 
 - Adds `--cache-method NONE|EBS|EFS` to experience creation/update and asset creation/revision, and `cacheMethod` to experience sync configs. Omitting it preserves server defaults or the existing method. `assets create --cache-exempt` is deprecated but remains supported.

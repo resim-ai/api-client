@@ -125,20 +125,14 @@ func (v *MetricsTemplate) GetName() string { return v.Name }
 
 // PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview includes the requested fields of the GraphQL type TopicRemovalPreview.
 type PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview struct {
-	TopicName      string                                                                                        `json:"topicName"`
-	RowsToBeHidden int                                                                                           `json:"rowsToBeHidden"`
-	ChartCount     int                                                                                           `json:"chartCount"`
-	Dashboards     []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef `json:"dashboards"`
+	TopicName  string                                                                                        `json:"topicName"`
+	ChartCount int                                                                                           `json:"chartCount"`
+	Dashboards []PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreviewDashboardsTopicRemovalDashboardRef `json:"dashboards"`
 }
 
 // GetTopicName returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.TopicName, and is useful for accessing the field via an interface.
 func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetTopicName() string {
 	return v.TopicName
-}
-
-// GetRowsToBeHidden returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.RowsToBeHidden, and is useful for accessing the field via an interface.
-func (v *PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview) GetRowsToBeHidden() int {
-	return v.RowsToBeHidden
 }
 
 // GetChartCount returns PreviewTopicRemovalPreviewTopicRemovalTopicRemovalPreview.ChartCount, and is useful for accessing the field via an interface.
@@ -535,7 +529,6 @@ const PreviewTopicRemoval_Operation = `
 query PreviewTopicRemoval ($branchId: String!, $config: String!) {
 	previewTopicRemoval(branchId: $branchId, config: $config) {
 		topicName
-		rowsToBeHidden
 		chartCount
 		dashboards {
 			id

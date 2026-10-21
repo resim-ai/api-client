@@ -24,5 +24,6 @@ func init() {
 	viper.SetDefault(auth.KeyProdNonInteractiveClient, auth.DefaultProdNonInteractiveClientID)
 	rootCmd.PersistentFlags().String(auth.KeyUsername, "", "username for non-interactive login")
 	rootCmd.PersistentFlags().String(auth.KeyPassword, "", "password for non-interactive login")
+	rootCmd.PersistentFlags().String(auth.KeyAPIKey, "", "API key for non-interactive access")
 	rootCmd.PersistentFlags().Bool(verboseKey, false, "Verbose mode")
 }

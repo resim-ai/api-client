@@ -39,7 +39,7 @@ Uses **gh** — `git push -u origin <branch>` then `gh pr create`; a large chang
 - `cmd/signalflag/`         — CLI entrypoint (`main`); `cmd/signalflag/commands/` holds the cobra commands (agents, batch, build, experience, metrics, project, sweep, test_suites, …) with adjacent `_test.go` files.
 - `api/`               — generated REST client (`client.gen.go`), `generate.go` (oapi-codegen + mockery directives), `client.cfg.yml`, `.mockery.yaml`, and `mocks/`.
 - `bff/`               — GraphQL BFF client: `queries/` (source `.graphql`), `queries.gen.go` (genqlient output), `genqlient.yaml`, `cmd/` (the generator).
-- `auth/`              — authentication (token caching, client-credentials / username-password flows).
+- `auth/`              — authentication (token caching, client-credentials / username-password flows, static API keys).
 - `ptr/`               — pointer helper utilities (dot-imported).
 - `testing/`           — end-to-end test (`end_to_end` tag) and `data/` fixtures.
 - `docs/plans/`        — per-repo plan documents.

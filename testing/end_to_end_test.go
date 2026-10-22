@@ -6724,6 +6724,7 @@ func TestMetricsWithAPIKey(t *testing.T) {
 			{Name: "--branch", Value: "main"},
 			{Name: "--name", Value: "api-key-" + uuid.New().String()[:8]},
 			{Name: "--metrics-set", Value: "woot"},
+			{Name: "--day-range", Value: "31"},
 		}},
 	}, ExpectNoError)
 	ts.Contains(output.StdOut, "Created dashboard successfully!")

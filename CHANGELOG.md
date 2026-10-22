@@ -2,7 +2,7 @@
 
 ## ReSim CLI
 
-### v1.2.0 - October 21, 2026
+### v1.2.0 - October 22, 2026
 
 - Adds API key authentication with `--api-key`, `SIGNALFLAG_API_KEY` or `api-key` in `~/.signalflag/signalflag.yaml`. The key is sent as the bearer token on every request, with no Auth0 exchange and nothing written to the token cache. Combining it with client credentials or a username and password is rejected as ambiguous. Org admins create keys in the SignalFlag web app. (#237)
 

@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v1.2.0 - October 22, 2026
+
+- Adds API key authentication with `--api-key`, `SIGNALFLAG_API_KEY` or `api-key` in `~/.signalflag/signalflag.yaml`. The key is sent as the bearer token on every request, with no Auth0 exchange and nothing written to the token cache. Combining it with client credentials or a username and password is rejected as ambiguous. Org admins create keys in the SignalFlag web app. (#237)
+
 ### v1.1.1 - October 15, 2026
 
 - `metrics sync` no longer reports how many emissions a topic removal would hide. The topic-removal preview now lists only the charts and dashboards that reference each removed topic.

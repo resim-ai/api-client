@@ -18,6 +18,7 @@ import (
 	"github.com/cli/browser"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/resim-ai/api-client/api"
+	"github.com/resim-ai/api-client/bff"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
@@ -100,6 +101,9 @@ type CredentialCache struct {
 	ClientID    string
 
 	skipSave bool
+	// The token is an organization API key, which the BFF accepts only on its
+	// REST API.
+	apiKey bool
 }
 
 type tokenJSON struct {
@@ -185,6 +189,7 @@ func Authenticate(ctx context.Context, cfg Config) (*AuthResult, error) {
 			Cache: &CredentialCache{
 				TokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.APIKey, TokenType: "Bearer"}),
 				skipSave:    true,
+				apiKey:      true,
 			},
 			APIURL: resolvedAPIURL,
 		}, nil
@@ -500,9 +505,17 @@ func NewAPIClient(ctx context.Context, cache CredentialCache, apiURL string) (*a
 	return api.NewClientWithResponses(apiURL, api.WithHTTPClient(oauthClient))
 }
 
-// NewBFFClient creates a GraphQL BFF client authenticated with the given credential cache.
+// NewBFFClient creates a BFF client authenticated with the given credential
+// cache: GraphQL for user and machine tokens, the REST API for an API key.
 func NewBFFClient(ctx context.Context, cache CredentialCache, apiURL string) (graphql.Client, error) {
 	oauthClient := oauth2.NewClient(ctx, cache.TokenSource)
+	if cache.apiKey {
+		restURL, err := inferBFFURL(apiURL, "/api/v1")
+		if err != nil {
+			return nil, err
+		}
+		return bff.NewRESTClient(restURL, oauthClient), nil
+	}
 	graphqlURL, err := inferGraphqlAPI(apiURL)
 	if err != nil {
 		return nil, err
@@ -511,12 +524,16 @@ func NewBFFClient(ctx context.Context, cache CredentialCache, apiURL string) (gr
 }
 
 func inferGraphqlAPI(rerunAPIurl string) (string, error) {
+	return inferBFFURL(rerunAPIurl, "/graphql")
+}
+
+func inferBFFURL(rerunAPIurl, path string) (string, error) {
 	u, err := url.Parse(rerunAPIurl)
 	if err != nil {
 		return "", fmt.Errorf("error parsing API url: %w", err)
 	}
 
-	u.Path = "/graphql"
+	u.Path = path
 	if strings.Contains(u.Host, "localhost") {
 		u.Host = "localhost:4000"
 	} else {

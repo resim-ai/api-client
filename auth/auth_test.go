@@ -11,12 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Khan/genqlient/graphql"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/oauth2"
+
+	"github.com/resim-ai/api-client/bff"
 )
 
 // --- DefaultConfig ---
@@ -536,6 +537,47 @@ func TestNewBFFClient_InvalidURL(t *testing.T) {
 	assert.Contains(t, err.Error(), "error parsing API url")
 }
 
+func bffPathSeen(t *testing.T, cache CredentialCache) (string, string) {
+	t.Helper()
+	var path, authorization string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path = r.URL.Path
+		authorization = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path == "/graphql" {
+			_, _ = w.Write([]byte(`{"data":{"configFileSchema":"{}"}}`))
+			return
+		}
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer server.Close()
+
+	client, err := NewBFFClient(context.Background(), cache, server.URL+"/v1/")
+	require.NoError(t, err)
+	_, err = bff.GetConfigFileSchema(context.Background(), client)
+	require.NoError(t, err)
+	return path, authorization
+}
+
+func TestNewBFFClient_APIKeyUsesRESTAPI(t *testing.T) {
+	cache := CredentialCache{
+		TokenSource: oauth2.StaticTokenSource(&oauth2.Token{AccessToken: "sfk_test", TokenType: "Bearer"}),
+		apiKey:      true,
+	}
+
+	path, authorization := bffPathSeen(t, cache)
+
+	assert.Equal(t, "/api/v1/metrics-config/schema", path)
+	assert.Equal(t, "Bearer sfk_test", authorization)
+}
+
+func TestNewBFFClient_TokenUsesGraphQL(t *testing.T) {
+	token := oauth2.Token{AccessToken: "eyJ.test", Expiry: time.Now().Add(1 * time.Hour)}
+	path, _ := bffPathSeen(t, CredentialCache{TokenSource: oauth2.StaticTokenSource(&token)})
+
+	assert.Equal(t, "/graphql", path)
+}
+
 // --- API key mode ---
 
 func TestConfigFromViper_SetsAPIKeyMode(t *testing.T) {
@@ -695,8 +737,8 @@ func TestAPIKey_ClientsSendKeyAsBearer(t *testing.T) {
 
 	bffClient, err := NewBFFClient(context.Background(), *result.Cache, result.APIURL)
 	require.NoError(t, err)
-	var resp graphql.Response
-	require.NoError(t, bffClient.MakeRequest(context.Background(), &graphql.Request{Query: "query { __typename }"}, &resp))
+	_, err = bff.GetConfigFileSchema(context.Background(), bffClient)
+	require.NoError(t, err)
 
 	require.Len(t, gotAuth, 2)
 	for _, h := range gotAuth {

@@ -6661,6 +6661,74 @@ func TestMetricsSync(t *testing.T) {
 	})
 }
 
+// runCommandWithAPIKey runs the CLI signed in with an organization API key
+// instead of the suite's own credentials.
+func (s *EndToEndTestHelper) runCommandWithAPIKey(ts *assert.Assertions, apiKey string, commandBuilders []CommandBuilder, expectError bool) Output {
+	var stdout, stderr bytes.Buffer
+	cmd := s.buildCommand(commandBuilders)
+	fmt.Println("About to run command with an API key: ", cmd.String())
+
+	env := []string{}
+	for _, kv := range os.Environ() {
+		name := strings.SplitN(kv, "=", 2)[0]
+		switch name {
+		case "SIGNALFLAG_CLIENT_ID", "SIGNALFLAG_CLIENT_SECRET", "RESIM_CLIENT_ID", "RESIM_CLIENT_SECRET",
+			"SIGNALFLAG_USERNAME", "SIGNALFLAG_PASSWORD", "RESIM_USERNAME", "RESIM_PASSWORD":
+			continue
+		}
+		env = append(env, kv)
+	}
+	cmd.Env = append(env, "SIGNALFLAG_API_KEY="+apiKey)
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	err := cmd.Run()
+	if expectError {
+		ts.Error(err)
+	} else {
+		ts.NoError(err, fmt.Sprintf("Unexpected error: %v", stderr.String()))
+	}
+	return Output{StdOut: stdout.String(), StdErr: stderr.String()}
+}
+
+// TestMetricsWithAPIKey syncs and validates a metrics config and creates a
+// dashboard with a read & write API key, which the CLI sends to the BFF's
+// REST API. Set SIGNALFLAG_E2E_API_KEY to a read & write key of the suite's
+// organization to run it.
+func TestMetricsWithAPIKey(t *testing.T) {
+	apiKey := os.Getenv("SIGNALFLAG_E2E_API_KEY")
+	if apiKey == "" {
+		t.Skip("SIGNALFLAG_E2E_API_KEY is not set")
+	}
+	ts := assert.New(t)
+	req := require.New(t)
+	t.Parallel()
+
+	projectName := fmt.Sprintf("test-project-%s", uuid.New().String())
+	output := s.runCommand(ts, createProject(projectName, "description", GithubTrue), ExpectNoError)
+	ts.Contains(output.StdOut, GithubCreatedProject)
+	projectIDString := output.StdOut[len(GithubCreatedProject) : len(output.StdOut)-1]
+	projectID, err := uuid.Parse(projectIDString)
+	req.NoError(err)
+	s.runCommand(ts, createBranch(projectID, "main", "RELEASE", GithubTrue), ExpectNoError)
+
+	output = s.runCommandWithAPIKey(ts, apiKey, syncMetrics(projectIDString, "", true, "", ""), ExpectNoError)
+	ts.Contains(output.StdOut, "Successfully synced metrics config")
+
+	output = s.runCommandWithAPIKey(ts, apiKey, validateMetrics(projectIDString, "", "", false, "", ""), ExpectNoError)
+	ts.Contains(output.StdOut, "Validation passed")
+
+	output = s.runCommandWithAPIKey(ts, apiKey, []CommandBuilder{
+		{Command: "dashboards"},
+		{Command: "create", Flags: []Flag{
+			{Name: "--project", Value: projectIDString},
+			{Name: "--branch", Value: "main"},
+			{Name: "--name", Value: "api-key-" + uuid.New().String()[:8]},
+			{Name: "--metrics-set", Value: "woot"},
+		}},
+	}, ExpectNoError)
+	ts.Contains(output.StdOut, "Created dashboard successfully!")
+}
+
 func TestMetricsDebug(t *testing.T) {
 	t.Skip("Currently disabled")
 	ts := assert.New(t)

@@ -2,9 +2,9 @@
 
 ## ReSim CLI
 
-### v1.3.0 - Unreleased
+### v1.3.0 - October 23, 2026
 
-- With an API key, `metrics sync`, `metrics validate`, `metrics debug` and `dashboards create` call the SignalFlag REST API (`/api/v1`) instead of GraphQL, which no longer accepts API keys. Client credentials and username and password sign-ins keep using GraphQL. Update to this version before using an API key with those commands.
+- With an API key, `metrics sync`, `metrics validate`, `metrics debug` and `dashboards create` call the SignalFlag REST API (`/api/v1`) instead of GraphQL, which no longer accepts API keys. Client credentials and username and password sign-ins keep using GraphQL. Update to this version before using an API key with those commands. (#238)
 
 ### v1.2.0 - October 22, 2026
 

@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v1.3.0 - October 23, 2026
+
+- With an API key, `metrics sync`, `metrics validate`, `metrics debug` and `dashboards create` call the SignalFlag REST API (`/api/v1`) instead of GraphQL, which no longer accepts API keys. Client credentials and username and password sign-ins keep using GraphQL. Update to this version before using an API key with those commands. (#238)
+
 ### v1.2.0 - October 22, 2026
 
 - Adds API key authentication with `--api-key`, `SIGNALFLAG_API_KEY` or `api-key` in `~/.signalflag/signalflag.yaml`. The key is sent as the bearer token on every request, with no Auth0 exchange and nothing written to the token cache. Combining it with client credentials or a username and password is rejected as ambiguous. Org admins create keys in the SignalFlag web app. (#237)

@@ -1,8 +1,15 @@
 name: Build and Test
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
+    # Markdown skips the build, except CLAUDE.md: both jobs are required checks,
+    # and the shared Claude Code defaults sync opens PRs that change only it and
+    # .claude/, which would otherwise wait forever for checks that never report.
+    # A later pattern overrides an earlier one, so the order matters.
+    paths:
+      - '**'
+      - '!**.md'
+      - 'CLAUDE.md'
+      - '.claude/**'
   push:
     branches:
       - main

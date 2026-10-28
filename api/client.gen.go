@@ -577,6 +577,7 @@ type Batch struct {
 	Description            *string                 `json:"description,omitempty" yaml:"description,omitempty"`
 	ExecutionError         *ExecutionError         `json:"executionError,omitempty" yaml:"executionError,omitempty"`
 	ExecutionErrors        *[]ExecutionError       `json:"executionErrors,omitempty" yaml:"executionErrors,omitempty"`
+	Features               *BatchFeatures          `json:"features,omitempty" yaml:"features,omitempty"`
 	FriendlyName           *FriendlyName           `json:"friendlyName,omitempty" yaml:"friendlyName,omitempty"`
 	JobMetricsStatusCounts *JobMetricsStatusCounts `json:"jobMetricsStatusCounts,omitempty" yaml:"jobMetricsStatusCounts,omitempty"`
 	JobStatusCounts        *BatchJobStatusCounts   `json:"jobStatusCounts,omitempty" yaml:"jobStatusCounts,omitempty"`
@@ -603,6 +604,12 @@ type Batch struct {
 	UserID                 *UserID                 `json:"userID,omitempty" yaml:"userID,omitempty"`
 }
 
+// BatchFeature defines model for batchFeature.
+type BatchFeature = string
+
+// BatchFeatures defines model for batchFeatures.
+type BatchFeatures = []BatchFeature
+
 // BatchID defines model for batchID.
 type BatchID = openapi_types.UUID
 
@@ -619,6 +626,7 @@ type BatchInput struct {
 	ExperienceNames         *[]ExperienceName       `json:"experienceNames" yaml:"experienceNames"`
 	ExperienceTagIDs        *[]ExperienceTagID      `json:"experienceTagIDs" yaml:"experienceTagIDs"`
 	ExperienceTagNames      *[]ExperienceTagName    `json:"experienceTagNames" yaml:"experienceTagNames"`
+	Features                *BatchFeatures          `json:"features,omitempty" yaml:"features,omitempty"`
 	Filters                 *ExperienceFilterInput  `json:"filters,omitempty" yaml:"filters,omitempty"`
 	LabelledBuilds          *LabelledBuilds         `json:"labelledBuilds" yaml:"labelledBuilds"`
 	MetricsBuildID          *MetricsBuildID         `json:"metricsBuildID,omitempty" yaml:"metricsBuildID,omitempty"`
@@ -1138,7 +1146,8 @@ type CreateWorkflowInput struct {
 //     system covered by the workflow's enabled suites. Each entry pins a
 //     build by `buildID`; the system is derived server-side from
 //     `builds.system_id`. Optional per-entry `poolLabels`, `parameters`,
-//     and `allowableFailurePercent` apply to that build's batch only.
+//     `allowableFailurePercent` and `features` apply only to the batches
+//     run on that entry's system.
 //  2. **Legacy single-system (deprecated)**: set the top-level `buildID`.
 //     The run-level `poolLabels`, `parameters`, and
 //     `allowableFailurePercent` (if any) apply to every enabled suite in
@@ -1159,6 +1168,11 @@ type CreateWorkflowInput struct {
 // `associatedAccount` and `triggeredVia` are run-level metadata that
 // apply to every batch produced by the run and are valid in both
 // mechanisms.
+//
+// `features` is valid in both mechanisms and applies to every batch
+// produced by the run. With `builds`, each entry's `features` are
+// applied on top: `name` or `+name` adds a feature, and `-name` removes
+// one set at run level.
 type CreateWorkflowRunInput struct {
 	// AllowableFailurePercent **Deprecated**: run-level allowable failure percent for the legacy
 	// `buildID` mechanism; applied to every enabled suite. Must be
@@ -1181,6 +1195,11 @@ type CreateWorkflowRunInput struct {
 	// run-level `buildID`, `poolLabels`, `parameters`, and
 	// `allowableFailurePercent`.
 	Builds *[]WorkflowRunBuildInput `json:"builds" yaml:"builds"`
+
+	// Features Features enabled on every batch produced by the run. Entries in
+	// `builds` may add to or remove from these with their own
+	// `features`.
+	Features *[]BatchFeature `json:"features,omitempty" yaml:"features,omitempty"`
 
 	// Parameters **Deprecated**: run-level parameters for the legacy `buildID`
 	// mechanism; applied to every enabled suite. Must be omitted when
@@ -1245,6 +1264,7 @@ type DebugExperienceInput struct {
 	BatchID     *BatchID         `json:"batchID,omitempty" yaml:"batchID,omitempty"`
 	BuildID     *BuildID         `json:"buildID,omitempty" yaml:"buildID,omitempty"`
 	Containers  *[]ContainerName `json:"containers,omitempty" yaml:"containers,omitempty"`
+	Features    *BatchFeatures   `json:"features,omitempty" yaml:"features,omitempty"`
 	PoolLabels  *PoolLabels      `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
 	TestSuiteID *TestSuiteID     `json:"testSuiteID,omitempty" yaml:"testSuiteID,omitempty"`
 }
@@ -2130,6 +2150,16 @@ type LogStream struct {
 // LogType defines model for logType.
 type LogType string
 
+// LookupSystemsOutput defines model for lookupSystemsOutput.
+type LookupSystemsOutput struct {
+	Systems []SystemLookup `json:"systems" yaml:"systems"`
+}
+
+// LookupTestSuitesOutput defines model for lookupTestSuitesOutput.
+type LookupTestSuitesOutput struct {
+	TestSuites []TestSuiteLookup `json:"testSuites" yaml:"testSuites"`
+}
+
 // Metric defines model for metric.
 type Metric struct {
 	CreationTimestamp *Timestamp       `json:"creationTimestamp,omitempty" yaml:"creationTimestamp,omitempty"`
@@ -2282,6 +2312,7 @@ type ParameterSweepInput struct {
 	ExperienceNames         *[]ExperienceName    `json:"experienceNames" yaml:"experienceNames"`
 	ExperienceTagIDs        *[]ExperienceTagID   `json:"experienceTagIDs" yaml:"experienceTagIDs"`
 	ExperienceTagNames      *[]ExperienceTagName `json:"experienceTagNames" yaml:"experienceTagNames"`
+	Features                *BatchFeatures       `json:"features,omitempty" yaml:"features,omitempty"`
 	MetricsBuildID          *MetricsBuildID      `json:"metricsBuildID,omitempty" yaml:"metricsBuildID,omitempty"`
 	MetricsSetName          *MetricsSetName      `json:"metricsSetName" yaml:"metricsSetName"`
 	Parameters              *[]SweepParameter    `json:"parameters,omitempty" yaml:"parameters,omitempty"`
@@ -2465,6 +2496,7 @@ type ReportInput struct {
 	AssociatedAccount       *AssociatedAccount       `json:"associatedAccount,omitempty" yaml:"associatedAccount,omitempty"`
 	BranchID                BranchID                 `json:"branchID" yaml:"branchID"`
 	EndTimestamp            *Timestamp               `json:"endTimestamp,omitempty" yaml:"endTimestamp,omitempty"`
+	Features                *BatchFeatures           `json:"features,omitempty" yaml:"features,omitempty"`
 	MetricsBuildID          MetricsBuildID           `json:"metricsBuildID" yaml:"metricsBuildID"`
 	MetricsSetName          *MetricsSetName          `json:"metricsSetName" yaml:"metricsSetName"`
 	Name                    *Name                    `json:"name,omitempty" yaml:"name,omitempty"`
@@ -2622,6 +2654,14 @@ type System struct {
 // SystemID defines model for systemID.
 type SystemID = openapi_types.UUID
 
+// SystemLookup A system's identity and name, without its resource settings or counts.
+type SystemLookup struct {
+	Archived  bool      `json:"archived" yaml:"archived"`
+	Name      string    `json:"name" yaml:"name"`
+	ProjectID ProjectID `json:"projectID" yaml:"projectID"`
+	SystemID  SystemID  `json:"systemID" yaml:"systemID"`
+}
+
 // TagID defines model for tagID.
 type TagID = openapi_types.UUID
 
@@ -2654,6 +2694,7 @@ type TestSuiteBatchInput struct {
 	BlueprintName           *string            `json:"blueprintName" yaml:"blueprintName"`
 	BlueprintVersion        *int               `json:"blueprintVersion" yaml:"blueprintVersion"`
 	BuildID                 BuildID            `json:"buildID" yaml:"buildID"`
+	Features                *BatchFeatures     `json:"features,omitempty" yaml:"features,omitempty"`
 	LabelledBuilds          *LabelledBuilds    `json:"labelledBuilds" yaml:"labelledBuilds"`
 	Parameters              *BatchParameters   `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	PoolLabels              *PoolLabels        `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
@@ -2683,6 +2724,15 @@ type TestSuiteDescription = string
 
 // TestSuiteID defines model for testSuiteID.
 type TestSuiteID = openapi_types.UUID
+
+// TestSuiteLookup A test suite's identity and name, without its experiences or revision history.
+type TestSuiteLookup struct {
+	Archived    bool        `json:"archived" yaml:"archived"`
+	Name        string      `json:"name" yaml:"name"`
+	ProjectID   ProjectID   `json:"projectID" yaml:"projectID"`
+	SystemID    SystemID    `json:"systemID" yaml:"systemID"`
+	TestSuiteID TestSuiteID `json:"testSuiteID" yaml:"testSuiteID"`
+}
 
 // TestSuiteName defines model for testSuiteName.
 type TestSuiteName = string
@@ -2946,7 +2996,8 @@ type WorkflowRun struct {
 // WorkflowRunBuildInput Multi-build input entry for `createWorkflowRunInput.builds`. The
 // caller pins a build by `buildID`; Optional per-entry `poolLabels`,
 // `parameters`, and `allowableFailurePercent` replace — and must not be
-// combined with — the run-level fields of the same name.
+// combined with — the run-level fields of the same name. Per-entry
+// `features` are applied on top of the run-level `features`.
 type WorkflowRunBuildInput struct {
 	AllowableFailurePercent *int `json:"allowableFailurePercent" yaml:"allowableFailurePercent"`
 
@@ -2955,7 +3006,12 @@ type WorkflowRunBuildInput struct {
 	// the same system are rejected with HTTP 400, and a build whose
 	// system is not covered by any enabled suite in the workflow is
 	// also rejected.
-	BuildID    BuildID          `json:"buildID" yaml:"buildID"`
+	BuildID BuildID `json:"buildID" yaml:"buildID"`
+
+	// Features Features for the batches run on this entry's system, applied on top
+	// of the run-level `features`: `name` or `+name` adds a feature, and
+	// `-name` removes one set at run level.
+	Features   *[]BatchFeature  `json:"features,omitempty" yaml:"features,omitempty"`
 	Parameters *BatchParameters `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 	PoolLabels *PoolLabels      `json:"poolLabels,omitempty" yaml:"poolLabels,omitempty"`
 }
@@ -3680,6 +3736,18 @@ type ListWorkflowRunsParams struct {
 	PageSize  *PageSize  `form:"pageSize,omitempty" json:"pageSize,omitempty" yaml:"pageSize,omitempty"`
 	PageToken *PageToken `form:"pageToken,omitempty" json:"pageToken,omitempty" yaml:"pageToken,omitempty"`
 	OrderBy   *OrderBy   `form:"orderBy,omitempty" json:"orderBy,omitempty" yaml:"orderBy,omitempty"`
+}
+
+// LookupTestSuitesParams defines parameters for LookupTestSuites.
+type LookupTestSuitesParams struct {
+	// Ids The test suite ids to look up, at most 100.
+	Ids []TestSuiteID `form:"ids" json:"ids" yaml:"ids"`
+}
+
+// LookupSystemsParams defines parameters for LookupSystems.
+type LookupSystemsParams struct {
+	// Ids The system ids to look up, at most 100.
+	Ids []SystemID `form:"ids" json:"ids" yaml:"ids"`
 }
 
 // PauseAgentJSONRequestBody defines body for PauseAgent for application/json ContentType.
@@ -5034,6 +5102,12 @@ type ClientInterface interface {
 
 	// GetQuota request
 	GetQuota(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// LookupTestSuites request
+	LookupTestSuites(ctx context.Context, params *LookupTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// LookupSystems request
+	LookupSystems(ctx context.Context, params *LookupSystemsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ValidateExperienceLocationWithBody request with any body
 	ValidateExperienceLocationWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -7947,6 +8021,30 @@ func (c *Client) GetWorkflowSuite(ctx context.Context, projectID ProjectID, work
 
 func (c *Client) GetQuota(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetQuotaRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) LookupTestSuites(ctx context.Context, params *LookupTestSuitesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLookupTestSuitesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) LookupSystems(ctx context.Context, params *LookupSystemsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewLookupSystemsRequest(c.Server, params)
 	if err != nil {
 		return nil, err
 	}
@@ -20422,6 +20520,96 @@ func NewGetQuotaRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewLookupTestSuitesRequest generates requests for LookupTestSuites
+func NewLookupTestSuitesRequest(server string, params *LookupTestSuitesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/suites")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "ids", runtime.ParamLocationQuery, params.Ids); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewLookupSystemsRequest generates requests for LookupSystems
+func NewLookupSystemsRequest(server string, params *LookupSystemsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/systems")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if queryFrag, err := runtime.StyleParamWithLocation("form", false, "ids", runtime.ParamLocationQuery, params.Ids); err != nil {
+			return nil, err
+		} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+			return nil, err
+		} else {
+			for k, v := range parsed {
+				for _, v2 := range v {
+					queryValues.Add(k, v2)
+				}
+			}
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewValidateExperienceLocationRequest calls the generic ValidateExperienceLocation builder with application/json body
 func NewValidateExperienceLocationRequest(server string, body ValidateExperienceLocationJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -21183,6 +21371,12 @@ type ClientWithResponsesInterface interface {
 
 	// GetQuotaWithResponse request
 	GetQuotaWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*GetQuotaResponse, error)
+
+	// LookupTestSuitesWithResponse request
+	LookupTestSuitesWithResponse(ctx context.Context, params *LookupTestSuitesParams, reqEditors ...RequestEditorFn) (*LookupTestSuitesResponse, error)
+
+	// LookupSystemsWithResponse request
+	LookupSystemsWithResponse(ctx context.Context, params *LookupSystemsParams, reqEditors ...RequestEditorFn) (*LookupSystemsResponse, error)
 
 	// ValidateExperienceLocationWithBodyWithResponse request with any body
 	ValidateExperienceLocationWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ValidateExperienceLocationResponse, error)
@@ -25402,6 +25596,50 @@ func (r GetQuotaResponse) StatusCode() int {
 	return 0
 }
 
+type LookupTestSuitesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LookupTestSuitesOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r LookupTestSuitesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LookupTestSuitesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type LookupSystemsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *LookupSystemsOutput
+}
+
+// Status returns HTTPResponse.Status
+func (r LookupSystemsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r LookupSystemsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type ValidateExperienceLocationResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -27559,6 +27797,24 @@ func (c *ClientWithResponses) GetQuotaWithResponse(ctx context.Context, reqEdito
 		return nil, err
 	}
 	return ParseGetQuotaResponse(rsp)
+}
+
+// LookupTestSuitesWithResponse request returning *LookupTestSuitesResponse
+func (c *ClientWithResponses) LookupTestSuitesWithResponse(ctx context.Context, params *LookupTestSuitesParams, reqEditors ...RequestEditorFn) (*LookupTestSuitesResponse, error) {
+	rsp, err := c.LookupTestSuites(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLookupTestSuitesResponse(rsp)
+}
+
+// LookupSystemsWithResponse request returning *LookupSystemsResponse
+func (c *ClientWithResponses) LookupSystemsWithResponse(ctx context.Context, params *LookupSystemsParams, reqEditors ...RequestEditorFn) (*LookupSystemsResponse, error) {
+	rsp, err := c.LookupSystems(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseLookupSystemsResponse(rsp)
 }
 
 // ValidateExperienceLocationWithBodyWithResponse request with arbitrary body returning *ValidateExperienceLocationResponse
@@ -32246,6 +32502,58 @@ func ParseGetQuotaResponse(rsp *http.Response) (*GetQuotaResponse, error) {
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest GetQuotaOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseLookupTestSuitesResponse parses an HTTP response from a LookupTestSuitesWithResponse call
+func ParseLookupTestSuitesResponse(rsp *http.Response) (*LookupTestSuitesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LookupTestSuitesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LookupTestSuitesOutput
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseLookupSystemsResponse parses an HTTP response from a LookupSystemsWithResponse call
+func ParseLookupSystemsResponse(rsp *http.Response) (*LookupSystemsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &LookupSystemsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest LookupSystemsOutput
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}

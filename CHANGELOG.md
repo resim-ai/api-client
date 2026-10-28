@@ -4,7 +4,7 @@
 
 ### v1.3.1 - October 28, 2026
 
-- Batch output includes `features`. The API now reports batch features such as `metrics2` separately from `poolLabels`, and pool labels are bare cluster names such as `resim-k8s` rather than `resim:k8s:metrics2`, so check `features` for `metrics2` instead of the pool label.
+- Batch output includes `features`. The API now reports batch features such as `metrics2` separately from `poolLabels`, and pool labels are bare cluster names such as `resim-k8s` rather than `resim:k8s:metrics2`, so check `features` for `metrics2` instead of the pool label. (#241)
 
 ### v1.3.0 - October 23, 2026
 

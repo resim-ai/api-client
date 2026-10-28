@@ -92,3 +92,4 @@ Ground every claim in the final diff and verified evidence. Rewrite the title an
 Changelog entries are for humans. State what changed and link the parent PR, plus the invariant or behaviour needed to make sense of it. Everything else belongs in the PR description. An entry is read later by someone deciding whether a version matters to them, not by someone reviewing the work.
 
 <!-- resim-shared:end writing-conventions -->
+

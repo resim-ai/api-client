@@ -4242,8 +4242,8 @@ func TestBatchAndLogs(t *testing.T) {
 	ts.NoError(metricsErr)
 	req.NotNil(metricsSetBatch.MetricsSetName)
 	ts.Equal("woot", *metricsSetBatch.MetricsSetName)
-	req.NotEmpty(metricsSetBatch.PoolLabels)
-	ts.Contains((*metricsSetBatch.PoolLabels)[0], "metrics2")
+	req.NotNil(metricsSetBatch.Features)
+	ts.Contains(*metricsSetBatch.Features, "metrics2")
 
 	bogusBatchName := fmt.Sprintf("bogus-metrics-set-batch-%s", uuid.New().String())
 	bogusMetricsSet := fmt.Sprintf("does-not-exist-%s", uuid.New().String())
@@ -5665,12 +5665,15 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, runTestSuite(projectID, firstTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &metricsSetOverrideBatchName, nil, nil, &metricsSetOverrideName, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	output = s.runCommand(ts, getBatchByName(projectID, metricsSetOverrideBatchName, ExitStatusFalse), ExpectNoError)
+	// Reset before each decode: `features` is omitted when empty, and decoding into a reused struct
+	// would otherwise keep the previous batch's features.
+	batch = api.Batch{}
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
 	req.NotNil(batch.MetricsSetName)
 	ts.Equal(metricsSetOverrideName, *batch.MetricsSetName)
-	req.NotEmpty(batch.PoolLabels)
-	ts.Contains((*batch.PoolLabels)[0], "metrics2")
+	req.NotNil(batch.Features)
+	ts.Contains(*batch.Features, "metrics2")
 
 	// A metrics-set override that does not exist on the branch is rejected client-side.
 	bogusOverrideName := fmt.Sprintf("does-not-exist-%s", uuid.New().String())
@@ -5720,10 +5723,11 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &emptyMetricsPoolBatchName, nil, nil, nil, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	output = s.runCommand(ts, getBatchByName(projectID, emptyMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
+	batch = api.Batch{}
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
-	if batch.PoolLabels != nil && len(*batch.PoolLabels) > 0 {
-		ts.NotContains((*batch.PoolLabels)[0], "metrics2")
+	if batch.Features != nil {
+		ts.NotContains(*batch.Features, "metrics2")
 	}
 
 	// Then set a new metrics set name
@@ -5740,20 +5744,21 @@ func TestTestSuites(t *testing.T) {
 	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &defaultMetricsPoolBatchName, nil, nil, nil, false), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	output = s.runCommand(ts, getBatchByName(projectID, defaultMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
+	batch = api.Batch{}
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
-	req.NotEmpty(batch.PoolLabels)
-	ts.Contains((*batch.PoolLabels)[0], "metrics2")
+	req.NotNil(batch.Features)
+	ts.Contains(*batch.Features, "metrics2")
 
 	noMetricsPoolBatchName := fmt.Sprintf("no-metrics-pool-batch-%s", uuid.New().String())
 	output = s.runCommand(ts, runTestSuite(projectID, metricsSetTestSuiteName, nil, buildIDString, map[string]string{}, GithubFalse, AssociatedAccount, &noMetricsPoolBatchName, nil, nil, nil, true), ExpectNoError)
 	ts.Contains(output.StdOut, CreatedTestSuiteBatch)
 	output = s.runCommand(ts, getBatchByName(projectID, noMetricsPoolBatchName, ExitStatusFalse), ExpectNoError)
+	batch = api.Batch{}
 	err = json.Unmarshal([]byte(output.StdOut), &batch)
 	ts.NoError(err)
-	if batch.PoolLabels != nil && len(*batch.PoolLabels) > 0 {
-		ts.Contains((*batch.PoolLabels)[0], "metrics2")
-	}
+	req.NotNil(batch.Features)
+	ts.Contains(*batch.Features, "metrics2")
 }
 func TestReports(t *testing.T) {
 	ts := assert.New(t)

@@ -1,8 +1,9 @@
 name: Build and Test
 on:
+  # No path filter on pull_request: both jobs below are required checks, and a
+  # workflow skipped by a path filter leaves them pending forever. A job skipped
+  # by its `if` reports success instead, so the filtering happens in `changes`.
   pull_request:
-    paths-ignore:
-      - '**.md'
   push:
     branches:
       - main
@@ -13,8 +14,31 @@ permissions:
   pull-requests: write
 
 jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      # A PR that changes only markdown and .claude/ (Claude Code settings and
+      # instructions) builds and tests nothing.
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
+        id: filter
+        if: github.event_name == 'pull_request'
+        with:
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!.claude/**'
+
   build:
     name: Lint and Build
+    needs: changes
+    # Only an explicit 'false' skips. On push, or when the filter fails, `code`
+    # is empty and the job runs, so a broken filter can't pass a required check.
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,6 +56,8 @@ jobs:
 
   e2e:
     name: Run end-to-end test
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: go-go-gadget-runner
     steps:
       - name: Checkout

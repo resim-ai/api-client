@@ -22,6 +22,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -472,7 +473,19 @@ func debugMetricsCommand(projectName string, emissionsFile string, configPath st
 	return []CommandBuilder{metricsCommand, debugCommand}
 }
 
+// createdProjectNames records every project name the suite asks the CLI to create, so projects
+// left behind by a failed test can be archived once the run is over.
+var (
+	createdProjectNamesMu sync.Mutex
+	createdProjectNames   []string
+)
+
 func createProject(projectName string, description string, github bool) []CommandBuilder {
+	if projectName != "" {
+		createdProjectNamesMu.Lock()
+		createdProjectNames = append(createdProjectNames, projectName)
+		createdProjectNamesMu.Unlock()
+	}
 	// We build a create project command with the name and description flags
 	projectCommand := CommandBuilder{
 		Command: "projects",
@@ -7236,5 +7249,22 @@ func TestMain(m *testing.M) {
 	}
 	fmt.Printf("Running the end to end test with %s account", AssociatedAccount)
 	s.SetupHelper()
-	os.Exit(m.Run())
+	code := m.Run()
+	s.archiveLeftoverProjects()
+	os.Exit(code)
+}
+
+// archiveLeftoverProjects archives every project the suite tried to create. Archiving a project the
+// test already archived, or one that was never created, fails; that is expected and only logged.
+func (s *EndToEndTestHelper) archiveLeftoverProjects() {
+	createdProjectNamesMu.Lock()
+	names := append([]string(nil), createdProjectNames...)
+	createdProjectNamesMu.Unlock()
+	for _, name := range names {
+		cmd := s.buildCommand(archiveProject(name))
+		cmd.Env = os.Environ()
+		if err := cmd.Run(); err == nil {
+			fmt.Println("Archived leftover project", name)
+		}
+	}
 }

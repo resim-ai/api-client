@@ -4,7 +4,7 @@
 
 ### v1.4.0 - November 2, 2026
 
-- Removes the `reports` command and its `create`, `get`, `wait` and `logs` subcommands. Reports are no longer supported, so these commands can no longer succeed.
+- Removes the `reports` command and its `create`, `get`, `wait` and `logs` subcommands. Reports are no longer supported, so these commands can no longer succeed. (#246)
 
 ### v1.3.1 - October 28, 2026
 

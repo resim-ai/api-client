@@ -38,6 +38,7 @@ cmd/signalflag/signalflag
 
 # Claude Code machine-local settings (never commit)
 .claude/settings.local.json
+.claude/worktrees/**
 
 # Vim swap files
 *.swp

@@ -1,8 +1,6 @@
 name: Build and Test
 on:
   pull_request:
-    paths-ignore:
-      - '**.md'
   push:
     branches:
       - main
@@ -13,8 +11,39 @@ permissions:
   pull-requests: write
 
 jobs:
+  # `Lint and Build` and `Run end-to-end test` are required status checks on
+  # main. A workflow-level `paths-ignore` would never start the workflow for a
+  # docs-only PR, so those checks would never report and the PR would stay
+  # blocked. Gating the jobs instead makes them report as skipped.
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Filter changed paths
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Docs and Claude Code config don't affect the build or tests.
+          files="$(gh api "repos/${{ github.repository }}/pulls/${PR}/files" --paginate --jq '.[].filename')"
+          if echo "$files" | grep -vE '\.md$|^\.claude/' > /dev/null; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
     name: Lint and Build
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,6 +61,8 @@ jobs:
 
   e2e:
     name: Run end-to-end test
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: go-go-gadget-runner
     steps:
       - name: Checkout

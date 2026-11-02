@@ -1,0 +1,15 @@
+name: Configure Tembo PRs
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  configure:
+    uses: resim-ai/workspace/.github/workflows/tembo-pr-setup.yml@7ee010804f931b84dabc85e5e1ee3620910de948
+    secrets:
+      app-id: ${{ secrets.DEPLOYMENT_BOT_APP_ID }}
+      private-key: ${{ secrets.DEPLOYMENT_BOT_PRIVATE_KEY }}

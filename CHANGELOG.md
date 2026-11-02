@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v1.4.0 - November 2, 2026
+
+- Removes the `reports` command and its `create`, `get`, `wait` and `logs` subcommands. Reports are no longer supported, so these commands can no longer succeed.
+
 ### v1.3.1 - October 28, 2026
 
 - Batch output includes `features`. The API now reports batch features such as `metrics2` separately from `poolLabels`, and pool labels are bare cluster names such as `resim-k8s` rather than `resim:k8s:metrics2`, so check `features` for `metrics2` instead of the pool label. (#241)

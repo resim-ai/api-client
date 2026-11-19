@@ -14,7 +14,7 @@ permissions: {}
 
 jobs:
   tembo-merge:
-    uses: resim-ai/workspace/.github/workflows/tembo-merge.yml@858c8dcfea0d1b6c0ab2d6514d558e7b237e65a2
+    uses: resim-ai/workspace/.github/workflows/tembo-merge.yml@main
     with:
       agent-id: ${{ vars.TEMBO_MERGE_AGENT_ID }}
     secrets:

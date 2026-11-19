@@ -1,0 +1,21 @@
+name: Stamphog shadow review
+
+# Runs workspace's shared stamphog shadow review on each PR: it records what the
+# engine would decide and posts or approves nothing. The policy is .stamphog/.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize]
+
+permissions: {}
+
+jobs:
+  stamphog:
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      checks: read
+    uses: resim-ai/workspace/.github/workflows/stamphog-shadow.yml@main
+    secrets:
+      anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY }}

@@ -1,0 +1,46 @@
+# api-client's stamphog policy. The engine merges it onto its shipped default
+# (products/stamphog/packages/pr-approval-agent/defaults/policy.yml in PostHog/posthog):
+# a list declared here replaces the default's, and `extend_<list>` appends to it.
+version: 1
+deny:
+  infra_cicd:
+    match:
+      extend_paths:
+        - ^\.github/
+        - ^\.devcontainer/
+  environment_selection:
+    description: Where the CLI picks the API, auth server and client credentials it uses.
+    rationale: >-
+      The CLI defaults to production, so an edit here can point customers' commands
+      and CI at the wrong environment or send a credential to it.
+    match:
+      paths:
+        - ^cmd/signalflag/commands/(client|commands|env|gov)\.go$
+  live_test_harness:
+    description: The end-to-end suite and its fixtures, which run against staging with real credentials.
+    rationale: CI runs it with deployment secrets on every code PR, so a test-only change here is not low risk.
+    match:
+      paths:
+        - ^testing/
+  agent_steering:
+    description: Agent settings, hooks, skills, MCP servers and agent definitions.
+    rationale: >-
+      They decide what later agent runs may execute, so a person reads them.
+      CLAUDE.md is prose guidance and stays eligible.
+    match:
+      paths:
+        - ^\.claude/
+        - (^|/)\.mcp\.json$
+# Approved without the LLM reading the diff (tier T0) when every file matches. Path patterns
+# are plain substrings, not globs or regexes. Generated code is not listed: CI doesn't
+# regenerate and diff it. Unit tests anywhere qualify through the engine's own test-file rule.
+allow:
+  extensions_only:
+    - .md
+  path_patterns:
+    - docs/
+    - README
+    - CHANGELOG
+    - LICENSE
+    - .gitignore
+    - testdata/

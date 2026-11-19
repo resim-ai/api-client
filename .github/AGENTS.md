@@ -1,9 +1,11 @@
 # GitHub automation
 
-`workflows/tembo-pr-setup.yml` calls the reusable Tembo PR workflow in
-`resim-ai/workspace` at a pinned commit. The shared implementation and Node tests
-live there. Pass only its two named App secrets; keep the temporary token scoped
-to this repository. GitHub enforces required reviews and checks.
+`workflows/tembo-pr-setup.yml` and `workflows/stamphog-shadow.yml` call reusable
+workflows in `resim-ai/workspace` at `@main`. The shared implementations and
+their tests live there. Pass only the named secrets each one takes; keep the Tembo
+token scoped to this repository. GitHub enforces required reviews and checks.
 
-Verify caller syntax with `actionlint .github/workflows/tembo-pr-setup.yml`.
-Before updating the shared commit, verify the workflow and tests in workspace.
+The stamphog shadow review's policy is `.stamphog/` on `main`; see its README.
+
+Verify caller syntax with `actionlint` on the changed workflow. Before changing a
+shared workflow, verify it and its tests in workspace.

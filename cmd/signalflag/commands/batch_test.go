@@ -1435,7 +1435,7 @@ func (s *CommandsSuite) TestBatchRerun_ConflictShouldRetry() {
 		}, nil).Once()
 
 	// Call submitBatchRerun directly
-	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second, false, false)
+	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, rerunConflictRetry{delay: time.Millisecond, timeout: 2 * time.Millisecond}, false, false)
 
 	// Should succeed with no error after retrying
 	s.NoError(err)
@@ -1444,41 +1444,48 @@ func (s *CommandsSuite) TestBatchRerun_ConflictShouldRetry() {
 	s.Equal(rerunBatchID, *response.JSON200.BatchID)
 }
 
-func (s *CommandsSuite) TestBatchRerun_ConflictMaxRetriesReached() {
+// The API keeps refusing a rerun until the previous run's worker pools drain,
+// so the CLI must keep retrying for as long as its timeout allows.
+func (s *CommandsSuite) TestBatchRerun_ConflictRetriesUntilTimeout() {
+	projectID := uuid.New()
+	batchID := uuid.New()
+	rerunBatchID := uuid.New()
+	jobID := uuid.New()
+
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusConflict},
+		}, nil).Times(9)
+	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
+		&api.RerunBatchResponse{
+			HTTPResponse: &http.Response{StatusCode: http.StatusOK},
+			JSON200:      &api.RerunBatchOutput{BatchID: &rerunBatchID},
+		}, nil).Once()
+
+	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, rerunConflictRetry{delay: time.Millisecond, timeout: 9 * time.Millisecond}, false, false)
+
+	s.NoError(err)
+	s.Equal(rerunBatchID, *response.JSON200.BatchID)
+	s.mockClient.AssertNumberOfCalls(s.T(), "RerunBatchWithResponse", 10)
+}
+
+func (s *CommandsSuite) TestBatchRerun_ConflictTimeoutReached() {
 	projectID := uuid.New()
 	batchID := uuid.New()
 	jobID := uuid.New()
 
-	// Mock the rerun batch submission - all 3 attempts return 409 Conflict
-	// This will exhaust all retries and return an error
+	// A 2ms timeout at 1ms per retry allows three attempts in all.
 	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
 		&api.RerunBatchResponse{
-			HTTPResponse: &http.Response{
-				StatusCode: http.StatusConflict, // First attempt: conflict
-			},
-		}, nil).Once()
+			HTTPResponse: &http.Response{StatusCode: http.StatusConflict},
+		}, nil).Times(3)
 
-	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
-		&api.RerunBatchResponse{
-			HTTPResponse: &http.Response{
-				StatusCode: http.StatusConflict, // Second attempt: conflict
-			},
-		}, nil).Once()
+	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, rerunConflictRetry{delay: time.Millisecond, timeout: 2 * time.Millisecond}, false, false)
 
-	s.mockClient.On("RerunBatchWithResponse", matchContext, projectID, batchID, mock.Anything).Return(
-		&api.RerunBatchResponse{
-			HTTPResponse: &http.Response{
-				StatusCode: http.StatusConflict, // Third attempt: conflict (max retries reached)
-			},
-		}, nil).Once()
-
-	// Call submitBatchRerun directly
-	response, err := submitBatchRerun(projectID, batchID, []uuid.UUID{jobID}, 1*time.Second, false, false)
-
-	// Should return an error after max retries are reached
 	s.Error(err)
 	s.Nil(response)
-	s.Contains(err.Error(), "max retries reached")
+	s.Contains(err.Error(), "still cleaning up after 2ms")
+	s.mockClient.AssertNumberOfCalls(s.T(), "RerunBatchWithResponse", 3)
 }
 
 // computeExitCode tests

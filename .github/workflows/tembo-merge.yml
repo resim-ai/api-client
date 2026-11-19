@@ -1,0 +1,23 @@
+name: Tembo Review and Merge
+
+# The `tembo-merge` label asks Tembo to review a PR; its approval lets GitHub
+# auto-merge it. The workflow and agent live in resim-ai/workspace, and rerun's
+# docs/cloud-agents.md covers setup.
+
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+permissions: {}
+
+jobs:
+  tembo-merge:
+    uses: resim-ai/workspace/.github/workflows/tembo-merge.yml@858c8dcfea0d1b6c0ab2d6514d558e7b237e65a2
+    with:
+      agent-id: ${{ vars.TEMBO_MERGE_AGENT_ID }}
+    secrets:
+      TEMBO_API_KEY: ${{ secrets.TEMBO_API_KEY }}
+      app-id: ${{ secrets.DEPLOYMENT_BOT_APP_ID }}
+      private-key: ${{ secrets.DEPLOYMENT_BOT_PRIVATE_KEY }}

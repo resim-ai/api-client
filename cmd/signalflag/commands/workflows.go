@@ -995,7 +995,7 @@ func superviseWorkflowRunBatch(projectID uuid.UUID, batchID uuid.UUID, params *S
 			}
 		}
 
-		response, err := submitBatchRerun(batchParams.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second, false, false)
+		response, err := submitBatchRerun(batchParams.ProjectID, *batch.BatchID, matchingJobIDs, defaultRerunConflictRetry, false, false)
 		if err != nil {
 			return &SuperviseResult{
 				Error: err,

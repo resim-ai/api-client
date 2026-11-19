@@ -2,6 +2,10 @@
 
 ## ReSim CLI
 
+### v1.4.1 - November 18, 2026
+
+- `batch supervise`, `workflows runs supervise` and `batch rerun` wait up to 15 minutes, rather than one minute, for a finished batch to finish cleaning up before it can be rerun. Supervise no longer gives up on a rerun with `max retries reached` when cleanup is slow. (#248)
+
 ### v1.4.0 - November 2, 2026
 
 - Removes the `reports` command and its `create`, `get`, `wait` and `logs` subcommands. Reports are no longer supported, so these commands can no longer succeed. (#246)

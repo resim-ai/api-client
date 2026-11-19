@@ -607,7 +607,7 @@ func actualSuperviseBatch(ccmd *cobra.Command, args []string) *SuperviseResult {
 			}
 		}
 
-		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, 30*time.Second, false, false)
+		response, err := submitBatchRerun(params.ProjectID, *batch.BatchID, matchingJobIDs, defaultRerunConflictRetry, false, false)
 		if err != nil {
 			return &SuperviseResult{
 				Error: err,
@@ -1324,7 +1324,17 @@ func cancelBatch(ccmd *cobra.Command, args []string) {
 	fmt.Println("Batch cancelled successfully!")
 }
 
-func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, conflictRetryDelay time.Duration, syncWithTestSuite bool, rerunMetricsOnly bool) (*api.RerunBatchResponse, error) {
+// rerunConflictRetry paces retries of a rerun the API refuses with 409 because
+// the batch's previous run is still cleaning up. The API holds a finished run
+// until its worker pools drain, which can take up to ten minutes.
+type rerunConflictRetry struct {
+	delay   time.Duration
+	timeout time.Duration
+}
+
+var defaultRerunConflictRetry = rerunConflictRetry{delay: 30 * time.Second, timeout: 15 * time.Minute}
+
+func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID, retry rerunConflictRetry, syncWithTestSuite bool, rerunMetricsOnly bool) (*api.RerunBatchResponse, error) {
 	// Start with an empty list of job IDs
 	rerunInput := api.RerunBatchInput{
 		JobIDs:    &[]uuid.UUID{},
@@ -1337,28 +1347,27 @@ func submitBatchRerun(projectID uuid.UUID, batchID uuid.UUID, jobIDs []uuid.UUID
 		rerunInput.RerunMetricsOnly = Ptr(true)
 	}
 
-	maxRetries := 3
-	for attempt := 1; attempt <= maxRetries; attempt++ {
-		log.Printf("Attempting to rerun batch (%d/%d)...", attempt, maxRetries)
+	log.Println("Attempting to rerun batch...")
+	maxAttempts := 1 + int(retry.timeout/retry.delay)
+	for attempt := 1; ; attempt++ {
 		response, err := Client.RerunBatchWithResponse(context.Background(), projectID, batchID, rerunInput)
 		if err != nil {
 			return nil, fmt.Errorf("failed to rerun batch: %v", err)
 		}
-		if response != nil && response.StatusCode() == http.StatusConflict {
-			if attempt == maxRetries {
-				return nil, fmt.Errorf("failed to rerun batch: max retries reached (%d/%d)", attempt, maxRetries)
+		if response.StatusCode() != http.StatusConflict {
+			err = ValidateResponseSafe(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
+			if err != nil {
+				return nil, err
 			}
-			log.Println("Existing batch run is cleaning up. Retrying...")
-			time.Sleep(conflictRetryDelay)
-			continue
+			return response, nil
 		}
-		err = ValidateResponseSafe(http.StatusOK, "failed to rerun batch", response.HTTPResponse, response.Body)
-		if err != nil {
-			return nil, err
+		waited := time.Duration(attempt-1) * retry.delay
+		if attempt >= maxAttempts {
+			return nil, fmt.Errorf("failed to rerun batch: its previous run was still cleaning up after %v", waited)
 		}
-		return response, nil
+		log.Printf("The batch's previous run is still cleaning up; retrying in %v (waited %v of up to %v)", retry.delay, waited, retry.timeout)
+		time.Sleep(retry.delay)
 	}
-	return nil, fmt.Errorf("failed to rerun batch: unknown error")
 }
 
 func rerunBatch(ccmd *cobra.Command, args []string) {
@@ -1397,7 +1406,7 @@ func rerunBatch(ccmd *cobra.Command, args []string) {
 		}
 	}
 
-	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, 30*time.Second, viper.GetBool(batchSyncWithTestSuiteKey), rerunMetricsOnly)
+	_, err := submitBatchRerun(projectID, *batch.BatchID, jobIDs, defaultRerunConflictRetry, viper.GetBool(batchSyncWithTestSuiteKey), rerunMetricsOnly)
 	if err != nil {
 		log.Fatal(err)
 	}
